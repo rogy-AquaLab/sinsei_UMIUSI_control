@@ -1,0 +1,40 @@
+name: ${PACKAGE_NAME}
+
+services:
+  ssh:
+    image: kroniak/ssh-client
+    volumes:
+      - ${HOME}/.ssh:/root/.ssh:ro
+      - ${SSH_AUTH_SOCK}:/tmp/ssh-agent.sock
+    environment:
+      SSH_AUTH_SOCK: /tmp/ssh-agent.sock
+    networks:
+      - ssh
+    tty: true
+
+  work:
+    build:
+      context: ./.docker/work
+      args:
+        ros_distro: ${ROS_DISTRO}
+    user: "${USER_ID}:${GROUP_ID}"
+    working_dir: /home/ubuntu/ros_ws/src/pkg
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - .:/home/ubuntu/ros_ws/src/pkg:rw
+    environment:
+      TERM: xterm-color
+      DISPLAY:
+      ROS_DOMAIN_ID:
+    restart: always
+    ipc: host
+    privileged: true
+    networks:
+      - ros
+      - ssh
+    tty: true
+
+networks:
+  ros:
+    driver: bridge
+  ssh:
