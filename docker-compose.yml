@@ -1,16 +1,6 @@
 name: ${PACKAGE_NAME}
 
 services:
-  ssh:
-    image: kroniak/ssh-client
-    volumes:
-      - ${HOME}/.ssh:/root/.ssh:ro
-      - ${SSH_AUTH_SOCK}:/tmp/ssh-agent.sock
-    environment:
-      SSH_AUTH_SOCK: /tmp/ssh-agent.sock
-    networks:
-      - ssh
-    tty: true
 
   work:
     build:
@@ -31,10 +21,8 @@ services:
     privileged: true
     networks:
       - ros
-      - ssh
     tty: true
 
 networks:
   ros:
     driver: bridge
-  ssh:
