@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
+  <xacro:arg name="thruster_mode" default="can" />
+
+  <xacro:include filename="sinsei_umiusi_control/can.urdf.xacro" />
+  <xacro:include filename="sinsei_umiusi_control/thruster_direct.urdf.xacro" />
+  <xacro:include filename="sinsei_umiusi_control/indicator_led.urdf.xacro" />
+  <xacro:include filename="sinsei_umiusi_control/imu.urdf.xacro" />
+  <xacro:include filename="sinsei_umiusi_control/headlights.urdf.xacro" />
+  <xacro:include filename="sinsei_umiusi_control/usb_camera.urdf.xacro" />
+  <xacro:include filename="sinsei_umiusi_control/raspi_camera.urdf.xacro" />
+
+  <xacro:if value="${$(arg thruster_mode) == 'can'}">
+    <xacro:can with_thruster="true" />
+  </xacro:if>
+  <xacro:if value="${$(arg thruster_mode) == 'direct'}">
+    <xacro:can with_thruster="false" />
+    <xacro:thruster_direct />
+  </xacro:if>
+  <xacro:indicator_led />
+  <xacro:imu />
+  <xacro:headlights />
+  <xacro:usb_camera />
+  <xacro:raspi_camera />
+</robot>

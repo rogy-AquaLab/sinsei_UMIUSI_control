@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xacro:macro name="indicator_led">
+  <ros2_control name="thruster_direct" type="actuator">
+    <hardware>
+      <plugin>sinsei_umiusi_control/hardware/IndicatorLed</plugin>
+    </hardware>
+    <gpio name="indicator_led">
+      <command_interface name="indicator_led/enabled" />
+    </gpio>
+  </ros2_control>
+</xacro:macro>

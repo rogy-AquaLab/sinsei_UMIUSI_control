@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xacro:macro name="headlights">
+  <ros2_control name="headlights" type="actuator">
+    <hardware>
+      <plugin>sinsei_umiusi_control/hardware/Headlights</plugin>
+    </hardware>
+    <gpio name="headlights">
+      <command_interface name="headlights/high_beam_enabled" />
+      <command_interface name="headlights/low_beam_enabled" />
+      <command_interface name="headlights/ir_enabled" />
+    </gpio>
+  </ros2_control>
+</xacro:macro>
