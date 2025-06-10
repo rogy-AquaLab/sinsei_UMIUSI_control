@@ -1,0 +1,65 @@
+<library path="sinsei_umiusi_control_hardware">
+  <class
+    name="sinsei_umiusi_control/hardware/Can"
+    type="sinsei_umiusi_control::hardware::Can"
+    base_class_type="hardware_interface::SystemInterface"
+  >
+    <description>
+      Interface to CAN controller for UMIUSI
+    </description>
+  </class>
+  <class
+    name="sinsei_umiusi_control/hardware/ThrusterDirect"
+    type="sinsei_umiusi_control::hardware::ThrusterDirect"
+    base_class_type="hardware_interface::ActuatorInterface"
+  >
+    <description>
+      Interface to thrusters for UMIUSI
+    </description>
+  </class>
+  <class
+    name="sinsei_umiusi_control/hardware/IndicatorLed"
+    type="sinsei_umiusi_control::hardware::IndicatorLed"
+    base_class_type="hardware_interface::ActuatorInterface"
+  >
+    <description>
+      Interface to indicator LED for UMIUSI
+    </description>
+  </class>
+  <class
+    name="sinsei_umiusi_control/hardware/Imu"
+    type="sinsei_umiusi_control::hardware::Imu"
+    base_class_type="hardware_interface::SensorInterface"
+  >
+    <description>
+      Interface to IMU for UMIUSI
+    </description>
+  </class>
+  <class
+    name="sinsei_umiusi_control/hardware/Headlights"
+    type="sinsei_umiusi_control::hardware::Headlights"
+    base_class_type="hardware_interface::ActuatorInterface"
+  >
+    <description>
+      Interface to headlights for UMIUSI
+    </description>
+  </class>
+  <class
+    name="sinsei_umiusi_control/hardware/UsbCamera"
+    type="sinsei_umiusi_control::hardware::UsbCamera"
+    base_class_type="hardware_interface::ActuatorInterface"
+  >
+    <description>
+      Interface to USB camera for UMIUSI
+    </description>
+  </class>
+  <class
+    name="sinsei_umiusi_control/hardware/RaspiCamera"
+    type="sinsei_umiusi_control::hardware::RaspiCamera"
+    base_class_type="hardware_interface::ActuatorInterface"
+  >
+    <description>
+      Interface to Raspi camera for UMIUSI
+    </description>
+  </class>
+</library>

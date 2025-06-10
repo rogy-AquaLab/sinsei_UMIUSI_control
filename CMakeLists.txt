@@ -9,9 +9,34 @@ endif()
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
-# ament_auto_add_library(...)
+ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
+  src/${PROJECT_NAME}/hardware/can.cpp
+  src/${PROJECT_NAME}/hardware/headlights.cpp
+  src/${PROJECT_NAME}/hardware/imu.cpp
+  src/${PROJECT_NAME}/hardware/indicator_led.cpp
+  src/${PROJECT_NAME}/hardware/raspi_camera.cpp
+  src/${PROJECT_NAME}/hardware/thruster_direct.cpp
+  src/${PROJECT_NAME}/hardware/usb_camera.cpp
+  include/${PROJECT_NAME}/hardware/can.hpp
+  include/${PROJECT_NAME}/hardware/headlights.hpp
+  include/${PROJECT_NAME}/hardware/imu.hpp
+  include/${PROJECT_NAME}/hardware/indicator_led.hpp
+  include/${PROJECT_NAME}/hardware/raspi_camera.hpp
+  include/${PROJECT_NAME}/hardware/thruster_direct.hpp
+  include/${PROJECT_NAME}/hardware/usb_camera.hpp
+)
 
-# ament_auto_add_executable(...)
+ament_auto_add_library(${PROJECT_NAME}_controller SHARED
+  src/${PROJECT_NAME}/gate_controller.cpp
+  src/${PROJECT_NAME}/app_controller.cpp
+  src/${PROJECT_NAME}/thruster_controller.cpp
+  include/${PROJECT_NAME}/gate_controller.hpp
+  include/${PROJECT_NAME}/app_controller.hpp
+  include/${PROJECT_NAME}/thruster_controller.hpp
+)
+
+pluginlib_export_plugin_description_file(hardware_interface plugin/umiusi_hardware_plugin.xml)
+pluginlib_export_plugin_description_file(controller_interface plugin/umiusi_controller_plugin.xml)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -29,4 +54,10 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-ament_auto_package()
+ament_auto_package(
+  USE_SCOPED_HEADER_INSTALL_DIR
+  INSTALL_TO_SHARE
+  urdf
+  config
+  launch
+)
