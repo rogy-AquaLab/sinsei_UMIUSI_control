@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<launch>
+  <!-- Constants -->
+  <let name="pkg_name" value="sinsei_umiusi_control" />
+
+  <!-- Launch Arguments -->
+  <arg name="robot_description"
+    default="$(command 'xacro $(find-pkg-share $(var pkg_name))/urdf/sinsei_umiusi_control.urdf.xacro')" />
+
+  <arg
+    name="robot_controllers_path"
+    default="$(find-pkg-share $(var pkg_name))/config/controllers.yml" />
+
+  <!-- Launch nodes -->
+  <node
+    pkg="controller_manager"
+    exec="ros2_control_node" output="both">
+    <param from="$(var robot_controllers_path)" />
+  </node>
+
+  <node pkg="controller_manager"
+    exec="spawner"
+    args="umiusi_controller --param-file $(var robot_controllers_path)" />
+
+  <node pkg="robot_state_publisher" exec="robot_state_publisher" output="both">
+    <param name="robot_description" value="$(var robot_description)" />
+  </node>
+
+</launch>
