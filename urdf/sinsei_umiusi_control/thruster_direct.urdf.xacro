@@ -19,7 +19,7 @@
       <command_interface name="thruster_direct/angle_raw" />
     </gpio>
 
-    <gpio name="${thruster_name}/thrust_direct">
+    <gpio name="${thruster_name}/esc_direct">
       <command_interface name="thruster_direct/enabled_raw" />
       <command_interface name="thruster_direct/thrust_raw" />
     </gpio>
