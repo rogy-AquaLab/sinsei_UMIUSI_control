@@ -21,7 +21,6 @@
 
   <build_depend>ros2_control_cmake</build_depend>
   <build_depend>realtime_tools</build_depend>
-  <build_depend>std_msgs</build_depend>
 
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>xacro</exec_depend>

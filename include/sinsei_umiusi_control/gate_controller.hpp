@@ -10,7 +10,6 @@
 #include "rclcpp/rclcpp.hpp"
 #include "realtime_tools/realtime_buffer.hpp"
 #include "realtime_tools/realtime_publisher.hpp"
-#include "std_msgs/msg/float64.hpp"
 
 namespace sinsei_umiusi_control {
 
