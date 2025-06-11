@@ -27,12 +27,12 @@ ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
 )
 
 ament_auto_add_library(${PROJECT_NAME}_controller SHARED
-  src/${PROJECT_NAME}/gate_controller.cpp
-  src/${PROJECT_NAME}/app_controller.cpp
-  src/${PROJECT_NAME}/thruster_controller.cpp
-  include/${PROJECT_NAME}/gate_controller.hpp
-  include/${PROJECT_NAME}/app_controller.hpp
-  include/${PROJECT_NAME}/thruster_controller.hpp
+  src/${PROJECT_NAME}/controller/gate_controller.cpp
+  src/${PROJECT_NAME}/controller/app_controller.cpp
+  src/${PROJECT_NAME}/controller/thruster_controller.cpp
+  include/${PROJECT_NAME}/controller/gate_controller.hpp
+  include/${PROJECT_NAME}/controller/app_controller.hpp
+  include/${PROJECT_NAME}/controller/thruster_controller.hpp
 )
 
 pluginlib_export_plugin_description_file(hardware_interface plugin/umiusi_hardware_plugin.xml)

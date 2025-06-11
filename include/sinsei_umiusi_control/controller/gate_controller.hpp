@@ -11,7 +11,7 @@
 #include "realtime_tools/realtime_buffer.hpp"
 #include "realtime_tools/realtime_publisher.hpp"
 
-namespace sinsei_umiusi_control {
+namespace sinsei_umiusi_control::controller {
 
 class GateController : public controller_interface::ControllerInterface {
   private:
@@ -29,6 +29,6 @@ class GateController : public controller_interface::ControllerInterface {
     auto update(const rclcpp::Time & time, const rclcpp::Duration & period)
         -> controller_interface::return_type override;
 };
-}  // namespace sinsei_umiusi_control
+}  // namespace sinsei_umiusi_control::controller
 
 #endif  // SINSEI_UMIUSI_CONTROL_GATE_CONTROLLER_HPP

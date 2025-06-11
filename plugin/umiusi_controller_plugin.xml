@@ -1,7 +1,7 @@
 <library path="sinsei_umiusi_control_controller">
   <class
-    name="sinsei_umiusi_control/GateController"
-    type="sinsei_umiusi_control::GateController"
+    name="sinsei_umiusi_control/controller/GateController"
+    type="sinsei_umiusi_control::controller::GateController"
     base_class_type="controller_interface::ControllerInterface"
   >
     <description>
@@ -9,8 +9,8 @@
     </description>
   </class>
   <class
-    name="sinsei_umiusi_control/AppController"
-    type="sinsei_umiusi_control::AppController"
+    name="sinsei_umiusi_control/controller/AppController"
+    type="sinsei_umiusi_control::controller::AppController"
     base_class_type="controller_interface::ChainableControllerInterface"
   >
     <description>
@@ -18,8 +18,8 @@
     </description>
   </class>
   <class
-    name="sinsei_umiusi_control/ThrusterController"
-    type="sinsei_umiusi_control::ThrusterController"
+    name="sinsei_umiusi_control/controller/ThrusterController"
+    type="sinsei_umiusi_control::controller::ThrusterController"
     base_class_type="controller_interface::ChainableControllerInterface"
   >
     <description>
