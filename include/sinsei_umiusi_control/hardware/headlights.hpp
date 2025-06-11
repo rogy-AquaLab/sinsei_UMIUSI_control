@@ -8,9 +8,7 @@
 #include "hardware_interface/actuator_interface.hpp"
 #include "rclcpp/macros.hpp"
 
-namespace sinsei_umiusi_control {
-
-namespace hardware {
+namespace sinsei_umiusi_control::hardware {
 
 class Headlights : public hardware_interface::ActuatorInterface {
   private:
@@ -34,8 +32,6 @@ class Headlights : public hardware_interface::ActuatorInterface {
         -> hardware_interface::return_type override;
 };
 
-}  // namespace hardware
-
-}  // namespace sinsei_umiusi_control
+}  // namespace sinsei_umiusi_control::hardware
 
 #endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_HEADLIGHTS_HPP

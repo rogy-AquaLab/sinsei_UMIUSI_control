@@ -8,9 +8,7 @@
 #include "hardware_interface/sensor_interface.hpp"
 #include "rclcpp/macros.hpp"
 
-namespace sinsei_umiusi_control {
-
-namespace hardware {
+namespace sinsei_umiusi_control::hardware {
 
 class Imu : public hardware_interface::SensorInterface {
   private:
@@ -30,8 +28,6 @@ class Imu : public hardware_interface::SensorInterface {
         -> hardware_interface::return_type override;
 };
 
-}  // namespace hardware
-
-}  // namespace sinsei_umiusi_control
+}  // namespace sinsei_umiusi_control::hardware
 
 #endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_IMU_HPP

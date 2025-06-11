@@ -8,9 +8,7 @@
 #include "hardware_interface/system_interface.hpp"
 #include "rclcpp/macros.hpp"
 
-namespace sinsei_umiusi_control {
-
-namespace hardware {
+namespace sinsei_umiusi_control::hardware {
 
 class Can : public hardware_interface::SystemInterface {
   private:
@@ -34,8 +32,6 @@ class Can : public hardware_interface::SystemInterface {
         -> hardware_interface::return_type override;
 };
 
-}  // namespace hardware
-
-}  // namespace sinsei_umiusi_control
+}  // namespace sinsei_umiusi_control::hardware
 
 #endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_CAN_HPP
