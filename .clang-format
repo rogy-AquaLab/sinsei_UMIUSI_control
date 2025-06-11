@@ -6,7 +6,7 @@ BasedOnStyle: Google
 
 AccessModifierOffset: -2
 AlignAfterOpenBracket: AlwaysBreak
-BreakBeforeBraces: Custom
+BreakBeforeBraces: Attach
 ColumnLimit: 100
 ConstructorInitializerIndentWidth: 0
 ContinuationIndentWidth: 4
