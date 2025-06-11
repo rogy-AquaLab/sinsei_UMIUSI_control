@@ -5,8 +5,6 @@ namespace hif = hardware_interface;
 namespace rlc = rclcpp_lifecycle;
 
 auto suchw::ThrusterDirect::on_init(const hif::HardwareInfo & /*info*/) -> hif::CallbackReturn {
-    this->command = 0.0;
-    this->state = 0.0;
     return hif::CallbackReturn::SUCCESS;
 }
 
@@ -29,7 +27,6 @@ auto suchw::ThrusterDirect::read(const rclcpp::Time & /*time*/, const rclcpp::Du
 
 auto suchw::ThrusterDirect::write(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> hif::return_type {
-    this->state = this->command;
     return hif::return_type::OK;
 }
 

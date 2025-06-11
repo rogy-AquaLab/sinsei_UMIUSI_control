@@ -7,6 +7,7 @@
     <gpio name="imu">
       <state_interface name="imu/orientation" />
       <state_interface name="imu/velocity" />
+      <state_interface name="imu/temperature" />
     </gpio>
   </ros2_control>
 </xacro:macro>

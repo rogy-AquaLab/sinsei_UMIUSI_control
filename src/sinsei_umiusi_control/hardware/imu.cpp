@@ -5,8 +5,6 @@ namespace hif = hardware_interface;
 namespace rlc = rclcpp_lifecycle;
 
 auto suchw::Imu::on_init(const hif::HardwareInfo & /*info*/) -> hif::CallbackReturn {
-    this->command = 0.0;
-    this->state = 0.0;
     return hif::CallbackReturn::SUCCESS;
 }
 

@@ -7,13 +7,17 @@
 
 #include "hardware_interface/sensor_interface.hpp"
 #include "rclcpp/macros.hpp"
+#include "sinsei_umiusi_control/state/imu.hpp"
+
+namespace suc = sinsei_umiusi_control;
 
 namespace sinsei_umiusi_control::hardware {
 
 class Imu : public hardware_interface::SensorInterface {
   private:
-    double command;
-    double state;
+    suc::state::imu::Orientation orientation;
+    suc::state::imu::Velocity velocity;
+    suc::state::imu::Temperature temperature;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(Imu)

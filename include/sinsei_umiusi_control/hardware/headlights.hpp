@@ -7,13 +7,17 @@
 
 #include "hardware_interface/actuator_interface.hpp"
 #include "rclcpp/macros.hpp"
+#include "sinsei_umiusi_control/cmd/headlights.hpp"
+
+namespace suc = sinsei_umiusi_control;
 
 namespace sinsei_umiusi_control::hardware {
 
 class Headlights : public hardware_interface::ActuatorInterface {
   private:
-    double command;
-    double state;
+    suc::cmd::headlights::HighBeamEnabled high_beam_enabled;
+    suc::cmd::headlights::LowBeamEnabled low_beam_enabled;
+    suc::cmd::headlights::IrEnabled ir_enabled;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(Headlights)

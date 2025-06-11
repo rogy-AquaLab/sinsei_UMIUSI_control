@@ -7,13 +7,17 @@
 
 #include "hardware_interface/actuator_interface.hpp"
 #include "rclcpp/macros.hpp"
+#include "sinsei_umiusi_control/cmd/raspi_camera.hpp"
+#include "sinsei_umiusi_control/state/raspi_camera.hpp"
+
+namespace suc = sinsei_umiusi_control;
 
 namespace sinsei_umiusi_control::hardware {
 
 class RaspiCamera : public hardware_interface::ActuatorInterface {
   private:
-    double command;
-    double state;
+    suc::cmd::raspi_camera::Config config;
+    suc::state::raspi_camera::Image image;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(RaspiCamera)

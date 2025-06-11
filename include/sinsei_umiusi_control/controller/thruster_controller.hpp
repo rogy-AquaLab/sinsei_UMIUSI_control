@@ -10,11 +10,31 @@
 #include "rclcpp/rclcpp.hpp"
 #include "realtime_tools/realtime_buffer.hpp"
 #include "realtime_tools/realtime_publisher.hpp"
+#include "sinsei_umiusi_control/cmd/thruster.hpp"
+#include "sinsei_umiusi_control/state/thruster.hpp"
+
+namespace suc = sinsei_umiusi_control;
 
 namespace sinsei_umiusi_control::controller {
 
 class ThrusterController : public controller_interface::ChainableControllerInterface {
   private:
+    // Command interfaces (in)
+    suc::cmd::thruster::Enabled enabled;
+    suc::cmd::thruster::Angle angle;
+    suc::cmd::thruster::Thrust thrust;
+
+    // Command interfaces (out)
+    suc::cmd::thruster::Enabled enabled_raw;
+
+    // State interfaces (in)
+    suc::state::thruster::ServoCurrent servo_current_raw;
+    suc::state::thruster::Rpm rpm_raw;
+
+    // State interfaces (out)
+    suc::state::thruster::ServoCurrent servo_current;
+    suc::state::thruster::Rpm rpm;
+
   public:
     ThrusterController() = default;
 

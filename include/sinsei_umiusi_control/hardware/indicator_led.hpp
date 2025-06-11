@@ -7,13 +7,15 @@
 
 #include "hardware_interface/actuator_interface.hpp"
 #include "rclcpp/macros.hpp"
+#include "sinsei_umiusi_control/cmd/indicator_led.hpp"
+
+namespace suc = sinsei_umiusi_control;
 
 namespace sinsei_umiusi_control::hardware {
 
 class IndicatorLed : public hardware_interface::ActuatorInterface {
   private:
-    double command;
-    double state;
+    suc::cmd::indicator_led::Enabled enabled;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(IndicatorLed)
