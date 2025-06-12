@@ -30,35 +30,31 @@ namespace sinsei_umiusi_control::controller {
 
 class GateController : public controller_interface::ControllerInterface {
   private:
-    suc::cmd::main_power::Enabled main_power_enabled;
-    suc::cmd::led_tape::Color led_tape_color;
-    suc::cmd::indicator_led::Enabled indicator_led_enabled;
-    suc::cmd::headlights::HighBeamEnabled high_beam_enabled;
-    suc::cmd::headlights::LowBeamEnabled low_beam_enabled;
-    suc::cmd::headlights::IrEnabled ir_enabled;
-    suc::cmd::usb_camera::Config usb_camera_config;
-    suc::cmd::raspi_camera::Config raspi_camera_config;
-    suc::cmd::thruster::Enabled thruster_enabled;
-    suc::cmd::app::Orientation target_orientation;
-    suc::cmd::app::Velocity target_velocity;
+    // Command interfaces (out)
+    std::unique_ptr<hardware_interface::LoanedCommandInterface> main_power_enabled;
+    std::unique_ptr<hardware_interface::LoanedCommandInterface> led_tape_color;
+    std::unique_ptr<hardware_interface::LoanedCommandInterface> indicator_led_enabled;
+    std::unique_ptr<hardware_interface::LoanedCommandInterface> high_beam_enabled;
+    std::unique_ptr<hardware_interface::LoanedCommandInterface> low_beam_enabled;
+    std::unique_ptr<hardware_interface::LoanedCommandInterface> ir_enabled;
+    std::unique_ptr<hardware_interface::LoanedCommandInterface> usb_camera_config;
+    std::unique_ptr<hardware_interface::LoanedCommandInterface> raspi_camera_config;
+    std::unique_ptr<hardware_interface::LoanedCommandInterface> thruster_enabled;
+    std::unique_ptr<hardware_interface::LoanedCommandInterface> target_orientation;
+    std::unique_ptr<hardware_interface::LoanedCommandInterface> target_velocity;
 
-    suc::state::main_power::BatteryCurrent battery_current;
-    suc::state::main_power::BatteryVoltage battery_voltage;
-    suc::state::main_power::Temperature main_power_temperature;
-    suc::state::main_power::WaterLeaked water_leaked;
-    suc::state::imu::Orientation imu_orientation;
-    suc::state::imu::Velocity imu_velocity;
-    suc::state::imu::Temperature imu_temperature;
-    suc::state::usb_camera::Image usb_camera_image;
-    suc::state::raspi_camera::Image raspi_camera_image;
-    suc::state::thruster::ServoCurrent thruster1_servo_current;
-    suc::state::thruster::ServoCurrent thruster2_servo_current;
-    suc::state::thruster::ServoCurrent thruster3_servo_current;
-    suc::state::thruster::ServoCurrent thruster4_servo_current;
-    suc::state::thruster::Rpm thruster1_rpm;
-    suc::state::thruster::Rpm thruster2_rpm;
-    suc::state::thruster::Rpm thruster3_rpm;
-    suc::state::thruster::Rpm thruster4_rpm;
+    // State interfaces (in)
+    std::unique_ptr<hardware_interface::LoanedStateInterface> battery_current;
+    std::unique_ptr<hardware_interface::LoanedStateInterface> battery_voltage;
+    std::unique_ptr<hardware_interface::LoanedStateInterface> main_power_temperature;
+    std::unique_ptr<hardware_interface::LoanedStateInterface> water_leaked;
+    std::unique_ptr<hardware_interface::LoanedStateInterface> imu_orientation;
+    std::unique_ptr<hardware_interface::LoanedStateInterface> imu_velocity;
+    std::unique_ptr<hardware_interface::LoanedStateInterface> imu_temperature;
+    std::unique_ptr<hardware_interface::LoanedStateInterface> usb_camera_image;
+    std::unique_ptr<hardware_interface::LoanedStateInterface> raspi_camera_image;
+    std::array<std::unique_ptr<hardware_interface::LoanedStateInterface>, 4> thruster_servo_current;
+    std::array<std::unique_ptr<hardware_interface::LoanedStateInterface>, 4> thruster_rpm;
 
   public:
     GateController() = default;

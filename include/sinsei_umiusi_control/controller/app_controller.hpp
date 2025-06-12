@@ -20,18 +20,16 @@ namespace sinsei_umiusi_control::controller {
 
 class AppController : public controller_interface::ChainableControllerInterface {
   private:
+    // Command interfaces (in)
     suc::cmd::app::Orientation target_orientation;
     suc::cmd::app::Velocity target_velocity;
-    suc::cmd::thruster::Angle thruster1_angle;
-    suc::cmd::thruster::Angle thruster2_angle;
-    suc::cmd::thruster::Angle thruster3_angle;
-    suc::cmd::thruster::Angle thruster4_angle;
-    suc::cmd::thruster::Thrust thruster1_thrust;
-    suc::cmd::thruster::Thrust thruster2_thrust;
-    suc::cmd::thruster::Thrust thruster3_thrust;
-    suc::cmd::thruster::Thrust thruster4_thrust;
-    suc::state::imu::Orientation imu_orientation;
-    suc::state::imu::Velocity imu_velocity;
+    // Command interfaces (out)
+    std::array<std::unique_ptr<hardware_interface::LoanedCommandInterface>, 4> thruster_angle;
+    std::array<std::unique_ptr<hardware_interface::LoanedCommandInterface>, 4> thruster_thrust;
+
+    // State interfaces (in)
+    std::unique_ptr<hardware_interface::LoanedStateInterface> imu_orientation;
+    std::unique_ptr<hardware_interface::LoanedStateInterface> imu_velocity;
 
   public:
     AppController() = default;

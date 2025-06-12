@@ -25,11 +25,11 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     suc::cmd::thruster::Thrust thrust;
 
     // Command interfaces (out)
-    suc::cmd::thruster::Enabled enabled_raw;
+    std::unique_ptr<hardware_interface::LoanedCommandInterface> enabled_raw;
 
     // State interfaces (in)
-    suc::state::thruster::ServoCurrent servo_current_raw;
-    suc::state::thruster::Rpm rpm_raw;
+    std::unique_ptr<hardware_interface::LoanedStateInterface> servo_current_raw;
+    std::unique_ptr<hardware_interface::LoanedStateInterface> rpm_raw;
 
     // State interfaces (out)
     suc::state::thruster::ServoCurrent servo_current;
