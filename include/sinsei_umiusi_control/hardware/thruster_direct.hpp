@@ -15,18 +15,9 @@ namespace sinsei_umiusi_control::hardware {
 
 class ThrusterDirect : public hardware_interface::ActuatorInterface {
   private:
-    suc::cmd::thruster::Enabled thruster1_enabled;
-    suc::cmd::thruster::Enabled thruster2_enabled;
-    suc::cmd::thruster::Enabled thruster3_enabled;
-    suc::cmd::thruster::Enabled thruster4_enabled;
-    suc::cmd::thruster::Angle thruster1_angle;
-    suc::cmd::thruster::Angle thruster2_angle;
-    suc::cmd::thruster::Angle thruster3_angle;
-    suc::cmd::thruster::Angle thruster4_angle;
-    suc::cmd::thruster::Thrust thruster1_thrust;
-    suc::cmd::thruster::Thrust thruster2_thrust;
-    suc::cmd::thruster::Thrust thruster3_thrust;
-    suc::cmd::thruster::Thrust thruster4_thrust;
+    std::array<suc::cmd::thruster::Enabled, 4> thruster_enabled;
+    std::array<suc::cmd::thruster::Angle, 4> thruster_angle;
+    std::array<suc::cmd::thruster::Thrust, 4> thruster_thrust;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(ThrusterDirect)
