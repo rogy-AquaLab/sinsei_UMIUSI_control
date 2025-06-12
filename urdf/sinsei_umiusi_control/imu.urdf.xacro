@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xacro:macro name="imu">
+<xacro:macro xmlns:xacro="http://www.ros.org/wiki/xacro" name="imu">
   <ros2_control name="imu" type="sensor">
     <hardware>
       <plugin>sinsei_umiusi_control/hardware/Imu</plugin>

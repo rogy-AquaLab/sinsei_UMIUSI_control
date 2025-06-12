@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xacro:macro name="raspi_camera">
+<xacro:macro xmlns:xacro="http://www.ros.org/wiki/xacro" name="raspi_camera">
   <ros2_control name="raspi_camera" type="actuator">
     <hardware>
       <plugin>sinsei_umiusi_control/hardware/RaspiCamera</plugin>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xacro:macro name="thruster_direct" params="id">
+<xacro:macro xmlns:xacro="http://www.ros.org/wiki/xacro" name="thruster_direct" params="id">
   <ros2_control name="thruster_direct" type="actuator">
     <hardware>
       <plugin>sinsei_umiusi_control/hardware/ThrusterDirect</plugin>
