@@ -1,50 +1,52 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xacro:macro xmlns:xacro="http://www.ros.org/wiki/xacro" name="can" params="with_thruster">
-  <ros2_control name="can" type="system">
-    <hardware>
-      <plugin>sinsei_umiusi_control/hardware/Can</plugin>
-    </hardware>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
+  <xacro:macro name="can" params="with_thruster">
+    <ros2_control name="can" type="system">
+      <hardware>
+        <plugin>sinsei_umiusi_control/hardware/Can</plugin>
+      </hardware>
 
-    <xacro:if value="${with_thruster}">
-      <xacro:thruster id="1" />
-      <xacro:thruster id="2" />
-      <xacro:thruster id="3" />
-      <xacro:thruster id="4" />
-    </xacro:if>
-    <xacro:main_power />
-    <xacro:led_tape />
-  </ros2_control>
+      <xacro:if value="${with_thruster}">
+        <xacro:thruster id="1" />
+        <xacro:thruster id="2" />
+        <xacro:thruster id="3" />
+        <xacro:thruster id="4" />
+      </xacro:if>
+      <xacro:main_power />
+      <xacro:led_tape />
+    </ros2_control>
 
-  <!-- 内部で使うマクロ -->
-  <xacro:macro name="thruster" params="id">
-    <xacro:property name="thruster_name" value="thruster${id}" />
+    <!-- 内部で使うマクロ -->
+    <xacro:macro name="thruster" params="id">
+      <xacro:property name="thruster_name" value="thruster${id}" />
 
-    <gpio name="${thruster_name}/servo">
-      <command_interface name="thruster/enabled_raw" />
-      <command_interface name="thruster/angle_raw" />
-      <state_interface name="thruster/servo_current_raw" />
-    </gpio>
+      <gpio name="${thruster_name}/servo">
+        <command_interface name="thruster/enabled_raw" />
+        <command_interface name="thruster/angle_raw" />
+        <state_interface name="thruster/servo_current_raw" />
+      </gpio>
 
-    <gpio name="${thruster_name}/esc">
-      <command_interface name="thruster/enabled_raw" />
-      <command_interface name="thruster/thrust_raw" />
-      <state_interface name="thruster/rpm_raw" />
-    </gpio>
+      <gpio name="${thruster_name}/esc">
+        <command_interface name="thruster/enabled_raw" />
+        <command_interface name="thruster/thrust_raw" />
+        <state_interface name="thruster/rpm_raw" />
+      </gpio>
+    </xacro:macro>
+
+    <xacro:macro name="main_power">
+      <gpio name="main_power">
+        <command_interface name="main_power/enabled" />
+        <state_interface name="main_power/battery_current" />
+        <state_interface name="main_power/battery_voltage" />
+        <state_interface name="main_power/temperature" />
+        <state_interface name="main_power/water_leaked" />
+      </gpio>
+    </xacro:macro>
+
+    <xacro:macro name="led_tape">
+      <gpio name="led_tape">
+        <command_interface name="led_tape/color" />
+      </gpio>
+    </xacro:macro>
   </xacro:macro>
-
-  <xacro:macro name="main_power">
-    <gpio name="main_power">
-      <command_interface name="main_power/enabled" />
-      <state_interface name="main_power/battery_current" />
-      <state_interface name="main_power/battery_voltage" />
-      <state_interface name="main_power/temperature" />
-      <state_interface name="main_power/water_leaked" />
-    </gpio>
-  </xacro:macro>
-
-  <xacro:macro name="led_tape">
-    <gpio name="led_tape">
-      <command_interface name="led_tape/color" />
-    </gpio>
-  </xacro:macro>
-</xacro:macro>
+</robot>

@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xacro:macro xmlns:xacro="http://www.ros.org/wiki/xacro" name="imu">
-  <ros2_control name="imu" type="sensor">
-    <hardware>
-      <plugin>sinsei_umiusi_control/hardware/Imu</plugin>
-    </hardware>
-    <gpio name="imu">
-      <state_interface name="imu/orientation" />
-      <state_interface name="imu/velocity" />
-      <state_interface name="imu/temperature" />
-    </gpio>
-  </ros2_control>
-</xacro:macro>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
+  <xacro:macro name="imu">
+    <ros2_control name="imu" type="sensor">
+      <hardware>
+        <plugin>sinsei_umiusi_control/hardware/Imu</plugin>
+      </hardware>
+      <gpio name="imu">
+        <state_interface name="imu/orientation" />
+        <state_interface name="imu/velocity" />
+        <state_interface name="imu/temperature" />
+      </gpio>
+    </ros2_control>
+  </xacro:macro>
+</robot>
