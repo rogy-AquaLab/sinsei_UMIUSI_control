@@ -6,16 +6,10 @@ BasedOnStyle: Google
 
 AccessModifierOffset: -2
 AlignAfterOpenBracket: AlwaysBreak
-BraceWrapping:
-  AfterClass: true
-  AfterFunction: true
-  AfterNamespace: true
-  AfterStruct: true
-  AfterEnum: true
-BreakBeforeBraces: Custom
+BreakBeforeBraces: Attach
 ColumnLimit: 100
 ConstructorInitializerIndentWidth: 0
-ContinuationIndentWidth: 2
+ContinuationIndentWidth: 4
 DerivePointerAlignment: false
 PointerAlignment: Middle
 ReflowComments: false

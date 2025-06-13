@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
+  <xacro:macro name="usb_camera">
+    <ros2_control name="usb_camera" type="actuator">
+      <hardware>
+        <plugin>sinsei_umiusi_control/hardware/UsbCamera</plugin>
+      </hardware>
+      <gpio name="usb_camera">
+        <command_interface name="usb_camera/config" />
+        <state_interface name="usb_camera/image" />
+      </gpio>
+    </ros2_control>
+  </xacro:macro>
+</robot>

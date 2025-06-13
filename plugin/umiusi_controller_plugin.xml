@@ -1,0 +1,56 @@
+<library path="sinsei_umiusi_control_controller">
+  <class
+    name="sinsei_umiusi_control/controller/GateController"
+    type="sinsei_umiusi_control::controller::GateController"
+    base_class_type="controller_interface::ControllerInterface"
+  >
+    <description>
+      Gate controller
+    </description>
+  </class>
+  <class
+    name="sinsei_umiusi_control/controller/AppController"
+    type="sinsei_umiusi_control::controller::AppController"
+    base_class_type="controller_interface::ChainableControllerInterface"
+  >
+    <description>
+      App controller
+    </description>
+  </class>
+  <class
+    name="sinsei_umiusi_control/controller/ThrusterController1"
+    type="sinsei_umiusi_control::controller::ThrusterController"
+    base_class_type="controller_interface::ChainableControllerInterface"
+  >
+    <description>
+      Thruster controller 1
+    </description>
+  </class>
+  <class
+    name="sinsei_umiusi_control/controller/ThrusterController2"
+    type="sinsei_umiusi_control::controller::ThrusterController"
+    base_class_type="controller_interface::ChainableControllerInterface"
+  >
+    <description>
+      Thruster controller 2
+    </description>
+  </class>
+  <class
+    name="sinsei_umiusi_control/controller/ThrusterController3"
+    type="sinsei_umiusi_control::controller::ThrusterController"
+    base_class_type="controller_interface::ChainableControllerInterface"
+  >
+    <description>
+      Thruster controller 3
+    </description>
+  </class>
+  <class
+    name="sinsei_umiusi_control/controller/ThrusterController4"
+    type="sinsei_umiusi_control::controller::ThrusterController"
+    base_class_type="controller_interface::ChainableControllerInterface"
+  >
+    <description>
+      Thruster controller 4
+    </description>
+  </class>
+</library>

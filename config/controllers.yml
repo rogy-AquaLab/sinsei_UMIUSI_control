@@ -1,0 +1,18 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 100 # Hz
+
+gate_controller:
+  ros__parameters:
+    type: sinsei_umiusi_control/GateController
+    upate_rate: 50 # Hz
+
+app_controller:
+  ros__parameters:
+    type: sinsei_umiusi_control/AppController
+    update_rate: 50 # Hz
+
+thruster_controller:
+  ros__parameters:
+    type: sinsei_umiusi_control/ThrusterController
+    update_rate: 50 # Hz
