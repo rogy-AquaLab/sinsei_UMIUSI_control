@@ -5,11 +5,11 @@
       <hardware>
         <plugin>sinsei_umiusi_control/hardware/Imu</plugin>
       </hardware>
-      <gpio name="imu">
+      <sensor name="imu">
         <state_interface name="imu/orientation" />
         <state_interface name="imu/velocity" />
         <state_interface name="imu/temperature" />
-      </gpio>
+      </sensor>
     </ros2_control>
   </xacro:macro>
 </robot>

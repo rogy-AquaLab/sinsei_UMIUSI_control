@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
   <xacro:macro name="headlights">
-    <ros2_control name="headlights" type="actuator">
+    <ros2_control name="headlights" type="system">
       <hardware>
         <plugin>sinsei_umiusi_control/hardware/Headlights</plugin>
       </hardware>
