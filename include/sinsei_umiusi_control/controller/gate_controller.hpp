@@ -23,6 +23,7 @@
 #include "sinsei_umiusi_control/state/raspi_camera.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/state/usb_camera.hpp"
+#include "std_msgs/msg/bool.hpp"
 
 namespace suc = sinsei_umiusi_control;
 
@@ -30,6 +31,9 @@ namespace sinsei_umiusi_control::controller {
 
 class GateController : public controller_interface::ControllerInterface {
   private:
+    // TODO: 今後`indicator_led/indicator_led/enabled`以外の分も実装する
+    bool indicator_led_enabled_ref;
+
     // Command interfaces (out)
     std::unique_ptr<hardware_interface::LoanedCommandInterface> main_power_enabled;
     std::unique_ptr<hardware_interface::LoanedCommandInterface> led_tape_color;

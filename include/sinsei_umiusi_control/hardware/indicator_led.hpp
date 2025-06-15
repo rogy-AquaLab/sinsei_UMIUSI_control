@@ -15,7 +15,7 @@ namespace sinsei_umiusi_control::hardware {
 
 class IndicatorLed : public hardware_interface::SystemInterface {
   private:
-    suc::cmd::indicator_led::Enabled enabled;
+    // suc::cmd::indicator_led::Enabled enabled;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(IndicatorLed)
