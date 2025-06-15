@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
   <xacro:macro name="indicator_led">
-    <ros2_control name="indicator_led" type="actuator">
+    <ros2_control name="indicator_led" type="system">
       <hardware>
         <plugin>sinsei_umiusi_control/hardware/IndicatorLed</plugin>
       </hardware>
