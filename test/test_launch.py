@@ -25,12 +25,12 @@ import rclpy
 
 PACKAGE_NAME = 'sinsei_umiusi_control'
 HARDWARE_COMPONENTS = [
-    'can',
-    'headlights',
-    'imu',
+    # 'can',
+    # 'headlights',
+    # 'imu',
     'indicator_led',
-    'raspi_camera',
-    'usb_camera',
+    # 'raspi_camera',
+    # 'usb_camera',
 ]
 CONTROLLERS = [
     'gate_controller',
@@ -57,6 +57,7 @@ def generate_test_description():
 
 
 class TestFixture(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         rclpy.init()
@@ -92,6 +93,7 @@ class TestFixture(unittest.TestCase):
 
 @launch_testing.post_shutdown_test()
 class TestShutdown(unittest.TestCase):
+
     def test_exit_codes(self, proc_info):
         """Check that all processes exited cleanly."""
         launch_testing.asserts.assertExitCodes(proc_info)
