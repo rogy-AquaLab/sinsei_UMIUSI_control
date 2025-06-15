@@ -36,7 +36,7 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     suc::state::thruster::Rpm rpm;
 
     // Thruster ID (1~4)
-    int8_t id;
+    uint8_t id;
 
   public:
     ThrusterController() = default;
