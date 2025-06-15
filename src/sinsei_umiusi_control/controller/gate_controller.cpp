@@ -65,7 +65,7 @@ auto succ::GateController::update(
         return cif::return_type::ERROR;
     }
     auto res = indicator_led_enabled->set_value(
-        static_cast<double>(this->indicator_led_enabled_ref.value));
+        *reinterpret_cast<double *>(&this->indicator_led_enabled_ref));
     if (!res) {
         RCLCPP_WARN(
             this->get_node()->get_logger(), "Failed to set command interface value: %s",
