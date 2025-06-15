@@ -5,7 +5,7 @@
 namespace sinsei_umiusi_control::cmd::thruster {
 
 struct Enabled {
-    double value;
+    bool value;
 };
 struct Angle {
     double value;

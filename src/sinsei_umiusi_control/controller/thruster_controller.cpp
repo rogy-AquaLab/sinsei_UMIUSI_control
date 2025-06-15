@@ -49,11 +49,14 @@ auto succ::ThrusterController::on_export_reference_interfaces()
 
     auto interfaces = std::vector<hif::CommandInterface>{};
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name() + std::string("/enabled"), "enabled", &this->enabled.value));
+        this->get_node()->get_name() + std::string("/enabled"), "enabled",
+        reinterpret_cast<double *>(&this->enabled)));
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name() + std::string("/angle"), "angle", &this->angle.value));
+        this->get_node()->get_name() + std::string("/angle"), "angle",
+        reinterpret_cast<double *>(&this->angle)));
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name() + std::string("/thrust"), "thrust", &this->thrust.value));
+        this->get_node()->get_name() + std::string("/thrust"), "thrust",
+        reinterpret_cast<double *>(&this->thrust)));
     return interfaces;
 }
 
@@ -62,9 +65,10 @@ auto succ::ThrusterController::on_export_state_interfaces() -> std::vector<hif::
 
     interfaces.emplace_back(hif::StateInterface(
         this->get_node()->get_name() + std::string("/servo_current"), "servo_current",
-        &this->servo_current.value));
+        reinterpret_cast<double *>(&this->servo_current)));
     interfaces.emplace_back(hif::StateInterface(
-        this->get_node()->get_name() + std::string("/rpm"), "rpm", &this->rpm.value));
+        this->get_node()->get_name() + std::string("/rpm"), "rpm",
+        reinterpret_cast<double *>(&this->rpm)));
     return interfaces;
 }
 
