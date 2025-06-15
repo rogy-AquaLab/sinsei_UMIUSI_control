@@ -27,7 +27,7 @@ auto succ::GateController::on_configure(const rlc::State & /*pervious_state*/)
     this->get_node()->create_subscription<std_msgs::msg::Bool>(
         "indicator_led_enabled", rclcpp::SystemDefaultsQoS(),
         [this](const std_msgs::msg::Bool::SharedPtr input) {
-            this->indicator_led_enabled_ref = input->data;
+            this->indicator_led_enabled_ref.value = input->data;
         });
     return cif::CallbackReturn::SUCCESS;
 }
@@ -64,8 +64,8 @@ auto succ::GateController::update(
             "Command interface not initialized: indicator_led/indicator_led/enabled");
         return cif::return_type::ERROR;
     }
-    auto res =
-        indicator_led_enabled->set_value(static_cast<double>(this->indicator_led_enabled_ref));
+    auto res = indicator_led_enabled->set_value(
+        static_cast<double>(this->indicator_led_enabled_ref.value));
     if (!res) {
         RCLCPP_WARN(
             this->get_node()->get_logger(), "Failed to set command interface value: %s",

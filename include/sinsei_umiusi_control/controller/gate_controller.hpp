@@ -32,7 +32,7 @@ namespace sinsei_umiusi_control::controller {
 class GateController : public controller_interface::ControllerInterface {
   private:
     // TODO: 今後`indicator_led/indicator_led/enabled`以外の分も実装する
-    bool indicator_led_enabled_ref;
+    cmd::indicator_led::Enabled indicator_led_enabled_ref;
 
     // Command interfaces (out)
     std::unique_ptr<hardware_interface::LoanedCommandInterface> main_power_enabled;
