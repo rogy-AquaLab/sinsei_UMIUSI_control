@@ -24,11 +24,12 @@ auto succ::GateController::on_init() -> cif::CallbackReturn { return cif::Callba
 auto succ::GateController::on_configure(const rlc::State & /*pervious_state*/)
     -> cif::CallbackReturn {
     // TODO: 今後`indicator_led/indicator_led/enabled`以外の分も実装する
-    this->get_node()->create_subscription<std_msgs::msg::Bool>(
-        "indicator_led_enabled", rclcpp::SystemDefaultsQoS(),
-        [this](const std_msgs::msg::Bool::SharedPtr input) {
-            this->indicator_led_enabled_ref.value = input->data;
-        });
+    this->indicator_led_enabled_subscriber =
+        this->get_node()->create_subscription<std_msgs::msg::Bool>(
+            "indicator_led_enabled", rclcpp::SystemDefaultsQoS(),
+            [this](const std_msgs::msg::Bool::SharedPtr input) {
+                this->indicator_led_enabled_ref.value = input->data;
+            });
     return cif::CallbackReturn::SUCCESS;
 }
 
