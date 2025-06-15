@@ -5,13 +5,13 @@
 namespace sinsei_umiusi_control::cmd::thruster {
 
 struct Enabled {
-    bool value;
+    double value;
 };
 struct Angle {
-    int8_t value;
+    double value;
 };
 struct Thrust {
-    uint8_t value;
+    double value;
 };
 
 }  // namespace sinsei_umiusi_control::cmd::thruster
