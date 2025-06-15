@@ -18,39 +18,12 @@
     </description>
   </class>
   <class
-    name="sinsei_umiusi_control/controller/ThrusterController1"
+    name="sinsei_umiusi_control/controller/ThrusterController"
     type="sinsei_umiusi_control::controller::ThrusterController"
     base_class_type="controller_interface::ChainableControllerInterface"
   >
     <description>
-      Thruster controller 1
-    </description>
-  </class>
-  <class
-    name="sinsei_umiusi_control/controller/ThrusterController2"
-    type="sinsei_umiusi_control::controller::ThrusterController"
-    base_class_type="controller_interface::ChainableControllerInterface"
-  >
-    <description>
-      Thruster controller 2
-    </description>
-  </class>
-  <class
-    name="sinsei_umiusi_control/controller/ThrusterController3"
-    type="sinsei_umiusi_control::controller::ThrusterController"
-    base_class_type="controller_interface::ChainableControllerInterface"
-  >
-    <description>
-      Thruster controller 3
-    </description>
-  </class>
-  <class
-    name="sinsei_umiusi_control/controller/ThrusterController4"
-    type="sinsei_umiusi_control::controller::ThrusterController"
-    base_class_type="controller_interface::ChainableControllerInterface"
-  >
-    <description>
-      Thruster controller 4
+      Thruster controller
     </description>
   </class>
 </library>

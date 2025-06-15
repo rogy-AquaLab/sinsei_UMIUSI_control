@@ -22,24 +22,21 @@ class Can : public hardware_interface::SystemInterface {
     std::array<suc::cmd::thruster::Enabled, 4> thruster_enabled;
     std::array<suc::cmd::thruster::Angle, 4> thruster_angle;
     std::array<suc::cmd::thruster::Thrust, 4> thruster_thrust;
-
     suc::cmd::main_power::Enabled main_power_enabled;
     suc::cmd::led_tape::Color led_tape_color;
 
     std::array<suc::state::thruster::ServoCurrent, 4> thruster_servo_current;
     std::array<suc::state::thruster::Rpm, 4> thruster_rpm;
+    suc::state::main_power::BatteryCurrent battery_current;
+    suc::state::main_power::BatteryVoltage battery_voltage;
+    suc::state::main_power::Temperature temperature;
+    suc::state::main_power::WaterLeaked water_leaked;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(Can)
 
     Can() = default;
 
-    auto on_init(const hardware_interface::HardwareInfo & info)
-        -> hardware_interface::CallbackReturn override;
-    auto on_export_state_interfaces()
-        -> std::vector<hardware_interface::StateInterface::ConstSharedPtr> override;
-    auto on_export_command_interfaces()
-        -> std::vector<hardware_interface::CommandInterface::SharedPtr> override;
     auto read(const rclcpp::Time & time, const rclcpp::Duration & period)
         -> hardware_interface::return_type override;
     auto write(const rclcpp::Time & time, const rclcpp::Duration & period)

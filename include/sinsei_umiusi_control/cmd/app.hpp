@@ -4,14 +4,14 @@
 namespace sinsei_umiusi_control::cmd::app {
 
 struct Orientation {
-    float x;
-    float y;
-    float z;
+    double x;
+    double y;
+    double z;
 };
 struct Velocity {
-    float x;
-    float y;
-    float z;
+    double x;
+    double y;
+    double z;
 };
 
 }  // namespace sinsei_umiusi_control::cmd::app

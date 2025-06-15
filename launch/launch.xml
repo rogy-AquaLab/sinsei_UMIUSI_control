@@ -29,7 +29,19 @@
 
   <node pkg="controller_manager"
     exec="spawner"
-    args="thruster_controller --param-file $(var robot_controllers_path)" />
+    args="thruster_controller1 --param-file $(var robot_controllers_path)" />
+
+  <node pkg="controller_manager"
+    exec="spawner"
+    args="thruster_controller2 --param-file $(var robot_controllers_path)" />
+
+  <node pkg="controller_manager"
+    exec="spawner"
+    args="thruster_controller3 --param-file $(var robot_controllers_path)" />
+
+  <node pkg="controller_manager"
+    exec="spawner"
+    args="thruster_controller4 --param-file $(var robot_controllers_path)" />
 
   <node pkg="robot_state_publisher" exec="robot_state_publisher" output="both">
     <param name="robot_description" value="$(var robot_description)" />
