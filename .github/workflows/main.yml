@@ -14,15 +14,15 @@ jobs:
   lint-python:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Ruff
-        uses: astral-sh/ruff-action@v3
+      - uses: actions/checkout@v2
+      - uses: astral-sh/ruff-action@v3
 
       - name: Ruff Format
         run: ruff format --check --diff
         continue-on-error: true
 
       - name: Ruff check
-        run: ruff check --output-format=github
+        run: ruff check
 
   build-and-test:
     runs-on: ubuntu-latest
