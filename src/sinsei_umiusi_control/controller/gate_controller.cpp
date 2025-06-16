@@ -35,13 +35,15 @@ auto succ::GateController::on_configure(const rlc::State & /*pervious_state*/)
 
 auto succ::GateController::on_activate(const rlc::State & /*previous_state*/)
     -> cif::CallbackReturn {
-    // `CommandInterface`にアクセスしやすいよう、メンバ変数にポインタを持っておく。
+    // `CommandInterface`にアクセスしやすいよう、メンバ変数に所有権を移しておく。
+    // ※ これ以降、`cmmand_interfaces_`から当該の`Loaned(Command|State)Interface`を取得することはない。
+
     // TODO: 今後`indicator_led/indicator_led/enabled`以外の分も実装する
     auto it = std::find_if(
         this->command_interfaces_.begin(), this->command_interfaces_.end(),
         [&](const auto & ifc) { return ifc.get_name() == "indicator_led/indicator_led/enabled"; });
     if (it != this->command_interfaces_.end()) {
-        this->indicator_led_enabled.reset(it.base());
+        this->indicator_led_enabled.emplace(std::move(*it));
     } else {
         RCLCPP_ERROR(
             this->get_node()->get_logger(),
@@ -65,12 +67,12 @@ auto succ::GateController::update(
             "Command interface not initialized: indicator_led/indicator_led/enabled");
         return cif::return_type::ERROR;
     }
-    auto res = indicator_led_enabled->set_value(
+    auto res = this->indicator_led_enabled->set_value(
         *reinterpret_cast<double *>(&this->indicator_led_enabled_ref));
     if (!res) {
         RCLCPP_WARN(
             this->get_node()->get_logger(), "Failed to set command interface value: %s",
-            indicator_led_enabled->get_name().c_str());
+            this->indicator_led_enabled->get_name().c_str());
     }
     return cif::return_type::OK;
 }

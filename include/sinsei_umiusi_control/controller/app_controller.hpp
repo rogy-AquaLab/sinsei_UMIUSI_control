@@ -1,7 +1,7 @@
 #ifndef SINSEI_UMIUSI_CONTROL_APP_CONTROLLER_HPP
 #define SINSEI_UMIUSI_CONTROL_APP_CONTROLLER_HPP
 
-#include <memory>
+#include <optional>
 #include <vector>
 
 #include "controller_interface/chainable_controller_interface.hpp"
@@ -24,12 +24,12 @@ class AppController : public controller_interface::ChainableControllerInterface 
     suc::cmd::app::Orientation target_orientation;
     suc::cmd::app::Velocity target_velocity;
     // Command interfaces (out)
-    std::array<std::unique_ptr<hardware_interface::LoanedCommandInterface>, 4> thruster_angle;
-    std::array<std::unique_ptr<hardware_interface::LoanedCommandInterface>, 4> thruster_thrust;
+    std::array<std::optional<hardware_interface::LoanedCommandInterface>, 4> thruster_angle;
+    std::array<std::optional<hardware_interface::LoanedCommandInterface>, 4> thruster_thrust;
 
     // State interfaces (in)
-    std::unique_ptr<hardware_interface::LoanedStateInterface> imu_orientation;
-    std::unique_ptr<hardware_interface::LoanedStateInterface> imu_velocity;
+    std::optional<hardware_interface::LoanedStateInterface> imu_orientation;
+    std::optional<hardware_interface::LoanedStateInterface> imu_velocity;
 
   public:
     AppController() = default;
@@ -47,8 +47,8 @@ class AppController : public controller_interface::ChainableControllerInterface 
     auto on_export_state_interfaces() -> std::vector<hardware_interface::StateInterface> override;
     auto on_set_chained_mode(bool chained_mode) -> bool override;
     auto update_reference_from_subscribers(
-        const rclcpp::Time & time,
-        const rclcpp::Duration & period) -> controller_interface::return_type override;
+        const rclcpp::Time & time, const rclcpp::Duration & period)
+        -> controller_interface::return_type override;
     auto update_and_write_commands(const rclcpp::Time & time, const rclcpp::Duration & period)
         -> controller_interface::return_type override;
 };
