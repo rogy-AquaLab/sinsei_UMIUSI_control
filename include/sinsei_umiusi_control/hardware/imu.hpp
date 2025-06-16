@@ -24,10 +24,6 @@ class Imu : public hardware_interface::SensorInterface {
 
     Imu() = default;
 
-    auto on_init(const hardware_interface::HardwareInfo & info)
-        -> hardware_interface::CallbackReturn override;
-    auto on_export_state_interfaces()
-        -> std::vector<hardware_interface::StateInterface::ConstSharedPtr> override;
     auto read(const rclcpp::Time & time, const rclcpp::Duration & period)
         -> hardware_interface::return_type override;
 };

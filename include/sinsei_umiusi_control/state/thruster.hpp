@@ -4,10 +4,10 @@
 namespace sinsei_umiusi_control::state::thruster {
 
 struct ServoCurrent {
-    float value;
+    double value;
 };
 struct Rpm {
-    float value;
+    double value;
 };
 
 }  // namespace sinsei_umiusi_control::state::thruster
