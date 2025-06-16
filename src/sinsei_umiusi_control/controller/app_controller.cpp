@@ -63,6 +63,24 @@ auto succ::AppController::on_export_reference_interfaces() -> std::vector<hif::C
 
 auto succ::AppController::on_export_state_interfaces() -> std::vector<hif::StateInterface> {
     auto interfaces = std::vector<hif::StateInterface>{};
+    interfaces.emplace_back(hif::StateInterface(
+        this->get_node()->get_name() + std::string("/imu_orientation.x"), "imu_orientation.x",
+        &this->imu_orientation.x));
+    interfaces.emplace_back(hif::StateInterface(
+        this->get_node()->get_name() + std::string("/imu_orientation.y"), "imu_orientation.y",
+        &this->imu_orientation.y));
+    interfaces.emplace_back(hif::StateInterface(
+        this->get_node()->get_name() + std::string("/imu_orientation.z"), "imu_orientation.z",
+        &this->imu_orientation.z));
+    interfaces.emplace_back(hif::StateInterface(
+        this->get_node()->get_name() + std::string("/imu_velocity.x"), "imu_velocity.x",
+        &this->imu_velocity.x));
+    interfaces.emplace_back(hif::StateInterface(
+        this->get_node()->get_name() + std::string("/imu_velocity.y"), "imu_velocity.y",
+        &this->imu_velocity.y));
+    interfaces.emplace_back(hif::StateInterface(
+        this->get_node()->get_name() + std::string("/imu_velocity.z"), "imu_velocity.z",
+        &this->imu_velocity.z));
     return interfaces;
 }
 
