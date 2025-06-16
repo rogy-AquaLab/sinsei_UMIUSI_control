@@ -6,9 +6,9 @@
         <plugin>sinsei_umiusi_control/hardware/Imu</plugin>
       </hardware>
       <sensor name="imu">
-        <state_interface name="imu/orientation" />
-        <state_interface name="imu/velocity" />
-        <state_interface name="imu/temperature" />
+        <state_interface name="imu/orientation_raw" />
+        <state_interface name="imu/velocity_raw" />
+        <state_interface name="imu/temperature_raw" />
       </sensor>
     </ros2_control>
   </xacro:macro>
