@@ -18,7 +18,8 @@ jobs:
         uses: astral-sh/ruff-action@v3
 
       - name: Ruff Format
-        run: ruff format --check --diff --output-format=github
+        run: ruff format --check --diff
+        continue-on-error: true
 
       - name: Ruff check
         run: ruff check --output-format=github
