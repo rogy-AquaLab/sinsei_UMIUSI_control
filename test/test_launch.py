@@ -35,7 +35,10 @@ HARDWARE_COMPONENTS = [
 CONTROLLERS = [
     'gate_controller',
     'app_controller',
-    'thruster_controller'
+    'thruster_controller1',
+    'thruster_controller2',
+    'thruster_controller3',
+    'thruster_controller4',
 ]
 
 
