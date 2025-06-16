@@ -67,12 +67,12 @@ auto succ::GateController::update(
             "Command interface not initialized: indicator_led/indicator_led/enabled");
         return cif::return_type::ERROR;
     }
-    auto res = indicator_led_enabled->set_value(
+    auto res = this->indicator_led_enabled->set_value(
         *reinterpret_cast<double *>(&this->indicator_led_enabled_ref));
     if (!res) {
         RCLCPP_WARN(
             this->get_node()->get_logger(), "Failed to set command interface value: %s",
-            indicator_led_enabled->get_name().c_str());
+            this->indicator_led_enabled->get_name().c_str());
     }
     return cif::return_type::OK;
 }
