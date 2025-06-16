@@ -36,7 +36,7 @@ auto succ::GateController::on_configure(const rlc::State & /*pervious_state*/)
 auto succ::GateController::on_activate(const rlc::State & /*previous_state*/)
     -> cif::CallbackReturn {
     // `CommandInterface`にアクセスしやすいよう、メンバ変数に所有権を移しておく。
-    // ※ これ以降、`cmmand_interfaces_`から当該の`Loaned(Command|State)Interface`を取得することはない。
+    // ※ これ以降、`command_interfaces_`から当該の`Loaned(Command|State)Interface`を取得することはない。
 
     // TODO: 今後`indicator_led/indicator_led/enabled`以外の分も実装する
     auto it = std::find_if(
