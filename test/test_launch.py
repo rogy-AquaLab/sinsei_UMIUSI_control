@@ -25,12 +25,12 @@ import rclpy
 
 PACKAGE_NAME = 'sinsei_umiusi_control'
 HARDWARE_COMPONENTS = [
-    # 'can',
-    # 'headlights',
-    # 'imu',
+    'can',
+    'headlights',
+    'imu',
     'indicator_led',
-    # 'raspi_camera',
-    # 'usb_camera',
+    'raspi_camera',
+    'usb_camera',
 ]
 CONTROLLERS = [
     'gate_controller',
