@@ -47,7 +47,8 @@ class AppController : public controller_interface::ChainableControllerInterface 
     auto on_export_state_interfaces() -> std::vector<hardware_interface::StateInterface> override;
     auto on_set_chained_mode(bool chained_mode) -> bool override;
     auto update_reference_from_subscribers(
-        const rclcpp::Time & time, const rclcpp::Duration & period) -> controller_interface::return_type override;
+        const rclcpp::Time & time,
+        const rclcpp::Duration & period) -> controller_interface::return_type override;
     auto update_and_write_commands(const rclcpp::Time & time, const rclcpp::Duration & period)
         -> controller_interface::return_type override;
 };
