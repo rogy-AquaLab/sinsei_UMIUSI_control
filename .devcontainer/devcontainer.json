@@ -5,9 +5,9 @@
   "customizations": {
     "vscode": {
       "extensions": [
+        "charliermarsh.ruff",
         "ms-iot.vscode-ros",
         "ms-python.python",
-        "ms-python.autopep8",
         "ms-vscode.cpptools",
         "ms-vscode.cmake-tools",
         "redhat.vscode-xml",
@@ -22,7 +22,7 @@
           "editor.defaultFormatter": "redhat.vscode-yaml"
         },
         "[python]": {
-          "editor.defaultFormatter": "ms-python.autopep8"
+          "editor.defaultFormatter": "charliermarsh.ruff"
         },
         "python.analysis.inlayHints.callArgumentNames": "partial",
         "python.analysis.inlayHints.functionReturnTypes": true,
