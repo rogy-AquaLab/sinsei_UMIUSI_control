@@ -1,7 +1,7 @@
 #ifndef SINSEI_UMIUSI_CONTROL_THRUSTER_CONTROLLER_HPP
 #define SINSEI_UMIUSI_CONTROL_THRUSTER_CONTROLLER_HPP
 
-#include <memory>
+#include <optional>
 #include <vector>
 
 #include "controller_interface/chainable_controller_interface.hpp"
@@ -25,11 +25,11 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     suc::cmd::thruster::Thrust thrust;
 
     // Command interfaces (out)
-    std::unique_ptr<hardware_interface::LoanedCommandInterface> enabled_raw;
+    std::optional<hardware_interface::LoanedCommandInterface> enabled_raw;
 
     // State interfaces (in)
-    std::unique_ptr<hardware_interface::LoanedStateInterface> servo_current_raw;
-    std::unique_ptr<hardware_interface::LoanedStateInterface> rpm_raw;
+    std::optional<hardware_interface::LoanedStateInterface> servo_current_raw;
+    std::optional<hardware_interface::LoanedStateInterface> rpm_raw;
 
     // State interfaces (out)
     suc::state::thruster::ServoCurrent servo_current;

@@ -1,7 +1,7 @@
 #ifndef SINSEI_UMIUSI_CONTROL_GATE_CONTROLLER_HPP
 #define SINSEI_UMIUSI_CONTROL_GATE_CONTROLLER_HPP
 
-#include <memory>
+#include <optional>
 #include <vector>
 
 #include "controller_interface/controller_interface.hpp"
@@ -37,30 +37,30 @@ class GateController : public controller_interface::ControllerInterface {
     cmd::indicator_led::Enabled indicator_led_enabled_ref;
 
     // Command interfaces (out)
-    std::unique_ptr<hardware_interface::LoanedCommandInterface> main_power_enabled;
-    std::unique_ptr<hardware_interface::LoanedCommandInterface> led_tape_color;
-    std::unique_ptr<hardware_interface::LoanedCommandInterface> indicator_led_enabled;
-    std::unique_ptr<hardware_interface::LoanedCommandInterface> high_beam_enabled;
-    std::unique_ptr<hardware_interface::LoanedCommandInterface> low_beam_enabled;
-    std::unique_ptr<hardware_interface::LoanedCommandInterface> ir_enabled;
-    std::unique_ptr<hardware_interface::LoanedCommandInterface> usb_camera_config;
-    std::unique_ptr<hardware_interface::LoanedCommandInterface> raspi_camera_config;
-    std::unique_ptr<hardware_interface::LoanedCommandInterface> thruster_enabled;
-    std::unique_ptr<hardware_interface::LoanedCommandInterface> target_orientation;
-    std::unique_ptr<hardware_interface::LoanedCommandInterface> target_velocity;
+    std::optional<hardware_interface::LoanedCommandInterface> main_power_enabled;
+    std::optional<hardware_interface::LoanedCommandInterface> led_tape_color;
+    std::optional<hardware_interface::LoanedCommandInterface> indicator_led_enabled;
+    std::optional<hardware_interface::LoanedCommandInterface> high_beam_enabled;
+    std::optional<hardware_interface::LoanedCommandInterface> low_beam_enabled;
+    std::optional<hardware_interface::LoanedCommandInterface> ir_enabled;
+    std::optional<hardware_interface::LoanedCommandInterface> usb_camera_config;
+    std::optional<hardware_interface::LoanedCommandInterface> raspi_camera_config;
+    std::optional<hardware_interface::LoanedCommandInterface> thruster_enabled;
+    std::optional<hardware_interface::LoanedCommandInterface> target_orientation;
+    std::optional<hardware_interface::LoanedCommandInterface> target_velocity;
 
     // State interfaces (in)
-    std::unique_ptr<hardware_interface::LoanedStateInterface> battery_current;
-    std::unique_ptr<hardware_interface::LoanedStateInterface> battery_voltage;
-    std::unique_ptr<hardware_interface::LoanedStateInterface> main_power_temperature;
-    std::unique_ptr<hardware_interface::LoanedStateInterface> water_leaked;
-    std::unique_ptr<hardware_interface::LoanedStateInterface> imu_orientation;
-    std::unique_ptr<hardware_interface::LoanedStateInterface> imu_velocity;
-    std::unique_ptr<hardware_interface::LoanedStateInterface> imu_temperature;
-    std::unique_ptr<hardware_interface::LoanedStateInterface> usb_camera_image;
-    std::unique_ptr<hardware_interface::LoanedStateInterface> raspi_camera_image;
-    std::array<std::unique_ptr<hardware_interface::LoanedStateInterface>, 4> thruster_servo_current;
-    std::array<std::unique_ptr<hardware_interface::LoanedStateInterface>, 4> thruster_rpm;
+    std::optional<hardware_interface::LoanedStateInterface> battery_current;
+    std::optional<hardware_interface::LoanedStateInterface> battery_voltage;
+    std::optional<hardware_interface::LoanedStateInterface> main_power_temperature;
+    std::optional<hardware_interface::LoanedStateInterface> water_leaked;
+    std::optional<hardware_interface::LoanedStateInterface> imu_orientation;
+    std::optional<hardware_interface::LoanedStateInterface> imu_velocity;
+    std::optional<hardware_interface::LoanedStateInterface> imu_temperature;
+    std::optional<hardware_interface::LoanedStateInterface> usb_camera_image;
+    std::optional<hardware_interface::LoanedStateInterface> raspi_camera_image;
+    std::array<std::optional<hardware_interface::LoanedStateInterface>, 4> thruster_servo_current;
+    std::array<std::optional<hardware_interface::LoanedStateInterface>, 4> thruster_rpm;
 
   public:
     GateController() = default;
