@@ -11,7 +11,7 @@ on:
       - main
 
 jobs:
-  colcon-build:
+  colcon-test:
     runs-on: ubuntu-latest
     container:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
@@ -22,13 +22,12 @@ jobs:
           sudo apt-get update && sudo apt-get install -y \
             ninja-build
 
-      - name: Colcon Build
+      - name: Colcon Build & Test
         id: build
         uses: ros-tooling/action-ros-ci@v0.4
         with:
           target-ros2-distro: jazzy
           rosdep-check: true
-          skip-tests: true
           colcon-defaults: |
             {
               "build": {
@@ -63,45 +62,22 @@ jobs:
         run: ruff format --check --diff
 
   cpp-lint:
-    needs: colcon-build
+    needs: colcon-test
     runs-on: ubuntu-latest
     container:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
     steps:
-      - run: |
-          sudo apt-get update && sudo apt-get install -y \
-            ninja-build  \
-            clang-format \
-            clang-tidy
       - uses: actions/download-artifact@v4
         with:
-          path: ${{ needs.colcon-build.outputs.ws-path }}
+          path: ${{ needs.colcon-test.outputs.ws-path }}
           pattern: build
           merge-multiple: true
-
-  colcon-test:
-    needs: colcon-build
-    runs-on: ubuntu-latest
-    container:
-      image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
-    steps:
-      - run: |
-          sudo apt-get update && sudo apt-get install -y \
-            ninja-build
-      - uses: actions/download-artifact@v4
+      - uses: cpp-linter/cpp-linter-actions@v2
+        id: lint
         with:
-          path: ${{ needs.colcon-build.outputs.ws-path }}
-          pattern: (build|install)
-          merge-multiple: true
-
-      - name: Colcon Test
-        uses: ros-tooling/action-ros-ci@v0.4
-        with:
-          target-ros2-distro: jazzy
-          colcon-defaults: |
-            {
-              "build": {
-                "package-skip-build-finished": [""]
-              }
-            }
-          coverage-result: false
+          style: file
+          tidy-checks: ""
+          thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
+      - name: Fail fast
+        if: steps.lint.outputs.checks-failed > 0
+        run: exit 1
