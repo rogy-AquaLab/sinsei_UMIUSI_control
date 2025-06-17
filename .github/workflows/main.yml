@@ -28,7 +28,6 @@ jobs:
         run: echo "ROS_DISTRO=jazzy" >> $GITHUB_OUTPUT
 
       - name: Colcon Build & Test
-        id: build
         uses: ros-tooling/action-ros-ci@v0.4
         with:
           target-ros2-distro: ${{ steps.set-ros-distro.outputs.ROS_DISTRO }}
@@ -69,6 +68,7 @@ jobs:
     needs: colcon-test
     runs-on: ubuntu-latest
     steps:
+      - run: sudo chown -R ${{ github.actor }}:${{ github.actor }} /__w
       - uses: actions/download-artifact@v4
         with:
           name: ros-includes
@@ -79,7 +79,7 @@ jobs:
           path: ${{ needs.colcon-test.outputs.ws-path }}/build
       - uses: actions/checkout@v4
         with:
-          path: ${{ needs.colcon-test.outputs.ws-path }}/sinsei_umiusi_control
+          path: ${{ needs.colcon-test.outputs.ws-path }}/${{ needs.colcon-test.outputs.pkg-name }}
 
       - name: Install Python 3.10
         uses: actions/setup-python@v5
