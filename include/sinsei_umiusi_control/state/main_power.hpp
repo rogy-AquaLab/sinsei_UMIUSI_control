@@ -5,10 +5,10 @@
 namespace sinsei_umiusi_control::state::main_power {
 
 struct BatteryCurrent {
-    float value;
+    double value;
 };
 struct BatteryVoltage {
-    float value;
+    double value;
 };
 struct Temperature {
     int8_t value;
