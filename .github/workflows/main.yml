@@ -42,10 +42,6 @@ jobs:
           path: ${{ steps.build.outputs.ros-workspace-directory-name }}/build
       - uses: actions/upload-artifact@v4
         with:
-          name: install
-          path: ${{ steps.build.outputs.ros-workspace-directory-name }}/install
-      - uses: actions/upload-artifact@v4
-        with:
           name: log
           path: ${{ steps.build.outputs.ros-workspace-directory-name }}/log
 
@@ -74,9 +70,11 @@ jobs:
           merge-multiple: true
       - uses: cpp-linter/cpp-linter-action@v2
         id: lint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           style: file
-          tidy-checks: ""
+          tidy-checks: ''
           thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
       - name: Fail fast
         if: steps.lint.outputs.checks-failed > 0
