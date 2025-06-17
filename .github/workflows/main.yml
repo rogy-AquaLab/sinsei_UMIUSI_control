@@ -68,6 +68,7 @@ jobs:
     needs: colcon-test
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: ros-includes
@@ -91,8 +92,9 @@ jobs:
         with:
           style: file
           tidy-checks: ""
+          files-changed-only: false # プロジェクトが安定してきたらtrueにする
           thread-comments: true
           step-summary: true
-      - name: Fail fast
+      - name: on fail
         if: steps.lint.outputs.checks-failed > 0
         run: exit 1
