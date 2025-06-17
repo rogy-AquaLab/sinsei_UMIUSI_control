@@ -5,8 +5,10 @@
   <let name="pkg_name" value="sinsei_umiusi_control" />
 
   <!-- Launch Arguments -->
+  <arg name="thruster_mode" default="can" />
+
   <arg name="robot_description"
-    default="$(command 'xacro $(find-pkg-share $(var pkg_name))/urdf/sinsei_umiusi_control.urdf.xacro')" />
+    default="$(command 'xacro $(find-pkg-share $(var pkg_name))/urdf/sinsei_umiusi_control.urdf.xacro thruster_mode:=\&apos;\&quot;$(var thruster_mode)\&quot;\&apos;')" />
 
   <arg
     name="robot_controllers_path"
