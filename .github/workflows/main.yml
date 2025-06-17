@@ -72,7 +72,7 @@ jobs:
           path: ${{ needs.colcon-test.outputs.ws-path }}
           pattern: build
           merge-multiple: true
-      - uses: cpp-linter/cpp-linter-actions@v2
+      - uses: cpp-linter/cpp-linter-action@v2
         id: lint
         with:
           style: file
