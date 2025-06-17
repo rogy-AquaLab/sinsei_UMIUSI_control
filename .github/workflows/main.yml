@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
+    outputs:
+      build-path: ${{ steps.output-build-path.outputs.result }}
     steps:
       - run: |
           sudo apt-get update && sudo apt-get install -y \
@@ -39,7 +41,9 @@ jobs:
         with:
           name: build
           path: ${{ steps.build.outputs.ros-workspace-directory-name }}/build
-          if: always()
+      - name: Set Output Build Path
+        id: output-build-path
+        run: echo "result=${{ steps.build.outputs.ros-workspace-directory-name }}/build" >> $GITHUB_OUTPUT
 
   python-lint:
     runs-on: ubuntu-latest
@@ -67,6 +71,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: build
+          path: ${{ needs.colcon-build.outputs.build-path }}
 
       - name: Colcon Build
         uses: ros-tooling/action-ros-ci@v0.4
@@ -94,6 +99,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: build
+          path: ${{ needs.colcon-build.outputs.build-path }}
 
       - name: Colcon Build & Test
         uses: ros-tooling/action-ros-ci@v0.4
@@ -108,3 +114,4 @@ jobs:
               }
             }
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
+          coverage-result: false
