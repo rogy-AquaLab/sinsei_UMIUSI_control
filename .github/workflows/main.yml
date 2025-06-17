@@ -18,7 +18,7 @@ jobs:
     outputs:
       pkg-name: sinsei_umiusi_control
       ros-distro: ${{ steps.set-ros-distro.outputs.ROS_DISTRO }}
-      ws-path: ${{ steps.build.outputs.ros-workspace-directory-name }}
+      ws-name: ${{ steps.build.outputs.ros-workspace-directory-name }}
     steps:
       - run: |
           sudo apt-get update && sudo apt-get install -y \
@@ -73,13 +73,13 @@ jobs:
         with:
           name: ros-includes
           path: /opt/ros/${{ needs.colcon-test.outputs.ros-distro }}/include
-      - uses: actions/checkout@v4
-        with:
-          path: ${{ needs.colcon-test.outputs.ws-path }}/sinsei_umiusi_control
       - uses: actions/download-artifact@v4
         with:
           name: build
-          path: ${{ needs.colcon-test.outputs.ws-path }}/build
+          path: ${{ github.workspace }}/${{ needs.colcon-test.outputs.ws-path }}/build
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ github.workspace }}/${{ needs.colcon-test.outputs.ws-path }}/sinsei_umiusi_control
 
       - name: Install Python 3.10
         uses: actions/setup-python@v5
