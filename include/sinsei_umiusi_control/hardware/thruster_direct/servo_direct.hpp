@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "hardware_interface/actuator_interface.hpp"
+#include "hardware_interface/system_interface.hpp"
 #include "rclcpp/macros.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
 
@@ -13,7 +13,7 @@ namespace suc = sinsei_umiusi_control;
 
 namespace sinsei_umiusi_control::hardware::thruster_direct {
 
-class ServoDirect : public hardware_interface::ActuatorInterface {
+class ServoDirect : public hardware_interface::SystemInterface {
   private:
     suc::cmd::thruster::ServoEnabled enabled;
     suc::cmd::thruster::Angle angle;

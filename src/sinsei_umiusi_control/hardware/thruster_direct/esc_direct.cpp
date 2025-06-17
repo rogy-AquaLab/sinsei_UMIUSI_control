@@ -17,4 +17,4 @@ auto suchw::thruster_direct::EscDirect::write(
 #include "pluginlib/class_list_macros.hpp"
 PLUGINLIB_EXPORT_CLASS(
     sinsei_umiusi_control::hardware::thruster_direct::EscDirect,
-    hardware_interface::ActuatorInterface)
+    hardware_interface::SystemInterface)
