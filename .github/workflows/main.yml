@@ -98,7 +98,6 @@ jobs:
         uses: ros-tooling/action-ros-ci@v0.4
         with:
           target-ros2-distro: jazzy
-          skip-rosdep-install: true
           colcon-defaults: |
             {
               "build": {
