@@ -4,7 +4,10 @@
 
 namespace sinsei_umiusi_control::cmd::thruster {
 
-struct Enabled {
+struct ServoEnabled {
+    bool value;
+};
+struct EscEnabled {
     bool value;
 };
 struct Angle {
