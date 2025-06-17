@@ -64,7 +64,7 @@ jobs:
             ninja-build  \
             clang-format \
             clang-tidy
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: build
 
@@ -91,7 +91,7 @@ jobs:
       - run: |
           sudo apt-get update && sudo apt-get install -y \
             ninja-build
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: build
 
