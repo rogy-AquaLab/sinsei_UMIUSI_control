@@ -1,5 +1,5 @@
-#ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_SERVO_DIRECT_HPP
-#define SINSEI_UMIUSI_CONTROL_HARDWARE_SERVO_DIRECT_HPP
+#ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_THRUSTER_DIRECT_SERVO_DIRECT_HPP
+#define SINSEI_UMIUSI_CONTROL_HARDWARE_THRUSTER_DIRECT_SERVO_DIRECT_HPP
 
 #include <memory>
 #include <string>
@@ -31,4 +31,4 @@ class ServoDirect : public hardware_interface::ActuatorInterface {
 
 }  // namespace sinsei_umiusi_control::hardware::thruster_direct
 
-#endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_SERVO_DIRECT_HPP
+#endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_THRUSTER_DIRECT_SERVO_DIRECT_HPP
