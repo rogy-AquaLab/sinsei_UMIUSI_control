@@ -16,6 +16,7 @@ jobs:
     container:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
     outputs:
+      pkg-name: sinsei_umiusi_control
       ros-distro: ${{ steps.set-ros-distro.outputs.ROS_DISTRO }}
       ws-path: ${{ steps.build.outputs.ros-workspace-directory-name }}
     steps:
@@ -68,15 +69,17 @@ jobs:
     needs: colcon-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: ros-includes
           path: /opt/ros/${{ needs.colcon-test.outputs.ros-distro }}/include
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ needs.colcon-test.outputs.ws-path }}/sinsei_umiusi_control
       - uses: actions/download-artifact@v4
         with:
           name: build
-          path: build
+          path: ${{ needs.colcon-test.outputs.ws-path }}/build
 
       - name: Install Python 3.10
         uses: actions/setup-python@v5
@@ -91,6 +94,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           style: file
+          base_dir: ${{ needs.colcon-test.outputs.ws-path }}
           tidy-checks: ""
           files-changed-only: false # プロジェクトが安定してきたらtrueにする
           thread-comments: true
