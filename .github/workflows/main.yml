@@ -32,7 +32,7 @@ jobs:
           colcon-defaults: |
             {
               "build": {
-                "mixin": ["ninja", "compile-commands"],
+                "mixin": ["ninja", "compile-commands"]
               }
             }
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
@@ -75,8 +75,9 @@ jobs:
             clang-tidy
       - uses: actions/download-artifact@v4
         with:
-          name: build
-          path: ${{ needs.colcon-build.outputs.ws-path }}/build
+          path: ${{ needs.colcon-build.outputs.ws-path }}
+          pattern: build
+          merge-multiple: true
 
   colcon-test:
     needs: colcon-build
@@ -89,12 +90,9 @@ jobs:
             ninja-build
       - uses: actions/download-artifact@v4
         with:
-          name: build
-          path: ${{ needs.colcon-build.outputs.ws-path }}/build
-      - uses: actions/download-artifact@v4
-        with:
-          name: install
-          path: ${{ needs.colcon-build.outputs.ws-path }}/install
+          path: ${{ needs.colcon-build.outputs.ws-path }}
+          pattern: (build|install)
+          merge-multiple: true
 
       - name: Colcon Test
         uses: ros-tooling/action-ros-ci@v0.4
