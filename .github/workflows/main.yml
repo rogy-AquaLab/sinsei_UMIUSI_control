@@ -11,25 +11,103 @@ on:
       - main
 
 jobs:
-  lint-python:
+  colcon-build:
+    runs-on: ubuntu-latest
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
+    steps:
+      - run: |
+          sudo apt-get update && sudo apt-get install -y \
+            ninja-build
+
+      - name: Colcon Build
+        id: build
+        uses: ros-tooling/action-ros-ci@v0.4
+        with:
+          target-ros2-distro: jazzy
+          rosdep-check: true
+          skip-tests: true
+          colcon-defaults: |
+            {
+              "build": {
+                "mixin": ["ninja"],
+                "parallel-workers": ["2"],
+              }
+            }
+          colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: ${{ steps.build.outputs.ros-workspace-directory-name }}/build
+          if: always()
+
+  python-lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: astral-sh/ruff-action@v3
 
-      - name: Ruff check
+      - name: Ruff Check
         run: ruff check
 
       - name: Ruff Format
         run: ruff format --check --diff
 
-  build-and-test:
+  cpp-lint:
+    needs: colcon-build
     runs-on: ubuntu-latest
     container:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
     steps:
-      - name: Build and Run tests
+      - run: |
+          sudo apt-get update && sudo apt-get install -y \
+            ninja-build  \
+            clang-format \
+            clang-tidy
+      - uses: actions/download-artifact@v3
+        with:
+          name: build
+
+      - name: Colcon Build
         uses: ros-tooling/action-ros-ci@v0.4
         with:
           target-ros2-distro: jazzy
           rosdep-check: true
+          skip-tests: true
+          colcon-defaults: |
+            {
+              "build": {
+                "mixin": ["ninja", "compile-commands"],
+                "parallel-workers": ["2"],
+              }
+            }
+          colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
+
+  colcon-test:
+    needs: colcon-build
+    runs-on: ubuntu-latest
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
+    steps:
+      - run: |
+          sudo apt-get update && sudo apt-get install -y \
+            ninja-build
+      - uses: actions/download-artifact@v3
+        with:
+          name: build
+
+      - name: Colcon Build & Test
+        uses: ros-tooling/action-ros-ci@v0.4
+        with:
+          target-ros2-distro: jazzy
+          rosdep-check: true
+          skip-tests: false
+          colcon-defaults: |
+            {
+              "build": {
+                "mixin": ["ninja"],
+                "parallel-workers": ["2"],
+              }
+            }
+          colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
