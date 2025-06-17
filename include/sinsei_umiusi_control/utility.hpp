@@ -1,10 +1,12 @@
 #include <optional>
 #include <string>
 #include <vector>
-#ifndef SINSEI_UMIUSI_CONTROL_LIB_HPP
-#define SINSEI_UMIUSI_CONTROL_LIB_HPP
+#ifndef SINSEI_UMIUSI_CONTROL_UTILITY_HPP
+#define SINSEI_UMIUSI_CONTROL_UTILITY_HPP
 
-namespace sinsei_umiusi_control::lib {
+// ヘルパー関数をまとめておくファイル
+
+namespace sinsei_umiusi_control::utility {
 
 // 特定の名前のLoaned(Command|State)Interfaceを`interfaces`から探し、見つかった場合はその所有権を移す。
 template <typename LoanedInterface>
@@ -19,6 +21,6 @@ auto find_interface(const std::string & name, std::vector<LoanedInterface> & int
     return std::nullopt;
 }
 
-}  // namespace sinsei_umiusi_control::lib
+}  // namespace sinsei_umiusi_control::utility
 
-#endif  // SINSEI_UMIUSI_CONTROL_LIB_HPP
+#endif  // SINSEI_UMIUSI_CONTROL_UTILITY_HPP

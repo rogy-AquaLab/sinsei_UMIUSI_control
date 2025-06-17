@@ -1,9 +1,9 @@
 #include "sinsei_umiusi_control/controller/app_controller.hpp"
 
-#include "sinsei_umiusi_control/lib.hpp"
+#include "sinsei_umiusi_control/utility.hpp"
 
 namespace succ = sinsei_umiusi_control::controller;
-namespace suclib = sinsei_umiusi_control::lib;
+namespace suc_util = sinsei_umiusi_control::utility;
 namespace rlc = rclcpp_lifecycle;
 namespace hif = hardware_interface;
 namespace cif = controller_interface;
@@ -35,7 +35,7 @@ auto succ::AppController::on_activate(const rlc::State & /*previous_state*/)
     // ※ これ以降、`command_interfaces_`から当該の`Loaned(Command|State)Interface`を取得することはない。
     for (size_t i = 0; i < 4; i++) {
         auto angle_it_name = "thruster_controller" + std::to_string(i + 1) + "/angle";
-        auto angle_it = suclib::find_interface(angle_it_name, this->command_interfaces_);
+        auto angle_it = suc_util::find_interface(angle_it_name, this->command_interfaces_);
         if (angle_it) {
             this->thruster_angle[i].emplace(std::move(*angle_it));
         } else {
@@ -45,7 +45,7 @@ auto succ::AppController::on_activate(const rlc::State & /*previous_state*/)
         }
 
         auto thrust_it_name = "thruster_controller" + std::to_string(i + 1) + "/thrust";
-        auto thrust_it = suclib::find_interface(thrust_it_name, this->command_interfaces_);
+        auto thrust_it = suc_util::find_interface(thrust_it_name, this->command_interfaces_);
         if (thrust_it) {
             this->thruster_thrust[i].emplace(std::move(*thrust_it));
         } else {
@@ -60,7 +60,7 @@ auto succ::AppController::on_activate(const rlc::State & /*previous_state*/)
     for (size_t i = 0; i < 3; i++) {
         auto imu_orientation_name = "imu/imu/orientation_raw." + axes[i];
         auto imu_orientation_it =
-            suclib::find_interface(imu_orientation_name, this->state_interfaces_);
+            suc_util::find_interface(imu_orientation_name, this->state_interfaces_);
         if (imu_orientation_it) {
             this->imu_orientation_raw[i].emplace(std::move(*imu_orientation_it));
         } else {
@@ -70,7 +70,7 @@ auto succ::AppController::on_activate(const rlc::State & /*previous_state*/)
         }
 
         auto imu_velocity_name = "imu/imu/velocity_raw." + axes[i];
-        auto imu_velocity_it = suclib::find_interface(imu_velocity_name, this->state_interfaces_);
+        auto imu_velocity_it = suc_util::find_interface(imu_velocity_name, this->state_interfaces_);
         if (imu_velocity_it) {
             this->imu_velocity_raw[i].emplace(std::move(*imu_velocity_it));
         } else {
