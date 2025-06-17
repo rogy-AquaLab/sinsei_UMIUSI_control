@@ -68,7 +68,7 @@ jobs:
     needs: colcon-test
     runs-on: ubuntu-latest
     steps:
-      - run: sudo chown -R ${{ github.actor }}:${{ github.actor }} /__w
+      - run: sudo chown -R 1000:1000 /__w
       - uses: actions/download-artifact@v4
         with:
           name: ros-includes
