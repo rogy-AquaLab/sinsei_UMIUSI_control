@@ -39,47 +39,7 @@ jobs:
               }
             }
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ros-includes
-          path: /opt/ros/${{ steps.set-ros-distro.outputs.ROS_DISTRO }}/include
-      - uses: actions/upload-artifact@v4
-        with:
-          name: build
-          path: ${{ steps.build.outputs.ros-workspace-directory-name }}/build
-      - uses: actions/upload-artifact@v4
-        with:
-          name: log
-          path: ${{ steps.build.outputs.ros-workspace-directory-name }}/log
-
-  python-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: astral-sh/ruff-action@v3
-
-      - name: Ruff Check
-        run: ruff check
-
-      - name: Ruff Format
-        run: ruff format --check --diff
-
-  cpp-lint:
-    needs: colcon-test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: ros-includes
-          path: /opt/ros/${{ needs.colcon-test.outputs.ros-distro }}/include
-      - uses: actions/download-artifact@v4
-        with:
-          name: build
-          path: build
-
-      - name: Install Python 3.10
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
           update-environment: false
@@ -98,3 +58,63 @@ jobs:
       - name: on fail
         if: steps.lint.outputs.checks-failed > 0
         run: exit 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ros-includes
+          path: /opt/ros/${{ steps.set-ros-distro.outputs.ROS_DISTRO }}/include
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: ${{ steps.build.outputs.ros-workspace-directory-name }}/build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: log
+          path: ${{ steps.build.outputs.ros-workspace-directory-name }}/log
+
+  python-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/ruff-action@v3
+
+      - name: Ruff Check
+        run: ruff check
+
+      - name: Ruff Format
+        run: ruff format --check --diff
+
+  # cpp-lint:
+  #   needs: colcon-test
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/download-artifact@v4
+  #       with:
+  #         name: ros-includes
+  #         path: /opt/ros/${{ needs.colcon-test.outputs.ros-distro }}/include
+  #     - uses: actions/download-artifact@v4
+  #       with:
+  #         name: build
+  #         path: build
+
+  #     - name: Install Python 3.10
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.10"
+  #         update-environment: false
+
+  #     # - name: Clang-format & Clang-tidy Check
+  #   uses: cpp-linter/cpp-linter-action@v2
+  #   id: lint
+  #   env:
+  #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #   with:
+  #     style: file
+  #     tidy-checks: ""
+  #     files-changed-only: false # プロジェクトが安定してきたらtrueにする
+  #     thread-comments: true
+  #     step-summary: true
+  # - name: on fail
+  #   if: steps.lint.outputs.checks-failed > 0
+  #   run: exit 1
