@@ -8,10 +8,10 @@ struct Enabled {
     bool value;
 };
 struct Angle {
-    double value;
+    int8_t value;
 };
 struct Thrust {
-    double value;
+    int8_t value;
 };
 
 }  // namespace sinsei_umiusi_control::cmd::thruster
