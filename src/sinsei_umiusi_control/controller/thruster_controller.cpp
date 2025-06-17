@@ -49,11 +49,11 @@ auto succ::ThrusterController::on_export_reference_interfaces()
 
     auto interfaces = std::vector<hif::CommandInterface>{};
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name() + std::string("/esc_enabled"), "esc_enabled",
-        reinterpret_cast<double *>(&this->esc_enabled)));
-    interfaces.emplace_back(hif::CommandInterface(
         this->get_node()->get_name() + std::string("/servo_enabled"), "servo_enabled",
         reinterpret_cast<double *>(&this->servo_enabled)));
+    interfaces.emplace_back(hif::CommandInterface(
+        this->get_node()->get_name() + std::string("/esc_enabled"), "esc_enabled",
+        reinterpret_cast<double *>(&this->esc_enabled)));
     interfaces.emplace_back(hif::CommandInterface(
         this->get_node()->get_name() + std::string("/angle"), "angle",
         reinterpret_cast<double *>(&this->angle)));

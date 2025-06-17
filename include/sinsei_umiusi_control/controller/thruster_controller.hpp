@@ -20,13 +20,14 @@ namespace sinsei_umiusi_control::controller {
 class ThrusterController : public controller_interface::ChainableControllerInterface {
   private:
     // Command interfaces (in)
-    suc::cmd::thruster::EscEnabled esc_enabled;
     suc::cmd::thruster::ServoEnabled servo_enabled;
+    suc::cmd::thruster::EscEnabled esc_enabled;
     suc::cmd::thruster::Angle angle;
     suc::cmd::thruster::Thrust thrust;
 
     // Command interfaces (out)
-    std::optional<hardware_interface::LoanedCommandInterface> enabled_raw;
+    std::optional<hardware_interface::LoanedCommandInterface> servo_enabled_raw;
+    std::optional<hardware_interface::LoanedCommandInterface> esc_enabled_raw;
 
     // State interfaces (in)
     std::optional<hardware_interface::LoanedStateInterface> servo_current_raw;
