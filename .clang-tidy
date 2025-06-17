@@ -4,6 +4,9 @@ Checks: "
   bugprone-*,
   clang-diagnostic-*,
   clang-analyzer-*,
+  cppcoreguidelines-*,
+  readability-*,
+  modernize-*,
   "
 HeaderFileExtensions:
   - h
