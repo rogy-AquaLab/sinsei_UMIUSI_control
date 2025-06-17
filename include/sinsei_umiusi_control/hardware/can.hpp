@@ -19,7 +19,8 @@ namespace sinsei_umiusi_control::hardware {
 
 class Can : public hardware_interface::SystemInterface {
   private:
-    std::array<suc::cmd::thruster::Enabled, 4> thruster_enabled;
+    std::array<suc::cmd::thruster::EscEnabled, 4> thruster_esc_enabled;
+    std::array<suc::cmd::thruster::ServoEnabled, 4> thruster_servo_enabled;
     std::array<suc::cmd::thruster::Angle, 4> thruster_angle;
     std::array<suc::cmd::thruster::Thrust, 4> thruster_thrust;
     suc::cmd::main_power::Enabled main_power_enabled;
