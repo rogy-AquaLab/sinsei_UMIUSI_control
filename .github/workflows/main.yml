@@ -16,7 +16,7 @@ jobs:
     container:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
     outputs:
-      build-path: ${{ steps.output-build-path.outputs.result }}
+      ws-path: ${{ steps.build.outputs.ros-workspace-directory-name }}
     steps:
       - run: |
           sudo apt-get update && sudo apt-get install -y \
@@ -32,7 +32,7 @@ jobs:
           colcon-defaults: |
             {
               "build": {
-                "mixin": ["ninja"]
+                "mixin": ["ninja", "compile-commands"],
               }
             }
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
@@ -41,9 +41,14 @@ jobs:
         with:
           name: build
           path: ${{ steps.build.outputs.ros-workspace-directory-name }}/build
-      - name: Set Output Build Path
-        id: output-build-path
-        run: echo "result=${{ steps.build.outputs.ros-workspace-directory-name }}/build" >> $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v4
+        with:
+          name: install
+          path: ${{ steps.build.outputs.ros-workspace-directory-name }}/install
+      - uses: actions/upload-artifact@v4
+        with:
+          name: log
+          path: ${{ steps.build.outputs.ros-workspace-directory-name }}/log
 
   python-lint:
     runs-on: ubuntu-latest
@@ -71,21 +76,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: build
-          path: ${{ needs.colcon-build.outputs.build-path }}
-
-      - name: Colcon Build
-        uses: ros-tooling/action-ros-ci@v0.4
-        with:
-          target-ros2-distro: jazzy
-          rosdep-check: true
-          skip-tests: true
-          colcon-defaults: |
-            {
-              "build": {
-                "mixin": ["ninja", "compile-commands"]
-              }
-            }
-          colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
+          path: ${{ needs.colcon-build.outputs.ws-path }}/build
 
   colcon-test:
     needs: colcon-build
@@ -99,19 +90,16 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: build
-          path: ${{ needs.colcon-build.outputs.build-path }}
+          path: ${{ needs.colcon-build.outputs.ws-path }}/build
+      - uses: actions/download-artifact@v4
+        with:
+          name: install
+          path: ${{ needs.colcon-build.outputs.ws-path }}/install
 
-      - name: Colcon Build & Test
+      - name: Colcon Test
         uses: ros-tooling/action-ros-ci@v0.4
         with:
           target-ros2-distro: jazzy
-          rosdep-check: true
-          skip-tests: false
-          colcon-defaults: |
-            {
-              "build": {
-                "mixin": ["ninja"]
-              }
-            }
-          colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
+          skip-rosdep-install: true
+          colcon-extra-args: "--package-skip-build-finished"
           coverage-result: false
