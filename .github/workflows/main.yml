@@ -31,7 +31,6 @@ jobs:
             {
               "build": {
                 "mixin": ["ninja"],
-                "parallel-workers": ["2"],
               }
             }
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
@@ -79,7 +78,6 @@ jobs:
             {
               "build": {
                 "mixin": ["ninja", "compile-commands"],
-                "parallel-workers": ["2"],
               }
             }
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
@@ -107,7 +105,6 @@ jobs:
             {
               "build": {
                 "mixin": ["ninja"],
-                "parallel-workers": ["2"],
               }
             }
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
