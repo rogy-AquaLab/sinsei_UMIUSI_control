@@ -15,6 +15,7 @@ auto suchw::IndicatorLed::write(const rclcpp::Time & /*time*/, const rclcpp::Dur
     double enabled_raw = get_command("indicator_led/indicator_led/enabled");
     auto enabled =
         *reinterpret_cast<sinsei_umiusi_control::cmd::indicator_led::Enabled *>(&enabled_raw);
+
     RCLCPP_INFO(get_logger(), enabled.value ? "true" : "false");
     return hif::return_type::OK;
 }
