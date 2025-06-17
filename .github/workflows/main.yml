@@ -92,7 +92,8 @@ jobs:
         with:
           style: file
           tidy-checks: ''
-          thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
+          thread-comments: true
+          step-summary: true
       - name: Fail fast
         if: steps.lint.outputs.checks-failed > 0
         run: exit 1
