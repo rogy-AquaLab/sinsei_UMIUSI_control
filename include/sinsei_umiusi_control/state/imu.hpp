@@ -5,14 +5,14 @@
 namespace sinsei_umiusi_control::state::imu {
 
 struct Orientation {
-    float x;
-    float y;
-    float z;
+    double x;
+    double y;
+    double z;
 };
 struct Velocity {
-    float x;
-    float y;
-    float z;
+    double x;
+    double y;
+    double z;
 };
 struct Temperature {
     int8_t value;

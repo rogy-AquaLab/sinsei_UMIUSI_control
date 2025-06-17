@@ -28,8 +28,11 @@ class AppController : public controller_interface::ChainableControllerInterface 
     std::array<std::optional<hardware_interface::LoanedCommandInterface>, 4> thruster_thrust;
 
     // State interfaces (in)
-    std::optional<hardware_interface::LoanedStateInterface> imu_orientation;
-    std::optional<hardware_interface::LoanedStateInterface> imu_velocity;
+    std::optional<hardware_interface::LoanedStateInterface> imu_orientation_raw;
+    std::optional<hardware_interface::LoanedStateInterface> imu_velocity_raw;
+    // State interfaces (out)
+    suc::state::imu::Orientation imu_orientation;
+    suc::state::imu::Velocity imu_velocity;
 
   public:
     AppController() = default;
