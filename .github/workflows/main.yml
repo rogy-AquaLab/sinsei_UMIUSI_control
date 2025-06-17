@@ -46,7 +46,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: build
-          path: ./build
+          path: /__w/sinsei_UMIUSI_control/sinsei_UMIUSI_control/ros_ws/build
 
   python-lint:
     runs-on: ubuntu-latest
@@ -64,7 +64,7 @@ jobs:
     needs: colcon-test
     runs-on: ubuntu-latest
     steps:
-      - run: sudo mkdir /__w && sudo chown 1000:1000 /__w
+      - run: sudo mkdir /__w && sudo chown -R 1000:1000 /__w
       - uses: actions/download-artifact@v4
         with:
           name: ros-includes
