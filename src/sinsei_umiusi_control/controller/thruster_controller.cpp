@@ -45,12 +45,15 @@ auto succ::ThrusterController::on_deactivate(const rlc::State & /*previous_state
 
 auto succ::ThrusterController::on_export_reference_interfaces()
     -> std::vector<hif::CommandInterface> {
-    this->reference_interfaces_.resize(3);
+    this->reference_interfaces_.resize(4);
 
     auto interfaces = std::vector<hif::CommandInterface>{};
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name() + std::string("/enabled"), "enabled",
-        reinterpret_cast<double *>(&this->enabled)));
+        this->get_node()->get_name() + std::string("/esc_enabled"), "esc_enabled",
+        reinterpret_cast<double *>(&this->esc_enabled)));
+    interfaces.emplace_back(hif::CommandInterface(
+        this->get_node()->get_name() + std::string("/servo_enabled"), "servo_enabled",
+        reinterpret_cast<double *>(&this->servo_enabled)));
     interfaces.emplace_back(hif::CommandInterface(
         this->get_node()->get_name() + std::string("/angle"), "angle",
         reinterpret_cast<double *>(&this->angle)));

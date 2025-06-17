@@ -20,7 +20,8 @@ namespace sinsei_umiusi_control::controller {
 class ThrusterController : public controller_interface::ChainableControllerInterface {
   private:
     // Command interfaces (in)
-    suc::cmd::thruster::Enabled enabled;
+    suc::cmd::thruster::EscEnabled esc_enabled;
+    suc::cmd::thruster::ServoEnabled servo_enabled;
     suc::cmd::thruster::Angle angle;
     suc::cmd::thruster::Thrust thrust;
 
