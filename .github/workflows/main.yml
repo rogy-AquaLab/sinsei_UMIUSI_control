@@ -30,7 +30,7 @@ jobs:
           colcon-defaults: |
             {
               "build": {
-                "mixin": ["ninja"],
+                "mixin": ["ninja"]
               }
             }
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
@@ -77,7 +77,7 @@ jobs:
           colcon-defaults: |
             {
               "build": {
-                "mixin": ["ninja", "compile-commands"],
+                "mixin": ["ninja", "compile-commands"]
               }
             }
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
@@ -104,7 +104,7 @@ jobs:
           colcon-defaults: |
             {
               "build": {
-                "mixin": ["ninja"],
+                "mixin": ["ninja"]
               }
             }
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
