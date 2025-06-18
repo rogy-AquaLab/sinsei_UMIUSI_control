@@ -19,6 +19,7 @@
     pkg="controller_manager"
     exec="ros2_control_node" output="both">
     <param from="$(var robot_controllers_path)" />
+    <param name="thruster_mode" value="$(var thruster_mode)" />
   </node>
 
   <node pkg="controller_manager"
