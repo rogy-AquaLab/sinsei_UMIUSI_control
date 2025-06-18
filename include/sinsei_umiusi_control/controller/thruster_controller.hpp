@@ -17,6 +17,11 @@ namespace suc = sinsei_umiusi_control;
 
 namespace sinsei_umiusi_control::controller {
 
+enum ThrusterMode {
+    Can,
+    Direct,
+};
+
 class ThrusterController : public controller_interface::ChainableControllerInterface {
   private:
     // Command interfaces (in)
@@ -39,6 +44,8 @@ class ThrusterController : public controller_interface::ChainableControllerInter
 
     // Thruster ID (1~4)
     uint8_t id;
+
+    ThrusterMode mode;
 
   public:
     ThrusterController() = default;

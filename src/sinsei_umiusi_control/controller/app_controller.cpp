@@ -11,14 +11,30 @@ namespace cif = controller_interface;
 auto succ::AppController::command_interface_configuration() const -> cif::InterfaceConfiguration {
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
-        {},
+        {
+            "thruster_controller1/angle/angle",
+            "thruster_controller2/angle/angle",
+            "thruster_controller3/angle/angle",
+            "thruster_controller4/angle/angle",
+            "thruster_controller1/thrust/thrust",
+            "thruster_controller2/thrust/thrust",
+            "thruster_controller3/thrust/thrust",
+            "thruster_controller4/thrust/thrust",
+        },
     };
 }
 
 auto succ::AppController::state_interface_configuration() const -> cif::InterfaceConfiguration {
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
-        {},
+        {
+            "imu/imu/orientation_raw.x",
+            "imu/imu/orientation_raw.y",
+            "imu/imu/orientation_raw.z",
+            "imu/imu/velocity_raw.x",
+            "imu/imu/velocity_raw.y",
+            "imu/imu/velocity_raw.z",
+        },
     };
 }
 
