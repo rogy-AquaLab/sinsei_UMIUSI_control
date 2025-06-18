@@ -42,11 +42,6 @@ auto succ::ThrusterController::state_interface_configuration() const
             "thruster" + id_str + "/servo/servo/servo_current_raw",
             "thruster" + id_str + "/esc/esc/rpm_raw",
         };
-    } else if (this->mode == ThrusterMode::Direct) {
-        interface_names = {
-            "thruster_direct" + id_str + "/servo_direct/servo_direct/servo_current_raw",
-            "thruster_direct" + id_str + "/esc_direct/esc_direct/rpm_raw",
-        };
     }
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
