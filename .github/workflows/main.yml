@@ -33,18 +33,18 @@ jobs:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
 
     steps:
-      - name: Upload ROS C++ libraries
-        uses: actions/upload-artifact@v4
-        with:
-          name: ros-cpp-libraries
-          path: ${{ env.ROS2_CPP_LIBPATH }}
-
       - name: Colcon Build
         uses: ros-tooling/action-ros-ci@v0.4
         with:
           package-name: ${{ env.ROS2_PKG_NAME }}
           target-ros2-distro: jazzy
           skip-tests: true
+
+      - name: Upload ROS C++ libraries
+        uses: actions/upload-artifact@v4
+        with:
+          name: ros-cpp-libraries
+          path: ${{ env.ROS2_CPP_LIBPATH }}
 
       - name: Upload Build results (`build` directory)
         uses: actions/upload-artifact@v4
