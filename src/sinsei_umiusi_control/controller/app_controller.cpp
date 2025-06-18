@@ -34,7 +34,7 @@ auto succ::AppController::on_activate(const rlc::State & /*previous_state*/)
     // `(Command|State)Interface`にアクセスしやすいよう、メンバ変数に所有権を移しておく。
     // ※ これ以降、`command_interfaces_`から当該の`Loaned(Command|State)Interface`を取得することはない。
     for (size_t i = 0; i < 4; i++) {
-        auto angle_it_name = "thruster_controller" + std::to_string(i + 1) + "/angle";
+        auto angle_it_name = "thruster_controller" + std::to_string(i + 1) + "/angle/angle";
         auto angle_it = suc_util::find_interface(angle_it_name, this->command_interfaces_);
         if (angle_it) {
             this->thruster_angle[i].emplace(std::move(*angle_it));
@@ -44,7 +44,7 @@ auto succ::AppController::on_activate(const rlc::State & /*previous_state*/)
                 angle_it_name.c_str());
         }
 
-        auto thrust_it_name = "thruster_controller" + std::to_string(i + 1) + "/thrust";
+        auto thrust_it_name = "thruster_controller" + std::to_string(i + 1) + "/thrust/thrust";
         auto thrust_it = suc_util::find_interface(thrust_it_name, this->command_interfaces_);
         if (thrust_it) {
             this->thruster_thrust[i].emplace(std::move(*thrust_it));
