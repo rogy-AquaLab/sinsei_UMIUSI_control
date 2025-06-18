@@ -12,7 +12,7 @@
         <state_interface name="imu/velocity_raw.x" />
         <state_interface name="imu/velocity_raw.y" />
         <state_interface name="imu/velocity_raw.z" />
-        <state_interface name="imu/temperature_raw" />
+        <state_interface name="imu/temperature" />
       </sensor>
     </ros2_control>
   </xacro:macro>
