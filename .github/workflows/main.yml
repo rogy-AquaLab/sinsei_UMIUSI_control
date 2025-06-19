@@ -104,6 +104,7 @@ jobs:
           tidy-checks: ""
           database: build
           ignore: ./.github | ./build
+          step-summary: true
           files-changed-only: false
 
       - name: On failed

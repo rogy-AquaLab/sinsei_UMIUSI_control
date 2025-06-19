@@ -1,4 +1,7 @@
 ---
+ExtraArgs:
+  - -std=c++17
+
 Checks: "
   -*,
   bugprone-*,
