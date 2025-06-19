@@ -1,9 +1,6 @@
 #include "sinsei_umiusi_control/controller/app_controller.hpp"
 
-#include "sinsei_umiusi_control/utility.hpp"
-
 namespace succ = sinsei_umiusi_control::controller;
-namespace suc_util = sinsei_umiusi_control::utility;
 namespace rlc = rclcpp_lifecycle;
 namespace hif = hardware_interface;
 namespace cif = controller_interface;
@@ -47,54 +44,6 @@ auto succ::AppController::on_configure(const rlc::State & /*pervious_state*/)
 
 auto succ::AppController::on_activate(const rlc::State & /*previous_state*/)
     -> cif::CallbackReturn {
-    // `(Command|State)Interface`にアクセスしやすいよう、メンバ変数に所有権を移しておく。
-    // ※ これ以降、`command_interfaces_`から当該の`Loaned(Command|State)Interface`を取得することはない。
-    for (size_t i = 0; i < 4; i++) {
-        auto angle_it_name = "thruster_controller" + std::to_string(i + 1) + "/angle/angle";
-        auto angle_it = suc_util::find_interface(angle_it_name, this->command_interfaces_);
-        if (angle_it) {
-            this->thruster_angle[i].emplace(std::move(*angle_it));
-        } else {
-            RCLCPP_ERROR(
-                this->get_node()->get_logger(), "Failed to find command interface: %s",
-                angle_it_name.c_str());
-        }
-
-        auto thrust_it_name = "thruster_controller" + std::to_string(i + 1) + "/thrust/thrust";
-        auto thrust_it = suc_util::find_interface(thrust_it_name, this->command_interfaces_);
-        if (thrust_it) {
-            this->thruster_thrust[i].emplace(std::move(*thrust_it));
-        } else {
-            RCLCPP_ERROR(
-                this->get_node()->get_logger(), "Failed to find command interface: %s",
-                thrust_it_name.c_str());
-        }
-    }
-
-    std::array<std::string, 3> axes = {"x", "y", "z"};
-
-    for (size_t i = 0; i < 3; i++) {
-        auto imu_orientation_name = "imu/imu/orientation_raw." + axes[i];
-        auto imu_orientation_it =
-            suc_util::find_interface(imu_orientation_name, this->state_interfaces_);
-        if (imu_orientation_it) {
-            this->imu_orientation_raw[i].emplace(std::move(*imu_orientation_it));
-        } else {
-            RCLCPP_ERROR(
-                this->get_node()->get_logger(), "Failed to find state interface: %s",
-                imu_orientation_name.c_str());
-        }
-
-        auto imu_velocity_name = "imu/imu/velocity_raw." + axes[i];
-        auto imu_velocity_it = suc_util::find_interface(imu_velocity_name, this->state_interfaces_);
-        if (imu_velocity_it) {
-            this->imu_velocity_raw[i].emplace(std::move(*imu_velocity_it));
-        } else {
-            RCLCPP_ERROR(
-                this->get_node()->get_logger(), "Failed to find state interface: %s",
-                imu_velocity_name.c_str());
-        }
-    }
     return cif::CallbackReturn::SUCCESS;
 }
 
