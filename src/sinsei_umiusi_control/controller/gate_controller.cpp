@@ -92,7 +92,7 @@ auto succ::GateController::update(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/
     ) -> cif::return_type {
     // TODO: 今後`indicator_led/indicator_led/enabled`以外の分も実装する
-    if (!this->indicator_led_enabled) {
+    /*if (!this->indicator_led_enabled) {
         RCLCPP_ERROR(
             this->get_node()->get_logger(),
             "Command interface not initialized: indicator_led/indicator_led/enabled");
@@ -104,7 +104,7 @@ auto succ::GateController::update(
         RCLCPP_WARN(
             this->get_node()->get_logger(), "Failed to set command interface value: %s",
             this->indicator_led_enabled->get_name().c_str());
-    }
+    }*/
     return cif::return_type::OK;
 }
 
