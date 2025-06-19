@@ -7,17 +7,45 @@ namespace cif = controller_interface;
 
 auto succ::ThrusterController::command_interface_configuration() const
     -> cif::InterfaceConfiguration {
+    std::vector<std::string> interface_names;
+    std::string id_str = std::to_string(this->id);
+
+    if (this->mode == ThrusterMode::Can) {
+        interface_names = {
+            "thruster" + id_str + "/servo/servo/enabled_raw",
+            "thruster" + id_str + "/servo/servo/angle_raw",
+            "thruster" + id_str + "/esc/esc/enabled_raw",
+            "thruster" + id_str + "/esc/esc/thrust_raw",
+        };
+    } else if (this->mode == ThrusterMode::Direct) {
+        interface_names = {
+            "thruster_direct" + id_str + "/servo_direct/servo_direct/enabled_raw",
+            "thruster_direct" + id_str + "/servo_direct/servo_direct/angle_raw",
+            "thruster_direct" + id_str + "/esc_direct/esc_direct/enabled_raw",
+            "thruster_direct" + id_str + "/esc_direct/esc_direct/thrust_raw",
+        };
+    }
+
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
-        {},
+        interface_names,
     };
 }
 
 auto succ::ThrusterController::state_interface_configuration() const
     -> cif::InterfaceConfiguration {
+    std::vector<std::string> interface_names;
+
+    std::string id_str = std::to_string(this->id);
+    if (this->mode == ThrusterMode::Can) {
+        interface_names = {
+            "thruster" + id_str + "/servo/servo/servo_current_raw",
+            "thruster" + id_str + "/esc/esc/rpm_raw",
+        };
+    }
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
-        {},
+        interface_names,
     };
 }
 
@@ -25,6 +53,18 @@ auto succ::ThrusterController::on_init() -> cif::CallbackReturn {
     this->get_node()->declare_parameter("id", 1);
     this->id = this->get_node()->get_parameter("id").as_int();
     RCLCPP_INFO(get_node()->get_logger(), "Thruster ID: %d", this->id);
+
+    this->get_node()->declare_parameter("thruster_mode", "can");
+    std::string mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
+    if (mode_str == "can") {
+        this->mode = ThrusterMode::Can;
+    } else if (mode_str == "direct") {
+        this->mode = ThrusterMode::Direct;
+    } else {
+        RCLCPP_ERROR(this->get_node()->get_logger(), "Invalid thruster mode: %s", mode_str.c_str());
+        return cif::CallbackReturn::ERROR;
+    }
+
     return cif::CallbackReturn::SUCCESS;
 }
 
@@ -49,11 +89,11 @@ auto succ::ThrusterController::on_export_reference_interfaces()
 
     auto interfaces = std::vector<hif::CommandInterface>{};
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name() + std::string("/esc_enabled"), "esc_enabled",
-        reinterpret_cast<double *>(&this->esc_enabled)));
-    interfaces.emplace_back(hif::CommandInterface(
         this->get_node()->get_name() + std::string("/servo_enabled"), "servo_enabled",
         reinterpret_cast<double *>(&this->servo_enabled)));
+    interfaces.emplace_back(hif::CommandInterface(
+        this->get_node()->get_name() + std::string("/esc_enabled"), "esc_enabled",
+        reinterpret_cast<double *>(&this->esc_enabled)));
     interfaces.emplace_back(hif::CommandInterface(
         this->get_node()->get_name() + std::string("/angle"), "angle",
         reinterpret_cast<double *>(&this->angle)));
