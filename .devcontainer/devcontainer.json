@@ -6,6 +6,7 @@
     "vscode": {
       "extensions": [
         "charliermarsh.ruff",
+        "llvm-vs-code-extensions.vscode-clangd",
         "ms-iot.vscode-ros",
         "ms-python.python",
         "ms-vscode.cpptools",
@@ -30,11 +31,22 @@
         "python.analysis.inlayHints.variableTypes": true,
         "python.analysis.inlayHints.pytestParameters": true,
         "[cpp]": {
-          "editor.defaultFormatter": "ms-vscode.cpptools"
+          "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
         },
-        "C_Cpp.inlayHints.autoDeclarationTypes.enabled": true,
-        "C_Cpp.inlayHints.autoFunctionReturnTypes.enabled": true,
-        "C_Cpp.inlayHints.variableTypes.enabled": true,
+        "clangd.path": "clangd-18",
+        "clangd.arguments": [
+          "--compile-commands-dir=${workspaceFolder}/build"
+        ],
+        "clangd.fallbackFlags": [
+          "-std=c99",
+          "-std=gnu++17",
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic"
+        ],
+        "C_Cpp.codeAnalysis.runAutomatically": false,
+        "C_Cpp.hover": "disabled",
+        "C_Cpp.intelliSenseEngine": "disabled",
         "[ros.msg]": {
           "editor.defaultFormatter": "ms-iot.vscode-ros"
         }

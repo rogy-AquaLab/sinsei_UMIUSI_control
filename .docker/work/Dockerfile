@@ -4,9 +4,9 @@ FROM osrf/ros:${ros_distro}-desktop
 
 RUN apt-get update && apt-get install -y \
     git \
-    clang-format \
-    ros-${ROS_DISTRO}-ament-clang-format \
-    ros-${ROS_DISTRO}-ament-cmake-clang-format \
+    clangd-18 \
+    clang-format-18 \
+    clang-tidy-18 \
     ros-${ROS_DISTRO}-ros2-control \
     ros-${ROS_DISTRO}-ros2-controllers \
     ros-${ROS_DISTRO}-xacro \
