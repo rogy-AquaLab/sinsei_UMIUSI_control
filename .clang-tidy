@@ -1,0 +1,17 @@
+---
+ExtraArgs:
+  - -std=c++17
+
+Checks: "
+  -*,
+  bugprone-*,
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  "
+
+HeaderFileExtensions: ["", h, hh, hpp, hxx]
+ImplementationFileExtensions: [c, cc, cpp, cxx]
+HeaderFilterRegex: "(src|include)/.*"
+
+FormatStyle: none
+SystemHeaders: false

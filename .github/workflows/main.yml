@@ -1,6 +1,4 @@
-# see: https://github.com/marketplace/actions/ros-2-ci-action
-
-name: ROS2 CI
+name: Main CI
 
 on:
   push:
@@ -10,26 +8,123 @@ on:
     branches:
       - main
 
+env:
+  ROS_DISTRO: jazzy # default value, can be overridden by `.env` file
+
 jobs:
-  lint-python:
+  parse-env-file:
+    name: Parse Environment File
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Parse environment file
+        id: parse-env-file
+        shell: bash
+        run: source .github/workflows/scripts/parse-env-file.sh $GITHUB_ENV || exit 0
+
+  python-lint:
+    name: Python Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - uses: astral-sh/ruff-action@v3
 
-      - name: Ruff check
+      - name: Ruff Check
         run: ruff check
 
       - name: Ruff Format
         run: ruff format --check --diff
 
-  build-and-test:
+  colcon-build:
+    name: Colcon Build
+    needs: parse-env-file
+    runs-on: ubuntu-latest
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
+
+    steps:
+      - name: Colcon Build
+        uses: ros-tooling/action-ros-ci@v0.4
+        with:
+          target-ros2-distro: ${{ env.ROS_DISTRO }}
+          skip-tests: true
+
+      - name: Upload ROS C++ libraries
+        uses: actions/upload-artifact@v4
+        with:
+          name: ros-cpp-libraries
+          path: /opt/ros/${{ env.ROS_DISTRO }}/include
+
+      - name: Upload Build results (`build` directory)
+        uses: actions/upload-artifact@v4
+        with:
+          name: colcon-build-results-build
+          path: ros_ws/build
+
+  cpp-lint:
+    name: C++ Lint
+    needs: [parse-env-file, colcon-build]
+    runs-on: ubuntu-latest
+    env:
+      SED_ARG_1: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/[0-9a-z]*/${{ github.event.repository.name }}|${{ github.workspace }}|g
+      SED_ARG_2: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/build|${{ github.workspace }}/build|g
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download ROS C++ libraries
+        uses: actions/download-artifact@v4
+        with:
+          name: ros-cpp-libraries
+          path: /opt/ros/${{ env.ROS_DISTRO }}/include
+
+      - name: Download Colcon Build results (`build` directory)
+        uses: actions/download-artifact@v4
+        with:
+          name: colcon-build-results-build
+          path: build
+
+      - name: Replace ROS working directory with current one
+        run: |
+          sed -i '${{ env.SED_ARG_1 }}' build/compile_commands.json ; \
+          sed -i '${{ env.SED_ARG_2 }}' build/compile_commands.json ; \
+          echo "Replaced ROS working directory in compile_commands.json" && cat build/compile_commands.json
+
+      - name: C++ Lint
+        id: cpp-lint
+        uses: cpp-linter/cpp-linter-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          verbosity: debug
+          version: 18
+          style: file
+          tidy-checks: ""
+          database: build
+          ignore: ./.github | ./build
+          step-summary: true
+          files-changed-only: false
+
+      - name: On failed
+        if: steps.cpp-lint.outputs.checks-failed > 0
+        run: echo "C++ lint checks failed ... ${{ steps.cpp-lint.outputs.checks-failed }}" && exit 1
+
+  colcon-test:
+    name: Colcon Test
+    needs: [parse-env-file, colcon-build]
     runs-on: ubuntu-latest
     container:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
     steps:
-      - name: Build and Run tests
+      - name: Download Build results (`build` directory)
+        uses: actions/download-artifact@v4
+        with:
+          name: colcon-build-results-build
+          path: build
+
+      - name: Colcon Test
         uses: ros-tooling/action-ros-ci@v0.4
         with:
-          target-ros2-distro: jazzy
-          rosdep-check: true
+          target-ros2-distro: ${{ env.ROS_DISTRO }}
