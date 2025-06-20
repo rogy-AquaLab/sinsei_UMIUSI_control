@@ -35,6 +35,9 @@ class AppController : public controller_interface::ChainableControllerInterface 
     suc::state::imu::Orientation imu_orientation;
     suc::state::imu::Velocity imu_velocity;
 
+    std::vector<std::string> cmd_interface_names;
+    std::vector<std::string> state_interface_names;
+
   public:
     AppController() = default;
 

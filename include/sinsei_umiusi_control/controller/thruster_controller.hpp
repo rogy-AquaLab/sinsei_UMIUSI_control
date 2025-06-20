@@ -42,6 +42,9 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     suc::state::thruster::ServoCurrent servo_current;
     suc::state::thruster::Rpm rpm;
 
+    std::vector<std::string> cmd_interface_names;
+    std::vector<std::string> state_interface_names;
+
     // Thruster ID (1~4)
     uint8_t id;
 

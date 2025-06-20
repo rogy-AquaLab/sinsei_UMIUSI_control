@@ -62,6 +62,9 @@ class GateController : public controller_interface::ControllerInterface {
     std::array<std::optional<hardware_interface::LoanedStateInterface>, 4> thruster_servo_current;
     std::array<std::optional<hardware_interface::LoanedStateInterface>, 4> thruster_rpm;
 
+    std::vector<std::string> cmd_interface_names;
+    std::vector<std::string> state_interface_names;
+
   public:
     GateController() = default;
 

@@ -7,28 +7,9 @@ namespace cif = controller_interface;
 
 auto succ::ThrusterController::command_interface_configuration() const
     -> cif::InterfaceConfiguration {
-    std::vector<std::string> interface_names;
-    std::string id_str = std::to_string(this->id);
-
-    if (this->mode == ThrusterMode::Can) {
-        interface_names = {
-            "thruster" + id_str + "/servo/servo/enabled_raw",
-            "thruster" + id_str + "/servo/servo/angle_raw",
-            "thruster" + id_str + "/esc/esc/enabled_raw",
-            "thruster" + id_str + "/esc/esc/thrust_raw",
-        };
-    } else if (this->mode == ThrusterMode::Direct) {
-        interface_names = {
-            "thruster_direct" + id_str + "/servo_direct/servo_direct/enabled_raw",
-            "thruster_direct" + id_str + "/servo_direct/servo_direct/angle_raw",
-            "thruster_direct" + id_str + "/esc_direct/esc_direct/enabled_raw",
-            "thruster_direct" + id_str + "/esc_direct/esc_direct/thrust_raw",
-        };
-    }
-
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
-        interface_names,
+        this->cmd_interface_names,
     };
 }
 
@@ -36,13 +17,6 @@ auto succ::ThrusterController::state_interface_configuration() const
     -> cif::InterfaceConfiguration {
     std::vector<std::string> interface_names;
 
-    std::string id_str = std::to_string(this->id);
-    if (this->mode == ThrusterMode::Can) {
-        interface_names = {
-            "thruster" + id_str + "/servo/servo/servo_current_raw",
-            "thruster" + id_str + "/esc/esc/rpm_raw",
-        };
-    }
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
         interface_names,
@@ -70,6 +44,27 @@ auto succ::ThrusterController::on_init() -> cif::CallbackReturn {
 
 auto succ::ThrusterController::on_configure(const rlc::State & /*pervious_state*/)
     -> cif::CallbackReturn {
+    std::string id_str = std::to_string(this->id);
+
+    if (this->mode == ThrusterMode::Can) {
+        this->cmd_interface_names = {
+            "thruster" + id_str + "/servo/servo/enabled_raw",
+            "thruster" + id_str + "/servo/servo/angle_raw",
+            "thruster" + id_str + "/esc/esc/enabled_raw",
+            "thruster" + id_str + "/esc/esc/thrust_raw",
+        };
+        this->state_interface_names = {
+            "thruster" + id_str + "/servo/servo/servo_current_raw",
+            "thruster" + id_str + "/esc/esc/rpm_raw",
+        };
+    } else if (this->mode == ThrusterMode::Direct) {
+        this->cmd_interface_names = {
+            "thruster_direct" + id_str + "/servo_direct/servo_direct/enabled_raw",
+            "thruster_direct" + id_str + "/servo_direct/servo_direct/angle_raw",
+            "thruster_direct" + id_str + "/esc_direct/esc_direct/enabled_raw",
+            "thruster_direct" + id_str + "/esc_direct/esc_direct/thrust_raw",
+        };
+    }
     return cif::CallbackReturn::SUCCESS;
 }
 
