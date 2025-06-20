@@ -11,35 +11,53 @@ from ament_index_python.packages import get_package_share_directory
 
 PACKAGE_NAME = 'sinsei_umiusi_control'
 
-XACRO_ARGUMENTS: dict[str, list[str]] = {'thruster_mode': ['can', 'direct']}
+# '' means the parameter is not set (default value will be used)
+XACRO_ARGUMENTS: dict[str, list[str]] = {
+    'thruster_mode': ['', 'can', 'direct'],
+}
 
 
 def generate_xacro_params(
+    # {A: [a, b], B: [c, d], ...}
     args: dict[str, list[str]],
-) -> Iterator[Iterator[tuple[str, str]]]:
-    # [[('thruster_mode', 'can'), ('thruster_mode', 'direct')], ...]
+) -> Iterator[str]:
+    # [[(A, a), (A, b)], [(B, c), (B, d)], ...]
     key_val_pairs = map(
         lambda key: itertools.product([key], args[key]),
         args.keys(),
     )
-    # [[('thruster_mode', 'can'), ...], [('thruster_mode', 'can), ...], ..., [('thruster_mode', 'direct'), ...], ...]
-    return itertools.product(*key_val_pairs)
+    # [[(A, a), (B, c), ...], [(A, b), (B, c), ...], ..., [(A, a), (B, d), ...], ...]
+    params = itertools.product(*key_val_pairs)
+    # if a value (e.g. a, b, ...) equals to '', the pair will be filtered out
+    params_filtered = map(
+        lambda ps: itertools.filterfalse(
+            lambda pair: pair[1] == '',
+            ps,
+        ),
+        params,
+    )
+    # [args0, args1, ...]
+    # where args0: A:="'a'" B:="'c'" ...
+    #       args1: A:="'b'" B:="'c'" ...
+    params_str = map(
+        lambda ps: ' '.join(f'{key}:=\'"{value}"\'' for key, value in ps),
+        params_filtered,
+    )
+
+    return params_str
 
 
-@pytest.fixture(
-    params=generate_xacro_params(XACRO_ARGUMENTS),
-    ids=lambda p: ', '.join(f'{k}={v}' for k, v in p),
-)
+@pytest.fixture(params=generate_xacro_params(XACRO_ARGUMENTS))
 def xacro_command(request) -> str:
     """Fixture to provide the xacro command."""
-    args = ' '.join(f'{key}:=\'"{value}"\'' for key, value in request.param)
+    xacro_path = shutil.which('xacro')
+    params = request.param
     xacro_file = os.path.join(
         get_package_share_directory(PACKAGE_NAME),
         'urdf',
         'sinsei_umiusi_control.urdf.xacro',
     )
-    cmd = f'{shutil.which("xacro")} {xacro_file} {args}'
-    print(cmd)
+    cmd = f'{xacro_path} {xacro_file} {params}'
     return cmd
 
 
