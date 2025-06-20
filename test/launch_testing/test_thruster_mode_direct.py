@@ -24,6 +24,14 @@ import rclpy
 PACKAGE_NAME = 'sinsei_umiusi_control'
 HARDWARE_COMPONENTS = [
     'can',
+    'thruster_direct1/servo_direct',
+    'thruster_direct1/esc_direct',
+    'thruster_direct2/servo_direct',
+    'thruster_direct2/esc_direct',
+    'thruster_direct3/servo_direct',
+    'thruster_direct3/esc_direct',
+    'thruster_direct4/servo_direct',
+    'thruster_direct4/esc_direct',
     'headlights',
     'imu',
     'indicator_led',
@@ -52,7 +60,7 @@ def generate_test_description():
                         'launch.xml',
                     )
                 ),
-                launch_arguments={}.items(),
+                launch_arguments={'thruster_mode': 'direct'}.items(),
             ),
             ReadyToTest(),
         ]
