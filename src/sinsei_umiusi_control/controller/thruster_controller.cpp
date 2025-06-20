@@ -52,7 +52,7 @@ auto succ::ThrusterController::state_interface_configuration() const
 auto succ::ThrusterController::on_init() -> cif::CallbackReturn {
     this->get_node()->declare_parameter("id", 1);
     this->id = this->get_node()->get_parameter("id").as_int();
-    RCLCPP_INFO(get_node()->get_logger(), "Thruster ID: %d", this->id);
+    RCLCPP_INFO(this->get_node()->get_logger(), "Thruster ID: %d", this->id);
 
     this->get_node()->declare_parameter("thruster_mode", "can");
     std::string mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
