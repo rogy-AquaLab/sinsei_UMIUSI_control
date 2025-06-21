@@ -112,31 +112,31 @@ auto succ::AppController::update_and_write_commands(
     // 姿勢制御の関数を呼び出す
     this->compute_outputs();
 
-    constexpr auto angle1_index =
+    constexpr auto ANGLE1_INDEX =
         suc_util::get_index("thruster_controller1/angle/angle", CMD_INTERFACE_NAMES);
-    constexpr auto thrust1_index =
+    constexpr auto THRUST1_INDEX =
         suc_util::get_index("thruster_controller1/thrust/thrust", CMD_INTERFACE_NAMES);
-    constexpr auto angle2_index =
+    constexpr auto ANGLE2_INDEX =
         suc_util::get_index("thruster_controller2/angle/angle", CMD_INTERFACE_NAMES);
-    constexpr auto thrust2_index =
+    constexpr auto THRUST2_INDEX =
         suc_util::get_index("thruster_controller2/thrust/thrust", CMD_INTERFACE_NAMES);
-    constexpr auto angle3_index =
+    constexpr auto ANGLE3_INDEX =
         suc_util::get_index("thruster_controller3/angle/angle", CMD_INTERFACE_NAMES);
-    constexpr auto thrust3_index =
+    constexpr auto THRUST3_INDEX =
         suc_util::get_index("thruster_controller3/thrust/thrust", CMD_INTERFACE_NAMES);
-    constexpr auto angle4_index =
+    constexpr auto ANGLE4_INDEX =
         suc_util::get_index("thruster_controller4/angle/angle", CMD_INTERFACE_NAMES);
-    constexpr auto thrust4_index =
+    constexpr auto THRUST4_INDEX =
         suc_util::get_index("thruster_controller4/thrust/thrust", CMD_INTERFACE_NAMES);
 
-    this->interface_helper->set_cmd_value(angle1_index, this->thruster_angles[0]);
-    this->interface_helper->set_cmd_value(thrust1_index, this->thruster_thrusts[0]);
-    this->interface_helper->set_cmd_value(angle2_index, this->thruster_angles[1]);
-    this->interface_helper->set_cmd_value(thrust2_index, this->thruster_thrusts[1]);
-    this->interface_helper->set_cmd_value(angle3_index, this->thruster_angles[2]);
-    this->interface_helper->set_cmd_value(thrust3_index, this->thruster_thrusts[2]);
-    this->interface_helper->set_cmd_value(angle4_index, this->thruster_angles[3]);
-    this->interface_helper->set_cmd_value(thrust4_index, this->thruster_thrusts[3]);
+    this->interface_helper->set_cmd_value(ANGLE1_INDEX, this->thruster_angles[0]);
+    this->interface_helper->set_cmd_value(THRUST1_INDEX, this->thruster_thrusts[0]);
+    this->interface_helper->set_cmd_value(ANGLE2_INDEX, this->thruster_angles[1]);
+    this->interface_helper->set_cmd_value(THRUST2_INDEX, this->thruster_thrusts[1]);
+    this->interface_helper->set_cmd_value(ANGLE3_INDEX, this->thruster_angles[2]);
+    this->interface_helper->set_cmd_value(THRUST3_INDEX, this->thruster_thrusts[2]);
+    this->interface_helper->set_cmd_value(ANGLE4_INDEX, this->thruster_angles[3]);
+    this->interface_helper->set_cmd_value(THRUST4_INDEX, this->thruster_thrusts[3]);
 
     constexpr auto orientation_x_index =
         suc_util::get_index("imu/imu/orientation_raw.x", STATE_INTERFACE_NAMES);

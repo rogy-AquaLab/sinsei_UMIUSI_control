@@ -144,73 +144,73 @@ auto succ::GateController::on_deactivate(const rlc::State & /*previous_state*/)
 auto succ::GateController::update(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/
     ) -> cif::return_type {
-    constexpr auto indicator_led_enabled_index =
+    constexpr auto INDICATOR_LED_ENABLED_INDEX =
         suc_util::get_index("indicator_led/indicator_led/enabled", CMD_INTERFACE_NAMES);
-    constexpr auto main_power_enabled_index =
+    constexpr auto MAIN_POWER_ENABLED_INDEX =
         suc_util::get_index("main_power/main_power/enabled", CMD_INTERFACE_NAMES);
-    constexpr auto led_tape_color_index =
+    constexpr auto LED_TAPE_COLOR_INDEX =
         suc_util::get_index("led_tape/led_tape/color", CMD_INTERFACE_NAMES);
-    constexpr auto high_beam_enabled_index =
+    constexpr auto HIGH_BEAM_ENABLED_INDEX =
         suc_util::get_index("headlights/headlights/high_beam_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto low_beam_enabled_index =
+    constexpr auto LOW_BEAM_ENABLED_INDEX =
         suc_util::get_index("headlights/headlights/low_beam_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto ir_enabled_index =
+    constexpr auto IR_ENABLED_INDEX =
         suc_util::get_index("headlights/headlights/ir_enabled", CMD_INTERFACE_NAMES);
     // TODO: usb_camera, raspi_camera
-    constexpr auto servo1_enabled_index = suc_util::get_index(
+    constexpr auto SERVO1_ENABLED_INDEX = suc_util::get_index(
         "thruster_controller1/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto servo2_enabled_index = suc_util::get_index(
+    constexpr auto SERVO2_ENABLED_INDEX = suc_util::get_index(
         "thruster_controller2/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto servo3_enabled_index = suc_util::get_index(
+    constexpr auto SERVO3_ENABLED_INDEX = suc_util::get_index(
         "thruster_controller3/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto servo4_enabled_index = suc_util::get_index(
+    constexpr auto SERVO4_ENABLED_INDEX = suc_util::get_index(
         "thruster_controller4/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto esc1_enabled_index =
+    constexpr auto ESC1_ENABLED_INDEX =
         suc_util::get_index("thruster_controller1/esc_enabled/esc_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto esc2_enabled_index =
+    constexpr auto ESC2_ENABLED_INDEX =
         suc_util::get_index("thruster_controller2/esc_enabled/esc_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto esc3_enabled_index =
+    constexpr auto ESC3_ENABLED_INDEX =
         suc_util::get_index("thruster_controller3/esc_enabled/esc_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto esc4_enabled_index =
+    constexpr auto ESC4_ENABLED_INDEX =
         suc_util::get_index("thruster_controller4/esc_enabled/esc_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto target_orientation_x_index = suc_util::get_index(
+    constexpr auto TARGET_ORIENTATION_X_INDEX = suc_util::get_index(
         "app_controller/target_orientation.x/target_orientation.x", CMD_INTERFACE_NAMES);
-    constexpr auto target_orientation_y_index = suc_util::get_index(
+    constexpr auto TARGET_ORIENTATION_Y_INDEX = suc_util::get_index(
         "app_controller/target_orientation.y/target_orientation.y", CMD_INTERFACE_NAMES);
-    constexpr auto target_orientation_z_index = suc_util::get_index(
+    constexpr auto TARGET_ORIENTATION_Z_INDEX = suc_util::get_index(
         "app_controller/target_orientation.z/target_orientation.z", CMD_INTERFACE_NAMES);
-    constexpr auto target_velocity_x_index = suc_util::get_index(
+    constexpr auto TARGET_VELOCITY_X_INDEX = suc_util::get_index(
         "app_controller/target_velocity.x/target_velocity.x", CMD_INTERFACE_NAMES);
-    constexpr auto target_velocity_y_index = suc_util::get_index(
+    constexpr auto TARGET_VELOCITY_Y_INDEX = suc_util::get_index(
         "app_controller/target_velocity.y/target_velocity.y", CMD_INTERFACE_NAMES);
-    constexpr auto target_velocity_z_index = suc_util::get_index(
+    constexpr auto TARGET_VELOCITY_Z_INDEX = suc_util::get_index(
         "app_controller/target_velocity.z/target_velocity.z", CMD_INTERFACE_NAMES);
 
     this->interface_helper->set_cmd_value(
-        indicator_led_enabled_index, this->indicator_led_enabled_ref);
-    this->interface_helper->set_cmd_value(main_power_enabled_index, this->main_power_enabled_ref);
-    this->interface_helper->set_cmd_value(led_tape_color_index, this->led_tape_color_ref);
-    this->interface_helper->set_cmd_value(high_beam_enabled_index, this->high_beam_enabled_ref);
-    this->interface_helper->set_cmd_value(low_beam_enabled_index, this->low_beam_enabled_ref);
-    this->interface_helper->set_cmd_value(ir_enabled_index, this->ir_enabled_ref);
+        INDICATOR_LED_ENABLED_INDEX, this->indicator_led_enabled_ref);
+    this->interface_helper->set_cmd_value(MAIN_POWER_ENABLED_INDEX, this->main_power_enabled_ref);
+    this->interface_helper->set_cmd_value(LED_TAPE_COLOR_INDEX, this->led_tape_color_ref);
+    this->interface_helper->set_cmd_value(HIGH_BEAM_ENABLED_INDEX, this->high_beam_enabled_ref);
+    this->interface_helper->set_cmd_value(LOW_BEAM_ENABLED_INDEX, this->low_beam_enabled_ref);
+    this->interface_helper->set_cmd_value(IR_ENABLED_INDEX, this->ir_enabled_ref);
     // TODO: usb_camera, raspi_camera
-    this->interface_helper->set_cmd_value(servo1_enabled_index, this->servo_enabled_ref);
-    this->interface_helper->set_cmd_value(servo2_enabled_index, this->servo_enabled_ref);
-    this->interface_helper->set_cmd_value(servo3_enabled_index, this->servo_enabled_ref);
-    this->interface_helper->set_cmd_value(servo4_enabled_index, this->servo_enabled_ref);
-    this->interface_helper->set_cmd_value(esc1_enabled_index, this->esc_enabled_ref);
-    this->interface_helper->set_cmd_value(esc2_enabled_index, this->esc_enabled_ref);
-    this->interface_helper->set_cmd_value(esc3_enabled_index, this->esc_enabled_ref);
-    this->interface_helper->set_cmd_value(esc4_enabled_index, this->esc_enabled_ref);
+    this->interface_helper->set_cmd_value(SERVO1_ENABLED_INDEX, this->servo_enabled_ref);
+    this->interface_helper->set_cmd_value(SERVO2_ENABLED_INDEX, this->servo_enabled_ref);
+    this->interface_helper->set_cmd_value(SERVO3_ENABLED_INDEX, this->servo_enabled_ref);
+    this->interface_helper->set_cmd_value(SERVO4_ENABLED_INDEX, this->servo_enabled_ref);
+    this->interface_helper->set_cmd_value(ESC1_ENABLED_INDEX, this->esc_enabled_ref);
+    this->interface_helper->set_cmd_value(ESC2_ENABLED_INDEX, this->esc_enabled_ref);
+    this->interface_helper->set_cmd_value(ESC3_ENABLED_INDEX, this->esc_enabled_ref);
+    this->interface_helper->set_cmd_value(ESC4_ENABLED_INDEX, this->esc_enabled_ref);
     this->interface_helper->set_cmd_value(
-        target_orientation_x_index, this->target_orientation_ref.x);
+        TARGET_ORIENTATION_X_INDEX, this->target_orientation_ref.x);
     this->interface_helper->set_cmd_value(
-        target_orientation_y_index, this->target_orientation_ref.y);
+        TARGET_ORIENTATION_Y_INDEX, this->target_orientation_ref.y);
     this->interface_helper->set_cmd_value(
-        target_orientation_z_index, this->target_orientation_ref.z);
-    this->interface_helper->set_cmd_value(target_velocity_x_index, this->target_velocity_ref.x);
-    this->interface_helper->set_cmd_value(target_velocity_y_index, this->target_velocity_ref.y);
-    this->interface_helper->set_cmd_value(target_velocity_z_index, this->target_velocity_ref.z);
+        TARGET_ORIENTATION_Z_INDEX, this->target_orientation_ref.z);
+    this->interface_helper->set_cmd_value(TARGET_VELOCITY_X_INDEX, this->target_velocity_ref.x);
+    this->interface_helper->set_cmd_value(TARGET_VELOCITY_Y_INDEX, this->target_velocity_ref.y);
+    this->interface_helper->set_cmd_value(TARGET_VELOCITY_Z_INDEX, this->target_velocity_ref.z);
 
     this->battery_current_publisher->publish(
         std_msgs::msg::Float64().set__data(this->battery_current_ref.value));

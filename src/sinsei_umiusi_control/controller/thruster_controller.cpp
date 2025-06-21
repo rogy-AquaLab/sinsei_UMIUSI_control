@@ -142,41 +142,42 @@ auto succ::ThrusterController::update_reference_from_subscribers(
 auto succ::ThrusterController::update_and_write_commands(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> cif::return_type {
     if (this->mode == ThrusterMode::Can) {
-        constexpr auto servo_enabled_index =
+        constexpr auto SERVO_ENABLED_INDEX =
             suc_util::get_index("servo/servo/enabled_raw", CAN_CMD_INTERFACE_NAMES);
-        constexpr auto angle_index =
+        constexpr auto ANGLE_INDEX =
             suc_util::get_index("servo/servo/angle_raw", CAN_CMD_INTERFACE_NAMES);
-        constexpr auto esc_enabled_index =
+        constexpr auto ESC_ENABLED_INDEX =
             suc_util::get_index("esc/esc/enabled_raw", CAN_CMD_INTERFACE_NAMES);
-        constexpr auto thrust_index =
+        constexpr auto THRUST_INDEX =
             suc_util::get_index("esc/esc/thrust_raw", CAN_CMD_INTERFACE_NAMES);
 
-        constexpr auto servo_current_index =
+        constexpr auto SERVO_CURRENT_INDEX =
             suc_util::get_index("servo/servo/servo_current_raw", CAN_STATE_INTERFACE_NAMES);
-        constexpr auto rpm_index =
+        constexpr auto RPM_INDEX =
             suc_util::get_index("esc/esc/rpm_raw", CAN_STATE_INTERFACE_NAMES);
 
-        this->can_interface_helper->set_cmd_value(servo_enabled_index, this->servo_enabled);
-        this->can_interface_helper->set_cmd_value(angle_index, this->angle);
-        this->can_interface_helper->set_cmd_value(esc_enabled_index, this->esc_enabled);
-        this->can_interface_helper->set_cmd_value(thrust_index, this->thrust);
+        this->can_interface_helper->set_cmd_value(SERVO_ENABLED_INDEX, this->servo_enabled);
+        this->can_interface_helper->set_cmd_value(ANGLE_INDEX, this->angle);
+        this->can_interface_helper->set_cmd_value(ESC_ENABLED_INDEX, this->esc_enabled);
+        this->can_interface_helper->set_cmd_value(THRUST_INDEX, this->thrust);
 
-        this->can_interface_helper->get_state_value(servo_current_index, this->servo_current);
-        this->can_interface_helper->get_state_value(rpm_index, this->rpm);
+        this->can_interface_helper->get_state_value(SERVO_CURRENT_INDEX, this->servo_current);
+        this->can_interface_helper->get_state_value(RPM_INDEX, this->rpm);
+
     } else {
-        constexpr auto servo_enabled_index = suc_util::get_index(
+        constexpr auto SERVO_ENABLED_INDEX = suc_util::get_index(
             "servo_direct/servo_direct/enabled_raw", DIRECT_CMD_INTERFACE_NAMES);
-        constexpr auto angle_index =
+        constexpr auto ANGLE_INDEX =
             suc_util::get_index("servo_direct/servo_direct/angle_raw", DIRECT_CMD_INTERFACE_NAMES);
-        constexpr auto esc_enabled_index =
+        constexpr auto ESC_ENABLED_INDEX =
             suc_util::get_index("esc_direct/esc_direct/enabled_raw", DIRECT_CMD_INTERFACE_NAMES);
-        constexpr auto thrust_index =
+        constexpr auto THRUST_INDEX =
             suc_util::get_index("esc_direct/esc_direct/thrust_raw", DIRECT_CMD_INTERFACE_NAMES);
 
-        this->direct_interface_helper->set_cmd_value(servo_enabled_index, this->servo_enabled);
-        this->direct_interface_helper->set_cmd_value(angle_index, this->angle);
-        this->direct_interface_helper->set_cmd_value(esc_enabled_index, this->esc_enabled);
-        this->direct_interface_helper->set_cmd_value(thrust_index, this->thrust);
+        this->direct_interface_helper->set_cmd_value(SERVO_ENABLED_INDEX, this->servo_enabled);
+        this->direct_interface_helper->set_cmd_value(ANGLE_INDEX, this->angle);
+        this->direct_interface_helper->set_cmd_value(ESC_ENABLED_INDEX, this->esc_enabled);
+        this->direct_interface_helper->set_cmd_value(THRUST_INDEX, this->thrust);
     }
 
     return cif::return_type::OK;
