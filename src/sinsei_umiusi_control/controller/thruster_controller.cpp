@@ -15,11 +15,9 @@ auto succ::ThrusterController::command_interface_configuration() const
 
 auto succ::ThrusterController::state_interface_configuration() const
     -> cif::InterfaceConfiguration {
-    std::vector<std::string> interface_names;
-
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
-        interface_names,
+        this->state_interface_names,
     };
 }
 
