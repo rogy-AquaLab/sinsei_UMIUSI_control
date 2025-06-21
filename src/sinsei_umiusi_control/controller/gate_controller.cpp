@@ -41,13 +41,93 @@ auto succ::GateController::on_init() -> cif::CallbackReturn {
 
 auto succ::GateController::on_configure(const rlc::State & /*pervious_state*/)
     -> cif::CallbackReturn {
-    // TODO: 今後`indicator_led/indicator_led/enabled`以外の分も実装する
     this->indicator_led_enabled_subscriber =
         this->get_node()->create_subscription<std_msgs::msg::Bool>(
             "indicator_led_enabled", rclcpp::SystemDefaultsQoS(),
             [this](const std_msgs::msg::Bool::SharedPtr input) {
                 this->indicator_led_enabled_ref.value = input->data;
             });
+    this->main_power_enabled_subscriber =
+        this->get_node()->create_subscription<std_msgs::msg::Bool>(
+            "main_power_enabled", rclcpp::SystemDefaultsQoS(),
+            [this](const std_msgs::msg::Bool::SharedPtr input) {
+                this->main_power_enabled_ref.value = input->data;
+            });
+    this->led_tape_color_subscriber =
+        this->get_node()->create_subscription<std_msgs::msg::ColorRGBA>(
+            "led_tape_color", rclcpp::SystemDefaultsQoS(),
+            [this](const std_msgs::msg::ColorRGBA::SharedPtr input) {
+                // alphaは無視
+                this->led_tape_color_ref.red = static_cast<uint8_t>(input->r);
+                this->led_tape_color_ref.green = static_cast<uint8_t>(input->g);
+                this->led_tape_color_ref.blue = static_cast<uint8_t>(input->b);
+            });
+    this->high_beam_enabled_subscriber = this->get_node()->create_subscription<std_msgs::msg::Bool>(
+        "high_beam_enabled", rclcpp::SystemDefaultsQoS(),
+        [this](const std_msgs::msg::Bool::SharedPtr input) {
+            this->high_beam_enabled_ref.value = input->data;
+        });
+    this->low_beam_enabled_subscriber = this->get_node()->create_subscription<std_msgs::msg::Bool>(
+        "low_beam_enabled", rclcpp::SystemDefaultsQoS(),
+        [this](const std_msgs::msg::Bool::SharedPtr input) {
+            this->low_beam_enabled_ref.value = input->data;
+        });
+    this->ir_enabled_subscriber = this->get_node()->create_subscription<std_msgs::msg::Bool>(
+        "ir_enabled", rclcpp::SystemDefaultsQoS(),
+        [this](const std_msgs::msg::Bool::SharedPtr input) {
+            this->ir_enabled_ref.value = input->data;
+        });
+    // TODO: usb_camera, raspi_camera
+    this->servo_enabled_subscriber = this->get_node()->create_subscription<std_msgs::msg::Bool>(
+        "servo_enabled", rclcpp::SystemDefaultsQoS(),
+        [this](const std_msgs::msg::Bool::SharedPtr input) {
+            this->servo_enabled_ref.value = input->data;
+        });
+    this->esc_enabled_subscriber = this->get_node()->create_subscription<std_msgs::msg::Bool>(
+        "esc_enabled", rclcpp::SystemDefaultsQoS(),
+        [this](const std_msgs::msg::Bool::SharedPtr input) {
+            this->esc_enabled_ref.value = input->data;
+        });
+    this->target_orientation_subscriber =
+        this->get_node()->create_subscription<geometry_msgs::msg::Vector3>(
+            "target_orientation", rclcpp::SystemDefaultsQoS(),
+            [this](const geometry_msgs::msg::Vector3::SharedPtr input) {
+                this->target_orientation_ref.x = input->x;
+                this->target_orientation_ref.y = input->y;
+                this->target_orientation_ref.z = input->z;
+            });
+    this->target_velocity_subscriber =
+        this->get_node()->create_subscription<geometry_msgs::msg::Vector3>(
+            "target_velocity", rclcpp::SystemDefaultsQoS(),
+            [this](const geometry_msgs::msg::Vector3::SharedPtr input) {
+                this->target_velocity_ref.x = input->x;
+                this->target_velocity_ref.y = input->y;
+                this->target_velocity_ref.z = input->z;
+            });
+
+    this->battery_current_publisher = this->get_node()->create_publisher<std_msgs::msg::Float64>(
+        "battery_current", rclcpp::SystemDefaultsQoS());
+    this->battery_voltage_publisher = this->get_node()->create_publisher<std_msgs::msg::Float64>(
+        "battery_voltage", rclcpp::SystemDefaultsQoS());
+    this->main_temperature_publisher = this->get_node()->create_publisher<std_msgs::msg::Int8>(
+        "main_temperature", rclcpp::SystemDefaultsQoS());
+    this->water_leaked_publisher = this->get_node()->create_publisher<std_msgs::msg::Bool>(
+        "water_leaked", rclcpp::SystemDefaultsQoS());
+    for (size_t i = 0; i < 4; ++i) {
+        this->servo_current_publisher[i] =
+            this->get_node()->create_publisher<std_msgs::msg::Float64>(
+                "servo_current_" + std::to_string(i + 1), rclcpp::SystemDefaultsQoS());
+        this->rpm_publisher[i] = this->get_node()->create_publisher<std_msgs::msg::Float64>(
+            "rpm_" + std::to_string(i + 1), rclcpp::SystemDefaultsQoS());
+    }
+    this->imu_orientation_publisher =
+        this->get_node()->create_publisher<geometry_msgs::msg::Vector3>(
+            "imu_orientation", rclcpp::SystemDefaultsQoS());
+    this->imu_velocity_publisher = this->get_node()->create_publisher<geometry_msgs::msg::Vector3>(
+        "imu_velocity", rclcpp::SystemDefaultsQoS());
+    this->imu_temperature_publisher = this->get_node()->create_publisher<std_msgs::msg::Float64>(
+        "imu_temperature", rclcpp::SystemDefaultsQoS());
+
     return cif::CallbackReturn::SUCCESS;
 }
 
@@ -64,12 +144,97 @@ auto succ::GateController::on_deactivate(const rlc::State & /*previous_state*/)
 auto succ::GateController::update(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/
     ) -> cif::return_type {
-    // TODO: 今後`indicator_led/indicator_led/enabled`以外の分も実装する
     constexpr auto indicator_led_enabled_index =
         suc_util::get_index("indicator_led/indicator_led/enabled", cmd_interface_names);
+    constexpr auto main_power_enabled_index =
+        suc_util::get_index("main_power/main_power/enabled", cmd_interface_names);
+    constexpr auto led_tape_color_index =
+        suc_util::get_index("led_tape/led_tape/color", cmd_interface_names);
+    constexpr auto high_beam_enabled_index =
+        suc_util::get_index("headlights/headlights/high_beam_enabled", cmd_interface_names);
+    constexpr auto low_beam_enabled_index =
+        suc_util::get_index("headlights/headlights/low_beam_enabled", cmd_interface_names);
+    constexpr auto ir_enabled_index =
+        suc_util::get_index("headlights/headlights/ir_enabled", cmd_interface_names);
+    // TODO: usb_camera, raspi_camera
+    constexpr auto servo1_enabled_index = suc_util::get_index(
+        "thruster_controller1/servo_enabled/servo_enabled", cmd_interface_names);
+    constexpr auto servo2_enabled_index = suc_util::get_index(
+        "thruster_controller2/servo_enabled/servo_enabled", cmd_interface_names);
+    constexpr auto servo3_enabled_index = suc_util::get_index(
+        "thruster_controller3/servo_enabled/servo_enabled", cmd_interface_names);
+    constexpr auto servo4_enabled_index = suc_util::get_index(
+        "thruster_controller4/servo_enabled/servo_enabled", cmd_interface_names);
+    constexpr auto esc1_enabled_index =
+        suc_util::get_index("thruster_controller1/esc_enabled/esc_enabled", cmd_interface_names);
+    constexpr auto esc2_enabled_index =
+        suc_util::get_index("thruster_controller2/esc_enabled/esc_enabled", cmd_interface_names);
+    constexpr auto esc3_enabled_index =
+        suc_util::get_index("thruster_controller3/esc_enabled/esc_enabled", cmd_interface_names);
+    constexpr auto esc4_enabled_index =
+        suc_util::get_index("thruster_controller4/esc_enabled/esc_enabled", cmd_interface_names);
+    constexpr auto target_orientation_x_index = suc_util::get_index(
+        "app_controller/target_orientation.x/target_orientation.x", cmd_interface_names);
+    constexpr auto target_orientation_y_index = suc_util::get_index(
+        "app_controller/target_orientation.y/target_orientation.y", cmd_interface_names);
+    constexpr auto target_orientation_z_index = suc_util::get_index(
+        "app_controller/target_orientation.z/target_orientation.z", cmd_interface_names);
+    constexpr auto target_velocity_x_index = suc_util::get_index(
+        "app_controller/target_velocity.x/target_velocity.x", cmd_interface_names);
+    constexpr auto target_velocity_y_index = suc_util::get_index(
+        "app_controller/target_velocity.y/target_velocity.y", cmd_interface_names);
+    constexpr auto target_velocity_z_index = suc_util::get_index(
+        "app_controller/target_velocity.z/target_velocity.z", cmd_interface_names);
 
     this->interface_helper_->set_cmd_value(
         indicator_led_enabled_index, this->indicator_led_enabled_ref);
+    this->interface_helper_->set_cmd_value(main_power_enabled_index, this->main_power_enabled_ref);
+    this->interface_helper_->set_cmd_value(led_tape_color_index, this->led_tape_color_ref);
+    this->interface_helper_->set_cmd_value(high_beam_enabled_index, this->high_beam_enabled_ref);
+    this->interface_helper_->set_cmd_value(low_beam_enabled_index, this->low_beam_enabled_ref);
+    this->interface_helper_->set_cmd_value(ir_enabled_index, this->ir_enabled_ref);
+    // TODO: usb_camera, raspi_camera
+    this->interface_helper_->set_cmd_value(servo1_enabled_index, this->servo_enabled_ref);
+    this->interface_helper_->set_cmd_value(servo2_enabled_index, this->servo_enabled_ref);
+    this->interface_helper_->set_cmd_value(servo3_enabled_index, this->servo_enabled_ref);
+    this->interface_helper_->set_cmd_value(servo4_enabled_index, this->servo_enabled_ref);
+    this->interface_helper_->set_cmd_value(esc1_enabled_index, this->esc_enabled_ref);
+    this->interface_helper_->set_cmd_value(esc2_enabled_index, this->esc_enabled_ref);
+    this->interface_helper_->set_cmd_value(esc3_enabled_index, this->esc_enabled_ref);
+    this->interface_helper_->set_cmd_value(esc4_enabled_index, this->esc_enabled_ref);
+    this->interface_helper_->set_cmd_value(
+        target_orientation_x_index, this->target_orientation_ref.x);
+    this->interface_helper_->set_cmd_value(
+        target_orientation_y_index, this->target_orientation_ref.y);
+    this->interface_helper_->set_cmd_value(
+        target_orientation_z_index, this->target_orientation_ref.z);
+    this->interface_helper_->set_cmd_value(target_velocity_x_index, this->target_velocity_ref.x);
+    this->interface_helper_->set_cmd_value(target_velocity_y_index, this->target_velocity_ref.y);
+    this->interface_helper_->set_cmd_value(target_velocity_z_index, this->target_velocity_ref.z);
+
+    this->battery_current_publisher->publish(
+        std_msgs::msg::Float64().set__data(this->battery_current_ref.value));
+    this->battery_voltage_publisher->publish(
+        std_msgs::msg::Float64().set__data(this->battery_voltage_ref.value));
+    this->main_temperature_publisher->publish(
+        std_msgs::msg::Int8().set__data(this->main_temperature_ref.value));
+    this->water_leaked_publisher->publish(
+        std_msgs::msg::Bool().set__data(this->water_leaked_ref.value));
+    for (size_t i = 0; i < 4; ++i) {
+        this->servo_current_publisher[i]->publish(
+            std_msgs::msg::Float64().set__data(this->servo_current_ref[i].value));
+        this->rpm_publisher[i]->publish(std_msgs::msg::Float64().set__data(this->rpm_ref[i].value));
+    }
+    this->imu_orientation_publisher->publish(geometry_msgs::msg::Vector3()
+                                                 .set__x(this->imu_orientation_ref.x)
+                                                 .set__y(this->imu_orientation_ref.y)
+                                                 .set__z(this->imu_orientation_ref.z));
+    this->imu_velocity_publisher->publish(geometry_msgs::msg::Vector3()
+                                              .set__x(this->imu_velocity_ref.x)
+                                              .set__y(this->imu_velocity_ref.y)
+                                              .set__z(this->imu_velocity_ref.z));
+    this->imu_temperature_publisher->publish(
+        std_msgs::msg::Float64().set__data(this->imu_temperature_ref.value));
 
     return cif::return_type::OK;
 }

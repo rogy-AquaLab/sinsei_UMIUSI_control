@@ -1,7 +1,10 @@
 #ifndef SINSEI_UMIUSI_CONTROL_GATE_CONTROLLER_HPP
 #define SINSEI_UMIUSI_CONTROL_GATE_CONTROLLER_HPP
 
+#include <rclcpp/publisher.hpp>
+
 #include "controller_interface/controller_interface.hpp"
+#include "geometry_msgs/msg/vector3.hpp"
 #include "sinsei_umiusi_control/cmd/app.hpp"
 #include "sinsei_umiusi_control/cmd/headlights.hpp"
 #include "sinsei_umiusi_control/cmd/indicator_led.hpp"
@@ -17,6 +20,9 @@
 #include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/state/usb_camera.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/color_rgba.hpp"
+#include "std_msgs/msg/float64.hpp"
+#include "std_msgs/msg/int8.hpp"
 
 namespace suc = sinsei_umiusi_control;
 
@@ -24,11 +30,51 @@ namespace sinsei_umiusi_control::controller {
 
 class GateController : public controller_interface::ControllerInterface {
   private:
-    // TODO: 今後`indicator_led/indicator_led/enabled`以外の分も実装する
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr indicator_led_enabled_subscriber;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr main_power_enabled_subscriber;
+    rclcpp::Subscription<std_msgs::msg::ColorRGBA>::SharedPtr led_tape_color_subscriber;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr high_beam_enabled_subscriber;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr low_beam_enabled_subscriber;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr ir_enabled_subscriber;
+    // TODO: usb_camera, raspi_camera
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr servo_enabled_subscriber;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr esc_enabled_subscriber;
+    rclcpp::Subscription<geometry_msgs::msg::Vector3>::SharedPtr target_orientation_subscriber;
+    rclcpp::Subscription<geometry_msgs::msg::Vector3>::SharedPtr target_velocity_subscriber;
 
-    // TODO: 今後`indicator_led/indicator_led/enabled`以外の分も実装する
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr battery_current_publisher;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr battery_voltage_publisher;
+    rclcpp::Publisher<std_msgs::msg::Int8>::SharedPtr main_temperature_publisher;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr water_leaked_publisher;
+    std::array<rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr, 4> servo_current_publisher;
+    std::array<rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr, 4> rpm_publisher;
+    rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_orientation_publisher;
+    rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_velocity_publisher;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr imu_temperature_publisher;
+    // TODO: usb_camera, raspi_camera
+
     cmd::indicator_led::Enabled indicator_led_enabled_ref;
+    cmd::main_power::Enabled main_power_enabled_ref;
+    cmd::led_tape::Color led_tape_color_ref;
+    cmd::headlights::HighBeamEnabled high_beam_enabled_ref;
+    cmd::headlights::LowBeamEnabled low_beam_enabled_ref;
+    cmd::headlights::IrEnabled ir_enabled_ref;
+    // TODO: usb_camera, raspi_camera
+    cmd::thruster::ServoEnabled servo_enabled_ref;
+    cmd::thruster::EscEnabled esc_enabled_ref;
+    cmd::app::Orientation target_orientation_ref;
+    cmd::app::Velocity target_velocity_ref;
+
+    state::main_power::BatteryCurrent battery_current_ref;
+    state::main_power::BatteryVoltage battery_voltage_ref;
+    state::main_power::Temperature main_temperature_ref;
+    state::main_power::WaterLeaked water_leaked_ref;
+    std::array<state::thruster::ServoCurrent, 4> servo_current_ref;
+    std::array<state::thruster::Rpm, 4> rpm_ref;
+    state::imu::Orientation imu_orientation_ref;
+    state::imu::Velocity imu_velocity_ref;
+    state::imu::Temperature imu_temperature_ref;
+    // TODO: usb_camera, raspi_camera
 
     static constexpr size_t cmd_size = 22;
     static constexpr const char * cmd_interface_names[cmd_size] = {
