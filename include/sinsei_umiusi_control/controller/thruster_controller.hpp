@@ -14,7 +14,7 @@ namespace suc = sinsei_umiusi_control;
 
 namespace sinsei_umiusi_control::controller {
 
-enum ThrusterMode {
+enum class ThrusterMode {
     Can,
     Direct,
 };
