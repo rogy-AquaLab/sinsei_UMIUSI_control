@@ -32,34 +32,34 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     suc::state::thruster::Rpm rpm;
 
     // 正式なinterface名は前に`thruster(_direct)(1-4)/`がつくが、リストを静的にするため特別に省略している
-    static constexpr size_t can_cmd_size = 4;
-    static constexpr const char * can_cmd_interface_names[can_cmd_size] = {
+    static constexpr size_t CAN_CMD_SIZE = 4;
+    static constexpr const char * CAN_CMD_INTERFACE_NAMES[CAN_CMD_SIZE] = {
         "servo/servo/enabled_raw",
         "servo/servo/angle_raw",
         "esc/esc/enabled_raw",
         "esc/esc/thrust_raw",
     };
-    static constexpr size_t can_state_size = 2;
-    static constexpr const char * can_state_interface_names[can_state_size] = {
+    static constexpr size_t CAN_STATE_SIZE = 2;
+    static constexpr const char * CAN_STATE_INTERFACE_NAMES[CAN_STATE_SIZE] = {
         "servo/servo/servo_current_raw",
         "esc/esc/rpm_raw",
     };
-    static constexpr size_t direct_cmd_size = 4;
-    static constexpr const char * direct_cmd_interface_names[direct_cmd_size] = {
+    static constexpr size_t DIRECT_CMD_SIZE = 4;
+    static constexpr const char * DIRECT_CMD_INTERFACE_NAMES[DIRECT_CMD_SIZE] = {
         "servo_direct/servo_direct/enabled_raw",
         "servo_direct/servo_direct/angle_raw",
         "esc_direct/esc_direct/enabled_raw",
         "esc_direct/esc_direct/thrust_raw",
     };
     // `thruster_mode`が`direct`のときState Interfaceは存在しないが、配列のサイズは0にできないので1としている
-    static constexpr size_t direct_state_size = 1;
-    static constexpr const char * direct_state_interface_names[direct_state_size] = {};
+    static constexpr size_t DIRECT_STATE_SIZE = 1;
+    static constexpr const char * DIRECT_STATE_INTERFACE_NAMES[DIRECT_STATE_SIZE] = {};
 
     std::unique_ptr<
-        InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, can_cmd_size, can_state_size>>
+        InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, CAN_CMD_SIZE, CAN_STATE_SIZE>>
         can_interface_helper_;
     std::unique_ptr<
-        InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, direct_cmd_size, direct_state_size>>
+        InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, DIRECT_CMD_SIZE, DIRECT_STATE_SIZE>>
         direct_interface_helper_;
 
     // Thruster ID (1~4)

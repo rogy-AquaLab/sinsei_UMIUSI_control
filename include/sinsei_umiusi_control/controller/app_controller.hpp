@@ -29,20 +29,20 @@ class AppController : public controller_interface::ChainableControllerInterface 
 
     auto compute_outputs() -> void;
 
-    static constexpr size_t cmd_size = 8;
-    static constexpr const char * cmd_interface_names[cmd_size] = {
+    static constexpr size_t CMD_SIZE = 8;
+    static constexpr const char * CMD_INTERFACE_NAMES[CMD_SIZE] = {
         "thruster_controller1/angle/angle", "thruster_controller1/thrust/thrust",
         "thruster_controller2/angle/angle", "thruster_controller2/thrust/thrust",
         "thruster_controller3/angle/angle", "thruster_controller3/thrust/thrust",
         "thruster_controller4/angle/angle", "thruster_controller4/thrust/thrust",
     };
-    static constexpr size_t state_size = 6;
-    static constexpr const char * state_interface_names[state_size] = {
+    static constexpr size_t STATE_SIZE = 6;
+    static constexpr const char * STATE_INTERFACE_NAMES[STATE_SIZE] = {
         "imu/imu/orientation_raw.x", "imu/imu/orientation_raw.y", "imu/imu/orientation_raw.z",
         "imu/imu/velocity_raw.x",    "imu/imu/velocity_raw.y",    "imu/imu/velocity_raw.z",
     };
 
-    std::unique_ptr<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, cmd_size, state_size>>
+    std::unique_ptr<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, CMD_SIZE, STATE_SIZE>>
         interface_helper_;
 
   public:

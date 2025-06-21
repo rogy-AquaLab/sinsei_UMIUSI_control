@@ -12,7 +12,7 @@ namespace cif = controller_interface;
 
 auto succ::GateController::command_interface_configuration() const -> cif::InterfaceConfiguration {
     std::vector<std::string> cmd_names(
-        std::begin(this->cmd_interface_names), std::end(this->cmd_interface_names));
+        std::begin(this->CMD_INTERFACE_NAMES), std::end(this->CMD_INTERFACE_NAMES));
 
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
@@ -22,7 +22,7 @@ auto succ::GateController::command_interface_configuration() const -> cif::Inter
 
 auto succ::GateController::state_interface_configuration() const -> cif::InterfaceConfiguration {
     std::vector<std::string> state_names(
-        std::begin(this->state_interface_names), std::end(this->state_interface_names));
+        std::begin(this->STATE_INTERFACE_NAMES), std::end(this->STATE_INTERFACE_NAMES));
 
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
@@ -32,9 +32,9 @@ auto succ::GateController::state_interface_configuration() const -> cif::Interfa
 
 auto succ::GateController::on_init() -> cif::CallbackReturn {
     this->interface_helper_ = std::make_unique<
-        InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, cmd_size, state_size>>(
-        this->get_node().get(), this->command_interfaces_, this->cmd_interface_names,
-        this->state_interfaces_, this->state_interface_names);
+        InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, CMD_SIZE, STATE_SIZE>>(
+        this->get_node().get(), this->command_interfaces_, this->CMD_INTERFACE_NAMES,
+        this->state_interfaces_, this->STATE_INTERFACE_NAMES);
 
     return cif::CallbackReturn::SUCCESS;
 }
@@ -145,46 +145,46 @@ auto succ::GateController::update(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/
     ) -> cif::return_type {
     constexpr auto indicator_led_enabled_index =
-        suc_util::get_index("indicator_led/indicator_led/enabled", cmd_interface_names);
+        suc_util::get_index("indicator_led/indicator_led/enabled", CMD_INTERFACE_NAMES);
     constexpr auto main_power_enabled_index =
-        suc_util::get_index("main_power/main_power/enabled", cmd_interface_names);
+        suc_util::get_index("main_power/main_power/enabled", CMD_INTERFACE_NAMES);
     constexpr auto led_tape_color_index =
-        suc_util::get_index("led_tape/led_tape/color", cmd_interface_names);
+        suc_util::get_index("led_tape/led_tape/color", CMD_INTERFACE_NAMES);
     constexpr auto high_beam_enabled_index =
-        suc_util::get_index("headlights/headlights/high_beam_enabled", cmd_interface_names);
+        suc_util::get_index("headlights/headlights/high_beam_enabled", CMD_INTERFACE_NAMES);
     constexpr auto low_beam_enabled_index =
-        suc_util::get_index("headlights/headlights/low_beam_enabled", cmd_interface_names);
+        suc_util::get_index("headlights/headlights/low_beam_enabled", CMD_INTERFACE_NAMES);
     constexpr auto ir_enabled_index =
-        suc_util::get_index("headlights/headlights/ir_enabled", cmd_interface_names);
+        suc_util::get_index("headlights/headlights/ir_enabled", CMD_INTERFACE_NAMES);
     // TODO: usb_camera, raspi_camera
     constexpr auto servo1_enabled_index = suc_util::get_index(
-        "thruster_controller1/servo_enabled/servo_enabled", cmd_interface_names);
+        "thruster_controller1/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
     constexpr auto servo2_enabled_index = suc_util::get_index(
-        "thruster_controller2/servo_enabled/servo_enabled", cmd_interface_names);
+        "thruster_controller2/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
     constexpr auto servo3_enabled_index = suc_util::get_index(
-        "thruster_controller3/servo_enabled/servo_enabled", cmd_interface_names);
+        "thruster_controller3/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
     constexpr auto servo4_enabled_index = suc_util::get_index(
-        "thruster_controller4/servo_enabled/servo_enabled", cmd_interface_names);
+        "thruster_controller4/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
     constexpr auto esc1_enabled_index =
-        suc_util::get_index("thruster_controller1/esc_enabled/esc_enabled", cmd_interface_names);
+        suc_util::get_index("thruster_controller1/esc_enabled/esc_enabled", CMD_INTERFACE_NAMES);
     constexpr auto esc2_enabled_index =
-        suc_util::get_index("thruster_controller2/esc_enabled/esc_enabled", cmd_interface_names);
+        suc_util::get_index("thruster_controller2/esc_enabled/esc_enabled", CMD_INTERFACE_NAMES);
     constexpr auto esc3_enabled_index =
-        suc_util::get_index("thruster_controller3/esc_enabled/esc_enabled", cmd_interface_names);
+        suc_util::get_index("thruster_controller3/esc_enabled/esc_enabled", CMD_INTERFACE_NAMES);
     constexpr auto esc4_enabled_index =
-        suc_util::get_index("thruster_controller4/esc_enabled/esc_enabled", cmd_interface_names);
+        suc_util::get_index("thruster_controller4/esc_enabled/esc_enabled", CMD_INTERFACE_NAMES);
     constexpr auto target_orientation_x_index = suc_util::get_index(
-        "app_controller/target_orientation.x/target_orientation.x", cmd_interface_names);
+        "app_controller/target_orientation.x/target_orientation.x", CMD_INTERFACE_NAMES);
     constexpr auto target_orientation_y_index = suc_util::get_index(
-        "app_controller/target_orientation.y/target_orientation.y", cmd_interface_names);
+        "app_controller/target_orientation.y/target_orientation.y", CMD_INTERFACE_NAMES);
     constexpr auto target_orientation_z_index = suc_util::get_index(
-        "app_controller/target_orientation.z/target_orientation.z", cmd_interface_names);
+        "app_controller/target_orientation.z/target_orientation.z", CMD_INTERFACE_NAMES);
     constexpr auto target_velocity_x_index = suc_util::get_index(
-        "app_controller/target_velocity.x/target_velocity.x", cmd_interface_names);
+        "app_controller/target_velocity.x/target_velocity.x", CMD_INTERFACE_NAMES);
     constexpr auto target_velocity_y_index = suc_util::get_index(
-        "app_controller/target_velocity.y/target_velocity.y", cmd_interface_names);
+        "app_controller/target_velocity.y/target_velocity.y", CMD_INTERFACE_NAMES);
     constexpr auto target_velocity_z_index = suc_util::get_index(
-        "app_controller/target_velocity.z/target_velocity.z", cmd_interface_names);
+        "app_controller/target_velocity.z/target_velocity.z", CMD_INTERFACE_NAMES);
 
     this->interface_helper_->set_cmd_value(
         indicator_led_enabled_index, this->indicator_led_enabled_ref);

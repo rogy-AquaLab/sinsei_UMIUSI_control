@@ -10,7 +10,7 @@ namespace cif = controller_interface;
 
 auto succ::AppController::command_interface_configuration() const -> cif::InterfaceConfiguration {
     std::vector<std::string> cmd_names(
-        std::begin(this->cmd_interface_names), std::end(this->cmd_interface_names));
+        std::begin(this->CMD_INTERFACE_NAMES), std::end(this->CMD_INTERFACE_NAMES));
 
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
@@ -20,7 +20,7 @@ auto succ::AppController::command_interface_configuration() const -> cif::Interf
 
 auto succ::AppController::state_interface_configuration() const -> cif::InterfaceConfiguration {
     std::vector<std::string> state_names(
-        std::begin(this->state_interface_names), std::end(this->state_interface_names));
+        std::begin(this->STATE_INTERFACE_NAMES), std::end(this->STATE_INTERFACE_NAMES));
 
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
@@ -31,8 +31,8 @@ auto succ::AppController::state_interface_configuration() const -> cif::Interfac
 auto succ::AppController::on_init() -> cif::CallbackReturn {
     this->interface_helper_ =
         std::make_unique<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, 8, 6>>(
-            this->get_node().get(), this->command_interfaces_, this->cmd_interface_names,
-            this->state_interfaces_, this->state_interface_names);
+            this->get_node().get(), this->command_interfaces_, this->CMD_INTERFACE_NAMES,
+            this->state_interfaces_, this->STATE_INTERFACE_NAMES);
 
     return cif::CallbackReturn::SUCCESS;
 }
@@ -113,21 +113,21 @@ auto succ::AppController::update_and_write_commands(
     this->compute_outputs();
 
     constexpr auto angle1_index =
-        suc_util::get_index("thruster_controller1/angle/angle", cmd_interface_names);
+        suc_util::get_index("thruster_controller1/angle/angle", CMD_INTERFACE_NAMES);
     constexpr auto thrust1_index =
-        suc_util::get_index("thruster_controller1/thrust/thrust", cmd_interface_names);
+        suc_util::get_index("thruster_controller1/thrust/thrust", CMD_INTERFACE_NAMES);
     constexpr auto angle2_index =
-        suc_util::get_index("thruster_controller2/angle/angle", cmd_interface_names);
+        suc_util::get_index("thruster_controller2/angle/angle", CMD_INTERFACE_NAMES);
     constexpr auto thrust2_index =
-        suc_util::get_index("thruster_controller2/thrust/thrust", cmd_interface_names);
+        suc_util::get_index("thruster_controller2/thrust/thrust", CMD_INTERFACE_NAMES);
     constexpr auto angle3_index =
-        suc_util::get_index("thruster_controller3/angle/angle", cmd_interface_names);
+        suc_util::get_index("thruster_controller3/angle/angle", CMD_INTERFACE_NAMES);
     constexpr auto thrust3_index =
-        suc_util::get_index("thruster_controller3/thrust/thrust", cmd_interface_names);
+        suc_util::get_index("thruster_controller3/thrust/thrust", CMD_INTERFACE_NAMES);
     constexpr auto angle4_index =
-        suc_util::get_index("thruster_controller4/angle/angle", cmd_interface_names);
+        suc_util::get_index("thruster_controller4/angle/angle", CMD_INTERFACE_NAMES);
     constexpr auto thrust4_index =
-        suc_util::get_index("thruster_controller4/thrust/thrust", cmd_interface_names);
+        suc_util::get_index("thruster_controller4/thrust/thrust", CMD_INTERFACE_NAMES);
 
     this->interface_helper_->set_cmd_value(angle1_index, this->thruster_angles[0]);
     this->interface_helper_->set_cmd_value(thrust1_index, this->thruster_thrusts[0]);
@@ -139,17 +139,17 @@ auto succ::AppController::update_and_write_commands(
     this->interface_helper_->set_cmd_value(thrust4_index, this->thruster_thrusts[3]);
 
     constexpr auto orientation_x_index =
-        suc_util::get_index("imu/imu/orientation_raw.x", state_interface_names);
+        suc_util::get_index("imu/imu/orientation_raw.x", STATE_INTERFACE_NAMES);
     constexpr auto orientation_y_index =
-        suc_util::get_index("imu/imu/orientation_raw.y", state_interface_names);
+        suc_util::get_index("imu/imu/orientation_raw.y", STATE_INTERFACE_NAMES);
     constexpr auto orientation_z_index =
-        suc_util::get_index("imu/imu/orientation_raw.z", state_interface_names);
+        suc_util::get_index("imu/imu/orientation_raw.z", STATE_INTERFACE_NAMES);
     constexpr auto velocity_x_index =
-        suc_util::get_index("imu/imu/velocity_raw.x", state_interface_names);
+        suc_util::get_index("imu/imu/velocity_raw.x", STATE_INTERFACE_NAMES);
     constexpr auto velocity_y_index =
-        suc_util::get_index("imu/imu/velocity_raw.y", state_interface_names);
+        suc_util::get_index("imu/imu/velocity_raw.y", STATE_INTERFACE_NAMES);
     constexpr auto velocity_z_index =
-        suc_util::get_index("imu/imu/velocity_raw.z", state_interface_names);
+        suc_util::get_index("imu/imu/velocity_raw.z", STATE_INTERFACE_NAMES);
 
     this->interface_helper_->get_state_value(orientation_x_index, this->imu_orientation.x);
     this->interface_helper_->get_state_value(orientation_y_index, this->imu_orientation.y);

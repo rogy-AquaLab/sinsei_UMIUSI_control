@@ -76,8 +76,8 @@ class GateController : public controller_interface::ControllerInterface {
     state::imu::Temperature imu_temperature_ref;
     // TODO: usb_camera, raspi_camera
 
-    static constexpr size_t cmd_size = 22;
-    static constexpr const char * cmd_interface_names[cmd_size] = {
+    static constexpr size_t CMD_SIZE = 22;
+    static constexpr const char * CMD_INTERFACE_NAMES[CMD_SIZE] = {
         "indicator_led/indicator_led/enabled",
         "main_power/main_power/enabled",
         "led_tape/led_tape/color",
@@ -101,8 +101,8 @@ class GateController : public controller_interface::ControllerInterface {
         "app_controller/target_velocity.y/target_velocity.y",
         "app_controller/target_velocity.z/target_velocity.z",
     };
-    static constexpr size_t state_size = 21;
-    static constexpr const char * state_interface_names[state_size] = {
+    static constexpr size_t STATE_SIZE = 21;
+    static constexpr const char * STATE_INTERFACE_NAMES[STATE_SIZE] = {
         "main_power/main_power/battery_current",
         "main_power/main_power/battery_voltage",
         "main_power/main_power/temperature",
@@ -126,7 +126,7 @@ class GateController : public controller_interface::ControllerInterface {
         "raspi_camera/raspi_camera/image",
     };
 
-    std::unique_ptr<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, cmd_size, state_size>>
+    std::unique_ptr<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, CMD_SIZE, STATE_SIZE>>
         interface_helper_;
 
   public:
