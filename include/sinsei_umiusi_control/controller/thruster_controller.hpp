@@ -36,6 +36,7 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     suc::state::thruster::ServoCurrent servo_current;
     suc::state::thruster::Rpm rpm;
 
+    // 正式なinterface名は前に`thruster(_direct)(1-4)/`がつくが、リストを静的にするため特別に省略している
     static constexpr size_t can_cmd_size = 4;
     static constexpr const char * can_cmd_interface_names[can_cmd_size] = {
         "servo/servo/enabled_raw",
@@ -55,6 +56,7 @@ class ThrusterController : public controller_interface::ChainableControllerInter
         "esc_direct/esc_direct/enabled_raw",
         "esc_direct/esc_direct/thrust_raw",
     };
+    // `thruster_mode`が`direct`のときState Interfaceは存在しないが、配列のサイズは0にできないので1としている
     static constexpr size_t direct_state_size = 1;
     static constexpr const char * direct_state_interface_names[direct_state_size] = {};
 

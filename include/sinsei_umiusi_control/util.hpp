@@ -4,6 +4,8 @@
 #include <cstddef>
 namespace sinsei_umiusi_control::util {
 
+// ref: https://stackoverflow.com/questions/51114180/constexpr-find-for-array-using-c17
+
 // `constexpr`に対応した文字列比較関数
 constexpr bool equals(const char * a, const char * b) {
     for (std::size_t i = 0;; ++i) {

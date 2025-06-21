@@ -20,6 +20,7 @@ auto succ::ThrusterController::command_interface_configuration() const
             std::end(this->direct_cmd_interface_names));
     }
 
+    // リストではスラスタ名が省略されているため、ここで付与する
     std::string prefix = (this->mode == ThrusterMode::Can ? "thruster" : "thruster_direct") +
                          std::to_string(this->id);
     for (auto & name : cmd_names) {
@@ -42,6 +43,7 @@ auto succ::ThrusterController::state_interface_configuration() const
         state_names = {};
     }
 
+    // リストではスラスタ名が省略されているため、ここで付与する
     std::string prefix = (this->mode == ThrusterMode::Can ? "thruster" : "thruster_direct") +
                          std::to_string(this->id);
 
