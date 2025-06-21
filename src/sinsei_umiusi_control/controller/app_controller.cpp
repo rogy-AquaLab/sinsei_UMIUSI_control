@@ -138,25 +138,25 @@ auto succ::AppController::update_and_write_commands(
     this->interface_helper->set_cmd_value(ANGLE4_INDEX, this->thruster_angles[3]);
     this->interface_helper->set_cmd_value(THRUST4_INDEX, this->thruster_thrusts[3]);
 
-    constexpr auto orientation_x_index =
+    constexpr auto ORIENTATION_X_INDEX =
         suc_util::get_index("imu/imu/orientation_raw.x", STATE_INTERFACE_NAMES);
-    constexpr auto orientation_y_index =
+    constexpr auto ORIENTATION_Y_INDEX =
         suc_util::get_index("imu/imu/orientation_raw.y", STATE_INTERFACE_NAMES);
-    constexpr auto orientation_z_index =
+    constexpr auto ORIENTATION_Z_INDEX =
         suc_util::get_index("imu/imu/orientation_raw.z", STATE_INTERFACE_NAMES);
-    constexpr auto velocity_x_index =
+    constexpr auto VELOCITY_X_INDEX =
         suc_util::get_index("imu/imu/velocity_raw.x", STATE_INTERFACE_NAMES);
-    constexpr auto velocity_y_index =
+    constexpr auto VELOCITY_Y_INDEX =
         suc_util::get_index("imu/imu/velocity_raw.y", STATE_INTERFACE_NAMES);
-    constexpr auto velocity_z_index =
+    constexpr auto VELOCITY_Z_INDEX =
         suc_util::get_index("imu/imu/velocity_raw.z", STATE_INTERFACE_NAMES);
 
-    this->interface_helper->get_state_value(orientation_x_index, this->imu_orientation.x);
-    this->interface_helper->get_state_value(orientation_y_index, this->imu_orientation.y);
-    this->interface_helper->get_state_value(orientation_z_index, this->imu_orientation.z);
-    this->interface_helper->get_state_value(velocity_x_index, this->imu_velocity.x);
-    this->interface_helper->get_state_value(velocity_y_index, this->imu_velocity.y);
-    this->interface_helper->get_state_value(velocity_z_index, this->imu_velocity.z);
+    this->interface_helper->get_state_value(ORIENTATION_X_INDEX, this->imu_orientation.x);
+    this->interface_helper->get_state_value(ORIENTATION_Y_INDEX, this->imu_orientation.y);
+    this->interface_helper->get_state_value(ORIENTATION_Z_INDEX, this->imu_orientation.z);
+    this->interface_helper->get_state_value(VELOCITY_X_INDEX, this->imu_velocity.x);
+    this->interface_helper->get_state_value(VELOCITY_Y_INDEX, this->imu_velocity.y);
+    this->interface_helper->get_state_value(VELOCITY_Z_INDEX, this->imu_velocity.z);
 
     return cif::return_type::OK;
 }
