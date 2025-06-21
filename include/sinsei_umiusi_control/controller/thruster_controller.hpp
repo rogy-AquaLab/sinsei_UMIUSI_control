@@ -1,6 +1,7 @@
 #ifndef SINSEI_UMIUSI_CONTROL_THRUSTER_CONTROLLER_HPP
 #define SINSEI_UMIUSI_CONTROL_THRUSTER_CONTROLLER_HPP
 
+#include <cstddef>
 #include <optional>
 #include <vector>
 
@@ -25,8 +26,6 @@ enum ThrusterMode {
 
 class ThrusterController : public controller_interface::ChainableControllerInterface {
   private:
-    std::unique_ptr<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode>> interface_helper_;
-
     // Command interfaces (in)
     suc::cmd::thruster::ServoEnabled servo_enabled;
     suc::cmd::thruster::EscEnabled esc_enabled;
@@ -37,8 +36,34 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     suc::state::thruster::ServoCurrent servo_current;
     suc::state::thruster::Rpm rpm;
 
-    std::vector<std::string> cmd_interface_names;
-    std::vector<std::string> state_interface_names;
+    static constexpr size_t can_cmd_size = 4;
+    static constexpr const char * can_cmd_interface_names[can_cmd_size] = {
+        "servo/servo/enabled_raw",
+        "servo/servo/angle_raw",
+        "esc/esc/enabled_raw",
+        "esc/esc/thrust_raw",
+    };
+    static constexpr size_t can_state_size = 2;
+    static constexpr const char * can_state_interface_names[can_state_size] = {
+        "servo/servo/servo_current_raw",
+        "esc/esc/rpm_raw",
+    };
+    static constexpr size_t direct_cmd_size = 4;
+    static constexpr const char * direct_cmd_interface_names[direct_cmd_size] = {
+        "servo_direct/servo_direct/enabled_raw",
+        "servo_direct/servo_direct/angle_raw",
+        "esc_direct/esc_direct/enabled_raw",
+        "esc_direct/esc_direct/thrust_raw",
+    };
+    static constexpr size_t direct_state_size = 1;
+    static constexpr const char * direct_state_interface_names[direct_state_size] = {};
+
+    std::unique_ptr<
+        InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, can_cmd_size, can_state_size>>
+        can_interface_helper_;
+    std::unique_ptr<
+        InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, direct_cmd_size, direct_state_size>>
+        direct_interface_helper_;
 
     // Thruster ID (1~4)
     uint8_t id;

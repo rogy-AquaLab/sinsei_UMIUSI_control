@@ -1,27 +1,36 @@
 #include "sinsei_umiusi_control/controller/app_controller.hpp"
 
+#include "sinsei_umiusi_control/util.hpp"
+
 namespace succ = sinsei_umiusi_control::controller;
+namespace suc_util = sinsei_umiusi_control::util;
 namespace rlc = rclcpp_lifecycle;
 namespace hif = hardware_interface;
 namespace cif = controller_interface;
 
 auto succ::AppController::command_interface_configuration() const -> cif::InterfaceConfiguration {
+    std::vector<std::string> cmd_names(
+        std::begin(this->cmd_interface_names), std::end(this->cmd_interface_names));
+
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
-        this->cmd_interface_names,
+        cmd_names,
     };
 }
 
 auto succ::AppController::state_interface_configuration() const -> cif::InterfaceConfiguration {
+    std::vector<std::string> state_names(
+        std::begin(this->state_interface_names), std::end(this->state_interface_names));
+
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
-        this->state_interface_names,
+        state_names,
     };
 }
 
 auto succ::AppController::on_init() -> cif::CallbackReturn {
     this->interface_helper_ =
-        std::make_unique<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode>>(
+        std::make_unique<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, 8, 6>>(
             this->get_node().get(), this->command_interfaces_, this->cmd_interface_names,
             this->state_interfaces_, this->state_interface_names);
 
@@ -30,16 +39,6 @@ auto succ::AppController::on_init() -> cif::CallbackReturn {
 
 auto succ::AppController::on_configure(const rlc::State & /*pervious_state*/)
     -> cif::CallbackReturn {
-    this->cmd_interface_names = {
-        "thruster_controller1/angle/angle", "thruster_controller1/thrust/thrust",
-        "thruster_controller2/angle/angle", "thruster_controller2/thrust/thrust",
-        "thruster_controller3/angle/angle", "thruster_controller3/thrust/thrust",
-        "thruster_controller4/angle/angle", "thruster_controller4/thrust/thrust",
-    };
-    this->state_interface_names = {
-        "imu/imu/orientation_raw.x", "imu/imu/orientation_raw.y", "imu/imu/orientation_raw.z",
-        "imu/imu/velocity_raw.x",    "imu/imu/velocity_raw.y",    "imu/imu/velocity_raw.z",
-    };
     return cif::CallbackReturn::SUCCESS;
 }
 
@@ -111,12 +110,26 @@ auto succ::AppController::update_reference_from_subscribers(
 auto succ::AppController::update_and_write_commands(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> cif::return_type {
     // TODO: メンバ変数を`target_orientation`と`target_velocity`のinterfaceにセットする
-    this->interface_helper_->get_state_value("imu/imu/orientation_raw.x", this->imu_orientation.x);
-    this->interface_helper_->get_state_value("imu/imu/orientation_raw.y", this->imu_orientation.y);
-    this->interface_helper_->get_state_value("imu/imu/orientation_raw.z", this->imu_orientation.z);
-    this->interface_helper_->get_state_value("imu/imu/velocity_raw.x", this->imu_velocity.x);
-    this->interface_helper_->get_state_value("imu/imu/velocity_raw.y", this->imu_velocity.y);
-    this->interface_helper_->get_state_value("imu/imu/velocity_raw.z", this->imu_velocity.z);
+
+    constexpr auto orientation_x_index =
+        suc_util::get_index("imu/imu/orientation_raw.x", state_interface_names);
+    constexpr auto orientation_y_index =
+        suc_util::get_index("imu/imu/orientation_raw.y", state_interface_names);
+    constexpr auto orientation_z_index =
+        suc_util::get_index("imu/imu/orientation_raw.z", state_interface_names);
+    constexpr auto velocity_x_index =
+        suc_util::get_index("imu/imu/velocity_raw.x", state_interface_names);
+    constexpr auto velocity_y_index =
+        suc_util::get_index("imu/imu/velocity_raw.y", state_interface_names);
+    constexpr auto velocity_z_index =
+        suc_util::get_index("imu/imu/velocity_raw.z", state_interface_names);
+
+    this->interface_helper_->get_state_value(orientation_x_index, this->target_orientation.x);
+    this->interface_helper_->get_state_value(orientation_y_index, this->target_orientation.y);
+    this->interface_helper_->get_state_value(orientation_z_index, this->target_orientation.z);
+    this->interface_helper_->get_state_value(velocity_x_index, this->target_velocity.x);
+    this->interface_helper_->get_state_value(velocity_y_index, this->target_velocity.y);
+    this->interface_helper_->get_state_value(velocity_z_index, this->target_velocity.z);
 
     return cif::return_type::OK;
 }

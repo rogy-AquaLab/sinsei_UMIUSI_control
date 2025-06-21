@@ -1,83 +1,46 @@
 #include "sinsei_umiusi_control/controller/gate_controller.hpp"
 
+#include <rclcpp/logging.hpp>
+
+#include "sinsei_umiusi_control/util.hpp"
+
 namespace succ = sinsei_umiusi_control::controller;
+namespace suc_util = sinsei_umiusi_control::util;
 namespace rlc = rclcpp_lifecycle;
 namespace hif = hardware_interface;
 namespace cif = controller_interface;
 
 auto succ::GateController::command_interface_configuration() const -> cif::InterfaceConfiguration {
+    std::vector<std::string> cmd_names(
+        std::begin(this->cmd_interface_names), std::end(this->cmd_interface_names));
+
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
-        this->cmd_interface_names,
+        cmd_names,
     };
 }
 
 auto succ::GateController::state_interface_configuration() const -> cif::InterfaceConfiguration {
+    std::vector<std::string> state_names(
+        std::begin(this->state_interface_names), std::end(this->state_interface_names));
+
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
-        this->state_interface_names,
+        state_names,
     };
 }
 
 auto succ::GateController::on_init() -> cif::CallbackReturn {
-    this->interface_helper_ =
-        std::make_unique<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode>>(
-            this->get_node().get(), this->command_interfaces_, this->cmd_interface_names,
-            this->state_interfaces_, this->state_interface_names);
+    this->interface_helper_ = std::make_unique<
+        InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, cmd_size, state_size>>(
+        this->get_node().get(), this->command_interfaces_, this->cmd_interface_names,
+        this->state_interfaces_, this->state_interface_names);
 
     return cif::CallbackReturn::SUCCESS;
 }
 
 auto succ::GateController::on_configure(const rlc::State & /*pervious_state*/)
     -> cif::CallbackReturn {
-    this->cmd_interface_names = {
-        "indicator_led/indicator_led/enabled",
-        "main_power/main_power/enabled",
-        "led_tape/led_tape/color",
-        "headlights/headlights/high_beam_enabled",
-        "headlights/headlights/low_beam_enabled",
-        "headlights/headlights/ir_enabled",
-        "usb_camera/usb_camera/config",
-        "raspi_camera/raspi_camera/config",
-        "thruster_controller1/servo_enabled/servo_enabled",
-        "thruster_controller2/servo_enabled/servo_enabled",
-        "thruster_controller3/servo_enabled/servo_enabled",
-        "thruster_controller4/servo_enabled/servo_enabled",
-        "thruster_controller1/esc_enabled/esc_enabled",
-        "thruster_controller2/esc_enabled/esc_enabled",
-        "thruster_controller3/esc_enabled/esc_enabled",
-        "thruster_controller4/esc_enabled/esc_enabled",
-        "app_controller/target_orientation.x/target_orientation.x",
-        "app_controller/target_orientation.y/target_orientation.y",
-        "app_controller/target_orientation.z/target_orientation.z",
-        "app_controller/target_velocity.x/target_velocity.x",
-        "app_controller/target_velocity.y/target_velocity.y",
-        "app_controller/target_velocity.z/target_velocity.z",
-    };
-    this->state_interface_names = {
-        "main_power/main_power/battery_current",
-        "main_power/main_power/battery_voltage",
-        "main_power/main_power/temperature",
-        "main_power/main_power/water_leaked",
-        "thruster_controller1/servo_current/servo_current",
-        "thruster_controller2/servo_current/servo_current",
-        "thruster_controller3/servo_current/servo_current",
-        "thruster_controller4/servo_current/servo_current",
-        "thruster_controller1/rpm/rpm",
-        "thruster_controller2/rpm/rpm",
-        "thruster_controller3/rpm/rpm",
-        "thruster_controller4/rpm/rpm",
-        "app_controller/imu_orientation.x/imu_orientation.x",
-        "app_controller/imu_orientation.y/imu_orientation.y",
-        "app_controller/imu_orientation.z/imu_orientation.z",
-        "app_controller/imu_velocity.x/imu_velocity.x",
-        "app_controller/imu_velocity.y/imu_velocity.y",
-        "app_controller/imu_velocity.z/imu_velocity.z",
-        "imu/imu/temperature",
-        "usb_camera/usb_camera/image",
-        "raspi_camera/raspi_camera/image",
-    };
-
     // TODO: 今後`indicator_led/indicator_led/enabled`以外の分も実装する
     this->indicator_led_enabled_subscriber =
         this->get_node()->create_subscription<std_msgs::msg::Bool>(
@@ -102,9 +65,12 @@ auto succ::GateController::update(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/
     ) -> cif::return_type {
     // TODO: 今後`indicator_led/indicator_led/enabled`以外の分も実装する
+    constexpr auto indicator_led_enabled_index =
+        suc_util::get_index("indicator_led/indicator_led/enabled", cmd_interface_names);
+
     this->interface_helper_->set_cmd_value(
-        "indicator_led/indicator_led/enabled",
-        *reinterpret_cast<double *>(&this->indicator_led_enabled_ref));
+        indicator_led_enabled_index, this->indicator_led_enabled_ref);
+
     return cif::return_type::OK;
 }
 

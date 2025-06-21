@@ -1,23 +1,57 @@
 #include "sinsei_umiusi_control/controller/thruster_controller.hpp"
 
+#include "sinsei_umiusi_control/util.hpp"
+
 namespace succ = sinsei_umiusi_control::controller;
+namespace suc_util = sinsei_umiusi_control::util;
 namespace rlc = rclcpp_lifecycle;
 namespace hif = hardware_interface;
 namespace cif = controller_interface;
 
 auto succ::ThrusterController::command_interface_configuration() const
     -> cif::InterfaceConfiguration {
+    std::vector<std::string> cmd_names;
+    if (this->mode == ThrusterMode::Can) {
+        cmd_names.assign(
+            std::begin(this->can_cmd_interface_names), std::end(this->can_cmd_interface_names));
+    } else {
+        cmd_names.assign(
+            std::begin(this->direct_cmd_interface_names),
+            std::end(this->direct_cmd_interface_names));
+    }
+
+    std::string prefix = (this->mode == ThrusterMode::Can ? "thruster" : "thruster_direct") +
+                         std::to_string(this->id);
+    for (auto & name : cmd_names) {
+        name = prefix + "/" + name;
+    }
+
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
-        this->cmd_interface_names,
+        cmd_names,
     };
 }
 
 auto succ::ThrusterController::state_interface_configuration() const
     -> cif::InterfaceConfiguration {
+    std::vector<std::string> state_names;
+    if (this->mode == ThrusterMode::Can) {
+        state_names.assign(
+            std::begin(this->can_state_interface_names), std::end(this->can_state_interface_names));
+    } else {
+        state_names = {};
+    }
+
+    std::string prefix = (this->mode == ThrusterMode::Can ? "thruster" : "thruster_direct") +
+                         std::to_string(this->id);
+
+    for (auto & name : state_names) {
+        name = prefix + "/" + name;
+    }
+
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
-        this->state_interface_names,
+        state_names,
     };
 }
 
@@ -37,37 +71,20 @@ auto succ::ThrusterController::on_init() -> cif::CallbackReturn {
         return cif::CallbackReturn::ERROR;
     }
 
-    this->interface_helper_ =
-        std::make_unique<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode>>(
-            this->get_node().get(), this->command_interfaces_, this->cmd_interface_names,
-            this->state_interfaces_, this->state_interface_names);
+    this->can_interface_helper_ = std::make_unique<
+        InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, can_cmd_size, can_state_size>>(
+        this->get_node().get(), this->command_interfaces_, this->can_cmd_interface_names,
+        this->state_interfaces_, this->can_state_interface_names);
+    this->direct_interface_helper_ = std::make_unique<
+        InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, direct_cmd_size, direct_state_size>>(
+        this->get_node().get(), this->command_interfaces_, this->direct_cmd_interface_names,
+        this->state_interfaces_, this->direct_state_interface_names);
 
     return cif::CallbackReturn::SUCCESS;
 }
 
 auto succ::ThrusterController::on_configure(const rlc::State & /*pervious_state*/)
     -> cif::CallbackReturn {
-    std::string id_str = std::to_string(this->id);
-
-    if (this->mode == ThrusterMode::Can) {
-        this->cmd_interface_names = {
-            "thruster" + id_str + "/servo/servo/enabled_raw",
-            "thruster" + id_str + "/servo/servo/angle_raw",
-            "thruster" + id_str + "/esc/esc/enabled_raw",
-            "thruster" + id_str + "/esc/esc/thrust_raw",
-        };
-        this->state_interface_names = {
-            "thruster" + id_str + "/servo/servo/servo_current_raw",
-            "thruster" + id_str + "/esc/esc/rpm_raw",
-        };
-    } else if (this->mode == ThrusterMode::Direct) {
-        this->cmd_interface_names = {
-            "thruster_direct" + id_str + "/servo_direct/servo_direct/enabled_raw",
-            "thruster_direct" + id_str + "/servo_direct/servo_direct/angle_raw",
-            "thruster_direct" + id_str + "/esc_direct/esc_direct/enabled_raw",
-            "thruster_direct" + id_str + "/esc_direct/esc_direct/thrust_raw",
-        };
-    }
     return cif::CallbackReturn::SUCCESS;
 }
 
@@ -122,33 +139,42 @@ auto succ::ThrusterController::update_reference_from_subscribers(
 
 auto succ::ThrusterController::update_and_write_commands(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> cif::return_type {
-    bool is_can = this->mode == ThrusterMode::Can;
+    if (this->mode == ThrusterMode::Can) {
+        constexpr auto servo_enabled_index =
+            suc_util::get_index("servo/servo/enabled_raw", can_cmd_interface_names);
+        constexpr auto angle_index =
+            suc_util::get_index("servo/servo/angle_raw", can_cmd_interface_names);
+        constexpr auto esc_enabled_index =
+            suc_util::get_index("esc/esc/enabled_raw", can_cmd_interface_names);
+        constexpr auto thrust_index =
+            suc_util::get_index("esc/esc/thrust_raw", can_cmd_interface_names);
 
-    std::string hw_name = is_can ? "thruster" + std::to_string(this->id)
-                                 : "thruster_direct" + std::to_string(this->id);
-    std::string esc_gpio = is_can ? "esc" : "esc_direct";
-    std::string servo_gpio = is_can ? "servo" : "servo_direct";
+        constexpr auto servo_current_index =
+            suc_util::get_index("servo/servo/servo_current_raw", can_state_interface_names);
+        constexpr auto rpm_index =
+            suc_util::get_index("esc/esc/rpm_raw", can_state_interface_names);
 
-    // Set command interfaces
-    this->interface_helper_->set_cmd_value(
-        hw_name + "/" + servo_gpio + "/" + servo_gpio + "/enabled_raw",
-        *reinterpret_cast<double *>(&this->servo_enabled));
-    this->interface_helper_->set_cmd_value(
-        hw_name + "/" + servo_gpio + "/" + servo_gpio + "/angle_raw",
-        *reinterpret_cast<double *>(&this->angle));
-    this->interface_helper_->set_cmd_value(
-        hw_name + "/" + esc_gpio + "/" + esc_gpio + "/enabled_raw",
-        *reinterpret_cast<double *>(&this->esc_enabled));
-    this->interface_helper_->set_cmd_value(
-        hw_name + "/" + esc_gpio + "/" + esc_gpio + "/thrust_raw",
-        *reinterpret_cast<double *>(&this->thrust));
-    // Set state interfaces
-    if (is_can) {
-        this->interface_helper_->get_state_value(
-            hw_name + "/" + servo_gpio + "/" + servo_gpio + "/servo_current_raw",
-            this->servo_current);
-        this->interface_helper_->get_state_value(
-            hw_name + "/" + esc_gpio + "/" + esc_gpio + "/rpm_raw", this->rpm);
+        this->can_interface_helper_->set_cmd_value(servo_enabled_index, this->servo_enabled);
+        this->can_interface_helper_->set_cmd_value(angle_index, this->angle);
+        this->can_interface_helper_->set_cmd_value(esc_enabled_index, this->esc_enabled);
+        this->can_interface_helper_->set_cmd_value(thrust_index, this->thrust);
+
+        this->can_interface_helper_->get_state_value(servo_current_index, this->servo_current);
+        this->can_interface_helper_->get_state_value(rpm_index, this->rpm);
+    } else {
+        constexpr auto servo_enabled_index = suc_util::get_index(
+            "servo_direct/servo_direct/enabled_raw", direct_cmd_interface_names);
+        constexpr auto angle_index =
+            suc_util::get_index("servo_direct/servo_direct/angle_raw", direct_cmd_interface_names);
+        constexpr auto esc_enabled_index =
+            suc_util::get_index("esc_direct/esc_direct/enabled_raw", direct_cmd_interface_names);
+        constexpr auto thrust_index =
+            suc_util::get_index("esc_direct/esc_direct/thrust_raw", direct_cmd_interface_names);
+
+        this->direct_interface_helper_->set_cmd_value(servo_enabled_index, this->servo_enabled);
+        this->direct_interface_helper_->set_cmd_value(angle_index, this->angle);
+        this->direct_interface_helper_->set_cmd_value(esc_enabled_index, this->esc_enabled);
+        this->direct_interface_helper_->set_cmd_value(thrust_index, this->thrust);
     }
 
     return cif::return_type::OK;

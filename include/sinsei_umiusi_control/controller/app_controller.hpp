@@ -21,8 +21,6 @@ namespace sinsei_umiusi_control::controller {
 
 class AppController : public controller_interface::ChainableControllerInterface {
   private:
-    std::unique_ptr<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode>> interface_helper_;
-
     // Command interfaces (in)
     suc::cmd::app::Orientation target_orientation;
     suc::cmd::app::Velocity target_velocity;
@@ -31,8 +29,21 @@ class AppController : public controller_interface::ChainableControllerInterface 
     suc::state::imu::Orientation imu_orientation;
     suc::state::imu::Velocity imu_velocity;
 
-    std::vector<std::string> cmd_interface_names;
-    std::vector<std::string> state_interface_names;
+    static constexpr size_t cmd_size = 8;
+    static constexpr const char * cmd_interface_names[cmd_size] = {
+        "thruster_controller1/angle/angle", "thruster_controller1/thrust/thrust",
+        "thruster_controller2/angle/angle", "thruster_controller2/thrust/thrust",
+        "thruster_controller3/angle/angle", "thruster_controller3/thrust/thrust",
+        "thruster_controller4/angle/angle", "thruster_controller4/thrust/thrust",
+    };
+    static constexpr size_t state_size = 6;
+    static constexpr const char * state_interface_names[state_size] = {
+        "imu/imu/orientation_raw.x", "imu/imu/orientation_raw.y", "imu/imu/orientation_raw.z",
+        "imu/imu/velocity_raw.x",    "imu/imu/velocity_raw.y",    "imu/imu/velocity_raw.z",
+    };
+
+    std::unique_ptr<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, cmd_size, state_size>>
+        interface_helper_;
 
   public:
     AppController() = default;
