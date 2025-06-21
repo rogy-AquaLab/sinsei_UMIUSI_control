@@ -24,36 +24,39 @@ class InterfaceAccessHelper {
       state_names_(state_names) {}
 
     template <typename T>
-    auto set_cmd_value(const std::size_t & index, const T & value) -> void {
+    auto set_cmd_value(const std::size_t & index, const T & value) -> bool {
         if (index >= cmd_interfaces_.size()) {
             const std::string name = cmd_names_[index];
             RCLCPP_ERROR(
                 node_->get_logger(), "Index out of range for command interfaces: %s", name.c_str());
-            return;
+            return false;
         }
         auto & interface = cmd_interfaces_[index];
-        if (!interface.set_value(*reinterpret_cast<const double *>(&value))) {
+        auto res = interface.set_value(*reinterpret_cast<const double *>(&value));
+        if (!res) {
             RCLCPP_WARN(
                 node_->get_logger(), "Failed to set value for: %s", interface.get_name().c_str());
         }
+        return res;
     }
 
     template <typename T>
-    auto get_state_value(const std::size_t & index, T & target) -> void {
+    auto get_state_value(const std::size_t & index, T & target) -> bool {
         if (index >= state_interfaces_.size()) {
             const std::string name = state_names_[index];
             RCLCPP_ERROR(
                 node_->get_logger(), "Index out of range for state interfaces: %s", name.c_str());
-            return;
+            return false;
         }
         auto & interface = state_interfaces_[index];
         auto opt = interface.get_optional();
         if (!opt.has_value()) {
             RCLCPP_ERROR(
                 node_->get_logger(), "State interface not ready: %s", interface.get_name().c_str());
-            return;
+            return false;
         }
         target = *reinterpret_cast<T *>(&opt.value());
+        return true;
     }
 
   private:
