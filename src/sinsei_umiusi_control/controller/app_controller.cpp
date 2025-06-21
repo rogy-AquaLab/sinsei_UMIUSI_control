@@ -29,7 +29,7 @@ auto succ::AppController::state_interface_configuration() const -> cif::Interfac
 }
 
 auto succ::AppController::on_init() -> cif::CallbackReturn {
-    this->interface_helper_ =
+    this->interface_helper =
         std::make_unique<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, 8, 6>>(
             this->get_node().get(), this->command_interfaces_, this->CMD_INTERFACE_NAMES,
             this->state_interfaces_, this->STATE_INTERFACE_NAMES);
@@ -129,14 +129,14 @@ auto succ::AppController::update_and_write_commands(
     constexpr auto thrust4_index =
         suc_util::get_index("thruster_controller4/thrust/thrust", CMD_INTERFACE_NAMES);
 
-    this->interface_helper_->set_cmd_value(angle1_index, this->thruster_angles[0]);
-    this->interface_helper_->set_cmd_value(thrust1_index, this->thruster_thrusts[0]);
-    this->interface_helper_->set_cmd_value(angle2_index, this->thruster_angles[1]);
-    this->interface_helper_->set_cmd_value(thrust2_index, this->thruster_thrusts[1]);
-    this->interface_helper_->set_cmd_value(angle3_index, this->thruster_angles[2]);
-    this->interface_helper_->set_cmd_value(thrust3_index, this->thruster_thrusts[2]);
-    this->interface_helper_->set_cmd_value(angle4_index, this->thruster_angles[3]);
-    this->interface_helper_->set_cmd_value(thrust4_index, this->thruster_thrusts[3]);
+    this->interface_helper->set_cmd_value(angle1_index, this->thruster_angles[0]);
+    this->interface_helper->set_cmd_value(thrust1_index, this->thruster_thrusts[0]);
+    this->interface_helper->set_cmd_value(angle2_index, this->thruster_angles[1]);
+    this->interface_helper->set_cmd_value(thrust2_index, this->thruster_thrusts[1]);
+    this->interface_helper->set_cmd_value(angle3_index, this->thruster_angles[2]);
+    this->interface_helper->set_cmd_value(thrust3_index, this->thruster_thrusts[2]);
+    this->interface_helper->set_cmd_value(angle4_index, this->thruster_angles[3]);
+    this->interface_helper->set_cmd_value(thrust4_index, this->thruster_thrusts[3]);
 
     constexpr auto orientation_x_index =
         suc_util::get_index("imu/imu/orientation_raw.x", STATE_INTERFACE_NAMES);
@@ -151,12 +151,12 @@ auto succ::AppController::update_and_write_commands(
     constexpr auto velocity_z_index =
         suc_util::get_index("imu/imu/velocity_raw.z", STATE_INTERFACE_NAMES);
 
-    this->interface_helper_->get_state_value(orientation_x_index, this->imu_orientation.x);
-    this->interface_helper_->get_state_value(orientation_y_index, this->imu_orientation.y);
-    this->interface_helper_->get_state_value(orientation_z_index, this->imu_orientation.z);
-    this->interface_helper_->get_state_value(velocity_x_index, this->imu_velocity.x);
-    this->interface_helper_->get_state_value(velocity_y_index, this->imu_velocity.y);
-    this->interface_helper_->get_state_value(velocity_z_index, this->imu_velocity.z);
+    this->interface_helper->get_state_value(orientation_x_index, this->imu_orientation.x);
+    this->interface_helper->get_state_value(orientation_y_index, this->imu_orientation.y);
+    this->interface_helper->get_state_value(orientation_z_index, this->imu_orientation.z);
+    this->interface_helper->get_state_value(velocity_x_index, this->imu_velocity.x);
+    this->interface_helper->get_state_value(velocity_y_index, this->imu_velocity.y);
+    this->interface_helper->get_state_value(velocity_z_index, this->imu_velocity.z);
 
     return cif::return_type::OK;
 }

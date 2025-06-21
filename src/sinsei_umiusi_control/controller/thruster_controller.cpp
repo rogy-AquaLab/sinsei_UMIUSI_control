@@ -73,11 +73,11 @@ auto succ::ThrusterController::on_init() -> cif::CallbackReturn {
         return cif::CallbackReturn::ERROR;
     }
 
-    this->can_interface_helper_ = std::make_unique<
+    this->can_interface_helper = std::make_unique<
         InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, CAN_CMD_SIZE, CAN_STATE_SIZE>>(
         this->get_node().get(), this->command_interfaces_, this->CAN_CMD_INTERFACE_NAMES,
         this->state_interfaces_, this->CAN_STATE_INTERFACE_NAMES);
-    this->direct_interface_helper_ = std::make_unique<
+    this->direct_interface_helper = std::make_unique<
         InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, DIRECT_CMD_SIZE, DIRECT_STATE_SIZE>>(
         this->get_node().get(), this->command_interfaces_, this->DIRECT_CMD_INTERFACE_NAMES,
         this->state_interfaces_, this->DIRECT_STATE_INTERFACE_NAMES);
@@ -156,13 +156,13 @@ auto succ::ThrusterController::update_and_write_commands(
         constexpr auto rpm_index =
             suc_util::get_index("esc/esc/rpm_raw", CAN_STATE_INTERFACE_NAMES);
 
-        this->can_interface_helper_->set_cmd_value(servo_enabled_index, this->servo_enabled);
-        this->can_interface_helper_->set_cmd_value(angle_index, this->angle);
-        this->can_interface_helper_->set_cmd_value(esc_enabled_index, this->esc_enabled);
-        this->can_interface_helper_->set_cmd_value(thrust_index, this->thrust);
+        this->can_interface_helper->set_cmd_value(servo_enabled_index, this->servo_enabled);
+        this->can_interface_helper->set_cmd_value(angle_index, this->angle);
+        this->can_interface_helper->set_cmd_value(esc_enabled_index, this->esc_enabled);
+        this->can_interface_helper->set_cmd_value(thrust_index, this->thrust);
 
-        this->can_interface_helper_->get_state_value(servo_current_index, this->servo_current);
-        this->can_interface_helper_->get_state_value(rpm_index, this->rpm);
+        this->can_interface_helper->get_state_value(servo_current_index, this->servo_current);
+        this->can_interface_helper->get_state_value(rpm_index, this->rpm);
     } else {
         constexpr auto servo_enabled_index = suc_util::get_index(
             "servo_direct/servo_direct/enabled_raw", DIRECT_CMD_INTERFACE_NAMES);
@@ -173,10 +173,10 @@ auto succ::ThrusterController::update_and_write_commands(
         constexpr auto thrust_index =
             suc_util::get_index("esc_direct/esc_direct/thrust_raw", DIRECT_CMD_INTERFACE_NAMES);
 
-        this->direct_interface_helper_->set_cmd_value(servo_enabled_index, this->servo_enabled);
-        this->direct_interface_helper_->set_cmd_value(angle_index, this->angle);
-        this->direct_interface_helper_->set_cmd_value(esc_enabled_index, this->esc_enabled);
-        this->direct_interface_helper_->set_cmd_value(thrust_index, this->thrust);
+        this->direct_interface_helper->set_cmd_value(servo_enabled_index, this->servo_enabled);
+        this->direct_interface_helper->set_cmd_value(angle_index, this->angle);
+        this->direct_interface_helper->set_cmd_value(esc_enabled_index, this->esc_enabled);
+        this->direct_interface_helper->set_cmd_value(thrust_index, this->thrust);
     }
 
     return cif::return_type::OK;

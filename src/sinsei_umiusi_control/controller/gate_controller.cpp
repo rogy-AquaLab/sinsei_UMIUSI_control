@@ -31,7 +31,7 @@ auto succ::GateController::state_interface_configuration() const -> cif::Interfa
 }
 
 auto succ::GateController::on_init() -> cif::CallbackReturn {
-    this->interface_helper_ = std::make_unique<
+    this->interface_helper = std::make_unique<
         InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, CMD_SIZE, STATE_SIZE>>(
         this->get_node().get(), this->command_interfaces_, this->CMD_INTERFACE_NAMES,
         this->state_interfaces_, this->STATE_INTERFACE_NAMES);
@@ -186,31 +186,31 @@ auto succ::GateController::update(
     constexpr auto target_velocity_z_index = suc_util::get_index(
         "app_controller/target_velocity.z/target_velocity.z", CMD_INTERFACE_NAMES);
 
-    this->interface_helper_->set_cmd_value(
+    this->interface_helper->set_cmd_value(
         indicator_led_enabled_index, this->indicator_led_enabled_ref);
-    this->interface_helper_->set_cmd_value(main_power_enabled_index, this->main_power_enabled_ref);
-    this->interface_helper_->set_cmd_value(led_tape_color_index, this->led_tape_color_ref);
-    this->interface_helper_->set_cmd_value(high_beam_enabled_index, this->high_beam_enabled_ref);
-    this->interface_helper_->set_cmd_value(low_beam_enabled_index, this->low_beam_enabled_ref);
-    this->interface_helper_->set_cmd_value(ir_enabled_index, this->ir_enabled_ref);
+    this->interface_helper->set_cmd_value(main_power_enabled_index, this->main_power_enabled_ref);
+    this->interface_helper->set_cmd_value(led_tape_color_index, this->led_tape_color_ref);
+    this->interface_helper->set_cmd_value(high_beam_enabled_index, this->high_beam_enabled_ref);
+    this->interface_helper->set_cmd_value(low_beam_enabled_index, this->low_beam_enabled_ref);
+    this->interface_helper->set_cmd_value(ir_enabled_index, this->ir_enabled_ref);
     // TODO: usb_camera, raspi_camera
-    this->interface_helper_->set_cmd_value(servo1_enabled_index, this->servo_enabled_ref);
-    this->interface_helper_->set_cmd_value(servo2_enabled_index, this->servo_enabled_ref);
-    this->interface_helper_->set_cmd_value(servo3_enabled_index, this->servo_enabled_ref);
-    this->interface_helper_->set_cmd_value(servo4_enabled_index, this->servo_enabled_ref);
-    this->interface_helper_->set_cmd_value(esc1_enabled_index, this->esc_enabled_ref);
-    this->interface_helper_->set_cmd_value(esc2_enabled_index, this->esc_enabled_ref);
-    this->interface_helper_->set_cmd_value(esc3_enabled_index, this->esc_enabled_ref);
-    this->interface_helper_->set_cmd_value(esc4_enabled_index, this->esc_enabled_ref);
-    this->interface_helper_->set_cmd_value(
+    this->interface_helper->set_cmd_value(servo1_enabled_index, this->servo_enabled_ref);
+    this->interface_helper->set_cmd_value(servo2_enabled_index, this->servo_enabled_ref);
+    this->interface_helper->set_cmd_value(servo3_enabled_index, this->servo_enabled_ref);
+    this->interface_helper->set_cmd_value(servo4_enabled_index, this->servo_enabled_ref);
+    this->interface_helper->set_cmd_value(esc1_enabled_index, this->esc_enabled_ref);
+    this->interface_helper->set_cmd_value(esc2_enabled_index, this->esc_enabled_ref);
+    this->interface_helper->set_cmd_value(esc3_enabled_index, this->esc_enabled_ref);
+    this->interface_helper->set_cmd_value(esc4_enabled_index, this->esc_enabled_ref);
+    this->interface_helper->set_cmd_value(
         target_orientation_x_index, this->target_orientation_ref.x);
-    this->interface_helper_->set_cmd_value(
+    this->interface_helper->set_cmd_value(
         target_orientation_y_index, this->target_orientation_ref.y);
-    this->interface_helper_->set_cmd_value(
+    this->interface_helper->set_cmd_value(
         target_orientation_z_index, this->target_orientation_ref.z);
-    this->interface_helper_->set_cmd_value(target_velocity_x_index, this->target_velocity_ref.x);
-    this->interface_helper_->set_cmd_value(target_velocity_y_index, this->target_velocity_ref.y);
-    this->interface_helper_->set_cmd_value(target_velocity_z_index, this->target_velocity_ref.z);
+    this->interface_helper->set_cmd_value(target_velocity_x_index, this->target_velocity_ref.x);
+    this->interface_helper->set_cmd_value(target_velocity_y_index, this->target_velocity_ref.y);
+    this->interface_helper->set_cmd_value(target_velocity_z_index, this->target_velocity_ref.z);
 
     this->battery_current_publisher->publish(
         std_msgs::msg::Float64().set__data(this->battery_current_ref.value));

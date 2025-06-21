@@ -127,7 +127,7 @@ class GateController : public controller_interface::ControllerInterface {
     };
 
     std::unique_ptr<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, CMD_SIZE, STATE_SIZE>>
-        interface_helper_;
+        interface_helper;
 
   public:
     GateController() = default;

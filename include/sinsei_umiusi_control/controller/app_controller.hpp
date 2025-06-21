@@ -43,7 +43,7 @@ class AppController : public controller_interface::ChainableControllerInterface 
     };
 
     std::unique_ptr<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, CMD_SIZE, STATE_SIZE>>
-        interface_helper_;
+        interface_helper;
 
   public:
     AppController() = default;

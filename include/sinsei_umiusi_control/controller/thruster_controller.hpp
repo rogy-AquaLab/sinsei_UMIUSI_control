@@ -57,10 +57,10 @@ class ThrusterController : public controller_interface::ChainableControllerInter
 
     std::unique_ptr<
         InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, CAN_CMD_SIZE, CAN_STATE_SIZE>>
-        can_interface_helper_;
+        can_interface_helper;
     std::unique_ptr<
         InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, DIRECT_CMD_SIZE, DIRECT_STATE_SIZE>>
-        direct_interface_helper_;
+        direct_interface_helper;
 
     // Thruster ID (1~4)
     uint8_t id;
