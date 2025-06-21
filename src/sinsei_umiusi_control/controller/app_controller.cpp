@@ -109,7 +109,34 @@ auto succ::AppController::update_reference_from_subscribers(
 
 auto succ::AppController::update_and_write_commands(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> cif::return_type {
-    // TODO: メンバ変数を`target_orientation`と`target_velocity`のinterfaceにセットする
+    // 姿勢制御の関数を呼び出す
+    this->compute_outputs();
+
+    constexpr auto angle1_index =
+        suc_util::get_index("thruster_controller1/angle/angle", cmd_interface_names);
+    constexpr auto thrust1_index =
+        suc_util::get_index("thruster_controller1/thrust/thrust", cmd_interface_names);
+    constexpr auto angle2_index =
+        suc_util::get_index("thruster_controller2/angle/angle", cmd_interface_names);
+    constexpr auto thrust2_index =
+        suc_util::get_index("thruster_controller2/thrust/thrust", cmd_interface_names);
+    constexpr auto angle3_index =
+        suc_util::get_index("thruster_controller3/angle/angle", cmd_interface_names);
+    constexpr auto thrust3_index =
+        suc_util::get_index("thruster_controller3/thrust/thrust", cmd_interface_names);
+    constexpr auto angle4_index =
+        suc_util::get_index("thruster_controller4/angle/angle", cmd_interface_names);
+    constexpr auto thrust4_index =
+        suc_util::get_index("thruster_controller4/thrust/thrust", cmd_interface_names);
+
+    this->interface_helper_->set_cmd_value(angle1_index, this->thruster_angles[0]);
+    this->interface_helper_->set_cmd_value(thrust1_index, this->thruster_thrusts[0]);
+    this->interface_helper_->set_cmd_value(angle2_index, this->thruster_angles[1]);
+    this->interface_helper_->set_cmd_value(thrust2_index, this->thruster_thrusts[1]);
+    this->interface_helper_->set_cmd_value(angle3_index, this->thruster_angles[2]);
+    this->interface_helper_->set_cmd_value(thrust3_index, this->thruster_thrusts[2]);
+    this->interface_helper_->set_cmd_value(angle4_index, this->thruster_angles[3]);
+    this->interface_helper_->set_cmd_value(thrust4_index, this->thruster_thrusts[3]);
 
     constexpr auto orientation_x_index =
         suc_util::get_index("imu/imu/orientation_raw.x", state_interface_names);
@@ -132,6 +159,15 @@ auto succ::AppController::update_and_write_commands(
     this->interface_helper_->get_state_value(velocity_z_index, this->imu_velocity.z);
 
     return cif::return_type::OK;
+}
+
+auto succ::AppController::compute_outputs() -> void {
+    // TODO: PID制御などの処理はここに記述する
+    // 現在はダミー
+    for (size_t i = 0; i < 4; ++i) {
+        this->thruster_angles[i].value = 0.0;
+        this->thruster_thrusts[i].value = 0.0;
+    }
 }
 
 #include "pluginlib/class_list_macros.hpp"

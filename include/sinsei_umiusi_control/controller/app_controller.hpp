@@ -24,6 +24,11 @@ class AppController : public controller_interface::ChainableControllerInterface 
     suc::state::imu::Orientation imu_orientation;
     suc::state::imu::Velocity imu_velocity;
 
+    std::array<suc::cmd::thruster::Angle, 4> thruster_angles;
+    std::array<suc::cmd::thruster::Thrust, 4> thruster_thrusts;
+
+    auto compute_outputs() -> void;
+
     static constexpr size_t cmd_size = 8;
     static constexpr const char * cmd_interface_names[cmd_size] = {
         "thruster_controller1/angle/angle", "thruster_controller1/thrust/thrust",
