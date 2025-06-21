@@ -12,6 +12,7 @@
 #include "realtime_tools/realtime_publisher.hpp"
 #include "sinsei_umiusi_control/cmd/app.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
+#include "sinsei_umiusi_control/interface_access_helper.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 
 namespace suc = sinsei_umiusi_control;
@@ -20,16 +21,11 @@ namespace sinsei_umiusi_control::controller {
 
 class AppController : public controller_interface::ChainableControllerInterface {
   private:
+    std::unique_ptr<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode>> interface_helper_;
+
     // Command interfaces (in)
     suc::cmd::app::Orientation target_orientation;
     suc::cmd::app::Velocity target_velocity;
-    // Command interfaces (out)
-    std::array<std::optional<hardware_interface::LoanedCommandInterface>, 4> thruster_angle;
-    std::array<std::optional<hardware_interface::LoanedCommandInterface>, 4> thruster_thrust;
-
-    // State interfaces (in)
-    std::array<std::optional<hardware_interface::LoanedStateInterface>, 3> imu_orientation_raw;
-    std::array<std::optional<hardware_interface::LoanedStateInterface>, 3> imu_velocity_raw;
 
     // State interfaces (out)
     suc::state::imu::Orientation imu_orientation;

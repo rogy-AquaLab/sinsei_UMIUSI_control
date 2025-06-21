@@ -19,7 +19,14 @@ auto succ::GateController::state_interface_configuration() const -> cif::Interfa
     };
 }
 
-auto succ::GateController::on_init() -> cif::CallbackReturn { return cif::CallbackReturn::SUCCESS; }
+auto succ::GateController::on_init() -> cif::CallbackReturn {
+    this->interface_helper_ =
+        std::make_unique<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode>>(
+            this->get_node().get(), this->command_interfaces_, this->cmd_interface_names,
+            this->state_interfaces_, this->state_interface_names);
+
+    return cif::CallbackReturn::SUCCESS;
+}
 
 auto succ::GateController::on_configure(const rlc::State & /*pervious_state*/)
     -> cif::CallbackReturn {
@@ -95,19 +102,9 @@ auto succ::GateController::update(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/
     ) -> cif::return_type {
     // TODO: 今後`indicator_led/indicator_led/enabled`以外の分も実装する
-    /*if (!this->indicator_led_enabled) {
-        RCLCPP_ERROR(
-            this->get_node()->get_logger(),
-            "Command interface not initialized: indicator_led/indicator_led/enabled");
-        return cif::return_type::ERROR;
-    }
-    auto res = this->indicator_led_enabled->set_value(
+    this->interface_helper_->set_cmd_value(
+        "indicator_led/indicator_led/enabled",
         *reinterpret_cast<double *>(&this->indicator_led_enabled_ref));
-    if (!res) {
-        RCLCPP_WARN(
-            this->get_node()->get_logger(), "Failed to set command interface value: %s",
-            this->indicator_led_enabled->get_name().c_str());
-    }*/
     return cif::return_type::OK;
 }
 

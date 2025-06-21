@@ -18,6 +18,7 @@
 #include "sinsei_umiusi_control/cmd/raspi_camera.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
 #include "sinsei_umiusi_control/cmd/usb_camera.hpp"
+#include "sinsei_umiusi_control/interface_access_helper.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/state/main_power.hpp"
 #include "sinsei_umiusi_control/state/raspi_camera.hpp"
@@ -31,36 +32,13 @@ namespace sinsei_umiusi_control::controller {
 
 class GateController : public controller_interface::ControllerInterface {
   private:
+    std::unique_ptr<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode>> interface_helper_;
+
     // TODO: 今後`indicator_led/indicator_led/enabled`以外の分も実装する
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr indicator_led_enabled_subscriber;
 
+    // TODO: 今後`indicator_led/indicator_led/enabled`以外の分も実装する
     cmd::indicator_led::Enabled indicator_led_enabled_ref;
-
-    // Command interfaces (out)
-    std::optional<hardware_interface::LoanedCommandInterface> main_power_enabled;
-    std::optional<hardware_interface::LoanedCommandInterface> led_tape_color;
-    std::optional<hardware_interface::LoanedCommandInterface> indicator_led_enabled;
-    std::optional<hardware_interface::LoanedCommandInterface> high_beam_enabled;
-    std::optional<hardware_interface::LoanedCommandInterface> low_beam_enabled;
-    std::optional<hardware_interface::LoanedCommandInterface> ir_enabled;
-    std::optional<hardware_interface::LoanedCommandInterface> usb_camera_config;
-    std::optional<hardware_interface::LoanedCommandInterface> raspi_camera_config;
-    std::optional<hardware_interface::LoanedCommandInterface> thruster_enabled;
-    std::optional<hardware_interface::LoanedCommandInterface> target_orientation;
-    std::optional<hardware_interface::LoanedCommandInterface> target_velocity;
-
-    // State interfaces (in)
-    std::optional<hardware_interface::LoanedStateInterface> battery_current;
-    std::optional<hardware_interface::LoanedStateInterface> battery_voltage;
-    std::optional<hardware_interface::LoanedStateInterface> main_power_temperature;
-    std::optional<hardware_interface::LoanedStateInterface> water_leaked;
-    std::optional<hardware_interface::LoanedStateInterface> imu_orientation;
-    std::optional<hardware_interface::LoanedStateInterface> imu_velocity;
-    std::optional<hardware_interface::LoanedStateInterface> imu_temperature;
-    std::optional<hardware_interface::LoanedStateInterface> usb_camera_image;
-    std::optional<hardware_interface::LoanedStateInterface> raspi_camera_image;
-    std::array<std::optional<hardware_interface::LoanedStateInterface>, 4> thruster_servo_current;
-    std::array<std::optional<hardware_interface::LoanedStateInterface>, 4> thruster_rpm;
 
     std::vector<std::string> cmd_interface_names;
     std::vector<std::string> state_interface_names;

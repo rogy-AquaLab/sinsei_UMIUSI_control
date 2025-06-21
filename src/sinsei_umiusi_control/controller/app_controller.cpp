@@ -19,7 +19,14 @@ auto succ::AppController::state_interface_configuration() const -> cif::Interfac
     };
 }
 
-auto succ::AppController::on_init() -> cif::CallbackReturn { return cif::CallbackReturn::SUCCESS; }
+auto succ::AppController::on_init() -> cif::CallbackReturn {
+    this->interface_helper_ =
+        std::make_unique<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode>>(
+            this->get_node().get(), this->command_interfaces_, this->cmd_interface_names,
+            this->state_interfaces_, this->state_interface_names);
+
+    return cif::CallbackReturn::SUCCESS;
+}
 
 auto succ::AppController::on_configure(const rlc::State & /*pervious_state*/)
     -> cif::CallbackReturn {
@@ -103,6 +110,14 @@ auto succ::AppController::update_reference_from_subscribers(
 
 auto succ::AppController::update_and_write_commands(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> cif::return_type {
+    // TODO: メンバ変数を`target_orientation`と`target_velocity`のinterfaceにセットする
+    this->interface_helper_->get_state_value("imu/imu/orientation_raw.x", this->imu_orientation.x);
+    this->interface_helper_->get_state_value("imu/imu/orientation_raw.y", this->imu_orientation.y);
+    this->interface_helper_->get_state_value("imu/imu/orientation_raw.z", this->imu_orientation.z);
+    this->interface_helper_->get_state_value("imu/imu/velocity_raw.x", this->imu_velocity.x);
+    this->interface_helper_->get_state_value("imu/imu/velocity_raw.y", this->imu_velocity.y);
+    this->interface_helper_->get_state_value("imu/imu/velocity_raw.z", this->imu_velocity.z);
+
     return cif::return_type::OK;
 }
 
