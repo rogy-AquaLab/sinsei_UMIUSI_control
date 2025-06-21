@@ -126,8 +126,7 @@ class GateController : public controller_interface::ControllerInterface {
         "raspi_camera/raspi_camera/image",
     };
 
-    std::unique_ptr<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, CMD_SIZE, STATE_SIZE>>
-        interface_helper;
+    std::unique_ptr<InterfaceAccessHelper<CMD_SIZE, STATE_SIZE>> interface_helper;
 
   public:
     GateController() = default;

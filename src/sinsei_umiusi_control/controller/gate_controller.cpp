@@ -31,8 +31,7 @@ auto succ::GateController::state_interface_configuration() const -> cif::Interfa
 }
 
 auto succ::GateController::on_init() -> cif::CallbackReturn {
-    this->interface_helper = std::make_unique<
-        InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, CMD_SIZE, STATE_SIZE>>(
+    this->interface_helper = std::make_unique<InterfaceAccessHelper<CMD_SIZE, STATE_SIZE>>(
         this->get_node().get(), this->command_interfaces_, this->CMD_INTERFACE_NAMES,
         this->state_interfaces_, this->STATE_INTERFACE_NAMES);
 

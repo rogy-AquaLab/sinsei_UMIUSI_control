@@ -55,11 +55,8 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     static constexpr size_t DIRECT_STATE_SIZE = 1;
     static constexpr const char * DIRECT_STATE_INTERFACE_NAMES[DIRECT_STATE_SIZE] = {};
 
-    std::unique_ptr<
-        InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, CAN_CMD_SIZE, CAN_STATE_SIZE>>
-        can_interface_helper;
-    std::unique_ptr<
-        InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, DIRECT_CMD_SIZE, DIRECT_STATE_SIZE>>
+    std::unique_ptr<InterfaceAccessHelper<CAN_CMD_SIZE, CAN_STATE_SIZE>> can_interface_helper;
+    std::unique_ptr<InterfaceAccessHelper<DIRECT_CMD_SIZE, DIRECT_STATE_SIZE>>
         direct_interface_helper;
 
     // Thruster ID (1~4)

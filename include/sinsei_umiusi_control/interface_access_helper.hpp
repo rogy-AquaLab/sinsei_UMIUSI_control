@@ -9,11 +9,12 @@
 #include <vector>
 namespace sinsei_umiusi_control {
 
-template <typename NodeLike, std::size_t CMD_SIZE, std::size_t STATE_SIZE>
+template <std::size_t CMD_SIZE, std::size_t STATE_SIZE>
 class InterfaceAccessHelper {
   public:
     InterfaceAccessHelper(
-        NodeLike * node, std::vector<hardware_interface::LoanedCommandInterface> & cmd_interfaces,
+        rclcpp_lifecycle::LifecycleNode * node,
+        std::vector<hardware_interface::LoanedCommandInterface> & cmd_interfaces,
         const char * const (&cmd_names)[CMD_SIZE],
         std::vector<hardware_interface::LoanedStateInterface> & state_interfaces,
         const char * const (&state_names)[STATE_SIZE])
@@ -60,7 +61,7 @@ class InterfaceAccessHelper {
     }
 
   private:
-    NodeLike * node_;
+    rclcpp_lifecycle::LifecycleNode * node_;
     std::vector<hardware_interface::LoanedCommandInterface> & cmd_interfaces_;
     const char * const (&cmd_names_)[CMD_SIZE];
     std::vector<hardware_interface::LoanedStateInterface> & state_interfaces_;

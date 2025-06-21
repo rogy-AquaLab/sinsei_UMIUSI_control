@@ -42,8 +42,7 @@ class AppController : public controller_interface::ChainableControllerInterface 
         "imu/imu/velocity_raw.x",    "imu/imu/velocity_raw.y",    "imu/imu/velocity_raw.z",
     };
 
-    std::unique_ptr<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, CMD_SIZE, STATE_SIZE>>
-        interface_helper;
+    std::unique_ptr<InterfaceAccessHelper<CMD_SIZE, STATE_SIZE>> interface_helper;
 
   public:
     AppController() = default;

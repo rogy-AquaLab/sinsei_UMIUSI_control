@@ -29,10 +29,9 @@ auto succ::AppController::state_interface_configuration() const -> cif::Interfac
 }
 
 auto succ::AppController::on_init() -> cif::CallbackReturn {
-    this->interface_helper =
-        std::make_unique<InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, 8, 6>>(
-            this->get_node().get(), this->command_interfaces_, this->CMD_INTERFACE_NAMES,
-            this->state_interfaces_, this->STATE_INTERFACE_NAMES);
+    this->interface_helper = std::make_unique<InterfaceAccessHelper<CMD_SIZE, STATE_SIZE>>(
+        this->get_node().get(), this->command_interfaces_, this->CMD_INTERFACE_NAMES,
+        this->state_interfaces_, this->STATE_INTERFACE_NAMES);
 
     return cif::CallbackReturn::SUCCESS;
 }

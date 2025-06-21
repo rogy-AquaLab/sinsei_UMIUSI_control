@@ -73,14 +73,14 @@ auto succ::ThrusterController::on_init() -> cif::CallbackReturn {
         return cif::CallbackReturn::ERROR;
     }
 
-    this->can_interface_helper = std::make_unique<
-        InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, CAN_CMD_SIZE, CAN_STATE_SIZE>>(
-        this->get_node().get(), this->command_interfaces_, this->CAN_CMD_INTERFACE_NAMES,
-        this->state_interfaces_, this->CAN_STATE_INTERFACE_NAMES);
-    this->direct_interface_helper = std::make_unique<
-        InterfaceAccessHelper<rclcpp_lifecycle::LifecycleNode, DIRECT_CMD_SIZE, DIRECT_STATE_SIZE>>(
-        this->get_node().get(), this->command_interfaces_, this->DIRECT_CMD_INTERFACE_NAMES,
-        this->state_interfaces_, this->DIRECT_STATE_INTERFACE_NAMES);
+    this->can_interface_helper =
+        std::make_unique<InterfaceAccessHelper<CAN_CMD_SIZE, CAN_STATE_SIZE>>(
+            this->get_node().get(), this->command_interfaces_, this->CAN_CMD_INTERFACE_NAMES,
+            this->state_interfaces_, this->CAN_STATE_INTERFACE_NAMES);
+    this->direct_interface_helper =
+        std::make_unique<InterfaceAccessHelper<DIRECT_CMD_SIZE, DIRECT_STATE_SIZE>>(
+            this->get_node().get(), this->command_interfaces_, this->DIRECT_CMD_INTERFACE_NAMES,
+            this->state_interfaces_, this->DIRECT_STATE_INTERFACE_NAMES);
 
     return cif::CallbackReturn::SUCCESS;
 }
