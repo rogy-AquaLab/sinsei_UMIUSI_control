@@ -124,12 +124,12 @@ auto succ::AppController::update_and_write_commands(
     constexpr auto velocity_z_index =
         suc_util::get_index("imu/imu/velocity_raw.z", state_interface_names);
 
-    this->interface_helper_->get_state_value(orientation_x_index, this->target_orientation.x);
-    this->interface_helper_->get_state_value(orientation_y_index, this->target_orientation.y);
-    this->interface_helper_->get_state_value(orientation_z_index, this->target_orientation.z);
-    this->interface_helper_->get_state_value(velocity_x_index, this->target_velocity.x);
-    this->interface_helper_->get_state_value(velocity_y_index, this->target_velocity.y);
-    this->interface_helper_->get_state_value(velocity_z_index, this->target_velocity.z);
+    this->interface_helper_->get_state_value(orientation_x_index, this->imu_orientation.x);
+    this->interface_helper_->get_state_value(orientation_y_index, this->imu_orientation.y);
+    this->interface_helper_->get_state_value(orientation_z_index, this->imu_orientation.z);
+    this->interface_helper_->get_state_value(velocity_x_index, this->imu_velocity.x);
+    this->interface_helper_->get_state_value(velocity_y_index, this->imu_velocity.y);
+    this->interface_helper_->get_state_value(velocity_z_index, this->imu_velocity.z);
 
     return cif::return_type::OK;
 }
