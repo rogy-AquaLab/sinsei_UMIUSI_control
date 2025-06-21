@@ -2,11 +2,6 @@
 #define SINSEI_UMIUSI_CONTROL_GATE_CONTROLLER_HPP
 
 #include "controller_interface/controller_interface.hpp"
-#include "hardware_interface/hardware_interface/handle.hpp"
-#include "hardware_interface/types/hardware_interface_type_values.hpp"
-#include "rclcpp/rclcpp.hpp"
-#include "realtime_tools/realtime_buffer.hpp"
-#include "realtime_tools/realtime_publisher.hpp"
 #include "sinsei_umiusi_control/cmd/app.hpp"
 #include "sinsei_umiusi_control/cmd/headlights.hpp"
 #include "sinsei_umiusi_control/cmd/indicator_led.hpp"
