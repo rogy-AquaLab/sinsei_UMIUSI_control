@@ -1,23 +1,20 @@
 #ifndef SINSEI_UMIUSI_CONTROL_THRUSTER_CONTROLLER_HPP
 #define SINSEI_UMIUSI_CONTROL_THRUSTER_CONTROLLER_HPP
 
-#include <optional>
+#include <cstddef>
 #include <vector>
 
 #include "controller_interface/chainable_controller_interface.hpp"
 #include "hardware_interface/hardware_interface/handle.hpp"
-#include "hardware_interface/types/hardware_interface_type_values.hpp"
-#include "rclcpp/rclcpp.hpp"
-#include "realtime_tools/realtime_buffer.hpp"
-#include "realtime_tools/realtime_publisher.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
+#include "sinsei_umiusi_control/interface_access_helper.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 
 namespace suc = sinsei_umiusi_control;
 
 namespace sinsei_umiusi_control::controller {
 
-enum ThrusterMode {
+enum class ThrusterMode {
     Can,
     Direct,
 };
@@ -30,17 +27,37 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     suc::cmd::thruster::Angle angle;
     suc::cmd::thruster::Thrust thrust;
 
-    // Command interfaces (out)
-    std::optional<hardware_interface::LoanedCommandInterface> servo_enabled_raw;
-    std::optional<hardware_interface::LoanedCommandInterface> esc_enabled_raw;
-
-    // State interfaces (in)
-    std::optional<hardware_interface::LoanedStateInterface> servo_current_raw;
-    std::optional<hardware_interface::LoanedStateInterface> rpm_raw;
-
     // State interfaces (out)
     suc::state::thruster::ServoCurrent servo_current;
     suc::state::thruster::Rpm rpm;
+
+    // 正式なinterface名は前に`thruster(_direct)(1-4)/`がつくが、リストを静的にするため特別に省略している
+    static constexpr size_t CAN_CMD_SIZE = 4;
+    static constexpr const char * CAN_CMD_INTERFACE_NAMES[CAN_CMD_SIZE] = {
+        "servo/servo/enabled_raw",
+        "servo/servo/angle_raw",
+        "esc/esc/enabled_raw",
+        "esc/esc/thrust_raw",
+    };
+    static constexpr size_t CAN_STATE_SIZE = 2;
+    static constexpr const char * CAN_STATE_INTERFACE_NAMES[CAN_STATE_SIZE] = {
+        "servo/servo/servo_current_raw",
+        "esc/esc/rpm_raw",
+    };
+    static constexpr size_t DIRECT_CMD_SIZE = 4;
+    static constexpr const char * DIRECT_CMD_INTERFACE_NAMES[DIRECT_CMD_SIZE] = {
+        "servo_direct/servo_direct/enabled_raw",
+        "servo_direct/servo_direct/angle_raw",
+        "esc_direct/esc_direct/enabled_raw",
+        "esc_direct/esc_direct/thrust_raw",
+    };
+    // `thruster_mode`が`direct`のときState Interfaceは存在しないが、配列のサイズは0にできないので1としている
+    static constexpr size_t DIRECT_STATE_SIZE = 1;
+    static constexpr const char * DIRECT_STATE_INTERFACE_NAMES[DIRECT_STATE_SIZE] = {};
+
+    std::unique_ptr<InterfaceAccessHelper<CAN_CMD_SIZE, CAN_STATE_SIZE>> can_interface_helper;
+    std::unique_ptr<InterfaceAccessHelper<DIRECT_CMD_SIZE, DIRECT_STATE_SIZE>>
+        direct_interface_helper;
 
     // Thruster ID (1~4)
     uint8_t id;
