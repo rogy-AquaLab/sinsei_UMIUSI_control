@@ -2,7 +2,6 @@
 #define SINSEI_UMIUSI_CONTROL_THRUSTER_CONTROLLER_HPP
 
 #include <cstddef>
-#include <optional>
 #include <vector>
 
 #include "controller_interface/chainable_controller_interface.hpp"

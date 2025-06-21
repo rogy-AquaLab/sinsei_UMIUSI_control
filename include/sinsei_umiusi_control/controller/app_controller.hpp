@@ -1,7 +1,6 @@
 #ifndef SINSEI_UMIUSI_CONTROL_APP_CONTROLLER_HPP
 #define SINSEI_UMIUSI_CONTROL_APP_CONTROLLER_HPP
 
-#include <optional>
 #include <vector>
 
 #include "controller_interface/chainable_controller_interface.hpp"

@@ -1,9 +1,6 @@
 #ifndef SINSEI_UMIUSI_CONTROL_GATE_CONTROLLER_HPP
 #define SINSEI_UMIUSI_CONTROL_GATE_CONTROLLER_HPP
 
-#include <optional>
-#include <vector>
-
 #include "controller_interface/controller_interface.hpp"
 #include "hardware_interface/hardware_interface/handle.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
