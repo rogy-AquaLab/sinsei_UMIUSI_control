@@ -1,4 +1,4 @@
-ARG ros_distro
+ARG ros_distro=jazzy
 
 FROM osrf/ros:${ros_distro}-desktop
 
@@ -9,8 +9,11 @@ RUN apt-get update && apt-get install -y \
     clang-tidy-18 \
     ros-${ROS_DISTRO}-ros2-control \
     ros-${ROS_DISTRO}-ros2-controllers \
+    ros-${ROS_DISTRO}-ros2-control-cmake \
     ros-${ROS_DISTRO}-xacro \
     ros-${ROS_DISTRO}-launch-pytest \
     && rm -rf /var/lib/apt/lists/*
+
+RUN echo "%ubuntu ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/ubuntu
 
 RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /home/ubuntu/.bashrc
