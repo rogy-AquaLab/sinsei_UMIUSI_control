@@ -13,7 +13,7 @@ class IndicatorLed : public hardware_interface::SystemInterface {
   private:
     static constexpr int INDICATOR_LED_GPIO = 24;
 
-    bool gpio_initialized = false;
+    int pi;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(IndicatorLed)
