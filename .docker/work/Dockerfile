@@ -2,7 +2,15 @@ ARG ros_distro=jazzy
 
 FROM osrf/ros:${ros_distro}-desktop
 
+# Copy scripts temporarily
+COPY ../scripts/* /tmp/scripts/
+RUN for file in /tmp/scripts/*.sh; do \
+    chmod +x "$file"; \
+    done
+
 RUN apt-get update && apt-get install -y \
+    unzip \
+    wget \
     git \
     clangd-18 \
     clang-format-18 \
@@ -13,6 +21,12 @@ RUN apt-get update && apt-get install -y \
     ros-${ROS_DISTRO}-xacro \
     ros-${ROS_DISTRO}-launch-pytest \
     && rm -rf /var/lib/apt/lists/*
+
+# Install pigpio
+RUN /tmp/scripts/install-pigpio.sh
+
+# Remove temporary scripts
+RUN rm -rf /tmp/scripts
 
 RUN echo "%ubuntu ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/ubuntu
 

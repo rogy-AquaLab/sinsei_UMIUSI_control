@@ -38,6 +38,9 @@ ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   include/${PROJECT_NAME}/hardware/usb_camera.hpp
 )
 
+find_library(PIGPIO_LIBRARY pigpiod_if2)
+target_link_libraries(${PROJECT_NAME}_hardware ${PIGPIO_LIBRARY})
+
 ament_auto_add_library(${PROJECT_NAME}_controller SHARED
   src/${PROJECT_NAME}/controller/gate_controller.cpp
   src/${PROJECT_NAME}/controller/app_controller.cpp

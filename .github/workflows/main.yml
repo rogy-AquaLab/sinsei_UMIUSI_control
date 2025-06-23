@@ -45,6 +45,19 @@ jobs:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
 
     steps:
+      - name: Checkout Install Scripts
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .docker/scripts
+
+      - name: Install PiGPIO
+        run: |
+          sudo apt-get update && \
+          sudo apt-get install -y unzip wget && \
+          rm -rf /var/lib/apt/lists/* && \
+          ./.docker/scripts/install-pigpio.sh
+
       - name: Colcon Build
         uses: ros-tooling/action-ros-ci@v0.4
         with:
@@ -118,6 +131,19 @@ jobs:
     container:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
     steps:
+      - name: Checkout Install Scripts
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .docker/scripts
+
+      - name: Install PiGPIO
+        run: |
+          sudo apt-get update && \
+          sudo apt-get install -y unzip wget && \
+          rm -rf /var/lib/apt/lists/* && \
+          ./.docker/scripts/install-pigpio.sh
+
       - name: Download Build results (`build` directory)
         uses: actions/download-artifact@v4
         with:
