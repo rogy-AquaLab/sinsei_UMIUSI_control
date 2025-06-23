@@ -18,6 +18,9 @@ auto suchw::IndicatorLed::write(const rclcpp::Time & /*time*/, const rclcpp::Dur
     auto enabled =
         *reinterpret_cast<sinsei_umiusi_control::cmd::indicator_led::Enabled *>(&enabled_raw);
     RCLCPP_INFO(get_logger(), enabled.value ? "true" : "false");
+
+    gpio_write(0, 0, enabled.value ? 1 : 0);  // dummy!
+
     return hif::return_type::OK;
 }
 
