@@ -2,6 +2,12 @@ ARG ros_distro=jazzy
 
 FROM osrf/ros:${ros_distro}-desktop
 
+# Copy scripts temporarily
+COPY ../scripts/* /tmp/scripts/
+RUN for file in /tmp/scripts/*.sh; do \
+    chmod +x "$file"; \
+    done
+
 RUN apt-get update && apt-get install -y \
     wget \
     unzip \
@@ -11,14 +17,11 @@ RUN apt-get update && apt-get install -y \
     clang-tidy-18 \
     && rm -rf /var/lib/apt/lists/*
 
-RUN cd /tmp && \
-    wget https://github.com/joan2937/pigpio/archive/master.zip && \
-    unzip -qq master.zip && \
-    cd pigpio-master && \
-    sed -i 's,ldconfig,,' Makefile && \
-    make && \
-    sudo make install && \
-    rm -rf /tmp/*
+# Install pigpio
+RUN /tmp/scripts/install-pigpio.sh
+
+# Remove temporary scripts
+RUN rm -rf /tmp/scripts
 
 RUN echo "%ubuntu ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/ubuntu
 

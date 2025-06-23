@@ -4,7 +4,8 @@ services:
 
   work:
     build:
-      context: ./.docker/work
+      context: ./.docker
+      dockerfile: ./work/Dockerfile
       args:
         ros_distro: ${ROS_DISTRO}
     user: "${USER_ID}:${GROUP_ID}"

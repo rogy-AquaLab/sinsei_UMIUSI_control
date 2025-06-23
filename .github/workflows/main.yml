@@ -45,6 +45,14 @@ jobs:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
 
     steps:
+      - name: Checkout Install Scripts
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .docker/scripts
+
+      - name: Install PiGPIO
+        run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
+
       - name: Colcon Build
         uses: ros-tooling/action-ros-ci@v0.4
         with:
