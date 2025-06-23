@@ -14,19 +14,17 @@
   <depend>rclcpp</depend>
   <depend>rclcpp_lifecycle</depend>
   <depend>rcpputils</depend>
-  <depend>controller_manager</depend>
-  <depend>hardware_interface</depend>
-  <depend>controller_interface</depend>
   <depend>pluginlib</depend>
+  <depend>ros2_control</depend>
 
+  <build_depend>controller_interface</build_depend>
+  <build_depend>hardware_interface</build_depend>
   <build_depend>ros2_control_cmake</build_depend>
-  <build_depend>realtime_tools</build_depend>
+  <build_depend>realtime_tools</build_depend> <!-- not used yet -->
 
   <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
   <exec_depend>xacro</exec_depend>
-  <exec_depend>ros2_control</exec_depend>
-  <exec_depend>ros2_controllers</exec_depend>
-  <exec_depend>joint_state_broadcaster</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_cmake_pytest</test_depend>

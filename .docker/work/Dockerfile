@@ -7,11 +7,6 @@ RUN apt-get update && apt-get install -y \
     clangd-18 \
     clang-format-18 \
     clang-tidy-18 \
-    ros-${ROS_DISTRO}-ros2-control \
-    ros-${ROS_DISTRO}-ros2-controllers \
-    ros-${ROS_DISTRO}-ros2-control-cmake \
-    ros-${ROS_DISTRO}-xacro \
-    ros-${ROS_DISTRO}-launch-pytest \
     && rm -rf /var/lib/apt/lists/*
 
 RUN echo "%ubuntu ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/ubuntu
