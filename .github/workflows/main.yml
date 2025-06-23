@@ -82,6 +82,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install PiGPIO
+        run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
+
       - name: Download ROS C++ libraries
         uses: actions/download-artifact@v4
         with:
@@ -126,6 +129,14 @@ jobs:
     container:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
     steps:
+      - name: Checkout Install Scripts
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .docker/scripts
+
+      - name: Install PiGPIO
+        run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
+
       - name: Download Build results (`build` directory)
         uses: actions/download-artifact@v4
         with:
