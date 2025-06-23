@@ -50,7 +50,7 @@ jobs:
         with:
           sparse-checkout: .docker/scripts
 
-      - name: Install PiGPIO
+      - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
 
       - name: Colcon Build
@@ -82,7 +82,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install PiGPIO
+      - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
 
       - name: Download ROS C++ libraries
@@ -134,7 +134,7 @@ jobs:
         with:
           sparse-checkout: .docker/scripts
 
-      - name: Install PiGPIO
+      - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
 
       - name: Download Build results (`build` directory)
