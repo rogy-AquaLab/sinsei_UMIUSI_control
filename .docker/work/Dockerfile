@@ -9,8 +9,6 @@ RUN for file in /tmp/scripts/*.sh; do \
     done
 
 RUN apt-get update && apt-get install -y \
-    wget \
-    unzip \
     git \
     clangd-18 \
     clang-format-18 \
