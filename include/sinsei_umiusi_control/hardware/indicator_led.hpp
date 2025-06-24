@@ -4,14 +4,14 @@
 #include "hardware_interface/system_interface.hpp"
 #include "rclcpp/macros.hpp"
 #include "sinsei_umiusi_control/cmd/indicator_led.hpp"
-#include "sinsei_umiusi_control/hardware_models/indicator_led_model.hpp"
+#include "sinsei_umiusi_control/hardware_model/indicator_led_model.hpp"
 #include "sinsei_umiusi_control/util/pigpio.hpp"
 
 namespace sinsei_umiusi_control::hardware {
 
 class IndicatorLed : public hardware_interface::SystemInterface {
   private:
-    std::optional<hardware_models::IndicatorLedModel> model;
+    std::optional<hardware_model::IndicatorLedModel> model;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(IndicatorLed)

@@ -37,7 +37,7 @@ ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   include/${PROJECT_NAME}/hardware/thruster_direct/servo_direct.hpp
   include/${PROJECT_NAME}/hardware/usb_camera.hpp
 
-  src/${PROJECT_NAME}/hardware_models/indicator_led_model.cpp
+  src/${PROJECT_NAME}/hardware_model/indicator_led_model.cpp
   src/${PROJECT_NAME}/util/pigpio.cpp
 )
 

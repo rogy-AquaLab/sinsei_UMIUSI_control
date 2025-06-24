@@ -1,5 +1,5 @@
-#ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_MODELS_INDICATOR_LED_MODEL_HPP
-#define SINSEI_UMIUSI_CONTROL_HARDWARE_MODELS_INDICATOR_LED_MODEL_HPP
+#ifndef SINSEI_UMIUSI_CONTROL_hardware_model_INDICATOR_LED_MODEL_HPP
+#define SINSEI_UMIUSI_CONTROL_hardware_model_INDICATOR_LED_MODEL_HPP
 
 #include <memory>
 
@@ -8,7 +8,7 @@
 
 namespace suc = sinsei_umiusi_control;
 
-namespace sinsei_umiusi_control::hardware_models {
+namespace sinsei_umiusi_control::hardware_model {
 
 class IndicatorLedModel {
   private:
@@ -20,6 +20,6 @@ class IndicatorLedModel {
     auto on_write(bool enabled) -> void;
 };
 
-}  // namespace sinsei_umiusi_control::hardware_models
+}  // namespace sinsei_umiusi_control::hardware_model
 
-#endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_MODELS_INDICATOR_LED_MODEL_HPP
+#endif  // SINSEI_UMIUSI_CONTROL_hardware_model_INDICATOR_LED_MODEL_HPP
