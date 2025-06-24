@@ -1,6 +1,8 @@
 #include "sinsei_umiusi_control/hardware/indicator_led.hpp"
 
-#include <pigpiod_if2.h>
+#include <memory>
+
+#include "sinsei_umiusi_control/util/pigpio.hpp"
 
 namespace suchw = sinsei_umiusi_control::hardware;
 namespace hif = hardware_interface;
@@ -9,8 +11,9 @@ namespace rlc = rclcpp_lifecycle;
 auto suchw::IndicatorLed::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
     this->hif::SystemInterface::on_init(info);
 
-    this->pi = pigpio_start(NULL, NULL);
-    set_mode(pi, INDICATOR_LED_GPIO, PI_OUTPUT);
+    // FIXME: ピン番号はパラメーターなどで設定できるようにする
+    auto gpio = std::make_shared<util::Pigpio>(24);
+    this->model.emplace(std::static_pointer_cast<util::GpioWrapper>(gpio));
 
     return hif::CallbackReturn::SUCCESS;
 }
@@ -25,7 +28,9 @@ auto suchw::IndicatorLed::write(const rclcpp::Time & /*time*/, const rclcpp::Dur
     double enabled_raw = get_command("indicator_led/indicator_led/enabled");
     auto enabled =
         *reinterpret_cast<sinsei_umiusi_control::cmd::indicator_led::Enabled *>(&enabled_raw);
-    gpio_write(pi, INDICATOR_LED_GPIO, enabled.value ? 1 : 0);
+    if (this->model.has_value()) {
+        this->model->on_write(enabled.value);
+    }
 
     return hif::return_type::OK;
 }

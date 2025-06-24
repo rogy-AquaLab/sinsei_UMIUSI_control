@@ -2,7 +2,7 @@
 
 #include <rclcpp/logging.hpp>
 
-#include "sinsei_umiusi_control/util.hpp"
+#include "sinsei_umiusi_control/util/constexpr.hpp"
 
 namespace succ = sinsei_umiusi_control::controller;
 namespace suc_util = sinsei_umiusi_control::util;
