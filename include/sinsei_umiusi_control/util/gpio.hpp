@@ -8,10 +8,10 @@ enum class GpioResult {
     Error,
 };
 
-class GpioWrapper {
+class Gpio {
   public:
-    GpioWrapper() = default;
-    virtual ~GpioWrapper() = default;
+    Gpio() = default;
+    virtual ~Gpio() = default;
     virtual auto write_digital(bool enabled) -> GpioResult = 0;
     virtual auto write_pwm() -> GpioResult = 0;
 };

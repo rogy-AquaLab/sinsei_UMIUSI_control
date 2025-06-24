@@ -7,7 +7,7 @@
 
 namespace sinsei_umiusi_control::util {
 
-class Pigpio : public GpioWrapper {
+class Pigpio : public Gpio {
   private:
     int pi;
 
