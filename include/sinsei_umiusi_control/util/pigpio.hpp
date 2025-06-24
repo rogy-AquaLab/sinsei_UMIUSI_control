@@ -15,6 +15,7 @@ class Pigpio : public GpioWrapper {
 
   public:
     Pigpio(int pin_number);
+    ~Pigpio();
 
     auto write_digital(bool enabled) -> GpioResult override;
     auto write_pwm() -> GpioResult override;

@@ -11,6 +11,7 @@ enum class GpioResult {
 class GpioWrapper {
   public:
     GpioWrapper() = default;
+    virtual ~GpioWrapper() = default;
     virtual auto write_digital(bool enabled) -> GpioResult = 0;
     virtual auto write_pwm() -> GpioResult = 0;
 };

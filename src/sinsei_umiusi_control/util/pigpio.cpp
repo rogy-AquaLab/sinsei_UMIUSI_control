@@ -8,6 +8,8 @@ suc_util::Pigpio::Pigpio(int pin_number) {
     set_mode(pi, pin_number, PI_OUTPUT);
 }
 
+suc_util::Pigpio::~Pigpio() { pigpio_stop(pi); }
+
 auto suc_util::Pigpio::write_digital(bool enabled) -> GpioResult {
     gpio_write(pi, this->pin_number, enabled ? 1 : 0);
     return GpioResult::Success;
