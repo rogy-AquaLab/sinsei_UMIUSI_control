@@ -12,10 +12,10 @@ namespace sinsei_umiusi_control::hardware_model {
 
 class IndicatorLedModel {
   private:
-    std::shared_ptr<util::GpioWrapper> gpio;
+    std::unique_ptr<util::GpioWrapper> gpio;
 
   public:
-    IndicatorLedModel(std::shared_ptr<util::GpioWrapper> gpio);
+    IndicatorLedModel(std::unique_ptr<util::GpioWrapper> gpio);
     auto on_read() -> void;
     auto on_write(bool enabled) -> void;
 };

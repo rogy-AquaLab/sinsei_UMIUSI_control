@@ -7,7 +7,7 @@
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
-suchm::IndicatorLedModel::IndicatorLedModel(std::shared_ptr<util::GpioWrapper> gpio)
+suchm::IndicatorLedModel::IndicatorLedModel(std::unique_ptr<suc::util::GpioWrapper> gpio)
 : gpio(std::move(gpio)) {}
 
 auto suchm::IndicatorLedModel::on_read() -> void {}

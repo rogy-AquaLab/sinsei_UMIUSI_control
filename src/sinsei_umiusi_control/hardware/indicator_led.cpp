@@ -12,8 +12,7 @@ auto suchw::IndicatorLed::on_init(const hif::HardwareInfo & info) -> hif::Callba
     this->hif::SystemInterface::on_init(info);
 
     // FIXME: ピン番号はパラメーターなどで設定できるようにする
-    auto gpio = std::make_shared<util::Pigpio>(24);
-    this->model.emplace(std::static_pointer_cast<util::GpioWrapper>(gpio));
+    this->model.emplace(std::make_unique<sinsei_umiusi_control::util::Pigpio>(24));
 
     return hif::CallbackReturn::SUCCESS;
 }
