@@ -19,6 +19,7 @@ auto suchw::IndicatorLed::on_init(const hif::HardwareInfo & info) -> hif::Callba
 
 auto suchw::IndicatorLed::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
     -> hif::return_type {
+    if (this->model.has_value()) this->model->on_read();
     return hif::return_type::OK;
 }
 
@@ -27,9 +28,7 @@ auto suchw::IndicatorLed::write(const rclcpp::Time & /*time*/, const rclcpp::Dur
     double enabled_raw = get_command("indicator_led/indicator_led/enabled");
     auto enabled =
         *reinterpret_cast<sinsei_umiusi_control::cmd::indicator_led::Enabled *>(&enabled_raw);
-    if (this->model.has_value()) {
-        this->model->on_write(enabled);
-    }
+    if (this->model.has_value()) this->model->on_write(enabled);
 
     return hif::return_type::OK;
 }
