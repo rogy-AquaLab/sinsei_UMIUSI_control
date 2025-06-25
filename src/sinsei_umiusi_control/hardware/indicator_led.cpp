@@ -28,7 +28,7 @@ auto suchw::IndicatorLed::write(const rclcpp::Time & /*time*/, const rclcpp::Dur
     auto enabled =
         *reinterpret_cast<sinsei_umiusi_control::cmd::indicator_led::Enabled *>(&enabled_raw);
     if (this->model.has_value()) {
-        this->model->on_write(enabled.value);
+        this->model->on_write(enabled);
     }
 
     return hif::return_type::OK;

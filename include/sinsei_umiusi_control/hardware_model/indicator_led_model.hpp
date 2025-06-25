@@ -17,7 +17,7 @@ class IndicatorLedModel {
   public:
     IndicatorLedModel(std::unique_ptr<util::Gpio> gpio);
     auto on_read() -> void;
-    auto on_write(bool enabled) -> void;
+    auto on_write(sinsei_umiusi_control::cmd::indicator_led::Enabled & enabled) -> void;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model

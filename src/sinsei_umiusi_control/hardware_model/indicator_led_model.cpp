@@ -12,6 +12,7 @@ suchm::IndicatorLedModel::IndicatorLedModel(std::unique_ptr<suc::util::Gpio> gpi
 
 auto suchm::IndicatorLedModel::on_read() -> void {}
 
-auto suchm::IndicatorLedModel::on_write(bool enabled) -> void {
-    this->gpio->write_digital(enabled);
+auto suchm::IndicatorLedModel::on_write(
+    sinsei_umiusi_control::cmd::indicator_led::Enabled & enabled) -> void {
+    this->gpio->write_digital(enabled.value);
 }
