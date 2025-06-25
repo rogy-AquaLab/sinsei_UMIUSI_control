@@ -1,5 +1,5 @@
-#ifndef SINSEI_UMIUSI_CONTROL_UTIL_HPP
-#define SINSEI_UMIUSI_CONTROL_UTIL_HPP
+#ifndef SINSEI_UMIUSI_CONTROL_UTIL_CONSTEXPR_HPP
+#define SINSEI_UMIUSI_CONTROL_UTIL_CONSTEXPR_HPP
 
 #include <cstddef>
 namespace sinsei_umiusi_control::util {
@@ -28,4 +28,4 @@ constexpr auto get_index(const char * name, const char * const (&array)[size]) -
 
 }  // namespace sinsei_umiusi_control::util
 
-#endif  // SINSEI_UMIUSI_CONTROL_UTIL_HPP
+#endif  // SINSEI_UMIUSI_CONTROL_UTIL_CONSTEXPR_HPP
