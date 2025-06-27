@@ -10,15 +10,11 @@
 #include "sinsei_umiusi_control/cmd/indicator_led.hpp"
 #include "sinsei_umiusi_control/cmd/led_tape.hpp"
 #include "sinsei_umiusi_control/cmd/main_power.hpp"
-#include "sinsei_umiusi_control/cmd/raspi_camera.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
-#include "sinsei_umiusi_control/cmd/usb_camera.hpp"
 #include "sinsei_umiusi_control/interface_access_helper.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/state/main_power.hpp"
-#include "sinsei_umiusi_control/state/raspi_camera.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
-#include "sinsei_umiusi_control/state/usb_camera.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/color_rgba.hpp"
 #include "std_msgs/msg/float64.hpp"
@@ -36,7 +32,6 @@ class GateController : public controller_interface::ControllerInterface {
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr high_beam_enabled_subscriber;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr low_beam_enabled_subscriber;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr ir_enabled_subscriber;
-    // TODO: usb_camera, raspi_camera
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr servo_enabled_subscriber;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr esc_enabled_subscriber;
     rclcpp::Subscription<geometry_msgs::msg::Vector3>::SharedPtr target_orientation_subscriber;
@@ -51,7 +46,6 @@ class GateController : public controller_interface::ControllerInterface {
     rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_orientation_publisher;
     rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_velocity_publisher;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr imu_temperature_publisher;
-    // TODO: usb_camera, raspi_camera
 
     cmd::indicator_led::Enabled indicator_led_enabled_ref;
     cmd::main_power::Enabled main_power_enabled_ref;
@@ -59,7 +53,6 @@ class GateController : public controller_interface::ControllerInterface {
     cmd::headlights::HighBeamEnabled high_beam_enabled_ref;
     cmd::headlights::LowBeamEnabled low_beam_enabled_ref;
     cmd::headlights::IrEnabled ir_enabled_ref;
-    // TODO: usb_camera, raspi_camera
     cmd::thruster::ServoEnabled servo_enabled_ref;
     cmd::thruster::EscEnabled esc_enabled_ref;
     cmd::app::Orientation target_orientation_ref;
@@ -74,9 +67,8 @@ class GateController : public controller_interface::ControllerInterface {
     state::imu::Orientation imu_orientation_ref;
     state::imu::Velocity imu_velocity_ref;
     state::imu::Temperature imu_temperature_ref;
-    // TODO: usb_camera, raspi_camera
 
-    static constexpr size_t CMD_SIZE = 22;
+    static constexpr size_t CMD_SIZE = 20;
     static constexpr const char * CMD_INTERFACE_NAMES[CMD_SIZE] = {
         "indicator_led/indicator_led/enabled",
         "main_power/main_power/enabled",
@@ -84,8 +76,6 @@ class GateController : public controller_interface::ControllerInterface {
         "headlights/headlights/high_beam_enabled",
         "headlights/headlights/low_beam_enabled",
         "headlights/headlights/ir_enabled",
-        "usb_camera/usb_camera/config",
-        "raspi_camera/raspi_camera/config",
         "thruster_controller1/servo_enabled/servo_enabled",
         "thruster_controller2/servo_enabled/servo_enabled",
         "thruster_controller3/servo_enabled/servo_enabled",
@@ -101,7 +91,7 @@ class GateController : public controller_interface::ControllerInterface {
         "app_controller/target_velocity.y/target_velocity.y",
         "app_controller/target_velocity.z/target_velocity.z",
     };
-    static constexpr size_t STATE_SIZE = 21;
+    static constexpr size_t STATE_SIZE = 19;
     static constexpr const char * STATE_INTERFACE_NAMES[STATE_SIZE] = {
         "main_power/main_power/battery_current",
         "main_power/main_power/battery_voltage",
@@ -122,8 +112,6 @@ class GateController : public controller_interface::ControllerInterface {
         "app_controller/imu_velocity.y/imu_velocity.y",
         "app_controller/imu_velocity.z/imu_velocity.z",
         "imu/imu/temperature",
-        "usb_camera/usb_camera/image",
-        "raspi_camera/raspi_camera/image",
     };
 
     std::unique_ptr<InterfaceAccessHelper<CMD_SIZE, STATE_SIZE>> interface_helper;
