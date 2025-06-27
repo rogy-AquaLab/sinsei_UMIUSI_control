@@ -1,0 +1,30 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "colcon: build",
+      "type": "shell",
+      "command": "colcon",
+      "args": [
+        "build",
+        "--symlink-install",
+      ]
+    },
+    {
+      "label": "ros2: launch",
+      "type": "shell",
+      "dependsOn": [
+        "colcon: build",
+      ],
+      "command": [
+        "source",
+        "${workspaceFolder}/install/setup.bash",
+        "&&",
+        "ros2",
+        "launch",
+        "sinsei_umiusi_control",
+        "launch.xml"
+      ],
+    }
+  ]
+}
