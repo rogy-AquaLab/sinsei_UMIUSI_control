@@ -11,3 +11,4 @@ __pycache__
 
 # VSCode
 .vscode/*
+!.vscode/tasks.json
