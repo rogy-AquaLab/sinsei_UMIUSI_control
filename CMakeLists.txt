@@ -24,18 +24,14 @@ ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   src/${PROJECT_NAME}/hardware/headlights.cpp
   src/${PROJECT_NAME}/hardware/imu.cpp
   src/${PROJECT_NAME}/hardware/indicator_led.cpp
-  src/${PROJECT_NAME}/hardware/raspi_camera.cpp
   src/${PROJECT_NAME}/hardware/thruster_direct/esc_direct.cpp
   src/${PROJECT_NAME}/hardware/thruster_direct/servo_direct.cpp
-  src/${PROJECT_NAME}/hardware/usb_camera.cpp
   include/${PROJECT_NAME}/hardware/can.hpp
   include/${PROJECT_NAME}/hardware/headlights.hpp
   include/${PROJECT_NAME}/hardware/imu.hpp
   include/${PROJECT_NAME}/hardware/indicator_led.hpp
-  include/${PROJECT_NAME}/hardware/raspi_camera.hpp
   include/${PROJECT_NAME}/hardware/thruster_direct/esc_direct.hpp
   include/${PROJECT_NAME}/hardware/thruster_direct/servo_direct.hpp
-  include/${PROJECT_NAME}/hardware/usb_camera.hpp
 
   src/${PROJECT_NAME}/hardware_model/indicator_led_model.cpp
   src/${PROJECT_NAME}/util/pigpio.cpp

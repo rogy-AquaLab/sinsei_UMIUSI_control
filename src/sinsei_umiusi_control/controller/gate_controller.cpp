@@ -76,7 +76,6 @@ auto succ::GateController::on_configure(const rlc::State & /*pervious_state*/)
         [this](const std_msgs::msg::Bool::SharedPtr input) {
             this->ir_enabled_ref.value = input->data;
         });
-    // TODO: usb_camera, raspi_camera
     this->servo_enabled_subscriber = this->get_node()->create_subscription<std_msgs::msg::Bool>(
         "servo_enabled", rclcpp::SystemDefaultsQoS(),
         [this](const std_msgs::msg::Bool::SharedPtr input) {
@@ -155,7 +154,6 @@ auto succ::GateController::update(
         suc_util::get_index("headlights/headlights/low_beam_enabled", CMD_INTERFACE_NAMES);
     constexpr auto IR_ENABLED_INDEX =
         suc_util::get_index("headlights/headlights/ir_enabled", CMD_INTERFACE_NAMES);
-    // TODO: usb_camera, raspi_camera
     constexpr auto SERVO1_ENABLED_INDEX = suc_util::get_index(
         "thruster_controller1/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
     constexpr auto SERVO2_ENABLED_INDEX = suc_util::get_index(
@@ -192,7 +190,6 @@ auto succ::GateController::update(
     this->interface_helper->set_cmd_value(HIGH_BEAM_ENABLED_INDEX, this->high_beam_enabled_ref);
     this->interface_helper->set_cmd_value(LOW_BEAM_ENABLED_INDEX, this->low_beam_enabled_ref);
     this->interface_helper->set_cmd_value(IR_ENABLED_INDEX, this->ir_enabled_ref);
-    // TODO: usb_camera, raspi_camera
     this->interface_helper->set_cmd_value(SERVO1_ENABLED_INDEX, this->servo_enabled_ref);
     this->interface_helper->set_cmd_value(SERVO2_ENABLED_INDEX, this->servo_enabled_ref);
     this->interface_helper->set_cmd_value(SERVO3_ENABLED_INDEX, this->servo_enabled_ref);

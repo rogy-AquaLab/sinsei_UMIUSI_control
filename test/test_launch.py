@@ -33,8 +33,6 @@ def hardware_components(largs: dict[str, str]) -> set[str]:
         'headlights',
         'imu',
         'indicator_led',
-        'raspi_camera',
-        'usb_camera',
     }
     if largs['thruster_mode'] == 'can':
         return base
