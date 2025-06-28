@@ -53,22 +53,4 @@
       Interface to headlights for UMIUSI
     </description>
   </class>
-  <class
-    name="sinsei_umiusi_control/hardware/UsbCamera"
-    type="sinsei_umiusi_control::hardware::UsbCamera"
-    base_class_type="hardware_interface::SystemInterface"
-  >
-    <description>
-      Interface to USB camera for UMIUSI
-    </description>
-  </class>
-  <class
-    name="sinsei_umiusi_control/hardware/RaspiCamera"
-    type="sinsei_umiusi_control::hardware::RaspiCamera"
-    base_class_type="hardware_interface::SystemInterface"
-  >
-    <description>
-      Interface to Raspi camera for UMIUSI
-    </description>
-  </class>
 </library>
