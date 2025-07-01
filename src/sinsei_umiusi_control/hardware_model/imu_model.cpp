@@ -57,22 +57,21 @@ auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
     return {};
 }
 
-auto suchm::ImuModel::on_read() -> sinsei_umiusi_control::state::imu::ImuState {
-    state::imu::ImuState state;
+auto suchm::ImuModel::on_read(
+    state::imu::Orientation & orientation, state::imu::Velocity & velocity,
+    state::imu::Temperature & temperature) -> void {
+    read_orientation(orientation);
 
-    read_orientation(state.orientation);
-
-    state.velocity.x = 0.0;
-    state.velocity.y = 0.0;
-    state.velocity.z = 0.0;
+    velocity.x = 0.0;
+    velocity.y = 0.0;
+    velocity.z = 0.0;
 
     auto temp_opt = gpio->i2c_read_byte_data(TEMP_ADDR);
     if (temp_opt) {
-        state.temperature.value = static_cast<int8_t>(temp_opt.value());
+        temperature.value = static_cast<int8_t>(temp_opt.value());
     } else {
-        state.temperature.value = 0;
+        temperature.value = 0;
     }
-    return state;
 }
 
 bool suchm::ImuModel::read_orientation(state::imu::Orientation & orientation) {

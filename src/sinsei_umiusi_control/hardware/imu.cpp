@@ -21,14 +21,18 @@ auto suchw::Imu::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
 
 auto suchw::Imu::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
     -> hif::return_type {
-    auto state = this->model->on_read();
-    this->set_state("imu/orientation_raw.x", state.orientation.x);
-    this->set_state("imu/orientation_raw.y", state.orientation.y);
-    this->set_state("imu/orientation_raw.z", state.orientation.z);
-    // this->set_state("imu/velocity_raw.x", state.velocity.x);
-    // this->set_state("imu/velocity_raw.y", state.velocity.y);
-    // this->set_state("imu/velocity_raw.z", state.velocity.z);
-    this->set_state("imu/temperature", *reinterpret_cast<const double *>(&state.temperature));
+    state::imu::Orientation orientation;
+    state::imu::Velocity velocity;
+    state::imu::Temperature temperature;
+    this->model->on_read(orientation, velocity, temperature);
+
+    this->set_state("imu/orientation_raw.x", orientation.x);
+    this->set_state("imu/orientation_raw.y", orientation.y);
+    this->set_state("imu/orientation_raw.z", orientation.z);
+    // this->set_state("imu/velocity_raw.x", velocity.x);
+    // this->set_state("imu/velocity_raw.y", velocity.y);
+    // this->set_state("imu/velocity_raw.z", velocity.z);
+    this->set_state("imu/temperature", *reinterpret_cast<const double *>(&temperature));
 
     return hif::return_type::OK;
 }

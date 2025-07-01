@@ -18,12 +18,6 @@ struct Temperature {
     int8_t value;
 };
 
-struct ImuState {
-    Orientation orientation;
-    Velocity velocity;
-    Temperature temperature;
-};
-
 }  // namespace sinsei_umiusi_control::state::imu
 
 #endif  // SINSEI_UMIUSI_CONTROL_STATE_IMU_HPP
