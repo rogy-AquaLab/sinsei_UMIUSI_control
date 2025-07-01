@@ -33,11 +33,14 @@ auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
     write_reg(SYS_TRIGGER_ADDR, 0x20);
 
     rclcpp::sleep_for(std::chrono::milliseconds(30));
-    int timeout = 1000;  // in ms
+    int timeout = 1000;                // in ms
+    constexpr int WAIT_INTERVAL = 10;  // in ms
     while (gpio->i2c_read_byte_data(CHIP_ID_ADDR) != ID && timeout > 0) {
-        int wait_time = 10;  // in ms
-        rclcpp::sleep_for(std::chrono::milliseconds(wait_time));
-        timeout -= wait_time;
+        if (timeout <= 0) {
+            return tl::unexpected<std::string>("BNO055 reset timeout");
+        }
+        rclcpp::sleep_for(std::chrono::milliseconds(WAIT_INTERVAL));
+        timeout -= WAIT_INTERVAL;
     }
     rclcpp::sleep_for(std::chrono::milliseconds(50));
 
