@@ -9,16 +9,27 @@ namespace rlc = rclcpp_lifecycle;
 auto suchw::Imu::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
     this->hif::SensorInterface::on_init(info);
 
-    // FIXME: ピン番号はパラメーターなどで設定できるようにする
     // FIXME: Pigpioクラスの初期化にはピン番号が必要なため、適当な値を使用
-    this->model.emplace(
-        std::make_unique<sinsei_umiusi_control::util::Pigpio>(999), *this->get_clock());
+    this->model.emplace(std::make_unique<sinsei_umiusi_control::util::Pigpio>(999));
+    auto res = this->model->begin();
+    if (!res) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to initialize IMU: %s", res.error().c_str());
+    }
 
     return hif::CallbackReturn::SUCCESS;
 }
 
 auto suchw::Imu::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
     -> hif::return_type {
+    auto state = this->model->on_read();
+    this->set_state("imu/orientation_raw.x", state.orientation.x);
+    this->set_state("imu/orientation_raw.y", state.orientation.y);
+    this->set_state("imu/orientation_raw.z", state.orientation.z);
+    // this->set_state("imu/velocity_raw.x", state.velocity.x);
+    // this->set_state("imu/velocity_raw.y", state.velocity.y);
+    // this->set_state("imu/velocity_raw.z", state.velocity.z);
+    this->set_state("imu/temperature", *reinterpret_cast<const double *>(&state.temperature));
+
     return hif::return_type::OK;
 }
 
