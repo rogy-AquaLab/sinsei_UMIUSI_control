@@ -13,7 +13,7 @@ suchm::ImuModel::ImuModel(std::unique_ptr<suc::util::Gpio> gpio_) : gpio(std::mo
 
 auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
     if (!gpio->i2c_open(ADDRESS)) {
-        return tl::unexpected<std::string>("Failed to open I2C device at address 0x28");
+        return tl::unexpected<std::string>("Failed to open I2C bus for BNO055");
     }
 
     // 正しいデバイスであることを確認
