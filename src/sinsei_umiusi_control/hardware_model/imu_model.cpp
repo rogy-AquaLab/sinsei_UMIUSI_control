@@ -27,10 +27,10 @@ auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
     }
 
     // コンフィグモードに移行（デフォルトでコンフィグモードだが念のため）
-    write_reg(OPR_MODE_ADDR, OPERATION_MODE_CONFIG);
+    gpio->i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG);
 
     // リセット
-    write_reg(SYS_TRIGGER_ADDR, 0x20);
+    gpio->i2c_write_byte_data(SYS_TRIGGER_ADDR, 0x20);
 
     rclcpp::sleep_for(std::chrono::milliseconds(30));
     int timeout = 1000;                // in ms
@@ -45,16 +45,16 @@ auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
     rclcpp::sleep_for(std::chrono::milliseconds(50));
 
     // ノーマルパワーモードに設定
-    write_reg(PWR_MODE_ADDR, POWER_MODE_NORMAL);
+    gpio->i2c_write_byte_data(PWR_MODE_ADDR, POWER_MODE_NORMAL);
     rclcpp::sleep_for(std::chrono::milliseconds(10));
 
-    write_reg(PAGE_ID_ADDR, 0);
+    gpio->i2c_write_byte_data(PAGE_ID_ADDR, 0);
 
-    write_reg(SYS_TRIGGER_ADDR, 0x0);
+    gpio->i2c_write_byte_data(SYS_TRIGGER_ADDR, 0x0);
     rclcpp::sleep_for(std::chrono::milliseconds(10));
 
     // NDOFモードに設定
-    write_reg(OPR_MODE_ADDR, OPERATION_MODE_NDOF);
+    gpio->i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_NDOF);
     rclcpp::sleep_for(std::chrono::milliseconds(20));
 
     return {};
@@ -93,9 +93,4 @@ bool suchm::ImuModel::read_orientation(state::imu::Orientation & orientation) {
     orientation.y = static_cast<double>(pitch) / 16.0f;
     orientation.z = static_cast<double>(heading) / 16.0f;
     return true;
-}
-
-void suchm::ImuModel::write_reg(uint8_t reg, uint8_t value) {
-    gpio->i2c_write_byte_data(reg, value);
-    rclcpp::sleep_for(std::chrono::milliseconds(1));
 }

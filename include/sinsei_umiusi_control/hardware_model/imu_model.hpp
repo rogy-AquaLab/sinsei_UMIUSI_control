@@ -39,8 +39,6 @@ class ImuModel {
     static constexpr uint8_t TEMP_ADDR = 0X34;
 
     bool read_orientation(state::imu::Orientation & orientation);
-    void write_reg(uint8_t reg, uint8_t value);
-    std::optional<uint8_t> read_reg(uint8_t reg);
 
   public:
     ImuModel(std::unique_ptr<util::Gpio> gpio);
