@@ -143,45 +143,45 @@ auto succ::GateController::update(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/
     ) -> cif::return_type {
     constexpr auto INDICATOR_LED_ENABLED_INDEX =
-        suc_util::get_index("indicator_led/indicator_led/enabled", CMD_INTERFACE_NAMES);
+        suc_util::get_index("indicator_led/enabled", CMD_INTERFACE_NAMES);
     constexpr auto MAIN_POWER_ENABLED_INDEX =
-        suc_util::get_index("main_power/main_power/enabled", CMD_INTERFACE_NAMES);
+        suc_util::get_index("main_power/enabled", CMD_INTERFACE_NAMES);
     constexpr auto LED_TAPE_COLOR_INDEX =
-        suc_util::get_index("led_tape/led_tape/color", CMD_INTERFACE_NAMES);
+        suc_util::get_index("led_tape/color", CMD_INTERFACE_NAMES);
     constexpr auto HIGH_BEAM_ENABLED_INDEX =
-        suc_util::get_index("headlights/headlights/high_beam_enabled", CMD_INTERFACE_NAMES);
+        suc_util::get_index("headlights/high_beam_enabled", CMD_INTERFACE_NAMES);
     constexpr auto LOW_BEAM_ENABLED_INDEX =
-        suc_util::get_index("headlights/headlights/low_beam_enabled", CMD_INTERFACE_NAMES);
+        suc_util::get_index("headlights/low_beam_enabled", CMD_INTERFACE_NAMES);
     constexpr auto IR_ENABLED_INDEX =
-        suc_util::get_index("headlights/headlights/ir_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto SERVO1_ENABLED_INDEX = suc_util::get_index(
-        "thruster_controller1/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto SERVO2_ENABLED_INDEX = suc_util::get_index(
-        "thruster_controller2/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto SERVO3_ENABLED_INDEX = suc_util::get_index(
-        "thruster_controller3/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto SERVO4_ENABLED_INDEX = suc_util::get_index(
-        "thruster_controller4/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
+        suc_util::get_index("headlights/ir_enabled", CMD_INTERFACE_NAMES);
+    constexpr auto SERVO1_ENABLED_INDEX =
+        suc_util::get_index("thruster_controller1/servo_enabled", CMD_INTERFACE_NAMES);
+    constexpr auto SERVO2_ENABLED_INDEX =
+        suc_util::get_index("thruster_controller2/servo_enabled", CMD_INTERFACE_NAMES);
+    constexpr auto SERVO3_ENABLED_INDEX =
+        suc_util::get_index("thruster_controller3/servo_enabled", CMD_INTERFACE_NAMES);
+    constexpr auto SERVO4_ENABLED_INDEX =
+        suc_util::get_index("thruster_controller4/servo_enabled", CMD_INTERFACE_NAMES);
     constexpr auto ESC1_ENABLED_INDEX =
-        suc_util::get_index("thruster_controller1/esc_enabled/esc_enabled", CMD_INTERFACE_NAMES);
+        suc_util::get_index("thruster_controller1/esc_enabled", CMD_INTERFACE_NAMES);
     constexpr auto ESC2_ENABLED_INDEX =
-        suc_util::get_index("thruster_controller2/esc_enabled/esc_enabled", CMD_INTERFACE_NAMES);
+        suc_util::get_index("thruster_controller2/esc_enabled", CMD_INTERFACE_NAMES);
     constexpr auto ESC3_ENABLED_INDEX =
-        suc_util::get_index("thruster_controller3/esc_enabled/esc_enabled", CMD_INTERFACE_NAMES);
+        suc_util::get_index("thruster_controller3/esc_enabled", CMD_INTERFACE_NAMES);
     constexpr auto ESC4_ENABLED_INDEX =
-        suc_util::get_index("thruster_controller4/esc_enabled/esc_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto TARGET_ORIENTATION_X_INDEX = suc_util::get_index(
-        "app_controller/target_orientation.x/target_orientation.x", CMD_INTERFACE_NAMES);
-    constexpr auto TARGET_ORIENTATION_Y_INDEX = suc_util::get_index(
-        "app_controller/target_orientation.y/target_orientation.y", CMD_INTERFACE_NAMES);
-    constexpr auto TARGET_ORIENTATION_Z_INDEX = suc_util::get_index(
-        "app_controller/target_orientation.z/target_orientation.z", CMD_INTERFACE_NAMES);
-    constexpr auto TARGET_VELOCITY_X_INDEX = suc_util::get_index(
-        "app_controller/target_velocity.x/target_velocity.x", CMD_INTERFACE_NAMES);
-    constexpr auto TARGET_VELOCITY_Y_INDEX = suc_util::get_index(
-        "app_controller/target_velocity.y/target_velocity.y", CMD_INTERFACE_NAMES);
-    constexpr auto TARGET_VELOCITY_Z_INDEX = suc_util::get_index(
-        "app_controller/target_velocity.z/target_velocity.z", CMD_INTERFACE_NAMES);
+        suc_util::get_index("thruster_controller4/esc_enabled", CMD_INTERFACE_NAMES);
+    constexpr auto TARGET_ORIENTATION_X_INDEX =
+        suc_util::get_index("app_controller/target_orientation.x", CMD_INTERFACE_NAMES);
+    constexpr auto TARGET_ORIENTATION_Y_INDEX =
+        suc_util::get_index("app_controller/target_orientation.y", CMD_INTERFACE_NAMES);
+    constexpr auto TARGET_ORIENTATION_Z_INDEX =
+        suc_util::get_index("app_controller/target_orientation.z", CMD_INTERFACE_NAMES);
+    constexpr auto TARGET_VELOCITY_X_INDEX =
+        suc_util::get_index("app_controller/target_velocity.x", CMD_INTERFACE_NAMES);
+    constexpr auto TARGET_VELOCITY_Y_INDEX =
+        suc_util::get_index("app_controller/target_velocity.y", CMD_INTERFACE_NAMES);
+    constexpr auto TARGET_VELOCITY_Z_INDEX =
+        suc_util::get_index("app_controller/target_velocity.z", CMD_INTERFACE_NAMES);
 
     this->interface_helper->set_cmd_value(
         INDICATOR_LED_ENABLED_INDEX, this->indicator_led_enabled_ref);

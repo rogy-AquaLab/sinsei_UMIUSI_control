@@ -6,7 +6,7 @@
         <plugin>sinsei_umiusi_control/hardware/IndicatorLed</plugin>
       </hardware>
       <gpio name="indicator_led">
-        <command_interface name="indicator_led/enabled" />
+        <command_interface name="enabled" />
       </gpio>
     </ros2_control>
   </xacro:macro>

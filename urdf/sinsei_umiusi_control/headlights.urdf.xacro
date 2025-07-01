@@ -6,9 +6,9 @@
         <plugin>sinsei_umiusi_control/hardware/Headlights</plugin>
       </hardware>
       <gpio name="headlights">
-        <command_interface name="headlights/high_beam_enabled" />
-        <command_interface name="headlights/low_beam_enabled" />
-        <command_interface name="headlights/ir_enabled" />
+        <command_interface name="high_beam_enabled" />
+        <command_interface name="low_beam_enabled" />
+        <command_interface name="ir_enabled" />
       </gpio>
     </ros2_control>
   </xacro:macro>
