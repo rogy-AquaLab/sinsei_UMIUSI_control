@@ -8,8 +8,8 @@
           <plugin>sinsei_umiusi_control/hardware/ServoDirect</plugin>
         </hardware>
         <gpio name="${thruster_name}/servo_direct">
-          <command_interface name="servo_direct/enabled_raw" />
-          <command_interface name="servo_direct/angle_raw" />
+          <command_interface name="enabled_raw" />
+          <command_interface name="angle_raw" />
         </gpio>
       </ros2_control>
       <ros2_control name="${thruster_name}/esc_direct" type="system">
@@ -17,8 +17,8 @@
           <plugin>sinsei_umiusi_control/hardware/EscDirect</plugin>
         </hardware>
         <gpio name="${thruster_name}/esc_direct">
-          <command_interface name="esc_direct/enabled_raw" />
-          <command_interface name="esc_direct/thrust_raw" />
+          <command_interface name="enabled_raw" />
+          <command_interface name="thrust_raw" />
         </gpio>
       </ros2_control>
     </xacro:macro>

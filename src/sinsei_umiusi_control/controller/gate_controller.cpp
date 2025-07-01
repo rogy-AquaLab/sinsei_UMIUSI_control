@@ -143,45 +143,84 @@ auto succ::GateController::update(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/
     ) -> cif::return_type {
     constexpr auto INDICATOR_LED_ENABLED_INDEX =
-        suc_util::get_index("indicator_led/indicator_led/enabled", CMD_INTERFACE_NAMES);
+        suc_util::get_index("indicator_led/enabled", CMD_INTERFACE_NAMES);
     constexpr auto MAIN_POWER_ENABLED_INDEX =
-        suc_util::get_index("main_power/main_power/enabled", CMD_INTERFACE_NAMES);
+        suc_util::get_index("main_power/enabled", CMD_INTERFACE_NAMES);
     constexpr auto LED_TAPE_COLOR_INDEX =
-        suc_util::get_index("led_tape/led_tape/color", CMD_INTERFACE_NAMES);
+        suc_util::get_index("led_tape/color", CMD_INTERFACE_NAMES);
     constexpr auto HIGH_BEAM_ENABLED_INDEX =
-        suc_util::get_index("headlights/headlights/high_beam_enabled", CMD_INTERFACE_NAMES);
+        suc_util::get_index("headlights/high_beam_enabled", CMD_INTERFACE_NAMES);
     constexpr auto LOW_BEAM_ENABLED_INDEX =
-        suc_util::get_index("headlights/headlights/low_beam_enabled", CMD_INTERFACE_NAMES);
+        suc_util::get_index("headlights/low_beam_enabled", CMD_INTERFACE_NAMES);
     constexpr auto IR_ENABLED_INDEX =
-        suc_util::get_index("headlights/headlights/ir_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto SERVO1_ENABLED_INDEX = suc_util::get_index(
-        "thruster_controller1/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto SERVO2_ENABLED_INDEX = suc_util::get_index(
-        "thruster_controller2/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto SERVO3_ENABLED_INDEX = suc_util::get_index(
-        "thruster_controller3/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto SERVO4_ENABLED_INDEX = suc_util::get_index(
-        "thruster_controller4/servo_enabled/servo_enabled", CMD_INTERFACE_NAMES);
+        suc_util::get_index("headlights/ir_enabled", CMD_INTERFACE_NAMES);
+    constexpr auto SERVO1_ENABLED_INDEX =
+        suc_util::get_index("thruster_controller1/servo_enabled", CMD_INTERFACE_NAMES);
+    constexpr auto SERVO2_ENABLED_INDEX =
+        suc_util::get_index("thruster_controller2/servo_enabled", CMD_INTERFACE_NAMES);
+    constexpr auto SERVO3_ENABLED_INDEX =
+        suc_util::get_index("thruster_controller3/servo_enabled", CMD_INTERFACE_NAMES);
+    constexpr auto SERVO4_ENABLED_INDEX =
+        suc_util::get_index("thruster_controller4/servo_enabled", CMD_INTERFACE_NAMES);
     constexpr auto ESC1_ENABLED_INDEX =
-        suc_util::get_index("thruster_controller1/esc_enabled/esc_enabled", CMD_INTERFACE_NAMES);
+        suc_util::get_index("thruster_controller1/esc_enabled", CMD_INTERFACE_NAMES);
     constexpr auto ESC2_ENABLED_INDEX =
-        suc_util::get_index("thruster_controller2/esc_enabled/esc_enabled", CMD_INTERFACE_NAMES);
+        suc_util::get_index("thruster_controller2/esc_enabled", CMD_INTERFACE_NAMES);
     constexpr auto ESC3_ENABLED_INDEX =
-        suc_util::get_index("thruster_controller3/esc_enabled/esc_enabled", CMD_INTERFACE_NAMES);
+        suc_util::get_index("thruster_controller3/esc_enabled", CMD_INTERFACE_NAMES);
     constexpr auto ESC4_ENABLED_INDEX =
-        suc_util::get_index("thruster_controller4/esc_enabled/esc_enabled", CMD_INTERFACE_NAMES);
-    constexpr auto TARGET_ORIENTATION_X_INDEX = suc_util::get_index(
-        "app_controller/target_orientation.x/target_orientation.x", CMD_INTERFACE_NAMES);
-    constexpr auto TARGET_ORIENTATION_Y_INDEX = suc_util::get_index(
-        "app_controller/target_orientation.y/target_orientation.y", CMD_INTERFACE_NAMES);
-    constexpr auto TARGET_ORIENTATION_Z_INDEX = suc_util::get_index(
-        "app_controller/target_orientation.z/target_orientation.z", CMD_INTERFACE_NAMES);
-    constexpr auto TARGET_VELOCITY_X_INDEX = suc_util::get_index(
-        "app_controller/target_velocity.x/target_velocity.x", CMD_INTERFACE_NAMES);
-    constexpr auto TARGET_VELOCITY_Y_INDEX = suc_util::get_index(
-        "app_controller/target_velocity.y/target_velocity.y", CMD_INTERFACE_NAMES);
-    constexpr auto TARGET_VELOCITY_Z_INDEX = suc_util::get_index(
-        "app_controller/target_velocity.z/target_velocity.z", CMD_INTERFACE_NAMES);
+        suc_util::get_index("thruster_controller4/esc_enabled", CMD_INTERFACE_NAMES);
+    constexpr auto TARGET_ORIENTATION_X_INDEX =
+        suc_util::get_index("app_controller/target_orientation.x", CMD_INTERFACE_NAMES);
+    constexpr auto TARGET_ORIENTATION_Y_INDEX =
+        suc_util::get_index("app_controller/target_orientation.y", CMD_INTERFACE_NAMES);
+    constexpr auto TARGET_ORIENTATION_Z_INDEX =
+        suc_util::get_index("app_controller/target_orientation.z", CMD_INTERFACE_NAMES);
+    constexpr auto TARGET_VELOCITY_X_INDEX =
+        suc_util::get_index("app_controller/target_velocity.x", CMD_INTERFACE_NAMES);
+    constexpr auto TARGET_VELOCITY_Y_INDEX =
+        suc_util::get_index("app_controller/target_velocity.y", CMD_INTERFACE_NAMES);
+    constexpr auto TARGET_VELOCITY_Z_INDEX =
+        suc_util::get_index("app_controller/target_velocity.z", CMD_INTERFACE_NAMES);
+
+    constexpr auto BATTERY_CURRENT_INDEX =
+        suc_util::get_index("main_power/battery_current", STATE_INTERFACE_NAMES);
+    constexpr auto BATTERY_VOLTAGE_INDEX =
+        suc_util::get_index("main_power/battery_voltage", STATE_INTERFACE_NAMES);
+    constexpr auto MAIN_TEMPERATURE_INDEX =
+        suc_util::get_index("main_power/temperature", STATE_INTERFACE_NAMES);
+    constexpr auto WATER_LEAKED_INDEX =
+        suc_util::get_index("main_power/water_leaked", STATE_INTERFACE_NAMES);
+    constexpr auto SERVO1_CURRENT_INDEX =
+        suc_util::get_index("thruster_controller1/servo_current", STATE_INTERFACE_NAMES);
+    constexpr auto SERVO2_CURRENT_INDEX =
+        suc_util::get_index("thruster_controller2/servo_current", STATE_INTERFACE_NAMES);
+    constexpr auto SERVO3_CURRENT_INDEX =
+        suc_util::get_index("thruster_controller3/servo_current", STATE_INTERFACE_NAMES);
+    constexpr auto SERVO4_CURRENT_INDEX =
+        suc_util::get_index("thruster_controller4/servo_current", STATE_INTERFACE_NAMES);
+    constexpr auto RPM1_INDEX =
+        suc_util::get_index("thruster_controller1/rpm", STATE_INTERFACE_NAMES);
+    constexpr auto RPM2_INDEX =
+        suc_util::get_index("thruster_controller2/rpm", STATE_INTERFACE_NAMES);
+    constexpr auto RPM3_INDEX =
+        suc_util::get_index("thruster_controller3/rpm", STATE_INTERFACE_NAMES);
+    constexpr auto RPM4_INDEX =
+        suc_util::get_index("thruster_controller4/rpm", STATE_INTERFACE_NAMES);
+    constexpr auto IMU_ORIENTATION_X_INDEX =
+        suc_util::get_index("app_controller/imu_orientation.x", STATE_INTERFACE_NAMES);
+    constexpr auto IMU_ORIENTATION_Y_INDEX =
+        suc_util::get_index("app_controller/imu_orientation.y", STATE_INTERFACE_NAMES);
+    constexpr auto IMU_ORIENTATION_Z_INDEX =
+        suc_util::get_index("app_controller/imu_orientation.z", STATE_INTERFACE_NAMES);
+    constexpr auto IMU_VELOCITY_X_INDEX =
+        suc_util::get_index("app_controller/imu_velocity.x", STATE_INTERFACE_NAMES);
+    constexpr auto IMU_VELOCITY_Y_INDEX =
+        suc_util::get_index("app_controller/imu_velocity.y", STATE_INTERFACE_NAMES);
+    constexpr auto IMU_VELOCITY_Z_INDEX =
+        suc_util::get_index("app_controller/imu_velocity.z", STATE_INTERFACE_NAMES);
+    constexpr auto IMU_TEMPERATURE_INDEX =
+        suc_util::get_index("imu/temperature", STATE_INTERFACE_NAMES);
 
     this->interface_helper->set_cmd_value(
         INDICATOR_LED_ENABLED_INDEX, this->indicator_led_enabled_ref);
@@ -207,6 +246,27 @@ auto succ::GateController::update(
     this->interface_helper->set_cmd_value(TARGET_VELOCITY_X_INDEX, this->target_velocity_ref.x);
     this->interface_helper->set_cmd_value(TARGET_VELOCITY_Y_INDEX, this->target_velocity_ref.y);
     this->interface_helper->set_cmd_value(TARGET_VELOCITY_Z_INDEX, this->target_velocity_ref.z);
+
+    this->interface_helper->get_state_value(BATTERY_CURRENT_INDEX, this->battery_current_ref.value);
+    this->interface_helper->get_state_value(BATTERY_VOLTAGE_INDEX, this->battery_voltage_ref.value);
+    this->interface_helper->get_state_value(
+        MAIN_TEMPERATURE_INDEX, this->main_temperature_ref.value);
+    this->interface_helper->get_state_value(WATER_LEAKED_INDEX, this->water_leaked_ref.value);
+    this->interface_helper->get_state_value(SERVO1_CURRENT_INDEX, this->servo_current_ref[0].value);
+    this->interface_helper->get_state_value(SERVO2_CURRENT_INDEX, this->servo_current_ref[1].value);
+    this->interface_helper->get_state_value(SERVO3_CURRENT_INDEX, this->servo_current_ref[2].value);
+    this->interface_helper->get_state_value(SERVO4_CURRENT_INDEX, this->servo_current_ref[3].value);
+    this->interface_helper->get_state_value(RPM1_INDEX, this->rpm_ref[0].value);
+    this->interface_helper->get_state_value(RPM2_INDEX, this->rpm_ref[1].value);
+    this->interface_helper->get_state_value(RPM3_INDEX, this->rpm_ref[2].value);
+    this->interface_helper->get_state_value(RPM4_INDEX, this->rpm_ref[3].value);
+    this->interface_helper->get_state_value(IMU_ORIENTATION_X_INDEX, this->imu_orientation_ref.x);
+    this->interface_helper->get_state_value(IMU_ORIENTATION_Y_INDEX, this->imu_orientation_ref.y);
+    this->interface_helper->get_state_value(IMU_ORIENTATION_Z_INDEX, this->imu_orientation_ref.z);
+    this->interface_helper->get_state_value(IMU_VELOCITY_X_INDEX, this->imu_velocity_ref.x);
+    this->interface_helper->get_state_value(IMU_VELOCITY_Y_INDEX, this->imu_velocity_ref.y);
+    this->interface_helper->get_state_value(IMU_VELOCITY_Z_INDEX, this->imu_velocity_ref.z);
+    this->interface_helper->get_state_value(IMU_TEMPERATURE_INDEX, this->imu_temperature_ref.value);
 
     this->battery_current_publisher->publish(
         std_msgs::msg::Float64().set__data(this->battery_current_ref.value));

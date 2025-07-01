@@ -31,15 +31,14 @@ class AppController : public controller_interface::ChainableControllerInterface 
 
     static constexpr size_t CMD_SIZE = 8;
     static constexpr const char * CMD_INTERFACE_NAMES[CMD_SIZE] = {
-        "thruster_controller1/angle/angle", "thruster_controller1/thrust/thrust",
-        "thruster_controller2/angle/angle", "thruster_controller2/thrust/thrust",
-        "thruster_controller3/angle/angle", "thruster_controller3/thrust/thrust",
-        "thruster_controller4/angle/angle", "thruster_controller4/thrust/thrust",
+        "thruster_controller1/angle",  "thruster_controller1/thrust", "thruster_controller2/angle",
+        "thruster_controller2/thrust", "thruster_controller3/angle",  "thruster_controller3/thrust",
+        "thruster_controller4/angle",  "thruster_controller4/thrust",
     };
     static constexpr size_t STATE_SIZE = 6;
     static constexpr const char * STATE_INTERFACE_NAMES[STATE_SIZE] = {
-        "imu/imu/orientation_raw.x", "imu/imu/orientation_raw.y", "imu/imu/orientation_raw.z",
-        "imu/imu/velocity_raw.x",    "imu/imu/velocity_raw.y",    "imu/imu/velocity_raw.z",
+        "imu/orientation_raw.x", "imu/orientation_raw.y", "imu/orientation_raw.z",
+        "imu/velocity_raw.x",    "imu/velocity_raw.y",    "imu/velocity_raw.z",
     };
 
     std::unique_ptr<InterfaceAccessHelper<CMD_SIZE, STATE_SIZE>> interface_helper;

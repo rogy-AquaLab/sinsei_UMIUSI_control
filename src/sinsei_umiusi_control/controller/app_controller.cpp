@@ -56,46 +56,34 @@ auto succ::AppController::on_export_reference_interfaces() -> std::vector<hif::C
 
     auto interfaces = std::vector<hif::CommandInterface>{};
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name() + std::string("/target_orientation.x"), "target_orientation.x",
-        &this->target_orientation.x));
+        this->get_node()->get_name(), "target_orientation.x", &this->target_orientation.x));
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name() + std::string("/target_orientation.y"), "target_orientation.y",
-        &this->target_orientation.y));
+        this->get_node()->get_name(), "target_orientation.y", &this->target_orientation.y));
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name() + std::string("/target_orientation.z"), "target_orientation.z",
-        &this->target_orientation.z));
+        this->get_node()->get_name(), "target_orientation.z", &this->target_orientation.z));
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name() + std::string("/target_velocity.x"), "target_velocity.x",
-        &this->target_velocity.x));
+        this->get_node()->get_name(), "target_velocity.x", &this->target_velocity.x));
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name() + std::string("/target_velocity.y"), "target_velocity.y",
-        &this->target_velocity.y));
+        this->get_node()->get_name(), "target_velocity.y", &this->target_velocity.y));
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name() + std::string("/target_velocity.z"), "target_velocity.z",
-        &this->target_velocity.z));
+        this->get_node()->get_name(), "target_velocity.z", &this->target_velocity.z));
     return interfaces;
 }
 
 auto succ::AppController::on_export_state_interfaces() -> std::vector<hif::StateInterface> {
     auto interfaces = std::vector<hif::StateInterface>{};
     interfaces.emplace_back(hif::StateInterface(
-        this->get_node()->get_name() + std::string("/imu_orientation.x"), "imu_orientation.x",
-        &this->imu_orientation.x));
+        this->get_node()->get_name(), "imu_orientation.x", &this->imu_orientation.x));
     interfaces.emplace_back(hif::StateInterface(
-        this->get_node()->get_name() + std::string("/imu_orientation.y"), "imu_orientation.y",
-        &this->imu_orientation.y));
+        this->get_node()->get_name(), "imu_orientation.y", &this->imu_orientation.y));
     interfaces.emplace_back(hif::StateInterface(
-        this->get_node()->get_name() + std::string("/imu_orientation.z"), "imu_orientation.z",
-        &this->imu_orientation.z));
-    interfaces.emplace_back(hif::StateInterface(
-        this->get_node()->get_name() + std::string("/imu_velocity.x"), "imu_velocity.x",
-        &this->imu_velocity.x));
-    interfaces.emplace_back(hif::StateInterface(
-        this->get_node()->get_name() + std::string("/imu_velocity.y"), "imu_velocity.y",
-        &this->imu_velocity.y));
-    interfaces.emplace_back(hif::StateInterface(
-        this->get_node()->get_name() + std::string("/imu_velocity.z"), "imu_velocity.z",
-        &this->imu_velocity.z));
+        this->get_node()->get_name(), "imu_orientation.z", &this->imu_orientation.z));
+    interfaces.emplace_back(
+        hif::StateInterface(this->get_node()->get_name(), "imu_velocity.x", &this->imu_velocity.x));
+    interfaces.emplace_back(
+        hif::StateInterface(this->get_node()->get_name(), "imu_velocity.y", &this->imu_velocity.y));
+    interfaces.emplace_back(
+        hif::StateInterface(this->get_node()->get_name(), "imu_velocity.z", &this->imu_velocity.z));
     return interfaces;
 }
 
@@ -112,21 +100,34 @@ auto succ::AppController::update_and_write_commands(
     this->compute_outputs();
 
     constexpr auto ANGLE1_INDEX =
-        suc_util::get_index("thruster_controller1/angle/angle", CMD_INTERFACE_NAMES);
+        suc_util::get_index("thruster_controller1/angle", CMD_INTERFACE_NAMES);
     constexpr auto THRUST1_INDEX =
-        suc_util::get_index("thruster_controller1/thrust/thrust", CMD_INTERFACE_NAMES);
+        suc_util::get_index("thruster_controller1/thrust", CMD_INTERFACE_NAMES);
     constexpr auto ANGLE2_INDEX =
-        suc_util::get_index("thruster_controller2/angle/angle", CMD_INTERFACE_NAMES);
+        suc_util::get_index("thruster_controller2/angle", CMD_INTERFACE_NAMES);
     constexpr auto THRUST2_INDEX =
-        suc_util::get_index("thruster_controller2/thrust/thrust", CMD_INTERFACE_NAMES);
+        suc_util::get_index("thruster_controller2/thrust", CMD_INTERFACE_NAMES);
     constexpr auto ANGLE3_INDEX =
-        suc_util::get_index("thruster_controller3/angle/angle", CMD_INTERFACE_NAMES);
+        suc_util::get_index("thruster_controller3/angle", CMD_INTERFACE_NAMES);
     constexpr auto THRUST3_INDEX =
-        suc_util::get_index("thruster_controller3/thrust/thrust", CMD_INTERFACE_NAMES);
+        suc_util::get_index("thruster_controller3/thrust", CMD_INTERFACE_NAMES);
     constexpr auto ANGLE4_INDEX =
-        suc_util::get_index("thruster_controller4/angle/angle", CMD_INTERFACE_NAMES);
+        suc_util::get_index("thruster_controller4/angle", CMD_INTERFACE_NAMES);
     constexpr auto THRUST4_INDEX =
-        suc_util::get_index("thruster_controller4/thrust/thrust", CMD_INTERFACE_NAMES);
+        suc_util::get_index("thruster_controller4/thrust", CMD_INTERFACE_NAMES);
+
+    constexpr auto ORIENTATION_X_INDEX =
+        suc_util::get_index("imu/orientation_raw.x", STATE_INTERFACE_NAMES);
+    constexpr auto ORIENTATION_Y_INDEX =
+        suc_util::get_index("imu/orientation_raw.y", STATE_INTERFACE_NAMES);
+    constexpr auto ORIENTATION_Z_INDEX =
+        suc_util::get_index("imu/orientation_raw.z", STATE_INTERFACE_NAMES);
+    constexpr auto VELOCITY_X_INDEX =
+        suc_util::get_index("imu/velocity_raw.x", STATE_INTERFACE_NAMES);
+    constexpr auto VELOCITY_Y_INDEX =
+        suc_util::get_index("imu/velocity_raw.y", STATE_INTERFACE_NAMES);
+    constexpr auto VELOCITY_Z_INDEX =
+        suc_util::get_index("imu/velocity_raw.z", STATE_INTERFACE_NAMES);
 
     this->interface_helper->set_cmd_value(ANGLE1_INDEX, this->thruster_angles[0]);
     this->interface_helper->set_cmd_value(THRUST1_INDEX, this->thruster_thrusts[0]);
@@ -136,19 +137,6 @@ auto succ::AppController::update_and_write_commands(
     this->interface_helper->set_cmd_value(THRUST3_INDEX, this->thruster_thrusts[2]);
     this->interface_helper->set_cmd_value(ANGLE4_INDEX, this->thruster_angles[3]);
     this->interface_helper->set_cmd_value(THRUST4_INDEX, this->thruster_thrusts[3]);
-
-    constexpr auto ORIENTATION_X_INDEX =
-        suc_util::get_index("imu/imu/orientation_raw.x", STATE_INTERFACE_NAMES);
-    constexpr auto ORIENTATION_Y_INDEX =
-        suc_util::get_index("imu/imu/orientation_raw.y", STATE_INTERFACE_NAMES);
-    constexpr auto ORIENTATION_Z_INDEX =
-        suc_util::get_index("imu/imu/orientation_raw.z", STATE_INTERFACE_NAMES);
-    constexpr auto VELOCITY_X_INDEX =
-        suc_util::get_index("imu/imu/velocity_raw.x", STATE_INTERFACE_NAMES);
-    constexpr auto VELOCITY_Y_INDEX =
-        suc_util::get_index("imu/imu/velocity_raw.y", STATE_INTERFACE_NAMES);
-    constexpr auto VELOCITY_Z_INDEX =
-        suc_util::get_index("imu/imu/velocity_raw.z", STATE_INTERFACE_NAMES);
 
     this->interface_helper->get_state_value(ORIENTATION_X_INDEX, this->imu_orientation.x);
     this->interface_helper->get_state_value(ORIENTATION_Y_INDEX, this->imu_orientation.y);
