@@ -116,15 +116,6 @@ auto succ::AppController::update_and_write_commands(
     constexpr auto THRUST4_INDEX =
         suc_util::get_index("thruster_controller4/thrust", CMD_INTERFACE_NAMES);
 
-    this->interface_helper->set_cmd_value(ANGLE1_INDEX, this->thruster_angles[0]);
-    this->interface_helper->set_cmd_value(THRUST1_INDEX, this->thruster_thrusts[0]);
-    this->interface_helper->set_cmd_value(ANGLE2_INDEX, this->thruster_angles[1]);
-    this->interface_helper->set_cmd_value(THRUST2_INDEX, this->thruster_thrusts[1]);
-    this->interface_helper->set_cmd_value(ANGLE3_INDEX, this->thruster_angles[2]);
-    this->interface_helper->set_cmd_value(THRUST3_INDEX, this->thruster_thrusts[2]);
-    this->interface_helper->set_cmd_value(ANGLE4_INDEX, this->thruster_angles[3]);
-    this->interface_helper->set_cmd_value(THRUST4_INDEX, this->thruster_thrusts[3]);
-
     constexpr auto ORIENTATION_X_INDEX =
         suc_util::get_index("imu/orientation_raw.x", STATE_INTERFACE_NAMES);
     constexpr auto ORIENTATION_Y_INDEX =
@@ -137,6 +128,15 @@ auto succ::AppController::update_and_write_commands(
         suc_util::get_index("imu/velocity_raw.y", STATE_INTERFACE_NAMES);
     constexpr auto VELOCITY_Z_INDEX =
         suc_util::get_index("imu/velocity_raw.z", STATE_INTERFACE_NAMES);
+
+    this->interface_helper->set_cmd_value(ANGLE1_INDEX, this->thruster_angles[0]);
+    this->interface_helper->set_cmd_value(THRUST1_INDEX, this->thruster_thrusts[0]);
+    this->interface_helper->set_cmd_value(ANGLE2_INDEX, this->thruster_angles[1]);
+    this->interface_helper->set_cmd_value(THRUST2_INDEX, this->thruster_thrusts[1]);
+    this->interface_helper->set_cmd_value(ANGLE3_INDEX, this->thruster_angles[2]);
+    this->interface_helper->set_cmd_value(THRUST3_INDEX, this->thruster_thrusts[2]);
+    this->interface_helper->set_cmd_value(ANGLE4_INDEX, this->thruster_angles[3]);
+    this->interface_helper->set_cmd_value(THRUST4_INDEX, this->thruster_thrusts[3]);
 
     this->interface_helper->get_state_value(ORIENTATION_X_INDEX, this->imu_orientation.x);
     this->interface_helper->get_state_value(ORIENTATION_Y_INDEX, this->imu_orientation.y);
