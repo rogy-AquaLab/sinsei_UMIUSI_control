@@ -60,28 +60,25 @@ auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
     return {};
 }
 
-auto suchm::ImuModel::on_read(
-    state::imu::Orientation & orientation, state::imu::Velocity & velocity,
-    state::imu::Temperature & temperature) -> void {
-    read_orientation(orientation);
+auto suchm::ImuModel::on_read()
+    -> std::tuple<
+        suc::state::imu::Orientation, suc::state::imu::Velocity, suc::state::imu::Temperature> {
+    const auto orientation = read_orientation().value_or(state::imu::Orientation{});
+    const state::imu::Velocity velocity{0.0, 0.0, 0.0};
 
-    velocity.x = 0.0;
-    velocity.y = 0.0;
-    velocity.z = 0.0;
+    const auto temp_raw = gpio->i2c_read_byte_data(TEMP_ADDR);
+    const suc::state::imu::Temperature temperature{static_cast<int8_t>(temp_raw.value_or(0))};
 
-    auto temp_opt = gpio->i2c_read_byte_data(TEMP_ADDR);
-    if (temp_opt) {
-        temperature.value = static_cast<int8_t>(temp_opt.value());
-    } else {
-        temperature.value = 0;
-    }
+    return {orientation, velocity, temperature};
 }
 
-bool suchm::ImuModel::read_orientation(state::imu::Orientation & orientation) {
+auto suchm::ImuModel::read_orientation() -> tl::expected<state::imu::Orientation, std::string> {
     std::vector<uint8_t> data(6);
     for (int i = 0; i < 6; ++i) {
         auto byte_opt = gpio->i2c_read_byte_data(EULER_H_LSB_ADDR + i);
-        if (!byte_opt) return false;
+        if (!byte_opt) {
+            return tl::unexpected<std::string>("Failed to read orientation data from BNO055");
+        }
         data[i] = byte_opt.value();
     }
 
@@ -89,8 +86,10 @@ bool suchm::ImuModel::read_orientation(state::imu::Orientation & orientation) {
     int pitch = (data[5] << 8) | data[4];
     int heading = (data[1] << 8) | data[0];
 
-    orientation.x = static_cast<double>(roll) / 16.0f;
-    orientation.y = static_cast<double>(pitch) / 16.0f;
-    orientation.z = static_cast<double>(heading) / 16.0f;
-    return true;
+    const state::imu::Orientation orientation{
+        static_cast<double>(roll) / 16.0,      // x
+        static_cast<double>(pitch) / 16.0,     // y
+        static_cast<double>(heading) / 16.0};  // z
+
+    return orientation;
 }

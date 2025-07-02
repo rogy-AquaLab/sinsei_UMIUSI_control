@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <rclcpp/clock.hpp>
 #include <rclcpp/rclcpp.hpp>
 
@@ -38,14 +37,14 @@ class ImuModel {
 
     static constexpr uint8_t TEMP_ADDR = 0X34;
 
-    bool read_orientation(state::imu::Orientation & orientation);
+    auto read_orientation() -> tl::expected<state::imu::Orientation, std::string>;
 
   public:
     ImuModel(std::unique_ptr<util::Gpio> gpio);
     auto begin() -> tl::expected<void, std::string>;
-    auto on_read(
-        state::imu::Orientation & orientation, state::imu::Velocity & velocity,
-        state::imu::Temperature & temperature) -> void;
+    auto on_read()
+        -> std::tuple<
+            suc::state::imu::Orientation, suc::state::imu::Velocity, suc::state::imu::Temperature>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model
