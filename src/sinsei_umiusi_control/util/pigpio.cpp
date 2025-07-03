@@ -31,25 +31,24 @@ auto suc_util::Pigpio::write_pwm() -> GpioResult {
 auto suc_util::Pigpio::i2c_open(int address) -> tl::expected<void, GpioError> {
     this->i2c_address = address;
     auto res = ::i2c_open(pi, I2C_BUS, this->i2c_address, 0);
-    if (res < 0) {
-        // Convert the error code to GpioError
-        switch (res) {
-            case PI_BAD_I2C_BUS:
-                return tl::unexpected(GpioError::I2cBadBus);
-            case PI_BAD_I2C_ADDR:
-                return tl::unexpected(GpioError::I2CBadAddress);
-            case PI_BAD_FLAGS:
-                return tl::unexpected(GpioError::BadFlags);
-            case PI_NO_HANDLE:
-                return tl::unexpected(GpioError::NoHandle);
-            case PI_I2C_OPEN_FAILED:
-                return tl::unexpected(GpioError::I2cOpenFailed);
-            default:
-                return tl::unexpected(GpioError::UnknownError);
-        }
+    if (res >= 0) {
+        this->i2c_handle = res;
+        return {};
     }
-    this->i2c_handle = res;
-    return {};
+    switch (res) {
+        case PI_BAD_I2C_BUS:
+            return tl::unexpected(GpioError::I2cBadBus);
+        case PI_BAD_I2C_ADDR:
+            return tl::unexpected(GpioError::I2CBadAddress);
+        case PI_BAD_FLAGS:
+            return tl::unexpected(GpioError::BadFlags);
+        case PI_NO_HANDLE:
+            return tl::unexpected(GpioError::NoHandle);
+        case PI_I2C_OPEN_FAILED:
+            return tl::unexpected(GpioError::I2cOpenFailed);
+        default:
+            return tl::unexpected(GpioError::UnknownError);
+    }
 }
 
 auto suc_util::Pigpio::i2c_close() -> tl::expected<void, GpioError> {
@@ -57,16 +56,15 @@ auto suc_util::Pigpio::i2c_close() -> tl::expected<void, GpioError> {
         return tl::unexpected(GpioError::NoHandle);
     }
     auto res = ::i2c_close(pi, this->i2c_handle);
-    if (res != 0) {
-        switch (res) {
-            case PI_BAD_HANDLE:
-                return tl::unexpected(GpioError::BadHandle);
-            default:
-                return tl::unexpected(GpioError::UnknownError);
-        }
+    switch (res) {
+        case 0:
+            this->i2c_handle = -1;
+            return {};
+        case PI_BAD_HANDLE:
+            return tl::unexpected(GpioError::BadHandle);
+        default:
+            return tl::unexpected(GpioError::UnknownError);
     }
-    this->i2c_handle = -1;
-    return {};
 }
 
 auto suc_util::Pigpio::i2c_write_byte(uint8_t value) -> tl::expected<void, GpioError> {
@@ -74,19 +72,18 @@ auto suc_util::Pigpio::i2c_write_byte(uint8_t value) -> tl::expected<void, GpioE
         return tl::unexpected(GpioError::NoHandle);
     }
     auto res = ::i2c_write_byte(pi, this->i2c_handle, value);
-    if (res != 0) {
-        switch (res) {
-            case PI_BAD_HANDLE:
-                return tl::unexpected(GpioError::BadHandle);
-            case PI_BAD_PARAM:
-                return tl::unexpected(GpioError::BadParameter);
-            case PI_I2C_WRITE_FAILED:
-                return tl::unexpected(GpioError::I2cWriteFailed);
-            default:
-                return tl::unexpected(GpioError::UnknownError);
-        }
+    switch (res) {
+        case 0:
+            return {};
+        case PI_BAD_HANDLE:
+            return tl::unexpected(GpioError::BadHandle);
+        case PI_BAD_PARAM:
+            return tl::unexpected(GpioError::BadParameter);
+        case PI_I2C_WRITE_FAILED:
+            return tl::unexpected(GpioError::I2cWriteFailed);
+        default:
+            return tl::unexpected(GpioError::UnknownError);
     }
-    return {};
 }
 
 auto suc_util::Pigpio::i2c_read_byte() -> tl::expected<uint8_t, GpioError> {
@@ -94,17 +91,17 @@ auto suc_util::Pigpio::i2c_read_byte() -> tl::expected<uint8_t, GpioError> {
         return tl::unexpected(GpioError::NoHandle);
     }
     auto res = ::i2c_read_byte(pi, this->i2c_handle);
-    if (res < 0) {
-        switch (res) {
-            case PI_BAD_HANDLE:
-                return tl::unexpected(GpioError::BadHandle);
-            case PI_I2C_READ_FAILED:
-                return tl::unexpected(GpioError::I2cReadFailed);
-            default:
-                return tl::unexpected(GpioError::UnknownError);
-        }
+    if (res >= 0) {
+        return static_cast<uint8_t>(res);
     }
-    return static_cast<uint8_t>(res);
+    switch (res) {
+        case PI_BAD_HANDLE:
+            return tl::unexpected(GpioError::BadHandle);
+        case PI_I2C_READ_FAILED:
+            return tl::unexpected(GpioError::I2cReadFailed);
+        default:
+            return tl::unexpected(GpioError::UnknownError);
+    }
 }
 
 auto suc_util::Pigpio::i2c_write_byte_data(uint8_t reg, uint8_t value)
@@ -113,19 +110,18 @@ auto suc_util::Pigpio::i2c_write_byte_data(uint8_t reg, uint8_t value)
         return tl::unexpected(GpioError::NoHandle);
     }
     auto res = ::i2c_write_byte_data(pi, this->i2c_handle, reg, value);
-    if (res != 0) {
-        switch (res) {
-            case PI_BAD_HANDLE:
-                return tl::unexpected(GpioError::BadHandle);
-            case PI_BAD_PARAM:
-                return tl::unexpected(GpioError::BadParameter);
-            case PI_I2C_WRITE_FAILED:
-                return tl::unexpected(GpioError::I2cWriteFailed);
-            default:
-                return tl::unexpected(GpioError::UnknownError);
-        }
+    switch (res) {
+        case 0:
+            return {};
+        case PI_BAD_HANDLE:
+            return tl::unexpected(GpioError::BadHandle);
+        case PI_BAD_PARAM:
+            return tl::unexpected(GpioError::BadParameter);
+        case PI_I2C_WRITE_FAILED:
+            return tl::unexpected(GpioError::I2cWriteFailed);
+        default:
+            return tl::unexpected(GpioError::UnknownError);
     }
-    return {};
 }
 
 auto suc_util::Pigpio::i2c_read_byte_data(uint8_t reg) -> tl::expected<uint8_t, GpioError> {
@@ -133,17 +129,17 @@ auto suc_util::Pigpio::i2c_read_byte_data(uint8_t reg) -> tl::expected<uint8_t, 
         return tl::unexpected(GpioError::NoHandle);
     }
     auto res = ::i2c_read_byte_data(pi, this->i2c_handle, reg);
-    if (res < 0) {
-        switch (res) {
-            case PI_BAD_HANDLE:
-                return tl::unexpected(GpioError::BadHandle);
-            case PI_BAD_PARAM:
-                return tl::unexpected(GpioError::BadParameter);
-            case PI_I2C_READ_FAILED:
-                return tl::unexpected(GpioError::I2cReadFailed);
-            default:
-                return tl::unexpected(GpioError::UnknownError);
-        }
+    if (res >= 0) {
+        return static_cast<uint8_t>(res);
     }
-    return static_cast<uint8_t>(res);
+    switch (res) {
+        case PI_BAD_HANDLE:
+            return tl::unexpected(GpioError::BadHandle);
+        case PI_BAD_PARAM:
+            return tl::unexpected(GpioError::BadParameter);
+        case PI_I2C_READ_FAILED:
+            return tl::unexpected(GpioError::I2cReadFailed);
+        default:
+            return tl::unexpected(GpioError::UnknownError);
+    }
 }
