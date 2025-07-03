@@ -76,7 +76,7 @@ auto suchm::ImuModel::on_read()
             suc::state::imu::Orientation, suc::state::imu::Velocity, suc::state::imu::Temperature>,
         std::string> {
     // TODO: エラーを捕捉する
-    const auto orientation = read_orientation().value_or(state::imu::Orientation{});
+    const auto orientation = this->read_orientation().value_or(state::imu::Orientation{});
     const state::imu::Velocity velocity{0.0, 0.0, 0.0};
 
     // TODO: エラーを捕捉する
