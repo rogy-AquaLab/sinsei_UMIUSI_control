@@ -42,9 +42,11 @@ class ImuModel {
   public:
     ImuModel(std::unique_ptr<util::Gpio> gpio);
     auto begin() -> tl::expected<void, std::string>;
-    auto on_read()
-        -> std::tuple<
-            suc::state::imu::Orientation, suc::state::imu::Velocity, suc::state::imu::Temperature>;
+    auto on_read() -> tl::expected<
+                       std::tuple<
+                           suc::state::imu::Orientation, suc::state::imu::Velocity,
+                           suc::state::imu::Temperature>,
+                       std::string>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model

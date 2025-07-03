@@ -61,15 +61,17 @@ auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
 }
 
 auto suchm::ImuModel::on_read()
-    -> std::tuple<
-        suc::state::imu::Orientation, suc::state::imu::Velocity, suc::state::imu::Temperature> {
+    -> tl::expected<
+        std::tuple<
+            suc::state::imu::Orientation, suc::state::imu::Velocity, suc::state::imu::Temperature>,
+        std::string> {
     const auto orientation = read_orientation().value_or(state::imu::Orientation{});
     const state::imu::Velocity velocity{0.0, 0.0, 0.0};
 
     const auto temp_raw = this->gpio->i2c_read_byte_data(TEMP_ADDR);
     const suc::state::imu::Temperature temperature{static_cast<int8_t>(temp_raw.value_or(0))};
 
-    return {orientation, velocity, temperature};
+    return std::make_tuple(orientation, velocity, temperature);
 }
 
 auto suchm::ImuModel::read_orientation() -> tl::expected<state::imu::Orientation, std::string> {
