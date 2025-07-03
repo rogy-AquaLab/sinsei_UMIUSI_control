@@ -48,7 +48,7 @@ auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
     this->gpio->i2c_write_byte_data(PWR_MODE_ADDR, POWER_MODE_NORMAL);
     rclcpp::sleep_for(std::chrono::milliseconds(10));
 
-    this->gpio->i2c_write_byte_data(PAGE_ID_ADDR, 0);
+    this->gpio->i2c_write_byte_data(PAGE_ID_ADDR, 0x0);
 
     this->gpio->i2c_write_byte_data(SYS_TRIGGER_ADDR, 0x0);
     rclcpp::sleep_for(std::chrono::milliseconds(10));
