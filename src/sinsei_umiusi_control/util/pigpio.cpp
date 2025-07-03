@@ -16,6 +16,7 @@ suc_util::Pigpio::Pigpio(int pin_number) {
 suc_util::Pigpio::~Pigpio() { pigpio_stop(pi); }
 
 auto suc_util::Pigpio::write_digital(bool enabled) -> GpioResult {
+    // TODO: 返り値を`tl::expected<void, GpioError>`に変更する
     auto res = gpio_write(pi, this->pin_number, enabled ? 1 : 0);
     if (res == PI_BAD_GPIO || res == PI_BAD_LEVEL || res == PI_NOT_PERMITTED) {
         return GpioResult::Error;
