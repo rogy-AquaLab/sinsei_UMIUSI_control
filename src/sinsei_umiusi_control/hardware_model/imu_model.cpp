@@ -12,14 +12,17 @@ namespace suchm = suc::hardware_model;
 suchm::ImuModel::ImuModel(std::unique_ptr<suc::util::Gpio> gpio) : gpio(std::move(gpio)) {}
 
 auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
+    // TODO: エラーを捕捉する
     if (!this->gpio->i2c_open(ADDRESS)) {
         return tl::unexpected<std::string>("Failed to open I2C bus for BNO055");
     }
 
     // 正しいデバイスであることを確認
+    // TODO: エラーを捕捉する
     auto id_opt = this->gpio->i2c_read_byte_data(CHIP_ID_ADDR);
     if (!id_opt || id_opt.value() != ID) {
         rclcpp::sleep_for(std::chrono::milliseconds(1000));  // hold on for boot
+        // TODO: エラーを捕捉する
         auto id_opt = this->gpio->i2c_read_byte_data(CHIP_ID_ADDR);
         if (!id_opt || id_opt.value() != ID) {
             return tl::unexpected<std::string>("Failed to find BNO055 device");
@@ -27,14 +30,17 @@ auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
     }
 
     // コンフィグモードに移行（デフォルトでコンフィグモードだが念のため）
+    // TODO: エラーを捕捉する
     this->gpio->i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG);
 
     // リセット
+    // TODO: エラーを捕捉する
     this->gpio->i2c_write_byte_data(SYS_TRIGGER_ADDR, 0x20);
 
     rclcpp::sleep_for(std::chrono::milliseconds(30));
     int timeout_ms = 1000;
     constexpr int WAIT_INTERVAL_MS = 10;
+    // TODO: エラーを捕捉する
     while (this->gpio->i2c_read_byte_data(CHIP_ID_ADDR) != ID && timeout_ms > 0) {
         if (timeout_ms <= 0) {
             return tl::unexpected<std::string>("BNO055 reset timeout");
@@ -45,15 +51,19 @@ auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
     rclcpp::sleep_for(std::chrono::milliseconds(50));
 
     // ノーマルパワーモードに設定
+    // TODO: エラーを捕捉する
     this->gpio->i2c_write_byte_data(PWR_MODE_ADDR, POWER_MODE_NORMAL);
     rclcpp::sleep_for(std::chrono::milliseconds(10));
 
+    // TODO: エラーを捕捉する
     this->gpio->i2c_write_byte_data(PAGE_ID_ADDR, 0x0);
 
+    // TODO: エラーを捕捉する
     this->gpio->i2c_write_byte_data(SYS_TRIGGER_ADDR, 0x0);
     rclcpp::sleep_for(std::chrono::milliseconds(10));
 
     // NDOFモードに設定
+    // TODO: エラーを捕捉する
     this->gpio->i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_NDOF);
     rclcpp::sleep_for(std::chrono::milliseconds(20));
 
@@ -65,9 +75,11 @@ auto suchm::ImuModel::on_read()
         std::tuple<
             suc::state::imu::Orientation, suc::state::imu::Velocity, suc::state::imu::Temperature>,
         std::string> {
+    // TODO: エラーを捕捉する
     const auto orientation = read_orientation().value_or(state::imu::Orientation{});
     const state::imu::Velocity velocity{0.0, 0.0, 0.0};
 
+    // TODO: エラーを捕捉する
     const auto temp_raw = this->gpio->i2c_read_byte_data(TEMP_ADDR);
     const suc::state::imu::Temperature temperature{static_cast<int8_t>(temp_raw.value_or(0))};
 
@@ -80,6 +92,7 @@ auto suchm::ImuModel::read_orientation() -> tl::expected<state::imu::Orientation
     std::array<uint8_t, 6> buffer{};
 
     for (int i = 0; i < 6; ++i) {
+        // TODO: エラーを捕捉する
         auto byte_opt = this->gpio->i2c_read_byte_data(EULER_H_LSB_ADDR + i);
         if (!byte_opt) {
             return tl::unexpected<std::string>("Failed to read orientation data from BNO055");
