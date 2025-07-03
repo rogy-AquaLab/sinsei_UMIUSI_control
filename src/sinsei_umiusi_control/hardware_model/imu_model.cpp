@@ -73,23 +73,28 @@ auto suchm::ImuModel::on_read()
 }
 
 auto suchm::ImuModel::read_orientation() -> tl::expected<state::imu::Orientation, std::string> {
-    std::vector<uint8_t> data(6);
+    // ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.cpp#L401
+
+    std::array<uint8_t, 6> buffer{};
+
     for (int i = 0; i < 6; ++i) {
         auto byte_opt = this->gpio->i2c_read_byte_data(EULER_H_LSB_ADDR + i);
         if (!byte_opt) {
             return tl::unexpected<std::string>("Failed to read orientation data from BNO055");
         }
-        data[i] = byte_opt.value();
+        buffer[i] = byte_opt.value();
     }
 
-    int roll = (data[3] << 8) | data[2];
-    int pitch = (data[5] << 8) | data[4];
-    int heading = (data[1] << 8) | data[0];
+    const int16_t x = static_cast<int16_t>(
+        static_cast<int16_t>(buffer[0]) | (static_cast<int16_t>(buffer[1]) << 8));
+    const int16_t y = static_cast<int16_t>(
+        static_cast<int16_t>(buffer[2]) | (static_cast<int16_t>(buffer[3]) << 8));
+    const int16_t z = static_cast<int16_t>(
+        static_cast<int16_t>(buffer[4]) | (static_cast<int16_t>(buffer[5]) << 8));
 
     const state::imu::Orientation orientation{
-        static_cast<double>(roll) / 16.0,      // x
-        static_cast<double>(pitch) / 16.0,     // y
-        static_cast<double>(heading) / 16.0};  // z
+        static_cast<double>(x) / 16.0, static_cast<double>(y) / 16.0,
+        static_cast<double>(z) / 16.0};
 
     return orientation;
 }
