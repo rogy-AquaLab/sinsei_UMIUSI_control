@@ -6,7 +6,6 @@
 #include "hardware_interface/sensor_interface.hpp"
 #include "rclcpp/macros.hpp"
 #include "sinsei_umiusi_control/hardware_model/imu_model.hpp"
-#include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/util/pigpio.hpp"
 
 namespace sinsei_umiusi_control::hardware {
