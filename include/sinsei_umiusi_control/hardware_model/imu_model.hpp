@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <rclcpp/clock.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 #include "rcpputils/tl_expected/expected.hpp"
