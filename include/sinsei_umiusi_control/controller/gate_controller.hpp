@@ -20,8 +20,6 @@
 #include "std_msgs/msg/float64.hpp"
 #include "std_msgs/msg/int8.hpp"
 
-namespace suc = sinsei_umiusi_control;
-
 namespace sinsei_umiusi_control::controller {
 
 class GateController : public controller_interface::ControllerInterface {

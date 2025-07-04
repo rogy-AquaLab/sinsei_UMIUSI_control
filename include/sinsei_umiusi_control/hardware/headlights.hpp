@@ -2,12 +2,9 @@
 #define SINSEI_UMIUSI_CONTROL_HARDWARE_HEADLIGHTS_HPP
 
 #include <memory>
-#include <string>
-#include <vector>
 
 #include "hardware_interface/system_interface.hpp"
 #include "rclcpp/macros.hpp"
-#include "sinsei_umiusi_control/cmd/headlights.hpp"
 #include "sinsei_umiusi_control/hardware_model/headlights_model.hpp"
 #include "sinsei_umiusi_control/util/pigpio.hpp"
 

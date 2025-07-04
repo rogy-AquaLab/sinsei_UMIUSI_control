@@ -1,7 +1,5 @@
 #include "sinsei_umiusi_control/hardware/imu.hpp"
 
-#include <hardware_interface/sensor_interface.hpp>
-
 namespace suchw = sinsei_umiusi_control::hardware;
 namespace hif = hardware_interface;
 namespace rlc = rclcpp_lifecycle;

@@ -1,9 +1,5 @@
 #include "sinsei_umiusi_control/hardware/indicator_led.hpp"
 
-#include <memory>
-
-#include "sinsei_umiusi_control/util/pigpio.hpp"
-
 namespace suchw = sinsei_umiusi_control::hardware;
 namespace hif = hardware_interface;
 namespace rlc = rclcpp_lifecycle;
