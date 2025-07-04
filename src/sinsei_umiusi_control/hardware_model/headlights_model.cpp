@@ -1,9 +1,5 @@
 #include "sinsei_umiusi_control/hardware_model/headlights_model.hpp"
 
-#include <memory>
-
-#include "sinsei_umiusi_control/util/gpio.hpp"
-
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
