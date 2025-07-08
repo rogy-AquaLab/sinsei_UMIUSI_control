@@ -3,8 +3,6 @@
 #include <pigpio.h>
 #include <pigpiod_if2.h>
 
-#include "sinsei_umiusi_control/util/gpio.hpp"
-
 namespace suc_util = sinsei_umiusi_control::util;
 
 suc_util::Pigpio::Pigpio(int pin_number) {
