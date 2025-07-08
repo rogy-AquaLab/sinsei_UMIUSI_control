@@ -1,8 +1,18 @@
 #include "sinsei_umiusi_control/hardware/can.hpp"
 
+#include "sinsei_umiusi_control/util/pican.hpp"
+
 namespace suchw = sinsei_umiusi_control::hardware;
 namespace hif = hardware_interface;
 namespace rlc = rclcpp_lifecycle;
+
+auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
+    this->hif::SystemInterface::on_init(info);
+
+    this->model.emplace(std::make_unique<sinsei_umiusi_control::util::Pican>());
+
+    return hif::CallbackReturn::SUCCESS;
+}
 
 auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
     -> hif::return_type {
