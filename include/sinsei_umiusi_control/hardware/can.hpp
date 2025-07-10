@@ -9,7 +9,7 @@
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 #include "sinsei_umiusi_control/state/main_power.hpp"
-#include "sinsei_umiusi_control/util/pican.hpp"
+#include "sinsei_umiusi_control/util/linux_can.hpp"
 
 namespace sinsei_umiusi_control::hardware {
 

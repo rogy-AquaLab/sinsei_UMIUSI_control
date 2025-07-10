@@ -7,7 +7,7 @@ namespace rlc = rclcpp_lifecycle;
 auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
     this->hif::SystemInterface::on_init(info);
 
-    this->model.emplace(std::make_unique<sinsei_umiusi_control::util::Pican>());
+    this->model.emplace(std::make_unique<sinsei_umiusi_control::util::LinuxCan>());
 
     return hif::CallbackReturn::SUCCESS;
 }

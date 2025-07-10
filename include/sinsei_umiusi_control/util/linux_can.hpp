@@ -1,5 +1,5 @@
-#ifndef SINSEI_UMIUSI_CONTROL_UTIL_PICAN_HPP
-#define SINSEI_UMIUSI_CONTROL_UTIL_PICAN_HPP
+#ifndef SINSEI_UMIUSI_CONTROL_UTIL_LINUX_CAN_HPP
+#define SINSEI_UMIUSI_CONTROL_UTIL_LINUX_CAN_HPP
 
 #include <linux/can.h>
 
@@ -13,7 +13,7 @@ struct CanFrame {
     std::array<uint8_t, CAN_MAX_DLEN> data;
 };
 
-class Pican : public CanInterface {
+class LinuxCan : public CanInterface {
   private:
     int sock;
 
@@ -21,8 +21,8 @@ class Pican : public CanInterface {
         -> tl::expected<void, std::string>;
 
   public:
-    Pican();
-    ~Pican();
+    LinuxCan();
+    ~LinuxCan();
 
     auto init(const std::string ifname) -> tl::expected<void, std::string>;
     auto send_stdframe(uint32_t id, const uint8_t * data, size_t length)
@@ -34,4 +34,4 @@ class Pican : public CanInterface {
 
 }  // namespace sinsei_umiusi_control::util
 
-#endif  // SINSEI_UMIUSI_CONTROL_UTIL_PICAN_HPP
+#endif  // SINSEI_UMIUSI_CONTROL_UTIL_LINUX_CAN_HPP

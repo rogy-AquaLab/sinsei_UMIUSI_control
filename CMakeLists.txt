@@ -49,7 +49,7 @@ ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   # include/${PROJECT_NAME}/hardware_model/thruster_direct/servo_direct_model.hpp
 
   src/${PROJECT_NAME}/util/pigpio.cpp
-  src/${PROJECT_NAME}/util/pican.cpp
+  src/${PROJECT_NAME}/util/linux_can.cpp
 )
 
 find_library(PIGPIO_LIBRARY pigpiod_if2)

@@ -1,4 +1,4 @@
-#include "sinsei_umiusi_control/util/pican.hpp"
+#include "sinsei_umiusi_control/util/linux_can.hpp"
 
 #include <linux/can.h>
 #include <linux/can/raw.h>
@@ -12,15 +12,15 @@
 
 namespace suc_util = sinsei_umiusi_control::util;
 
-suc_util::Pican::Pican() : sock(-1) {}
+suc_util::LinuxCan::LinuxCan() : sock(-1) {}
 
-suc_util::Pican::~Pican() {
+suc_util::LinuxCan::~LinuxCan() {
     if (this->sock >= 0) {
         close(this->sock);
     }
 }
 
-auto suc_util::Pican::init(const std::string ifname) -> tl::expected<void, std::string> {
+auto suc_util::LinuxCan::init(const std::string ifname) -> tl::expected<void, std::string> {
     this->sock = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     if (this->sock < 0) {
         return tl::unexpected<std::string>(
@@ -55,8 +55,9 @@ auto suc_util::Pican::init(const std::string ifname) -> tl::expected<void, std::
     return {};
 }
 
-auto suc_util::Pican::send_frame(uint32_t id, const uint8_t * data, size_t length, bool is_extended)
-    -> tl::expected<void, std::string> {
+auto suc_util::LinuxCan::send_frame(
+    uint32_t id, const uint8_t * data, size_t length,
+    bool is_extended) -> tl::expected<void, std::string> {
     if (this->sock < 0) {
         return tl::unexpected<std::string>("CAN socket is not initialized");
     }
@@ -83,17 +84,17 @@ auto suc_util::Pican::send_frame(uint32_t id, const uint8_t * data, size_t lengt
     return {};
 }
 
-auto suc_util::Pican::send_stdframe(uint32_t id, const uint8_t * data, size_t length)
+auto suc_util::LinuxCan::send_stdframe(uint32_t id, const uint8_t * data, size_t length)
     -> tl::expected<void, std::string> {
     return send_frame(id, data, length, false);
 }
 
-auto suc_util::Pican::send_extframe(uint32_t id, const uint8_t * data, size_t length)
+auto suc_util::LinuxCan::send_extframe(uint32_t id, const uint8_t * data, size_t length)
     -> tl::expected<void, std::string> {
     return send_frame(id, data, length, true);
 }
 
-auto suc_util::Pican::receive_frame() -> tl::expected<void, std::string> {
+auto suc_util::LinuxCan::receive_frame() -> tl::expected<void, std::string> {
     if (this->sock < 0) {
         return tl::unexpected<std::string>("CAN socket is not initialized");
     }
