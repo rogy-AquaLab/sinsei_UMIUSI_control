@@ -162,3 +162,24 @@ jobs:
         uses: ros-tooling/action-ros-ci@v0.4
         with:
           target-ros2-distro: ${{ env.ROS_DISTRO }}
+          colcon-defaults: |
+            {
+              "build": {
+                "cmake-args": [
+                  "-DCMAKE_C_FLAGS='--coverage'",
+                  "-DCMAKE_CXX_FLAGS='--coverage'",
+                ],
+                "ament-cmake-args": [
+                  "-DAMENT_CMAKE_PYTEST_COVERAGE=ON"
+                ]
+              },
+              "test": {
+                "pytest-args": ["--cov-report-term"],
+                "pytest-with-coverage": true
+              }
+            }
+      - name: Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ros_ws/lcov/total_coverage.info,ros_ws/cveragepy/.coverage
+          name: codecov-sinsei_UMIUSI_control
