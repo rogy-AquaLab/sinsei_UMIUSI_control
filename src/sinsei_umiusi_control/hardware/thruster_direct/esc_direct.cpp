@@ -14,7 +14,7 @@ auto suchw::thruster_direct::EscDirect::write(
     return hif::return_type::OK;
 }
 
-#include "pluginlib/class_list_macros.hpp"
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(
     sinsei_umiusi_control::hardware::thruster_direct::EscDirect,
     hardware_interface::SystemInterface)
