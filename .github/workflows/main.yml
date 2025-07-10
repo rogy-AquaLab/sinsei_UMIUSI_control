@@ -67,6 +67,9 @@ jobs:
         with:
           target-ros2-distro: ${{ env.ROS_DISTRO }}
           skip-tests: true
+          extra-cmake-args: |
+            -DCMAKE_CXX_FLAGS='-coverage' \
+            -DCMAKE_C_FLAGS='-coverage'
 
       - name: Upload ROS C++ libraries
         uses: actions/upload-artifact@v4
@@ -162,17 +165,19 @@ jobs:
         uses: ros-tooling/action-ros-ci@v0.4
         with:
           target-ros2-distro: ${{ env.ROS_DISTRO }}
+          extra-cmake-args: |
+            -DCMAKE_CXX_FLAGS='-coverage' \
+            -DCMAKE_C_FLAGS='-coverage'
           colcon-defaults: |
             {
-              "build": {
-                "mixin": ["coverage-gcc", "coverage-pytest"]
-              },
               "test": {
                 "mixin": ["coverage-pytest"]
               }
             }
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/b8436aa16c0bdbc01081b12caa253cbf16e0fb82/index.yaml
-          coverage-ignore-pattern: "'/opt/ros/*' '/usr/*'"
+          coverage-result: false
+      - name: Colcon lcov results
+        run: colcon lcov-result --filter '/usr/*' '/opt/ros/*' --lcov-args --ignore-errors mismatch
       - name: Codecov
         uses: codecov/codecov-action@v5
         with:
