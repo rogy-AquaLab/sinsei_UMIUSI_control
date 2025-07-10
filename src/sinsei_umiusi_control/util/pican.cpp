@@ -12,6 +12,8 @@
 
 namespace suc_util = sinsei_umiusi_control::util;
 
+suc_util::Pican::Pican() : sock(-1) {}
+
 suc_util::Pican::~Pican() {
     if (this->sock >= 0) {
         close(this->sock);
