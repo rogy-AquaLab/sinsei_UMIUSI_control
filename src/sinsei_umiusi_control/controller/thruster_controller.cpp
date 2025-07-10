@@ -179,7 +179,7 @@ auto succ::ThrusterController::update_and_write_commands(
     return cif::return_type::OK;
 }
 
-#include "pluginlib/class_list_macros.hpp"
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(
     sinsei_umiusi_control::controller::ThrusterController,
     controller_interface::ChainableControllerInterface)

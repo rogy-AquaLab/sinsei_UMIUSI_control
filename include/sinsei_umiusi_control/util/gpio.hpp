@@ -2,9 +2,8 @@
 #define SINSEI_UMIUSI_CONTROL_UTIL_GPIO_HPP
 
 #include <cstdint>
+#include <rcpputils/tl_expected/expected.hpp>
 #include <string>
-
-#include "rcpputils/tl_expected/expected.hpp"
 
 namespace sinsei_umiusi_control::util {
 
