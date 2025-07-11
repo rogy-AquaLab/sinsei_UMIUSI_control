@@ -7,8 +7,13 @@ namespace rlc = rclcpp_lifecycle;
 auto suchw::IndicatorLed::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
     this->hif::SystemInterface::on_init(info);
 
+    auto led_pin = std::make_unique<sinsei_umiusi_control::util::Pigpio>();
+
     // FIXME: ピン番号はパラメーターなどで設定できるようにする
-    this->model.emplace(std::make_unique<sinsei_umiusi_control::util::Pigpio>(24));
+    this->model.emplace(std::move(led_pin), 24);
+
+    // TODO: エラー処理を追加
+    this->model->on_init();
 
     return hif::CallbackReturn::SUCCESS;
 }

@@ -5,17 +5,49 @@
 
 namespace suc_util = sinsei_umiusi_control::util;
 
-suc_util::Pigpio::Pigpio(int pin_number) {
-    this->pin_number = pin_number;
-    this->pi = pigpio_start(NULL, NULL);
-    set_mode(pi, pin_number, PI_OUTPUT);
-}
+suc_util::Pigpio::Pigpio() { this->pi = pigpio_start(NULL, NULL); }
 
 suc_util::Pigpio::~Pigpio() { pigpio_stop(pi); }
 
-auto suc_util::Pigpio::write_digital(bool enabled) -> GpioResult {
+auto suc_util::Pigpio::set_mode_output(std::vector<uint8_t> pins) -> tl::expected<void, GpioError> {
+    for (const auto & pin : pins) {
+        auto res = set_mode(this->pi, pin, PI_OUTPUT);
+        if (res == 0) {
+            continue;
+        }
+        switch (res) {
+            case PI_BAD_GPIO:
+                return tl::unexpected(GpioError::BadGpio);
+            case PI_NOT_PERMITTED:
+                return tl::unexpected(GpioError::NotPermitted);
+            default:
+                return tl::unexpected(GpioError::UnknownError);
+        }
+    }
+    return {};
+}
+
+auto suc_util::Pigpio::set_mode_input(std::vector<uint8_t> pins) -> tl::expected<void, GpioError> {
+    for (const auto & pin : pins) {
+        auto res = set_mode(this->pi, pin, PI_INPUT);
+        if (res == 0) {
+            continue;
+        }
+        switch (res) {
+            case PI_BAD_GPIO:
+                return tl::unexpected(GpioError::BadGpio);
+            case PI_NOT_PERMITTED:
+                return tl::unexpected(GpioError::NotPermitted);
+            default:
+                return tl::unexpected(GpioError::UnknownError);
+        }
+    }
+    return {};
+}
+
+auto suc_util::Pigpio::write_digital(uint8_t pin, bool enabled) -> GpioResult {
     // TODO: 返り値を`tl::expected<void, GpioError>`に変更する
-    auto res = gpio_write(pi, this->pin_number, enabled ? 1 : 0);
+    auto res = gpio_write(pi, pin, enabled ? 1 : 0);
     if (res == PI_BAD_GPIO || res == PI_BAD_LEVEL || res == PI_NOT_PERMITTED) {
         return GpioResult::Error;
     }

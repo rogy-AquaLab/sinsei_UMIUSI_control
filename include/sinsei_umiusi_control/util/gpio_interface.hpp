@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <rcpputils/tl_expected/expected.hpp>
-#include <string>
 
 namespace sinsei_umiusi_control::util {
 
@@ -35,8 +34,10 @@ class GpioInterface {
     GpioInterface() = default;
     virtual ~GpioInterface() = default;
 
+    virtual auto set_mode_output(std::vector<uint8_t> pins) -> tl::expected<void, GpioError> = 0;
+    virtual auto set_mode_input(std::vector<uint8_t> pins) -> tl::expected<void, GpioError> = 0;
     // TODO: GpioResultをtl::expected<void, GpioError>に置き換える
-    virtual auto write_digital(bool enabled) -> GpioResult = 0;
+    virtual auto write_digital(uint8_t pin, bool enabled) -> GpioResult = 0;
     virtual auto write_pwm() -> GpioResult = 0;
 
     virtual auto i2c_open(int address) -> tl::expected<void, GpioError> = 0;

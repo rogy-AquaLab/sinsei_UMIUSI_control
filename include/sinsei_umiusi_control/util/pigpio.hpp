@@ -1,7 +1,8 @@
 #ifndef SINSEI_UMIUSI_CONTROL_UTIL_PIGPIO_HPP
 #define SINSEI_UMIUSI_CONTROL_UTIL_PIGPIO_HPP
 
-#include <pigpiod_if2.h>
+#include <rcpputils/tl_expected/expected.hpp>
+#include <vector>
 
 #include "sinsei_umiusi_control/util/gpio_interface.hpp"
 
@@ -11,18 +12,19 @@ class Pigpio : public GpioInterface {
   private:
     int pi;
 
-    int pin_number;
-
     static constexpr int I2C_BUS = 1;
     int i2c_handle = -1;
     int i2c_address;
 
   public:
-    Pigpio(int pin_number);
+    // 失敗しうるので注意
+    Pigpio();
     ~Pigpio();
 
+    auto set_mode_output(std::vector<uint8_t> pins) -> tl::expected<void, GpioError> override;
+    auto set_mode_input(std::vector<uint8_t> pins) -> tl::expected<void, GpioError> override;
     // TODO: GpioResultをtl::expected<void, GpioError>に置き換える
-    auto write_digital(bool enabled) -> GpioResult override;
+    auto write_digital(uint8_t pin, bool enabled) -> GpioResult override;
     auto write_pwm() -> GpioResult override;
 
     auto i2c_open(int address) -> tl::expected<void, GpioError> override;

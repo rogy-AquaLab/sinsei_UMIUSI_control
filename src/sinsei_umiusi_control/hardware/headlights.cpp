@@ -1,5 +1,9 @@
 #include "sinsei_umiusi_control/hardware/headlights.hpp"
 
+#include <memory>
+
+#include "sinsei_umiusi_control/util/pigpio.hpp"
+
 namespace suchw = sinsei_umiusi_control::hardware;
 namespace hif = hardware_interface;
 namespace rlc = rclcpp_lifecycle;
@@ -7,12 +11,21 @@ namespace rlc = rclcpp_lifecycle;
 auto suchw::Headlights::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
     this->hif::SystemInterface::on_init(info);
 
+    auto gpio = std::make_unique<sinsei_umiusi_control::util::Pigpio>();
+    auto high_beam_pin = std::make_unique<sinsei_umiusi_control::util::Pigpio>();
+    auto low_beam_pin = std::make_unique<sinsei_umiusi_control::util::Pigpio>();
+    auto ir_pin = std::make_unique<sinsei_umiusi_control::util::Pigpio>();
+
     // FIXME: ピン番号はパラメーターなどで設定できるようにする
     this->model.emplace(
-        std::make_unique<sinsei_umiusi_control::util::Pigpio>(5),  // High Beam
-        std::make_unique<sinsei_umiusi_control::util::Pigpio>(6),  // Low Beam
-        std::make_unique<sinsei_umiusi_control::util::Pigpio>(25)  // IR
+        std::move(gpio),
+        5,  // High beam
+        6,  // Low beam
+        25  // IR
     );
+
+    // TODO: エラー処理を追加
+    this->model->on_init();
 
     return hif::CallbackReturn::SUCCESS;
 }

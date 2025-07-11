@@ -7,8 +7,8 @@ namespace rlc = rclcpp_lifecycle;
 auto suchw::Imu::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
     this->hif::SensorInterface::on_init(info);
 
-    // FIXME: Pigpioクラスの初期化にはピン番号が必要なため、適当な値を使用
-    this->model.emplace(std::make_unique<sinsei_umiusi_control::util::Pigpio>(999));
+    this->model.emplace(std::make_unique<sinsei_umiusi_control::util::Pigpio>());
+
     auto res = this->model->begin();
     if (!res) {
         RCLCPP_ERROR(this->get_logger(), "Failed to initialize IMU: %s", res.error().c_str());
