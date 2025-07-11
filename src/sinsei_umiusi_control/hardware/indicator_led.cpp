@@ -14,8 +14,11 @@ auto suchw::IndicatorLed::on_init(const hif::HardwareInfo & info) -> hif::Callba
     // FIXME: ピン番号はパラメーターなどで設定できるようにする
     this->model.emplace(std::move(led_pin), 24);
 
-    // TODO: エラー処理を追加
-    this->model->on_init();
+    auto res = this->model->on_init();
+    if (!res) {
+        RCLCPP_ERROR(
+            this->get_logger(), "Failed to initialize Indicator LED: %s", res.error().c_str());
+    }
 
     return hif::CallbackReturn::SUCCESS;
 }
@@ -31,7 +34,16 @@ auto suchw::IndicatorLed::write(const rclcpp::Time & /*time*/, const rclcpp::Dur
     double enabled_raw = get_command("indicator_led/enabled");
     auto enabled =
         *reinterpret_cast<sinsei_umiusi_control::cmd::indicator_led::Enabled *>(&enabled_raw);
-    if (this->model.has_value()) this->model->on_write(enabled);
+    if (!this->model.has_value()) {
+        RCLCPP_WARN(
+            this->get_logger(), "Indicator LED model is not initialized, skipping write operation");
+        return hif::return_type::OK;
+    }
+
+    auto res = this->model->on_write(enabled);
+    if (!res) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to write Indicator LED: %s", res.error().c_str());
+    }
 
     return hif::return_type::OK;
 }
