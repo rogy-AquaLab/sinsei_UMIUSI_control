@@ -19,17 +19,17 @@ namespace sinsei_umiusi_control::hardware_model {
 
 class CanModel {
   private:
-    std::shared_ptr<util::CanInterface> can_interface;
+    std::shared_ptr<util::CanInterface> can;
 
     util::ThrusterMode mode;
 
     // FIXME: IDは適当
     std::array<can::VescModel, 4> vesc_models = {
-        can::VescModel(can_interface, 0x01), can::VescModel(can_interface, 0x02),
-        can::VescModel(can_interface, 0x03), can::VescModel(can_interface, 0x04)};
+        can::VescModel(can, 0x01), can::VescModel(can, 0x02), can::VescModel(can, 0x03),
+        can::VescModel(can, 0x04)};
 
   public:
-    CanModel(std::shared_ptr<util::CanInterface> can_interface, util::ThrusterMode mode);
+    CanModel(std::shared_ptr<util::CanInterface> can, util::ThrusterMode mode);
     auto on_read()
         -> tl::expected<
             std::tuple<

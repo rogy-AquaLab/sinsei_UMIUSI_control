@@ -3,8 +3,8 @@
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
-suchm::can::VescModel::VescModel(std::shared_ptr<suc::util::CanInterface> can_interface, uint8_t id)
-: can_interface(std::move(can_interface)), id(id) {}
+suchm::can::VescModel::VescModel(std::shared_ptr<suc::util::CanInterface> can, uint8_t id)
+: can(std::move(can)), id(id) {}
 
 auto suchm::can::VescModel::encode_int32_be(int32_t value) -> std::array<uint8_t, 4> {
     return {
@@ -16,7 +16,7 @@ auto suchm::can::VescModel::send_command_packet(
     VescSimpleCommandID command_id,
     const std::array<uint8_t, 4> & data) -> tl::expected<void, std::string> {
     auto can_id = (static_cast<uint32_t>(command_id) & 0xFF) << 8 | (this->id & 0xFF);
-    return can_interface->send_extframe(can_id, data.data(), data.size());
+    return can->send_extframe(can_id, data.data(), data.size());
 }
 
 auto suchm::can::VescModel::set_duty(double duty) -> tl::expected<void, std::string> {

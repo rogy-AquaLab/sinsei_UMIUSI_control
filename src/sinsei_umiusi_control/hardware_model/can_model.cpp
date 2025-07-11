@@ -5,9 +5,8 @@
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
-suchm::CanModel::CanModel(
-    std::shared_ptr<suc::util::CanInterface> can_interface, util::ThrusterMode mode)
-: can_interface(std::move(can_interface)), mode(mode) {}
+suchm::CanModel::CanModel(std::shared_ptr<suc::util::CanInterface> can, util::ThrusterMode mode)
+: can(std::move(can)), mode(mode) {}
 
 auto suchm::CanModel::on_read()
     -> tl::expected<

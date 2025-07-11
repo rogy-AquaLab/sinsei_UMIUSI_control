@@ -40,7 +40,7 @@ enum class VescAdcChannel : uint8_t { ADC1, ADC2, ADC3 };
 
 class VescModel {
   private:
-    std::shared_ptr<util::CanInterface> can_interface;
+    std::shared_ptr<util::CanInterface> can;
 
     uint8_t id;
 
@@ -98,7 +98,7 @@ class VescModel {
     auto set_servo(double value) -> tl::expected<void, std::string>;  // lispBMにより実装。0 ~ 1.0
 
   public:
-    VescModel(std::shared_ptr<util::CanInterface> can_interface, uint8_t id);
+    VescModel(std::shared_ptr<util::CanInterface> can, uint8_t id);
 
     auto set_duty(double duty) -> tl::expected<void, std::string>;
     auto set_servo_angle(double angle) -> tl::expected<void, std::string>;
