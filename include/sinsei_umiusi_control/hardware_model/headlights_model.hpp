@@ -25,11 +25,12 @@ class HeadlightsModel {
         std::unique_ptr<util::GpioInterface> gpio, uint8_t high_beam_pin, uint8_t low_beam_pin,
         uint8_t ir_pin);
     auto on_init() -> tl::expected<void, std::string>;
-    auto on_read() -> void;
+    auto on_read() -> tl::expected<void, std::string>;
     auto on_write(
         sinsei_umiusi_control::cmd::headlights::HighBeamEnabled & high_beam_enabled,
         sinsei_umiusi_control::cmd::headlights::LowBeamEnabled & low_beam_enabled,
-        sinsei_umiusi_control::cmd::headlights::IrEnabled & ir_enabled) -> void;
+        sinsei_umiusi_control::cmd::headlights::IrEnabled & ir_enabled)
+        -> tl::expected<void, std::string>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model

@@ -23,9 +23,8 @@ class Pigpio : public GpioInterface {
 
     auto set_mode_output(std::vector<uint8_t> pins) -> tl::expected<void, GpioError> override;
     auto set_mode_input(std::vector<uint8_t> pins) -> tl::expected<void, GpioError> override;
-    // TODO: GpioResultをtl::expected<void, GpioError>に置き換える
-    auto write_digital(uint8_t pin, bool enabled) -> GpioResult override;
-    auto write_pwm() -> GpioResult override;
+    auto write_digital(uint8_t pin, bool enabled) -> tl::expected<void, GpioError> override;
+    auto write_pwm() -> tl::expected<void, GpioError> override;
 
     auto i2c_open(int address) -> tl::expected<void, GpioError> override;
     auto i2c_close() -> tl::expected<void, GpioError> override;

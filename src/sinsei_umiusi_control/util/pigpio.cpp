@@ -45,18 +45,26 @@ auto suc_util::Pigpio::set_mode_input(std::vector<uint8_t> pins) -> tl::expected
     return {};
 }
 
-auto suc_util::Pigpio::write_digital(uint8_t pin, bool enabled) -> GpioResult {
-    // TODO: 返り値を`tl::expected<void, GpioError>`に変更する
+auto suc_util::Pigpio::write_digital(uint8_t pin, bool enabled) -> tl::expected<void, GpioError> {
     auto res = gpio_write(pi, pin, enabled ? 1 : 0);
-    if (res == PI_BAD_GPIO || res == PI_BAD_LEVEL || res == PI_NOT_PERMITTED) {
-        return GpioResult::Error;
+    if (res == 0) {
+        return {};
     }
-    return GpioResult::Success;
+    switch (res) {
+        case PI_BAD_GPIO:
+            return tl::unexpected(GpioError::BadGpio);
+        case PI_BAD_LEVEL:
+            return tl::unexpected(GpioError::BadLevel);
+        case PI_NOT_PERMITTED:
+            return tl::unexpected(GpioError::NotPermitted);
+        default:
+            return tl::unexpected(GpioError::UnknownError);
+    }
 }
 
-auto suc_util::Pigpio::write_pwm() -> GpioResult {
+auto suc_util::Pigpio::write_pwm() -> tl::expected<void, GpioError> {
     // TODO: PWMの処理を実装する
-    return GpioResult::Error;
+    return tl::unexpected(GpioError::UnknownError);
 }
 
 auto suc_util::Pigpio::i2c_open(int address) -> tl::expected<void, GpioError> {

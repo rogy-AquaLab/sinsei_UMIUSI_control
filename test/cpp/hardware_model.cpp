@@ -33,12 +33,8 @@ class Gpio : public sinsei_umiusi_control::util::GpioInterface {
     MOCK_METHOD1(
         set_mode_output, tl::expected<void, sucutil::GpioError>(std::vector<uint8_t> pins));
     MOCK_METHOD1(set_mode_input, tl::expected<void, sucutil::GpioError>(std::vector<uint8_t> pins));
-    MOCK_METHOD2(
-        write_digital,
-        sucutil::GpioResult(
-            uint8_t pin,
-            bool enabled));  // TODO: GpioResultをtl::expected<void, GpioError>に置き換える
-    MOCK_METHOD0(write_pwm, sucutil::GpioResult());  // TODO: 未実装
+    MOCK_METHOD2(write_digital, tl::expected<void, sucutil::GpioError>(uint8_t pin, bool enabled));
+    MOCK_METHOD0(write_pwm, tl::expected<void, sucutil::GpioError>());  // TODO: 未実装
     MOCK_METHOD1(i2c_open, tl::expected<void, sucutil::GpioError>(int address));
     MOCK_METHOD0(i2c_close, tl::expected<void, sucutil::GpioError>());
     MOCK_METHOD1(i2c_write_byte, tl::expected<void, sucutil::GpioError>(uint8_t value));

@@ -21,8 +21,9 @@ class IndicatorLedModel {
   public:
     IndicatorLedModel(std::unique_ptr<util::GpioInterface> gpio, uint8_t led_pin);
     auto on_init() -> tl::expected<void, std::string>;
-    auto on_read() -> void;
-    auto on_write(sinsei_umiusi_control::cmd::indicator_led::Enabled & enabled) -> void;
+    auto on_read() -> tl::expected<void, std::string>;
+    auto on_write(sinsei_umiusi_control::cmd::indicator_led::Enabled & enabled)
+        -> tl::expected<void, std::string>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model
