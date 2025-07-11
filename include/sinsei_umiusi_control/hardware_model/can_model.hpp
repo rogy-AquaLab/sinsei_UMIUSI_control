@@ -9,7 +9,6 @@
 #include "sinsei_umiusi_control/state/main_power.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/can_interface.hpp"
-#include "sinsei_umiusi_control/util/gpio.hpp"
 
 namespace suc = sinsei_umiusi_control;
 
