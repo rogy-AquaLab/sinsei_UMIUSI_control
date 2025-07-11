@@ -9,8 +9,6 @@
 #include "sinsei_umiusi_control/cmd/indicator_led.hpp"
 #include "sinsei_umiusi_control/util/gpio_interface.hpp"
 
-namespace suc = sinsei_umiusi_control;
-
 namespace sinsei_umiusi_control::hardware_model {
 
 class IndicatorLedModel {

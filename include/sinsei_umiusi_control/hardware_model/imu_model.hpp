@@ -9,8 +9,6 @@
 #include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/util/gpio_interface.hpp"
 
-namespace suc = sinsei_umiusi_control;
-
 namespace sinsei_umiusi_control::hardware_model {
 
 class ImuModel {
@@ -43,8 +41,9 @@ class ImuModel {
     auto begin() -> tl::expected<void, std::string>;
     auto on_read() -> tl::expected<
                        std::tuple<
-                           suc::state::imu::Orientation, suc::state::imu::Velocity,
-                           suc::state::imu::Temperature>,
+                           sinsei_umiusi_control::state::imu::Orientation,
+                           sinsei_umiusi_control::state::imu::Velocity,
+                           sinsei_umiusi_control::state::imu::Temperature>,
                        std::string>;
 };
 
