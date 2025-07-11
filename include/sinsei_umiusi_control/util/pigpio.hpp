@@ -3,11 +3,11 @@
 
 #include <pigpiod_if2.h>
 
-#include "sinsei_umiusi_control/util/gpio.hpp"
+#include "sinsei_umiusi_control/util/gpio_interface.hpp"
 
 namespace sinsei_umiusi_control::util {
 
-class Pigpio : public Gpio {
+class Pigpio : public GpioInterface {
   private:
     int pi;
 

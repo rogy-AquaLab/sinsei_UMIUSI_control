@@ -30,10 +30,10 @@ enum class GpioResult {
     Error,
 };
 
-class Gpio {
+class GpioInterface {
   public:
-    Gpio() = default;
-    virtual ~Gpio() = default;
+    GpioInterface() = default;
+    virtual ~GpioInterface() = default;
 
     // TODO: GpioResultをtl::expected<void, GpioError>に置き換える
     virtual auto write_digital(bool enabled) -> GpioResult = 0;

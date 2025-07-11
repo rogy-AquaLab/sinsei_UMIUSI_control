@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "sinsei_umiusi_control/cmd/headlights.hpp"
-#include "sinsei_umiusi_control/util/gpio.hpp"
+#include "sinsei_umiusi_control/util/gpio_interface.hpp"
 
 namespace suc = sinsei_umiusi_control;
 
@@ -12,14 +12,15 @@ namespace sinsei_umiusi_control::hardware_model {
 
 class HeadlightsModel {
   private:
-    std::unique_ptr<util::Gpio> high_beam_gpio;
-    std::unique_ptr<util::Gpio> low_beam_gpio;
-    std::unique_ptr<util::Gpio> ir_gpio;
+    std::unique_ptr<util::GpioInterface> high_beam_gpio;
+    std::unique_ptr<util::GpioInterface> low_beam_gpio;
+    std::unique_ptr<util::GpioInterface> ir_gpio;
 
   public:
     HeadlightsModel(
-        std::unique_ptr<util::Gpio> high_beam_gpio, std::unique_ptr<util::Gpio> low_beam_gpio,
-        std::unique_ptr<util::Gpio> ir_gpio);
+        std::unique_ptr<util::GpioInterface> high_beam_gpio,
+        std::unique_ptr<util::GpioInterface> low_beam_gpio,
+        std::unique_ptr<util::GpioInterface> ir_gpio);
     auto on_read() -> void;
     auto on_write(
         sinsei_umiusi_control::cmd::headlights::HighBeamEnabled & high_beam_enabled,

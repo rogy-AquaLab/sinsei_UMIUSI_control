@@ -13,7 +13,7 @@
 #include "sinsei_umiusi_control/hardware_model/imu_model.hpp"
 #include "sinsei_umiusi_control/hardware_model/indicator_led_model.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
-#include "sinsei_umiusi_control/util/gpio.hpp"
+#include "sinsei_umiusi_control/util/gpio_interface.hpp"
 
 namespace suchm = sinsei_umiusi_control::hardware_model;
 namespace succmd = sinsei_umiusi_control::cmd;
@@ -27,7 +27,7 @@ namespace sinsei_umiusi_control::test::hardware_model {
 
 namespace mock {
 
-class Gpio : public sinsei_umiusi_control::util::Gpio {
+class Gpio : public sinsei_umiusi_control::util::GpioInterface {
   public:
     MOCK_METHOD1(
         write_digital,
