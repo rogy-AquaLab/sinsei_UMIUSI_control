@@ -184,6 +184,8 @@ jobs:
 
       - run: colcon lcov-result --build-base ros_ws/build --filter '/usr/*' '/opt/ros/*' --lcov-args --ignore-errors mismatch
 
+      - run: colcon coveragepy-result --build-base ros_ws/build
+
       - name: Codecov
         uses: codecov/codecov-action@v5
         with:
