@@ -4,8 +4,9 @@ namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
 suchm::HeadlightsModel::HeadlightsModel(
-    std::unique_ptr<suc::util::Gpio> high_beam_gpio, std::unique_ptr<suc::util::Gpio> low_beam_gpio,
-    std::unique_ptr<suc::util::Gpio> ir_gpio)
+    std::unique_ptr<suc::util::GpioInterface> high_beam_gpio,
+    std::unique_ptr<suc::util::GpioInterface> low_beam_gpio,
+    std::unique_ptr<suc::util::GpioInterface> ir_gpio)
 : high_beam_gpio(std::move(high_beam_gpio)),
   low_beam_gpio(std::move(low_beam_gpio)),
   ir_gpio(std::move(ir_gpio)) {}
