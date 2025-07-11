@@ -161,6 +161,8 @@ jobs:
           name: colcon-build-results-build
           path: build
 
+      - run: colcon lcov-result --initial
+
       - name: Colcon Test
         uses: ros-tooling/action-ros-ci@v0.4
         with:
@@ -176,8 +178,9 @@ jobs:
             }
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/b8436aa16c0bdbc01081b12caa253cbf16e0fb82/index.yaml
           coverage-result: false
-      - name: Colcon lcov results
-        run: colcon lcov-result --filter '/usr/*' '/opt/ros/*' --lcov-args --ignore-errors mismatch
+
+      - run: colcon lcov-result --filter '/usr/*' '/opt/ros/*' --lcov-args --ignore-errors mismatch
+
       - name: Codecov
         uses: codecov/codecov-action@v5
         with:
