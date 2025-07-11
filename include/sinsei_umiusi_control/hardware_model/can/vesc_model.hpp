@@ -95,11 +95,12 @@ class VescModel {
     auto send_command_packet(VescSimpleCommandID command_id, const std::array<uint8_t, 4> & data)
         -> tl::expected<void, std::string>;
 
+    auto set_servo(double value) -> tl::expected<void, std::string>;  // lispBMにより実装。0 ~ 1.0
+
   public:
     VescModel(std::shared_ptr<util::CanInterface> can_interface, uint8_t id);
 
     auto set_duty(double duty) -> tl::expected<void, std::string>;
-    auto set_servo(double value) -> tl::expected<void, std::string>;  // lispBMにより実装。0 ~ 1.0
     auto set_servo_angle(double angle) -> tl::expected<void, std::string>;
 
     // TODO: get系の関数も必要なもの以外削除する
