@@ -11,6 +11,7 @@
 #include "sinsei_umiusi_control/state/main_power.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/can_interface.hpp"
+#include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 namespace suc = sinsei_umiusi_control;
 
@@ -20,13 +21,15 @@ class CanModel {
   private:
     std::shared_ptr<util::CanInterface> can_interface;
 
+    util::ThrusterMode mode;
+
     // FIXME: IDは適当
     std::array<can::VescModel, 4> vesc_models = {
         can::VescModel(can_interface, 0x01), can::VescModel(can_interface, 0x02),
         can::VescModel(can_interface, 0x03), can::VescModel(can_interface, 0x04)};
 
   public:
-    CanModel(std::shared_ptr<util::CanInterface> can_interface);
+    CanModel(std::shared_ptr<util::CanInterface> can_interface, util::ThrusterMode mode);
     auto on_read()
         -> tl::expected<
             std::tuple<
@@ -40,6 +43,10 @@ class CanModel {
         std::array<suc::cmd::thruster::ServoEnabled, 4> thruster_servo_enabled,
         std::array<suc::cmd::thruster::Angle, 4> thruster_angle,
         std::array<suc::cmd::thruster::Thrust, 4> thruster_thrust,
+        suc::cmd::main_power::Enabled main_power_enabled,
+        suc::cmd::led_tape::Color led_tape_color) -> tl::expected<void, std::string>;
+
+    auto on_write(
         suc::cmd::main_power::Enabled main_power_enabled,
         suc::cmd::led_tape::Color led_tape_color) -> tl::expected<void, std::string>;
 };

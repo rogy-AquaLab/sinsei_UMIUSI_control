@@ -1,10 +1,13 @@
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 
+#include "sinsei_umiusi_control/util/thruster_mode.hpp"
+
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
-suchm::CanModel::CanModel(std::shared_ptr<suc::util::CanInterface> can_interface)
-: can_interface(std::move(can_interface)) {}
+suchm::CanModel::CanModel(
+    std::shared_ptr<suc::util::CanInterface> can_interface, util::ThrusterMode mode)
+: can_interface(std::move(can_interface)), mode(mode) {}
 
 auto suchm::CanModel::on_read()
     -> tl::expected<
@@ -39,5 +42,13 @@ auto suchm::CanModel::on_write(
         }
     }
 
-    return {};
+    auto write_res = this->on_write(main_power_enabled, led_tape_color);
+    return write_res;
+}
+
+auto suchm::CanModel::on_write(
+    suc::cmd::main_power::Enabled main_power_enabled,
+    suc::cmd::led_tape::Color led_tape_color) -> tl::expected<void, std::string> {
+    // Implement the logic for writing main power and LED tape commands
+    return tl::make_unexpected("Not implemented");
 }

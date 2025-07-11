@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
-  <xacro:macro name="can" params="with_thruster">
+  <xacro:macro name="can" params="thruster_mode">
     <ros2_control name="can" type="system">
       <hardware>
         <plugin>sinsei_umiusi_control/hardware/Can</plugin>
+        <param name="thruster_mode">${thruster_mode}</param>
       </hardware>
 
       <xacro:macro name="thruster" params="id">
@@ -22,7 +23,7 @@
         </gpio>
       </xacro:macro>
 
-      <xacro:if value="${with_thruster}">
+      <xacro:if value="${thruster_mode == 'can'}">
         <xacro:thruster id="1" />
         <xacro:thruster id="2" />
         <xacro:thruster id="3" />

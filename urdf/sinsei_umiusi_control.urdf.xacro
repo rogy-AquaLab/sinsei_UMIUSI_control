@@ -10,11 +10,8 @@
 
   <link name="base_link"></link>
 
-  <xacro:if value="${$(arg thruster_mode) == 'can'}">
-    <xacro:can with_thruster="true" />
-  </xacro:if>
+  <xacro:can thruster_mode="$(arg thruster_mode)" />
   <xacro:if value="${$(arg thruster_mode) == 'direct'}">
-    <xacro:can with_thruster="false" />
     <xacro:thruster_direct />
   </xacro:if>
   <xacro:indicator_led />

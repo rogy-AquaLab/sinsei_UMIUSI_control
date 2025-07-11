@@ -9,15 +9,11 @@
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
 #include "sinsei_umiusi_control/interface_access_helper.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
+#include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 namespace suc = sinsei_umiusi_control;
 
 namespace sinsei_umiusi_control::controller {
-
-enum class ThrusterMode {
-    Can,
-    Direct,
-};
 
 class ThrusterController : public controller_interface::ChainableControllerInterface {
   private:
@@ -62,7 +58,7 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     // Thruster ID (1~4)
     uint8_t id;
 
-    ThrusterMode mode;
+    util::ThrusterMode mode;
 
   public:
     ThrusterController() = default;

@@ -17,6 +17,8 @@ class Can : public hardware_interface::SystemInterface {
   private:
     std::optional<hardware_model::CanModel> model;
 
+    util::ThrusterMode thruster_mode;
+
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(Can)
 
