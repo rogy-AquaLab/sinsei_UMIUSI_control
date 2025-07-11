@@ -28,7 +28,7 @@ auto suchm::CanModel::on_write(
     // 試験的に`thruster_angle`だけ実装
     for (size_t i = 0; i < 4; ++i) {
         auto angle = thruster_angle[i].value;
-        if (angle < -180 || angle > 180) {
+        if (angle > 180) {
             return tl::make_unexpected("Invalid angle value for thruster " + std::to_string(i + 1));
         }
         auto res = this->vesc_models[i].set_servo_angle(angle);
