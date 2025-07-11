@@ -1,6 +1,7 @@
 #ifndef SINSEI_UMIUSI_CONTROL_hardware_model_HEADLIGHTS_MODEL_HPP
 #define SINSEI_UMIUSI_CONTROL_hardware_model_HEADLIGHTS_MODEL_HPP
 
+#include <cstdint>
 #include <memory>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>

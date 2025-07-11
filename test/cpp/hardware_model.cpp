@@ -12,7 +12,6 @@
 #include "sinsei_umiusi_control/hardware_model/headlights_model.hpp"
 #include "sinsei_umiusi_control/hardware_model/imu_model.hpp"
 #include "sinsei_umiusi_control/hardware_model/indicator_led_model.hpp"
-#include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/util/gpio_interface.hpp"
 
 namespace suchm = sinsei_umiusi_control::hardware_model;

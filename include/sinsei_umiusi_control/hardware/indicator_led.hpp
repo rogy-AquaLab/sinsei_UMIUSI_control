@@ -2,11 +2,9 @@
 #define SINSEI_UMIUSI_CONTROL_HARDWARE_INDICATOR_LED_HPP
 
 #include <hardware_interface/system_interface.hpp>
-#include <memory>
 #include <rclcpp/macros.hpp>
 
 #include "sinsei_umiusi_control/hardware_model/indicator_led_model.hpp"
-#include "sinsei_umiusi_control/util/pigpio.hpp"
 
 namespace sinsei_umiusi_control::hardware {
 

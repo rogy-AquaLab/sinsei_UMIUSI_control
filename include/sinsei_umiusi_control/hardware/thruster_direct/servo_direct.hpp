@@ -2,10 +2,7 @@
 #define SINSEI_UMIUSI_CONTROL_HARDWARE_THRUSTER_DIRECT_SERVO_DIRECT_HPP
 
 #include <hardware_interface/system_interface.hpp>
-#include <memory>
 #include <rclcpp/macros.hpp>
-
-#include "sinsei_umiusi_control/cmd/thruster.hpp"
 
 namespace sinsei_umiusi_control::hardware::thruster_direct {
 

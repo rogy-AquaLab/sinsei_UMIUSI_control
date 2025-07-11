@@ -1,6 +1,7 @@
-#include <cstdint>
 #ifndef SINSEI_UMIUSI_CONTROL_STATE_IMU_HPP
 #define SINSEI_UMIUSI_CONTROL_STATE_IMU_HPP
+
+#include <cstdint>
 
 namespace sinsei_umiusi_control::state::imu {
 
