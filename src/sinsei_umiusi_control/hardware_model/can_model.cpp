@@ -16,13 +16,13 @@ auto suchm::CanModel::on_read()
             suc::state::main_power::BatteryVoltage, suc::state::main_power::Temperature,
             suc::state::main_power::WaterLeaked>,
         std::string> {
-    // Implement the reading logic here
-    return tl::make_unexpected("Not implemented");
+    // TODO: 中身を実装する
+    return {};
 }
 
 auto suchm::CanModel::on_write(
-    std::array<suc::cmd::thruster::EscEnabled, 4> thruster_esc_enabled,
-    std::array<suc::cmd::thruster::ServoEnabled, 4> thruster_servo_enabled,
+    std::array<suc::cmd::thruster::EscEnabled, 4> /*thruster_esc_enabled*/,
+    std::array<suc::cmd::thruster::ServoEnabled, 4> /*thruster_servo_enabled*/,
     std::array<suc::cmd::thruster::Angle, 4> thruster_angle,
     std::array<suc::cmd::thruster::Thrust, 4> thruster_thrust,
     suc::cmd::main_power::Enabled main_power_enabled,
@@ -59,8 +59,9 @@ auto suchm::CanModel::on_write(
 }
 
 auto suchm::CanModel::on_write(
-    suc::cmd::main_power::Enabled main_power_enabled,
-    suc::cmd::led_tape::Color led_tape_color) -> tl::expected<void, std::string> {
-    // Implement the logic for writing main power and LED tape commands
-    return tl::make_unexpected("Not implemented");
+    suc::cmd::main_power::Enabled /*main_power_enabled*/,
+    suc::cmd::led_tape::Color /*led_tape_color*/) -> tl::expected<void, std::string> {
+    // TODO: `main_power_enabled`と`led_tape_color`の処理を実装する
+    //return tl::make_unexpected("Not implemented");
+    return {};
 }
