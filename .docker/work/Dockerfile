@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y \
     git \
     clangd-18 \
     clang-format-18 \
-    clang-tidy-18
+    clang-tidy-18 \
+    python3-colcon-lcov-result
 
 # Install can-utils
 RUN apt-get install -y can-utils
