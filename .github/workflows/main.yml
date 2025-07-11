@@ -169,5 +169,6 @@ jobs:
       - name: Codecov
         uses: codecov/codecov-action@v5
         with:
-          files: ros_ws/lcov/total_coverage.info,ros_ws/coveragepy/.coverage
+          files: ros_ws/lcov/total_coverage.info
           name: Coverage of sinsei_UMIUSI_control
+          token: ${{ secrets.CODECOV_TOKEN }}
