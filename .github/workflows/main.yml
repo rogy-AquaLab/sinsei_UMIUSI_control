@@ -164,7 +164,7 @@ jobs:
           name: colcon-build-results-build
           path: ros_ws/build
 
-      - run: colcon lcov-result --build-base ros_ws/build --initial
+      - run: colcon lcov-result --build-base ros_ws/build --initial --lcov-args --ignore-errors mismatch
 
       - name: Colcon Test
         uses: ros-tooling/action-ros-ci@v0.4
