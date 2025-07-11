@@ -1,7 +1,5 @@
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 
-#include "sinsei_umiusi_control/util/can_interface.hpp"
-
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
