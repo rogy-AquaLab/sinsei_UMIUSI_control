@@ -27,17 +27,30 @@ auto suchm::CanModel::on_write(
     std::array<suc::cmd::thruster::Thrust, 4> thruster_thrust,
     suc::cmd::main_power::Enabled main_power_enabled,
     suc::cmd::led_tape::Color led_tape_color) -> tl::expected<void, std::string> {
-    // 試験的に`thruster_angle`だけ実装
     for (size_t i = 0; i < 4; ++i) {
+        // TODO: `thruster_esc_enabled`と`thruster_servo_enabled`の処理を実装する
+
+        auto thrust = thruster_thrust[i].value;
+        if (thrust < 0 || thrust > 1.0) {
+            return tl::make_unexpected(
+                "Invalid thrust value for thruster " + std::to_string(i + 1));
+        }
+        auto thrust_res = this->vesc_models[i].set_duty(thrust);
+        if (!thrust_res) {
+            return tl::make_unexpected(
+                "Failed to set thrust for thruster " + std::to_string(i + 1) + ": " +
+                thrust_res.error());
+        }
+
         auto angle = thruster_angle[i].value;
         if (angle > 180) {
             return tl::make_unexpected("Invalid angle value for thruster " + std::to_string(i + 1));
         }
-        auto res = this->vesc_models[i].set_servo_angle(angle);
-        if (!res) {
+        auto angle_res = this->vesc_models[i].set_servo_angle(angle);
+        if (!angle_res) {
             return tl::make_unexpected(
                 "Failed to set servo angle for thruster " + std::to_string(i + 1) + ": " +
-                res.error());
+                angle_res.error());
         }
     }
 
