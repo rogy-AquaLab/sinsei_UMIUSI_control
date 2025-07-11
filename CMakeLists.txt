@@ -72,7 +72,8 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
-  ament_add_pytest_test(pytest test)
+  ament_add_pytest_test(pytest test/python)
+  ament_auto_add_gmock(test_hardware_model test/cpp/hardware_model.cpp)
 endif()
 
 ament_auto_package(

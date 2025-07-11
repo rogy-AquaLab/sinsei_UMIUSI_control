@@ -157,7 +157,7 @@ auto succ::AppController::compute_outputs() -> void {
     }
 }
 
-#include "pluginlib/class_list_macros.hpp"
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(
     sinsei_umiusi_control::controller::AppController,
     controller_interface::ChainableControllerInterface)

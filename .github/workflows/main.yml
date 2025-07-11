@@ -75,7 +75,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ros-cpp-libraries
-          path: /opt/ros/${{ env.ROS_DISTRO }}/include
+          path: |
+            /opt/ros/${{ env.ROS_DISTRO }}/include
+            /opt/ros/${{ env.ROS_DISTRO }}/src
 
       - name: Upload Build results (`build` directory)
         uses: actions/upload-artifact@v4
@@ -104,7 +106,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ros-cpp-libraries
-          path: /opt/ros/${{ env.ROS_DISTRO }}/include
+          path: /opt/ros/${{ env.ROS_DISTRO }}
+          merge-multiple: true
 
       - name: Download Colcon Build results (`build` directory)
         uses: actions/download-artifact@v4
@@ -159,7 +162,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: colcon-build-results-build
-          path: build
+          path: ros_ws/build
 
       - run: colcon lcov-result --initial
 
