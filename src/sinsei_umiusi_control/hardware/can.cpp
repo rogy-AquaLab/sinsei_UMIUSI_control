@@ -38,22 +38,14 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
     auto [servo_current, rpm, battery_current, battery_voltage, temperature, water_leaked] =
         res.value();
     if (this->thruster_mode == util::ThrusterMode::Can) {
-        this->set_state(
-            "thruster1/servo/servo_current_raw",
-            *reinterpret_cast<const double *>(&servo_current[0]));
-        this->set_state(
-            "thruster2/servo/servo_current_raw",
-            *reinterpret_cast<const double *>(&servo_current[1]));
-        this->set_state(
-            "thruster3/servo/servo_current_raw",
-            *reinterpret_cast<const double *>(&servo_current[2]));
-        this->set_state(
-            "thruster4/servo/servo_current_raw",
-            *reinterpret_cast<const double *>(&servo_current[3]));
-        this->set_state("thruster1/esc/rpm_raw", *reinterpret_cast<const double *>(&rpm[0]));
-        this->set_state("thruster2/esc/rpm_raw", *reinterpret_cast<const double *>(&rpm[1]));
-        this->set_state("thruster3/esc/rpm_raw", *reinterpret_cast<const double *>(&rpm[2]));
-        this->set_state("thruster4/esc/rpm_raw", *reinterpret_cast<const double *>(&rpm[3]));
+        for (size_t i = 0; i < 4; ++i) {
+            auto thruster_name = "thruster" + std::to_string(i + 1);
+            this->set_state(
+                thruster_name + "/servo/servo_current_raw",
+                *reinterpret_cast<const double *>(&servo_current[i]));
+            this->set_state(
+                thruster_name + "/esc/rpm_raw", *reinterpret_cast<const double *>(&rpm[i]));
+        }
     }
     this->set_state(
         "main_power/battery_current", *reinterpret_cast<const double *>(&battery_current));
@@ -83,51 +75,28 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
         return hif::return_type::OK;
     }
 
-    auto thruster1_esc_enabled_raw = this->get_command("thruster1/esc/enabled_raw");
-    auto thruster2_esc_enabled_raw = this->get_command("thruster2/esc/enabled_raw");
-    auto thruster3_esc_enabled_raw = this->get_command("thruster3/esc/enabled_raw");
-    auto thruster4_esc_enabled_raw = this->get_command("thruster4/esc/enabled_raw");
-    auto thruster1_servo_enabled_raw = this->get_command("thruster1/servo/enabled_raw");
-    auto thruster2_servo_enabled_raw = this->get_command("thruster2/servo/enabled_raw");
-    auto thruster3_servo_enabled_raw = this->get_command("thruster3/servo/enabled_raw");
-    auto thruster4_servo_enabled_raw = this->get_command("thruster4/servo/enabled_raw");
-    auto thruster1_angle_raw = this->get_command("thruster1/servo/angle_raw");
-    auto thruster2_angle_raw = this->get_command("thruster2/servo/angle_raw");
-    auto thruster3_angle_raw = this->get_command("thruster3/servo/angle_raw");
-    auto thruster4_angle_raw = this->get_command("thruster4/servo/angle_raw");
-    auto thruster1_thrust_raw = this->get_command("thruster1/esc/thrust_raw");
-    auto thruster2_thrust_raw = this->get_command("thruster2/esc/thrust_raw");
-    auto thruster3_thrust_raw = this->get_command("thruster3/esc/thrust_raw");
-    auto thruster4_thrust_raw = this->get_command("thruster4/esc/thrust_raw");
+    std::array<suc::cmd::thruster::EscEnabled, 4> thruster_esc_enabled_cmd;
+    std::array<suc::cmd::thruster::ServoEnabled, 4> thruster_servo_enabled_cmd;
+    std::array<suc::cmd::thruster::Angle, 4> thruster_angle_cmd;
+    std::array<suc::cmd::thruster::Thrust, 4> thruster_thrust_cmd;
 
-    std::array<suc::cmd::thruster::EscEnabled, 4> thruster_esc_enabled_cmd = {
-        *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::EscEnabled *>(
-            &thruster1_esc_enabled_raw),
-        *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::EscEnabled *>(
-            &thruster2_esc_enabled_raw),
-        *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::EscEnabled *>(
-            &thruster3_esc_enabled_raw),
-        *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::EscEnabled *>(
-            &thruster4_esc_enabled_raw)};
-    std::array<suc::cmd::thruster::ServoEnabled, 4> thruster_servo_enabled_cmd = {
-        *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::ServoEnabled *>(
-            &thruster1_servo_enabled_raw),
-        *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::ServoEnabled *>(
-            &thruster2_servo_enabled_raw),
-        *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::ServoEnabled *>(
-            &thruster3_servo_enabled_raw),
-        *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::ServoEnabled *>(
-            &thruster4_servo_enabled_raw)};
-    std::array<suc::cmd::thruster::Angle, 4> thruster_angle_cmd = {
-        *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::Angle *>(&thruster1_angle_raw),
-        *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::Angle *>(&thruster2_angle_raw),
-        *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::Angle *>(&thruster3_angle_raw),
-        *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::Angle *>(&thruster4_angle_raw)};
-    std::array<suc::cmd::thruster::Thrust, 4> thruster_thrust_cmd = {
-        *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::Thrust *>(&thruster1_thrust_raw),
-        *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::Thrust *>(&thruster2_thrust_raw),
-        *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::Thrust *>(&thruster3_thrust_raw),
-        *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::Thrust *>(&thruster4_thrust_raw)};
+    for (size_t i = 0; i < 4; ++i) {
+        auto thruster_name = "thruster" + std::to_string(i + 1);
+        auto esc_enabled_raw = this->get_command(thruster_name + "/esc/enabled_raw");
+        auto servo_enabled_raw = this->get_command(thruster_name + "/servo/enabled_raw");
+        auto angle_raw = this->get_command(thruster_name + "/servo/angle_raw");
+        auto thrust_raw = this->get_command(thruster_name + "/esc/thrust_raw");
+
+        thruster_esc_enabled_cmd[i] =
+            *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::EscEnabled *>(&esc_enabled_raw);
+        thruster_servo_enabled_cmd[i] =
+            *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::ServoEnabled *>(
+                &servo_enabled_raw);
+        thruster_angle_cmd[i] =
+            *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::Angle *>(&angle_raw);
+        thruster_thrust_cmd[i] =
+            *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::Thrust *>(&thrust_raw);
+    }
 
     if (this->model.has_value()) {
         this->model->on_write(
