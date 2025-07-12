@@ -47,17 +47,18 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
             this->set_state(
                 "thruster4/servo/servo_current_raw",
                 *reinterpret_cast<const double *>(&servo_current[3]));
-            this->set_state("thruster1/servo/rpm_raw", *reinterpret_cast<const double *>(&rpm[0]));
-            this->set_state("thruster2/servo/rpm_raw", *reinterpret_cast<const double *>(&rpm[1]));
-            this->set_state("thruster3/servo/rpm_raw", *reinterpret_cast<const double *>(&rpm[2]));
-            this->set_state("thruster4/servo/rpm_raw", *reinterpret_cast<const double *>(&rpm[3]));
+            this->set_state("thruster1/esc/rpm_raw", *reinterpret_cast<const double *>(&rpm[0]));
+            this->set_state("thruster2/esc/rpm_raw", *reinterpret_cast<const double *>(&rpm[1]));
+            this->set_state("thruster3/esc/rpm_raw", *reinterpret_cast<const double *>(&rpm[2]));
+            this->set_state("thruster4/esc/rpm_raw", *reinterpret_cast<const double *>(&rpm[3]));
         }
         this->set_state(
             "main_power/battery_current", *reinterpret_cast<const double *>(&battery_current));
         this->set_state(
             "main_power/battery_voltage", *reinterpret_cast<const double *>(&battery_voltage));
         this->set_state("main_power/temperature", *reinterpret_cast<const double *>(&temperature));
-        this->set_state("main_power/water_leaked", *reinterpret_cast<const bool *>(&water_leaked));
+        this->set_state(
+            "main_power/water_leaked", *reinterpret_cast<const double *>(&water_leaked));
     } else {
         RCLCPP_ERROR(this->get_logger(), "Failed to read CAN data: %s", res.error().c_str());
     }
