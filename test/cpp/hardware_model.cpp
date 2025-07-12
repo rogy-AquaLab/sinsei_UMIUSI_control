@@ -12,7 +12,6 @@
 #include "sinsei_umiusi_control/hardware_model/headlights_model.hpp"
 #include "sinsei_umiusi_control/hardware_model/imu_model.hpp"
 #include "sinsei_umiusi_control/hardware_model/indicator_led_model.hpp"
-#include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/util/gpio_interface.hpp"
 
 namespace suchm = sinsei_umiusi_control::hardware_model;
@@ -25,15 +24,17 @@ using testing::Return;
 
 namespace sinsei_umiusi_control::test::hardware_model {
 
+constexpr auto _ = ::testing::_;
+
 namespace mock {
 
 class Gpio : public sinsei_umiusi_control::util::GpioInterface {
   public:
     MOCK_METHOD1(
-        write_digital,
-        sucutil::GpioResult(
-            bool enabled));  // TODO: GpioResultをtl::expected<void, GpioError>に置き換える
-    MOCK_METHOD0(write_pwm, sucutil::GpioResult());  // TODO: 未実装
+        set_mode_output, tl::expected<void, sucutil::GpioError>(std::vector<uint8_t> pins));
+    MOCK_METHOD1(set_mode_input, tl::expected<void, sucutil::GpioError>(std::vector<uint8_t> pins));
+    MOCK_METHOD2(write_digital, tl::expected<void, sucutil::GpioError>(uint8_t pin, bool enabled));
+    MOCK_METHOD0(write_pwm, tl::expected<void, sucutil::GpioError>());  // TODO: 未実装
     MOCK_METHOD1(i2c_open, tl::expected<void, sucutil::GpioError>(int address));
     MOCK_METHOD0(i2c_close, tl::expected<void, sucutil::GpioError>());
     MOCK_METHOD1(i2c_write_byte, tl::expected<void, sucutil::GpioError>(uint8_t value));
@@ -46,6 +47,10 @@ class Gpio : public sinsei_umiusi_control::util::GpioInterface {
 }  // namespace mock
 
 namespace headlights {
+
+constexpr uint8_t HIGH_BEAM_PIN = 5;
+constexpr uint8_t LOW_BEAM_PIN = 6;
+constexpr uint8_t IR_PIN = 25;
 
 class HeadlightsModelOnWriteTest
 : public ::testing::TestWithParam<std::tuple<
@@ -61,19 +66,33 @@ INSTANTIATE_TEST_CASE_P(
         ::testing::Values(
             succmd::headlights::IrEnabled{true}, succmd::headlights::IrEnabled{false})));
 
+TEST(HeadlightsModelOnInitTest, all) {
+    auto gpio = std::make_unique<mock::Gpio>();
+
+    EXPECT_CALL(*gpio, set_mode_output(_))
+        .Times(1)
+        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+
+    auto headlights_model =
+        suchm::HeadlightsModel(std::move(gpio), HIGH_BEAM_PIN, LOW_BEAM_PIN, IR_PIN);
+    auto result = headlights_model.on_init();
+    ASSERT_TRUE(result.has_value()) << std::string("Error: ") + result.error();
+}
+
 TEST_P(HeadlightsModelOnWriteTest, all) {
     auto [high_beam_enabled, low_beam_enabled, ir_enabled] = GetParam();
 
-    auto high_beam_gpio = std::make_unique<mock::Gpio>();
-    auto low_beam_gpio = std::make_unique<mock::Gpio>();
-    auto ir_gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::Gpio>();
 
-    EXPECT_CALL(*high_beam_gpio, write_digital(high_beam_enabled.value)).Times(1);
-    EXPECT_CALL(*low_beam_gpio, write_digital(low_beam_enabled.value)).Times(1);
-    EXPECT_CALL(*ir_gpio, write_digital(ir_enabled.value)).Times(1);
+    int n_true = static_cast<int>(high_beam_enabled.value) +
+                 static_cast<int>(low_beam_enabled.value) + static_cast<int>(ir_enabled.value);
 
-    auto headlights_model = suchm::HeadlightsModel(
-        std::move(high_beam_gpio), std::move(low_beam_gpio), std::move(ir_gpio));
+    EXPECT_CALL(*gpio, write_digital(_, true)).Times(n_true);
+    EXPECT_CALL(*gpio, write_digital(_, false)).Times(3 - n_true);
+
+    auto headlights_model =
+        suchm::HeadlightsModel(std::move(gpio), HIGH_BEAM_PIN, LOW_BEAM_PIN, IR_PIN);
+    headlights_model.on_init();
     headlights_model.on_write(high_beam_enabled, low_beam_enabled, ir_enabled);
 }
 
@@ -149,19 +168,34 @@ TEST(ImuModelOnReadTest, all) {
 }  // namespace imu
 
 namespace indicator_led {
+
+constexpr uint8_t LED_PIN = 24;
+
 class IndicatorLedModelOnWriteTest : public ::testing::TestWithParam<cmd::indicator_led::Enabled> {
 };
 INSTANTIATE_TEST_CASE_P(
     IndicatorLedModelTest, IndicatorLedModelOnWriteTest,
     ::testing::Values(succmd::indicator_led::Enabled{true}, succmd::indicator_led::Enabled{false}));
 
+TEST(IndicatorLedModelOnInitTest, all) {
+    auto gpio = std::make_unique<mock::Gpio>();
+    EXPECT_CALL(*gpio, set_mode_output(_))
+        .Times(1)
+        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+
+    auto indicator_led_model = suchm::IndicatorLedModel(std::move(gpio), LED_PIN);
+    auto result = indicator_led_model.on_init();
+    ASSERT_TRUE(result.has_value()) << std::string("Error: ") + result.error();
+}
+
 TEST_P(IndicatorLedModelOnWriteTest, all) {
     auto enabled = GetParam();
 
     auto gpio = std::make_unique<mock::Gpio>();
-    EXPECT_CALL(*gpio, write_digital(enabled.value)).Times(1);
+    EXPECT_CALL(*gpio, write_digital(_, enabled.value)).Times(1);
 
-    auto indicator_led_model = suchm::IndicatorLedModel(std::move(gpio));
+    auto indicator_led_model = suchm::IndicatorLedModel(std::move(gpio), LED_PIN);
+    indicator_led_model.on_init();
     indicator_led_model.on_write(enabled);
 }
 

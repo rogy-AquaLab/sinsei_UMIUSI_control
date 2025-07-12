@@ -1,6 +1,7 @@
-#include <cstdint>
 #ifndef SINSEI_UMIUSI_CONTROL_STATE_MAIN_POWER_HPP
 #define SINSEI_UMIUSI_CONTROL_STATE_MAIN_POWER_HPP
+
+#include <cstdint>
 
 namespace sinsei_umiusi_control::state::main_power {
 

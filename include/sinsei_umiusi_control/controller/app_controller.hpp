@@ -10,22 +10,20 @@
 #include "sinsei_umiusi_control/interface_access_helper.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 
-namespace suc = sinsei_umiusi_control;
-
 namespace sinsei_umiusi_control::controller {
 
 class AppController : public controller_interface::ChainableControllerInterface {
   private:
     // Command interfaces (in)
-    suc::cmd::app::Orientation target_orientation;
-    suc::cmd::app::Velocity target_velocity;
+    sinsei_umiusi_control::cmd::app::Orientation target_orientation;
+    sinsei_umiusi_control::cmd::app::Velocity target_velocity;
 
     // State interfaces (out)
-    suc::state::imu::Orientation imu_orientation;
-    suc::state::imu::Velocity imu_velocity;
+    sinsei_umiusi_control::state::imu::Orientation imu_orientation;
+    sinsei_umiusi_control::state::imu::Velocity imu_velocity;
 
-    std::array<suc::cmd::thruster::Angle, 4> thruster_angles;
-    std::array<suc::cmd::thruster::Thrust, 4> thruster_thrusts;
+    std::array<sinsei_umiusi_control::cmd::thruster::Angle, 4> thruster_angles;
+    std::array<sinsei_umiusi_control::cmd::thruster::Thrust, 4> thruster_thrusts;
 
     auto compute_outputs() -> void;
 
