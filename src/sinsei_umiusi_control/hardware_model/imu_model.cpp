@@ -8,59 +8,97 @@ namespace suchm = suc::hardware_model;
 suchm::ImuModel::ImuModel(std::unique_ptr<suc::util::GpioInterface> gpio) : gpio(std::move(gpio)) {}
 
 auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
-    // TODO: エラーを捕捉する
-    if (!this->gpio->i2c_open(ADDRESS)) {
-        return tl::unexpected<std::string>("Failed to open I2C bus for BNO055");
+    auto res = this->gpio->i2c_open(ADDRESS).map_error(util::gpio_error_to_string);
+    if (!res) {
+        return tl::unexpected<std::string>(
+            "Failed to open I2C bus for BNO055: I2C open error: " + res.error());
     }
 
     // 正しいデバイスであることを確認
-    // TODO: エラーを捕捉する
-    auto id_opt = this->gpio->i2c_read_byte_data(CHIP_ID_ADDR);
-    if (!id_opt || id_opt.value() != ID) {
+    auto id_opt_res =
+        this->gpio->i2c_read_byte_data(CHIP_ID_ADDR).map_error(util::gpio_error_to_string);
+    if (!id_opt_res || id_opt_res.value() != ID) {
         rclcpp::sleep_for(std::chrono::milliseconds(1000));  // hold on for boot
-        // TODO: エラーを捕捉する
-        auto id_opt = this->gpio->i2c_read_byte_data(CHIP_ID_ADDR);
-        if (!id_opt || id_opt.value() != ID) {
-            return tl::unexpected<std::string>("Failed to find BNO055 device");
+        id_opt_res =
+            this->gpio->i2c_read_byte_data(CHIP_ID_ADDR).map_error(util::gpio_error_to_string);
+        if (!id_opt_res) {
+            return tl::unexpected<std::string>(
+                "Failed to read CHIP_ID from BNO055: I2C read error: " + id_opt_res.error());
+        }
+        if (id_opt_res.value() != ID) {
+            return tl::unexpected<std::string>(
+                "Failed to find BNO055 device (found ID: " + std::to_string(id_opt_res.value()) +
+                ")");
         }
     }
 
     // コンフィグモードに移行（デフォルトでコンフィグモードだが念のため）
-    // TODO: エラーを捕捉する
-    this->gpio->i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG);
+    res = this->gpio->i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG)
+              .map_error(util::gpio_error_to_string);
+    if (!res) {
+        return tl::unexpected<std::string>(
+            "Failed to set BNO055 to CONFIG mode: I2C write error: " + res.error());
+    }
 
     // リセット
-    // TODO: エラーを捕捉する
-    this->gpio->i2c_write_byte_data(SYS_TRIGGER_ADDR, 0x20);
+    res = this->gpio->i2c_write_byte_data(SYS_TRIGGER_ADDR, 0x20)
+              .map_error(util::gpio_error_to_string);
+    if (!res) {
+        return tl::unexpected<std::string>(
+            "Failed to trigger BNO055 reset: I2C write error: " + res.error());
+    }
 
+    // BNO055が再起動するまで待機
     rclcpp::sleep_for(std::chrono::milliseconds(30));
-    int timeout_ms = 1000;
+    constexpr int TIMEOUT_MS = 1000;
     constexpr int WAIT_INTERVAL_MS = 10;
-    // TODO: エラーを捕捉する
-    while (this->gpio->i2c_read_byte_data(CHIP_ID_ADDR) != ID && timeout_ms > 0) {
-        if (timeout_ms <= 0) {
-            return tl::unexpected<std::string>("BNO055 reset timeout");
+    bool timeout = true;
+    for (int time = 0; time < TIMEOUT_MS; time += WAIT_INTERVAL_MS) {
+        auto res =
+            this->gpio->i2c_read_byte_data(CHIP_ID_ADDR).map_error(util::gpio_error_to_string);
+
+        if (res && res.value() == ID) {  // 正常にBNO055が起動したことを確認
+            timeout = false;
+            break;
         }
         rclcpp::sleep_for(std::chrono::milliseconds(WAIT_INTERVAL_MS));
-        timeout_ms -= WAIT_INTERVAL_MS;
+    }
+    if (timeout) {
+        return tl::unexpected<std::string>(
+            "BNO055 did not restart within timeout period (" + std::to_string(TIMEOUT_MS) + " ms)");
     }
     rclcpp::sleep_for(std::chrono::milliseconds(50));
 
     // ノーマルパワーモードに設定
-    // TODO: エラーを捕捉する
-    this->gpio->i2c_write_byte_data(PWR_MODE_ADDR, POWER_MODE_NORMAL);
+    res = this->gpio->i2c_write_byte_data(PWR_MODE_ADDR, POWER_MODE_NORMAL)
+              .map_error(util::gpio_error_to_string);
+    if (!res) {
+        return tl::unexpected<std::string>(
+            "Failed to set BNO055 to NORMAL power mode: I2C write error: " + res.error());
+    }
     rclcpp::sleep_for(std::chrono::milliseconds(10));
 
-    // TODO: エラーを捕捉する
-    this->gpio->i2c_write_byte_data(PAGE_ID_ADDR, 0x0);
+    res = this->gpio->i2c_write_byte_data(PAGE_ID_ADDR, 0x0).map_error(util::gpio_error_to_string);
+    if (!res) {
+        return tl::unexpected<std::string>(
+            "Failed to set BNO055 to PAGE 0: I2C write error: " + res.error());
+    }
 
-    // TODO: エラーを捕捉する
-    this->gpio->i2c_write_byte_data(SYS_TRIGGER_ADDR, 0x0);
+    res = this->gpio->i2c_write_byte_data(SYS_TRIGGER_ADDR, 0x0)
+              .map_error(util::gpio_error_to_string);
+    if (!res) {
+        return tl::unexpected<std::string>(
+            "Failed to clear BNO055 SYS_TRIGGER: I2C write error: " + res.error());
+    }
     rclcpp::sleep_for(std::chrono::milliseconds(10));
 
     // NDOFモードに設定
-    // TODO: エラーを捕捉する
-    this->gpio->i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_NDOF);
+    res = this->gpio->i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_NDOF)
+              .map_error(util::gpio_error_to_string);
+    if (!res) {
+        return tl::unexpected<std::string>(
+            "Failed to set BNO055 to NDOF mode: I2C write error: " + res.error());
+    }
     rclcpp::sleep_for(std::chrono::milliseconds(20));
 
     return {};
@@ -71,15 +109,22 @@ auto suchm::ImuModel::on_read()
         std::tuple<
             suc::state::imu::Orientation, suc::state::imu::Velocity, suc::state::imu::Temperature>,
         std::string> {
-    // TODO: エラーを捕捉する
-    const auto orientation = this->read_orientation().value_or(state::imu::Orientation{});
+    const auto orientation_res = this->read_orientation();
+    if (!orientation_res) {
+        return tl::unexpected<std::string>(
+            "Failed to read orientation data from BNO055: " + orientation_res.error());
+    }
     const state::imu::Velocity velocity{0.0, 0.0, 0.0};
 
-    // TODO: エラーを捕捉する
-    const auto temp_raw = this->gpio->i2c_read_byte_data(TEMP_ADDR);
-    const suc::state::imu::Temperature temperature{static_cast<int8_t>(temp_raw.value_or(0))};
+    const auto temp_raw_res =
+        this->gpio->i2c_read_byte_data(TEMP_ADDR).map_error(util::gpio_error_to_string);
+    if (!temp_raw_res) {
+        return tl::unexpected<std::string>(
+            "Failed to read temperature data from BNO055: I2C read error: " + temp_raw_res.error());
+    }
+    const suc::state::imu::Temperature temperature{static_cast<int8_t>(temp_raw_res.value())};
 
-    return std::make_tuple(orientation, velocity, temperature);
+    return std::make_tuple(orientation_res.value(), velocity, temperature);
 }
 
 auto suchm::ImuModel::read_orientation() -> tl::expected<state::imu::Orientation, std::string> {
@@ -88,12 +133,12 @@ auto suchm::ImuModel::read_orientation() -> tl::expected<state::imu::Orientation
     std::array<uint8_t, 6> buffer{};
 
     for (int i = 0; i < 6; ++i) {
-        // TODO: エラーを捕捉する
-        auto byte_opt = this->gpio->i2c_read_byte_data(EULER_H_LSB_ADDR + i);
-        if (!byte_opt) {
-            return tl::unexpected<std::string>("Failed to read orientation data from BNO055");
+        auto byte_opt_res = this->gpio->i2c_read_byte_data(EULER_H_LSB_ADDR + i)
+                                .map_error(util::gpio_error_to_string);
+        if (!byte_opt_res) {
+            return tl::unexpected<std::string>("I2C read error: " + byte_opt_res.error());
         }
-        buffer[i] = byte_opt.value();
+        buffer[i] = byte_opt_res.value();
     }
 
     const int16_t x = static_cast<int16_t>(
