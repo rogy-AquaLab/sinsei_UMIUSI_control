@@ -2,9 +2,7 @@
 #define SINSEI_UMIUSI_CONTROL_UTIL_GPIO_HPP
 
 #include <cstdint>
-#include <string>
-
-#include "rcpputils/tl_expected/expected.hpp"
+#include <rcpputils/tl_expected/expected.hpp>
 
 namespace sinsei_umiusi_control::util {
 
@@ -25,20 +23,15 @@ enum class GpioError {
     UnknownError,
 };
 
-// TODO: GpioErrorに置き換えたら削除する
-enum class GpioResult {
-    Success,
-    Error,
-};
-
-class Gpio {
+class GpioInterface {
   public:
-    Gpio() = default;
-    virtual ~Gpio() = default;
+    GpioInterface() = default;
+    virtual ~GpioInterface() = default;
 
-    // TODO: GpioResultをtl::expected<void, GpioError>に置き換える
-    virtual auto write_digital(bool enabled) -> GpioResult = 0;
-    virtual auto write_pwm() -> GpioResult = 0;
+    virtual auto set_mode_output(std::vector<uint8_t> pins) -> tl::expected<void, GpioError> = 0;
+    virtual auto set_mode_input(std::vector<uint8_t> pins) -> tl::expected<void, GpioError> = 0;
+    virtual auto write_digital(uint8_t pin, bool enabled) -> tl::expected<void, GpioError> = 0;
+    virtual auto write_pwm() -> tl::expected<void, GpioError> = 0;
 
     virtual auto i2c_open(int address) -> tl::expected<void, GpioError> = 0;
     virtual auto i2c_close() -> tl::expected<void, GpioError> = 0;

@@ -7,6 +7,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+
 namespace sinsei_umiusi_control {
 
 template <std::size_t CMD_SIZE, std::size_t STATE_SIZE>

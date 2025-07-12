@@ -4,18 +4,16 @@
 #include <cstdint>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
+#include <rcpputils/tl_expected/expected.hpp>
 
-#include "rcpputils/tl_expected/expected.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
-#include "sinsei_umiusi_control/util/gpio.hpp"
-
-namespace suc = sinsei_umiusi_control;
+#include "sinsei_umiusi_control/util/gpio_interface.hpp"
 
 namespace sinsei_umiusi_control::hardware_model {
 
 class ImuModel {
   private:
-    std::unique_ptr<util::Gpio> gpio;
+    std::unique_ptr<util::GpioInterface> gpio;
 
     // ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.h
 
@@ -39,12 +37,13 @@ class ImuModel {
     auto read_orientation() -> tl::expected<state::imu::Orientation, std::string>;
 
   public:
-    ImuModel(std::unique_ptr<util::Gpio> gpio);
+    ImuModel(std::unique_ptr<util::GpioInterface> gpio);
     auto begin() -> tl::expected<void, std::string>;
     auto on_read() -> tl::expected<
                        std::tuple<
-                           suc::state::imu::Orientation, suc::state::imu::Velocity,
-                           suc::state::imu::Temperature>,
+                           sinsei_umiusi_control::state::imu::Orientation,
+                           sinsei_umiusi_control::state::imu::Velocity,
+                           sinsei_umiusi_control::state::imu::Temperature>,
                        std::string>;
 };
 

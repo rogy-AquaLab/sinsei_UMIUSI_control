@@ -1,12 +1,10 @@
 #ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_IMU_HPP
 #define SINSEI_UMIUSI_CONTROL_HARDWARE_IMU_HPP
 
-#include <memory>
+#include <hardware_interface/sensor_interface.hpp>
+#include <rclcpp/macros.hpp>
 
-#include "hardware_interface/sensor_interface.hpp"
-#include "rclcpp/macros.hpp"
 #include "sinsei_umiusi_control/hardware_model/imu_model.hpp"
-#include "sinsei_umiusi_control/util/pigpio.hpp"
 
 namespace sinsei_umiusi_control::hardware {
 

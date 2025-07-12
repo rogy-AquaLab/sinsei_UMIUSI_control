@@ -5,7 +5,7 @@ namespace suchm = suc::hardware_model;
 
 // ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.cpp
 
-suchm::ImuModel::ImuModel(std::unique_ptr<suc::util::Gpio> gpio) : gpio(std::move(gpio)) {}
+suchm::ImuModel::ImuModel(std::unique_ptr<suc::util::GpioInterface> gpio) : gpio(std::move(gpio)) {}
 
 auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
     // TODO: エラーを捕捉する

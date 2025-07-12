@@ -2,6 +2,7 @@
 #define SINSEI_UMIUSI_CONTROL_UTIL_CONSTEXPR_HPP
 
 #include <cstddef>
+
 namespace sinsei_umiusi_control::util {
 
 // ref: https://stackoverflow.com/questions/51114180/constexpr-find-for-array-using-c17

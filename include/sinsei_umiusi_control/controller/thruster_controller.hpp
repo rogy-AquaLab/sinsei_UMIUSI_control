@@ -1,31 +1,29 @@
 #ifndef SINSEI_UMIUSI_CONTROL_THRUSTER_CONTROLLER_HPP
 #define SINSEI_UMIUSI_CONTROL_THRUSTER_CONTROLLER_HPP
 
+#include <controller_interface/chainable_controller_interface.hpp>
 #include <cstddef>
+#include <hardware_interface/hardware_interface/handle.hpp>
 #include <vector>
 
-#include "controller_interface/chainable_controller_interface.hpp"
-#include "hardware_interface/hardware_interface/handle.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
 #include "sinsei_umiusi_control/interface_access_helper.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
-
-namespace suc = sinsei_umiusi_control;
 
 namespace sinsei_umiusi_control::controller {
 
 class ThrusterController : public controller_interface::ChainableControllerInterface {
   private:
     // Command interfaces (in)
-    suc::cmd::thruster::ServoEnabled servo_enabled;
-    suc::cmd::thruster::EscEnabled esc_enabled;
-    suc::cmd::thruster::Angle angle;
-    suc::cmd::thruster::Thrust thrust;
+    sinsei_umiusi_control::cmd::thruster::ServoEnabled servo_enabled;
+    sinsei_umiusi_control::cmd::thruster::EscEnabled esc_enabled;
+    sinsei_umiusi_control::cmd::thruster::Angle angle;
+    sinsei_umiusi_control::cmd::thruster::Thrust thrust;
 
     // State interfaces (out)
-    suc::state::thruster::ServoCurrent servo_current;
-    suc::state::thruster::Rpm rpm;
+    sinsei_umiusi_control::state::thruster::ServoCurrent servo_current;
+    sinsei_umiusi_control::state::thruster::Rpm rpm;
 
     // 正式なinterface名は前に`thruster(_direct)(1-4)/`がつくが、リストを静的にするため特別に省略している
     static constexpr size_t CAN_CMD_SIZE = 4;

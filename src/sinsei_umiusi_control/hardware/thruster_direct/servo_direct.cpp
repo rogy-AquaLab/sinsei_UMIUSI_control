@@ -14,7 +14,7 @@ auto suchw::thruster_direct::ServoDirect::write(
     return hif::return_type::OK;
 }
 
-#include "pluginlib/class_list_macros.hpp"
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(
     sinsei_umiusi_control::hardware::thruster_direct::ServoDirect,
     hardware_interface::SystemInterface)
