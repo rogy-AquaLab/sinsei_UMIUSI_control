@@ -1,5 +1,7 @@
 #include "sinsei_umiusi_control/hardware/can.hpp"
 
+#include "sinsei_umiusi_control/util/linux_can.hpp"
+
 namespace suchw = sinsei_umiusi_control::hardware;
 namespace hif = hardware_interface;
 namespace rlc = rclcpp_lifecycle;
