@@ -9,7 +9,8 @@ coverage:
         target: 70%
         threshold: 15%
     patch:
-      informational: true
+      default:
+        informational: true
 
 comment:
   layout: "diff, flags, components, files, header, footer"
