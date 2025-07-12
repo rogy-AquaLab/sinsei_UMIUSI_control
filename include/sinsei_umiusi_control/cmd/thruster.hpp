@@ -12,7 +12,7 @@ struct EscEnabled {
     bool value;
 };
 struct Angle {
-    int8_t value;
+    uint8_t value;
 };
 struct Thrust {
     int8_t value;
