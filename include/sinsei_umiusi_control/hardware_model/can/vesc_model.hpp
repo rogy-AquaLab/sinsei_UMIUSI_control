@@ -49,14 +49,14 @@ class VescModel {
     std::array<bool, STATUS_COMMAND_NUM> transmit_status_command;
 
     static constexpr double SET_DUTY_SCALE = 100000;
-    /*static constexpr double SET_CURRENT_SCALE = 1000;
-    static constexpr double SET_CURRENT_BRAKE_SCALE = 1000;
+    // static constexpr double SET_CURRENT_SCALE = 1000;
+    // static constexpr double SET_CURRENT_BRAKE_SCALE = 1000;
     static constexpr double SET_RPM_SCALE = 1;
-    static constexpr double SET_POS_SCALE = 1000000;
-    static constexpr double SET_CURRENT_REL_SCALE = 100000;
-    static constexpr double SET_CURRENT_BRAKE_REL_SCALE = 100000;
-    static constexpr double SET_CURRENT_HANDBRAKE_SCALE = 1000;
-    static constexpr double SET_CURRENT_HANDBRAKE_REL_SCALE = 100000;*/
+    // static constexpr double SET_POS_SCALE = 1000000;
+    // static constexpr double SET_CURRENT_REL_SCALE = 100000;
+    // static constexpr double SET_CURRENT_BRAKE_REL_SCALE = 100000;
+    // static constexpr double SET_CURRENT_HANDBRAKE_SCALE = 1000;
+    // static constexpr double SET_CURRENT_HANDBRAKE_REL_SCALE = 100000;
 
     // 元々のファームウェアにはないが、lispBMにより追加で実装
     static constexpr double SET_SERVO_SCALE = 10000;
@@ -101,6 +101,7 @@ class VescModel {
     VescModel(std::shared_ptr<util::CanInterface> can, uint8_t id);
 
     auto set_duty(double duty) -> tl::expected<void, std::string>;
+    auto set_rpm(int8_t rpm) -> tl::expected<void, std::string>;
     auto set_servo_angle(double angle) -> tl::expected<void, std::string>;
 
     // TODO: get系の関数も必要なもの以外削除する

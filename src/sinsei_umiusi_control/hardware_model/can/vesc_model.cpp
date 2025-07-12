@@ -28,6 +28,12 @@ auto suchm::can::VescModel::set_duty(double duty) -> tl::expected<void, std::str
     return this->send_command_packet(VescSimpleCommandID::CAN_PACKET_SET_DUTY, data);
 }
 
+auto suchm::can::VescModel::set_rpm(int8_t rpm) -> tl::expected<void, std::string> {
+    auto scaled_rpm = static_cast<int32_t>(rpm * SET_RPM_SCALE);
+    auto data = this->encode_int32_be(scaled_rpm);
+    return this->send_command_packet(VescSimpleCommandID::CAN_PACKET_SET_RPM, data);
+}
+
 auto suchm::can::VescModel::set_servo(double value) -> tl::expected<void, std::string> {
     if (value < 0.0 || value > 1.0) {
         return tl::make_unexpected("Servo value must be between 0.0 and 1.0");

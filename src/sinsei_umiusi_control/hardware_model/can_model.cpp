@@ -35,7 +35,8 @@ auto suchm::CanModel::on_write(
             return tl::make_unexpected(
                 "Invalid thrust value for thruster " + std::to_string(i + 1));
         }
-        auto thrust_res = this->vesc_models[i].set_duty(thrust);
+        // TODO: dutyとrpmどちらを指定するか検討する
+        auto thrust_res = this->vesc_models[i].set_rpm(thrust);
         if (!thrust_res) {
             return tl::make_unexpected(
                 "Failed to set thrust for thruster " + std::to_string(i + 1) + ": " +
