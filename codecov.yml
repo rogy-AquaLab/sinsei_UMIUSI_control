@@ -1,2 +1,19 @@
+codecov:
+  notify:
+    wait_for_ci: false
+
+coverage:
+  status:
+    project:
+      default:
+        target: 70%
+        threshold: 15%
+    patch:
+      informational: true
+
+comment:
+  layout: "reach, diff, flags, tree"
+  behaviour: new
+
 fixes:
   - "ros_ws/src/*/sinsei_UMIUSI_control/sinsei_umiusi_control/::"
