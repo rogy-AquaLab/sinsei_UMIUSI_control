@@ -12,7 +12,8 @@ coverage:
       informational: true
 
 comment:
-  layout: "reach, diff, flags, tree"
+  layout: "diff, flags, components, files, header, footer"
+  hide_project_coverage: false
   behaviour: new
 
 fixes:
