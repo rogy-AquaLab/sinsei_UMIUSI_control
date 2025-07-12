@@ -15,17 +15,7 @@ suchm::HeadlightsModel::HeadlightsModel(
 
 auto suchm::HeadlightsModel::on_init() -> tl::expected<void, std::string> {
     return this->gpio->set_mode_output({this->high_beam_pin, this->low_beam_pin, this->ir_pin})
-        .map_error([](const auto & e) {
-            switch (e) {
-                case util::GpioError::BadGpio:
-                    return std::string("Bad GPIO pin specified for Headlights");
-                case util::GpioError::NotPermitted:
-                    return std::string("Not permitted to set GPIO pin mode for Headlights");
-                default:
-                    return std::string(
-                        "Unknown error occurred while setting GPIO pin mode for Headlights");
-            }
-        });
+        .map_error(util::gpio_error_to_string);
 }
 
 auto suchm::HeadlightsModel::on_read() -> tl::expected<void, std::string> { return {}; }
@@ -35,37 +25,24 @@ auto suchm::HeadlightsModel::on_write(
     sinsei_umiusi_control::cmd::headlights::LowBeamEnabled & low_beam_enabled,
     sinsei_umiusi_control::cmd::headlights::IrEnabled & ir_enabled)
     -> tl::expected<void, std::string> {
-    auto res_high = this->gpio->write_digital(this->high_beam_pin, high_beam_enabled.value);
-    auto res_low = this->gpio->write_digital(this->low_beam_pin, low_beam_enabled.value);
-    auto res_ir = this->gpio->write_digital(this->ir_pin, ir_enabled.value);
+    auto res_high = this->gpio->write_digital(this->high_beam_pin, high_beam_enabled.value)
+                        .map_error(util::gpio_error_to_string);
+    auto res_low = this->gpio->write_digital(this->low_beam_pin, low_beam_enabled.value)
+                       .map_error(util::gpio_error_to_string);
+    auto res_ir = this->gpio->write_digital(this->ir_pin, ir_enabled.value)
+                      .map_error(util::gpio_error_to_string);
 
     if (res_high && res_low && res_ir) {
         return {};
     }
 
-    // エラーメッセージを生成する変換を定義しておく
-    auto res_to_msg = [](const auto & res) {
-        if (res.has_value()) {
-            return std::string("Success");
-        }
-        switch (res.error()) {
-            case util::GpioError::BadGpio:
-                return std::string("Error: Bad GPIO pin specified");
-            case util::GpioError::BadLevel:
-                return std::string("Error: Bad level specified");
-            case util::GpioError::NotPermitted:
-                return std::string("Error: Not permitted to write to GPIO pin");
-            default:
-                return std::string("Error: Unknown error occurred while writing to GPIO pin");
-        }
-    };
-    auto msg_high = res_to_msg(res_high);
-    auto msg_low = res_to_msg(res_low);
-    auto msg_ir = res_to_msg(res_ir);
+    auto msg_high = res_high ? "Success" : res_high.error();
+    auto msg_low = res_low ? "Success" : res_low.error();
+    auto msg_ir = res_ir ? "Success" : res_ir.error();
 
     // すべてのエラーをまとめて返す
-    auto msg = "Failed to write to GPIO pins:\nHigh Beam: " + msg_high + "\n" +
-               "Low Beam: " + msg_low + "\n" + "IR: " + msg_ir;
+    auto msg = "Failed to write to GPIO pins:\n    High Beam: " + msg_high +
+               "\n    Low Beam: " + msg_low + "\n    IR: " + msg_ir;
 
     return tl::unexpected(msg);
 }

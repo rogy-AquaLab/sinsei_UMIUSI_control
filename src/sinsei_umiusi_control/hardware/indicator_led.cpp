@@ -17,7 +17,7 @@ auto suchw::IndicatorLed::on_init(const hif::HardwareInfo & info) -> hif::Callba
     auto res = this->model->on_init();
     if (!res) {
         RCLCPP_ERROR(
-            this->get_logger(), "Failed to initialize Indicator LED: %s", res.error().c_str());
+            this->get_logger(), "\n  Failed to initialize Indicator LED: %s", res.error().c_str());
     }
 
     return hif::CallbackReturn::SUCCESS;
@@ -35,14 +35,19 @@ auto suchw::IndicatorLed::write(const rclcpp::Time & /*time*/, const rclcpp::Dur
     auto enabled =
         *reinterpret_cast<sinsei_umiusi_control::cmd::indicator_led::Enabled *>(&enabled_raw);
     if (!this->model.has_value()) {
-        RCLCPP_WARN(
-            this->get_logger(), "Indicator LED model is not initialized, skipping write operation");
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_WARN_THROTTLE(
+            this->get_logger(), *this->get_clock(), DURATION,
+            "\n  Indicator LED model is not initialized");
         return hif::return_type::OK;
     }
 
     auto res = this->model->on_write(enabled);
     if (!res) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to write Indicator LED: %s", res.error().c_str());
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_ERROR_THROTTLE(
+            this->get_logger(), *this->get_clock(), DURATION,
+            "\n  Failed to write Indicator LED: %s", res.error().c_str());
     }
 
     return hif::return_type::OK;
