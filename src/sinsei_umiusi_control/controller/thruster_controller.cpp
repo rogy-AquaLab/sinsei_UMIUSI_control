@@ -66,12 +66,11 @@ auto succ::ThrusterController::on_init() -> cif::CallbackReturn {
     this->get_node()->declare_parameter("thruster_mode", "can");
     std::string mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
     auto mode_res = util::get_mode_from_str(mode_str);
-    if (mode_res) {
-        this->mode = mode_res.value();
-    } else {
+    if (!mode_res) {
         RCLCPP_ERROR(this->get_node()->get_logger(), "Invalid thruster mode: %s", mode_str.c_str());
         return cif::CallbackReturn::ERROR;
     }
+    this->mode = mode_res.value();
 
     this->can_interface_helper =
         std::make_unique<InterfaceAccessHelper<CAN_CMD_SIZE, CAN_STATE_SIZE>>(
