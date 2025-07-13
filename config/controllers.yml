@@ -1,37 +1,38 @@
-controller_manager:
-  ros__parameters:
-    update_rate: 100 # Hz
+/**:
+  controller_manager:
+    ros__parameters:
+      update_rate: 100 # Hz
 
-gate_controller:
-  ros__parameters:
-    type: sinsei_umiusi_control/controller/GateController
-    update_rate: 50 # Hz
+  gate_controller:
+    ros__parameters:
+      type: sinsei_umiusi_control/controller/GateController
+      update_rate: 50 # Hz
 
-app_controller:
-  ros__parameters:
-    type: sinsei_umiusi_control/controller/AppController
-    update_rate: 50 # Hz
+  app_controller:
+    ros__parameters:
+      type: sinsei_umiusi_control/controller/AppController
+      update_rate: 50 # Hz
 
-thruster_controller1:
-  ros__parameters:
-    type: sinsei_umiusi_control/controller/ThrusterController
-    update_rate: 50 # Hz
-    id: 1
+  thruster_controller1:
+    ros__parameters:
+      type: sinsei_umiusi_control/controller/ThrusterController
+      update_rate: 50 # Hz
+      id: 1
 
-thruster_controller2:
-  ros__parameters:
-    type: sinsei_umiusi_control/controller/ThrusterController
-    update_rate: 50 # Hz
-    id: 2
+  thruster_controller2:
+    ros__parameters:
+      type: sinsei_umiusi_control/controller/ThrusterController
+      update_rate: 50 # Hz
+      id: 2
 
-thruster_controller3:
-  ros__parameters:
-    type: sinsei_umiusi_control/controller/ThrusterController
-    update_rate: 50 # Hz
-    id: 3
+  thruster_controller3:
+    ros__parameters:
+      type: sinsei_umiusi_control/controller/ThrusterController
+      update_rate: 50 # Hz
+      id: 3
 
-thruster_controller4:
-  ros__parameters:
-    type: sinsei_umiusi_control/controller/ThrusterController
-    update_rate: 50 # Hz
-    id: 4
+  thruster_controller4:
+    ros__parameters:
+      type: sinsei_umiusi_control/controller/ThrusterController
+      update_rate: 50 # Hz
+      id: 4
