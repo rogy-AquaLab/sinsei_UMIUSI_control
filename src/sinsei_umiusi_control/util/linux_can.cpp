@@ -16,12 +16,12 @@ suc_util::LinuxCan::LinuxCan() : sock(-1) {}
 
 auto suc_util::LinuxCan::close() -> tl::expected<void, std::string> {
     if (this->sock < 0) {
-        return tl::unexpected<std::string>("\n  CAN socket is not initialized");
+        return tl::unexpected<std::string>("CAN socket is not initialized");
     }
     auto res = ::close(this->sock);
     if (res < 0) {
         return tl::unexpected<std::string>(
-            "\n  Failed to close CAN socket: " + std::string(strerror(errno)));
+            "Failed to close CAN socket: " + std::string(strerror(errno)));
     }
     return {};
 }
@@ -30,7 +30,7 @@ auto suc_util::LinuxCan::init(const std::string ifname) -> tl::expected<void, st
     this->sock = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     if (this->sock < 0) {
         return tl::unexpected<std::string>(
-            "\n  Failed to create CAN socket: " + std::string(strerror(errno)));
+            "Failed to create CAN socket: " + std::string(strerror(errno)));
     }
 
     struct ifreq ifr {};
@@ -40,7 +40,7 @@ auto suc_util::LinuxCan::init(const std::string ifname) -> tl::expected<void, st
         ::close(this->sock);
         this->sock = -1;
         return tl::unexpected<std::string>(
-            "\n  Failed to get interface index: " + std::string(strerror(errno)));
+            "Failed to get interface index: " + std::string(strerror(errno)));
     }
 
     sockaddr_can addr{};
@@ -55,7 +55,7 @@ auto suc_util::LinuxCan::init(const std::string ifname) -> tl::expected<void, st
         ::close(this->sock);
         this->sock = -1;
         return tl::unexpected<std::string>(
-            "\n  Failed to bind CAN socket: " + std::string(strerror(errno)));
+            "Failed to bind CAN socket: " + std::string(strerror(errno)));
     }
 
     return {};
@@ -65,11 +65,11 @@ auto suc_util::LinuxCan::send_frame(
     uint32_t id, const uint8_t * data, size_t length,
     bool is_extended) -> tl::expected<void, std::string> {
     if (this->sock < 0) {
-        return tl::unexpected<std::string>("\n  CAN socket is not initialized");
+        return tl::unexpected<std::string>("CAN socket is not initialized");
     }
 
     if (length > CAN_MAX_DLEN) {
-        return tl::unexpected<std::string>("\n  DLC exceeds maximum allowed CAN data length");
+        return tl::unexpected<std::string>("DLC exceeds maximum allowed CAN data length");
     }
 
     can_frame frame{};
@@ -80,11 +80,11 @@ auto suc_util::LinuxCan::send_frame(
     ssize_t nbytes = write(this->sock, &frame, sizeof(can_frame));
     if (nbytes < 0) {
         return tl::unexpected<std::string>(
-            "\n  Failed to write CAN frame: " + std::string(strerror(errno)));
+            "Failed to write CAN frame: " + std::string(strerror(errno)));
     }
 
     if (static_cast<size_t>(nbytes) < sizeof(can_frame)) {
-        return tl::unexpected<std::string>("\n  Partial CAN frame written");
+        return tl::unexpected<std::string>("Partial CAN frame written");
     }
 
     return {};
@@ -102,7 +102,7 @@ auto suc_util::LinuxCan::send_extframe(uint32_t id, const uint8_t * data, size_t
 
 auto suc_util::LinuxCan::receive_frame() -> tl::expected<CanFrame, std::string> {
     if (this->sock < 0) {
-        return tl::unexpected<std::string>("\n  CAN socket is not initialized");
+        return tl::unexpected<std::string>("CAN socket is not initialized");
     }
 
     fd_set rdfs;
@@ -116,18 +116,18 @@ auto suc_util::LinuxCan::receive_frame() -> tl::expected<CanFrame, std::string> 
 
     int ret = select(this->sock + 1, &rdfs, nullptr, nullptr, &timeout);
     if (ret < 0) {
-        return tl::unexpected<std::string>("\n  select() failed: " + std::string(strerror(errno)));
+        return tl::unexpected<std::string>("select() failed: " + std::string(strerror(errno)));
     } else if (ret == 0) {
-        return tl::unexpected<std::string>("\n  select() timeout");
+        return tl::unexpected<std::string>("select() timeout");
     }
 
     struct can_frame frame {};
     ssize_t nbytes = read(this->sock, &frame, sizeof(frame));
     if (nbytes < 0) {
-        return tl::unexpected<std::string>("\n  read() failed: " + std::string(strerror(errno)));
+        return tl::unexpected<std::string>("read() failed: " + std::string(strerror(errno)));
     }
     if (static_cast<size_t>(nbytes) != sizeof(struct can_frame)) {
-        return tl::unexpected<std::string>("\n  Incomplete CAN frame read");
+        return tl::unexpected<std::string>("Incomplete CAN frame read");
     }
 
     CanFrame result;

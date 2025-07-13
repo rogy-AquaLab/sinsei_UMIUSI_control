@@ -14,7 +14,7 @@ auto suchm::CanModel::on_destroy() -> tl::expected<void, std::string> {
 
     auto res = this->can->close();
     if (!res) {
-        return tl::make_unexpected("\n  Failed to close CAN interface: " + res.error());
+        return tl::make_unexpected("Failed to close CAN interface: " + res.error());
     }
     return {};
 }
@@ -37,8 +37,7 @@ auto suchm::CanModel::on_read()
         auto rpm_res = this->vesc_models[i].get_rpm();
         if (!rpm_res) {
             return tl::make_unexpected(
-                "\n  Failed to get RPM for thruster " + std::to_string(i + 1) + ": " +
-                rpm_res.error());
+                "Failed to get RPM for thruster " + std::to_string(i + 1) + ": " + rpm_res.error());
         }
         rpm[i] = suc::state::thruster::Rpm{rpm_res.value()};
     }
@@ -66,7 +65,7 @@ auto suchm::CanModel::on_write(
         auto thrust_res = this->vesc_models[i].set_rpm(thrust);
         if (!thrust_res) {
             return tl::make_unexpected(
-                "\n  Failed to set thrust for thruster " + std::to_string(i + 1) + ": " +
+                "Failed to set thrust for thruster " + std::to_string(i + 1) + ": " +
                 thrust_res.error());
         }
 
@@ -74,15 +73,14 @@ auto suchm::CanModel::on_write(
         auto angle_res = this->vesc_models[i].set_servo_angle(angle);
         if (!angle_res) {
             return tl::make_unexpected(
-                "\n  Failed to set servo angle for thruster " + std::to_string(i + 1) + ": " +
+                "Failed to set servo angle for thruster " + std::to_string(i + 1) + ": " +
                 angle_res.error());
         }
     }
 
     auto write_res = this->on_write(main_power_enabled, led_tape_color);
     if (!write_res) {
-        return tl::make_unexpected(
-            "\n  Failed to write main power and LED tape: " + write_res.error());
+        return tl::make_unexpected("Failed to write main power and LED tape: " + write_res.error());
     }
     return {};
 }
