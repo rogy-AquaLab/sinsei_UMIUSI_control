@@ -48,7 +48,7 @@ class VescModel {
 
     static constexpr int STATUS_COMMAND_NUM = 6;
 
-    std::array<bool, STATUS_COMMAND_NUM> transmit_status_command;
+    // std::array<bool, STATUS_COMMAND_NUM> transmit_status_command;
 
     static constexpr double SET_DUTY_SCALE = 100000;
     // static constexpr double SET_CURRENT_SCALE = 1000;

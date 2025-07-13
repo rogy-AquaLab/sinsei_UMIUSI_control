@@ -1,5 +1,7 @@
 #include "sinsei_umiusi_control/hardware_model/can/vesc_model.hpp"
 
+#include <algorithm>
+
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
