@@ -9,6 +9,14 @@ namespace suchm = suc::hardware_model;
 suchm::CanModel::CanModel(std::shared_ptr<suc::util::CanInterface> can, util::ThrusterMode mode)
 : can(std::move(can)), mode(mode) {}
 
+auto suchm::CanModel::on_init() -> tl::expected<void, std::string> {
+    auto res = this->can->init("can0");
+    if (!res) {
+        return tl::make_unexpected("Failed to initialize CAN interface: " + res.error());
+    }
+    return {};
+}
+
 auto suchm::CanModel::on_destroy() -> tl::expected<void, std::string> {
     // TODO: ここで念のためスラスターを停止しておく
 

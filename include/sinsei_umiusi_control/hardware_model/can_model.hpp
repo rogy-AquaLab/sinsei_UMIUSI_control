@@ -30,9 +30,8 @@ class CanModel {
 
   public:
     CanModel(std::shared_ptr<util::CanInterface> can, util::ThrusterMode mode);
-
+    auto on_init() -> tl::expected<void, std::string>;
     auto on_destroy() -> tl::expected<void, std::string>;
-
     auto on_read()
         -> tl::expected<
             std::tuple<
