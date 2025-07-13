@@ -46,57 +46,57 @@ class Gpio : public sinsei_umiusi_control::util::GpioInterface {
 
 }  // namespace mock
 
-// namespace headlights {
+namespace headlights {
 
-// constexpr uint8_t HIGH_BEAM_PIN = 5;
-// constexpr uint8_t LOW_BEAM_PIN = 6;
-// constexpr uint8_t IR_PIN = 25;
+constexpr uint8_t HIGH_BEAM_PIN = 5;
+constexpr uint8_t LOW_BEAM_PIN = 6;
+constexpr uint8_t IR_PIN = 25;
 
-// class HeadlightsModelOnWriteTest
-// : public ::testing::TestWithParam<std::tuple<
-//       succmd::headlights::HighBeamEnabled, succmd::headlights::LowBeamEnabled,
-//       succmd::headlights::IrEnabled>> {};
-// INSTANTIATE_TEST_CASE_P(
-//     HeadlightsModelTest, HeadlightsModelOnWriteTest,
-//     ::testing::Combine(
-//         ::testing::Values(
-//             succmd::headlights::HighBeamEnabled{true}, succmd::headlights::HighBeamEnabled{false}),
-//         ::testing::Values(
-//             succmd::headlights::LowBeamEnabled{true}, succmd::headlights::LowBeamEnabled{false}),
-//         ::testing::Values(
-//             succmd::headlights::IrEnabled{true}, succmd::headlights::IrEnabled{false})));
+class HeadlightsModelOnWriteTest
+: public ::testing::TestWithParam<std::tuple<
+      succmd::headlights::HighBeamEnabled, succmd::headlights::LowBeamEnabled,
+      succmd::headlights::IrEnabled>> {};
+INSTANTIATE_TEST_CASE_P(
+    HeadlightsModelTest, HeadlightsModelOnWriteTest,
+    ::testing::Combine(
+        ::testing::Values(
+            succmd::headlights::HighBeamEnabled{true}, succmd::headlights::HighBeamEnabled{false}),
+        ::testing::Values(
+            succmd::headlights::LowBeamEnabled{true}, succmd::headlights::LowBeamEnabled{false}),
+        ::testing::Values(
+            succmd::headlights::IrEnabled{true}, succmd::headlights::IrEnabled{false})));
 
-// TEST(HeadlightsModelOnInitTest, all) {
-//     auto gpio = std::make_unique<mock::Gpio>();
+TEST(HeadlightsModelOnInitTest, all) {
+    auto gpio = std::make_unique<mock::Gpio>();
 
-//     EXPECT_CALL(*gpio, set_mode_output(_))
-//         .Times(1)
-//         .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+    EXPECT_CALL(*gpio, set_mode_output(_))
+        .Times(1)
+        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
 
-//     auto headlights_model =
-//         suchm::HeadlightsModel(std::move(gpio), HIGH_BEAM_PIN, LOW_BEAM_PIN, IR_PIN);
-//     auto result = headlights_model.on_init();
-//     ASSERT_TRUE(result.has_value()) << std::string("Error: ") + result.error();
-// }
+    auto headlights_model =
+        suchm::HeadlightsModel(std::move(gpio), HIGH_BEAM_PIN, LOW_BEAM_PIN, IR_PIN);
+    auto result = headlights_model.on_init();
+    ASSERT_TRUE(result.has_value()) << std::string("Error: ") + result.error();
+}
 
-// TEST_P(HeadlightsModelOnWriteTest, all) {
-//     auto [high_beam_enabled, low_beam_enabled, ir_enabled] = GetParam();
+TEST_P(HeadlightsModelOnWriteTest, all) {
+    auto [high_beam_enabled, low_beam_enabled, ir_enabled] = GetParam();
 
-//     auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::Gpio>();
 
-//     int n_true = static_cast<int>(high_beam_enabled.value) +
-//                  static_cast<int>(low_beam_enabled.value) + static_cast<int>(ir_enabled.value);
+    int n_true = static_cast<int>(high_beam_enabled.value) +
+                 static_cast<int>(low_beam_enabled.value) + static_cast<int>(ir_enabled.value);
 
-//     EXPECT_CALL(*gpio, write_digital(_, true)).Times(n_true);
-//     EXPECT_CALL(*gpio, write_digital(_, false)).Times(3 - n_true);
+    EXPECT_CALL(*gpio, write_digital(_, true)).Times(n_true);
+    EXPECT_CALL(*gpio, write_digital(_, false)).Times(3 - n_true);
 
-//     auto headlights_model =
-//         suchm::HeadlightsModel(std::move(gpio), HIGH_BEAM_PIN, LOW_BEAM_PIN, IR_PIN);
-//     headlights_model.on_init();
-//     headlights_model.on_write(high_beam_enabled, low_beam_enabled, ir_enabled);
-// }
+    auto headlights_model =
+        suchm::HeadlightsModel(std::move(gpio), HIGH_BEAM_PIN, LOW_BEAM_PIN, IR_PIN);
+    headlights_model.on_init();
+    headlights_model.on_write(high_beam_enabled, low_beam_enabled, ir_enabled);
+}
 
-// }  // namespace headlights
+}  // namespace headlights
 
 namespace imu {
 
