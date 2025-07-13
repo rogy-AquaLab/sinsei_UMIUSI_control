@@ -6,6 +6,20 @@ namespace suchw = sinsei_umiusi_control::hardware;
 namespace hif = hardware_interface;
 namespace rlc = rclcpp_lifecycle;
 
+suchw::Can::~Can() {
+    if (!this->model.has_value()) {
+        RCLCPP_ERROR(this->get_logger(), "Can model is not initialized.");
+    }
+
+    auto res = this->model->on_destroy();
+    if (!res) {
+        RCLCPP_ERROR(
+            this->get_logger(), "\n  Failed to destroy Can model: %s", res.error().c_str());
+    } else {
+        RCLCPP_INFO(this->get_logger(), "Can model destroyed successfully.");
+    }
+}
+
 auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
     this->hif::SystemInterface::on_init(info);
 

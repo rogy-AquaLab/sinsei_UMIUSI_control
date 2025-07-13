@@ -30,7 +30,7 @@ auto suchm::can::VescModel::receive_status_frame(VescStatusCommandID expected_cm
     -> tl::expected<std::array<uint8_t, 8>, std::string> {
     auto frame_result = this->can->receive_frame();
     if (!frame_result) {
-        return tl::make_unexpected("Failed to receive CAN frame: " + frame_result.error());
+        return tl::make_unexpected("\n  Failed to receive CAN frame: " + frame_result.error());
     }
 
     const auto & frame = *frame_result;
@@ -39,15 +39,15 @@ auto suchm::can::VescModel::receive_status_frame(VescStatusCommandID expected_cm
     const auto vesc_id = static_cast<uint8_t>(frame.id & 0xFF);
 
     if (vesc_id != this->id) {
-        return tl::make_unexpected("Unexpected VESC ID: " + std::to_string(vesc_id));
+        return tl::make_unexpected("\n  Unexpected VESC ID: " + std::to_string(vesc_id));
     }
 
     if (cmd_id != static_cast<uint8_t>(expected_cmd_id)) {
-        return tl::make_unexpected("Unexpected Command ID: " + std::to_string(cmd_id));
+        return tl::make_unexpected("\n  Unexpected Command ID: " + std::to_string(cmd_id));
     }
 
     if (frame.dlc != 8) {
-        return tl::make_unexpected("Unexpected DLC (must be 8)");
+        return tl::make_unexpected("\n  Unexpected DLC (must be 8)");
     }
 
     return frame.data;
@@ -56,7 +56,7 @@ auto suchm::can::VescModel::receive_status_frame(VescStatusCommandID expected_cm
 auto suchm::can::VescModel::set_duty(double duty) -> tl::expected<void, std::string> {
     if (duty < -1.0 || duty > 1.0) {
         return tl::make_unexpected(
-            "Duty must be between -1.0 and 1.0 (duty: " + std::to_string(duty) + ")");
+            "\n  Duty must be between -1.0 and 1.0 (duty: " + std::to_string(duty) + ")");
     }
     auto scaled_duty = static_cast<int32_t>(duty * DUTY_SCALE);
     auto bytes = this->to_bytes_be(scaled_duty);
@@ -72,7 +72,7 @@ auto suchm::can::VescModel::set_rpm(int8_t rpm) -> tl::expected<void, std::strin
 auto suchm::can::VescModel::set_servo(double value) -> tl::expected<void, std::string> {
     if (value < 0.0 || value > 1.0) {
         return tl::make_unexpected(
-            "Servo value must be between 0.0 and 1.0 (value: " + std::to_string(value) + ")");
+            "\n  Servo value must be between 0.0 and 1.0 (value: " + std::to_string(value) + ")");
     }
     auto scaled_value = static_cast<int32_t>(value * SET_SERVO_SCALE);
     auto bytes = to_bytes_be(scaled_value);
@@ -83,7 +83,8 @@ auto suchm::can::VescModel::set_servo_angle(double deg) -> tl::expected<void, st
     // 0.0 ~ 180.0度の角度を0.0 ~ 1.0に変換
     if (deg < 0.0 || deg > 180.0) {
         return tl::make_unexpected(
-            "Servo angle must be between 0.0 and 180.0 degrees (deg: " + std::to_string(deg) + ")");
+            "\n  Servo angle must be between 0.0 and 180.0 degrees (deg: " + std::to_string(deg) +
+            ")");
     }
     return this->set_servo(deg / 180.0);
 }

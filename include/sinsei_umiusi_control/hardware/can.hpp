@@ -18,6 +18,7 @@ class Can : public hardware_interface::SystemInterface {
     RCLCPP_SHARED_PTR_DEFINITIONS(Can)
 
     Can() = default;
+    ~Can() override;
 
     auto on_init(const hardware_interface::HardwareInfo & info)
         -> hardware_interface::CallbackReturn override;
