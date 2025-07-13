@@ -8,7 +8,7 @@
       "extensions": [
         "charliermarsh.ruff",
         "llvm-vs-code-extensions.vscode-clangd",
-        "ms-iot.vscode-ros",
+        "ranch-hand-robotics.rde-pack",
         "ms-python.python",
         "ms-vscode.cpptools",
         "ms-vscode.cmake-tools",
@@ -49,7 +49,7 @@
         "C_Cpp.hover": "disabled",
         "C_Cpp.intelliSenseEngine": "disabled",
         "[ros.msg]": {
-          "editor.defaultFormatter": "ms-iot.vscode-ros"
+          "editor.defaultFormatter": "Ranch-Hand-Robotics.rde-ros-2"
         }
       }
     }
