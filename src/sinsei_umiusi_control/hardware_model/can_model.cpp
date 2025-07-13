@@ -50,10 +50,6 @@ auto suchm::CanModel::on_write(
         // TODO: `thruster_esc_enabled`と`thruster_servo_enabled`の処理を実装する
 
         auto thrust = thruster_thrust[i].value;
-        if (thrust < 0 || thrust > 1.0) {
-            return tl::make_unexpected(
-                "Invalid thrust value for thruster " + std::to_string(i + 1));
-        }
         // TODO: dutyとrpmどちらを指定するか検討する
         auto thrust_res = this->vesc_models[i].set_rpm(thrust);
         if (!thrust_res) {
@@ -63,9 +59,6 @@ auto suchm::CanModel::on_write(
         }
 
         auto angle = thruster_angle[i].value;
-        if (angle > 180) {
-            return tl::make_unexpected("Invalid angle value for thruster " + std::to_string(i + 1));
-        }
         auto angle_res = this->vesc_models[i].set_servo_angle(angle);
         if (!angle_res) {
             return tl::make_unexpected(

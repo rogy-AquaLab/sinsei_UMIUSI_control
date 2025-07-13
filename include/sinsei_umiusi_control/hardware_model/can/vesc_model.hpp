@@ -92,9 +92,9 @@ class VescModel {
     static constexpr double ADC3_SCALE = 1000;
     static constexpr double PPM_SCALE = 1000;
 
-    auto to_bytes_be(int32_t value) -> std::array<uint8_t, 4>;
+    static auto to_bytes_be(int32_t value) -> std::array<uint8_t, 4>;
 
-    auto to_int32_be(std::array<uint8_t, 4> bytes) -> int32_t;
+    static auto to_int32_be(std::array<uint8_t, 4> bytes) -> int32_t;
 
     auto send_command_packet(VescSimpleCommandID command_id, const std::array<uint8_t, 4> & data)
         -> tl::expected<void, std::string>;
@@ -111,7 +111,7 @@ class VescModel {
 
     auto set_duty(double duty) -> tl::expected<void, std::string>;
     auto set_rpm(int8_t rpm) -> tl::expected<void, std::string>;
-    auto set_servo_angle(double angle) -> tl::expected<void, std::string>;
+    auto set_servo_angle(double deg) -> tl::expected<void, std::string>;
 
     auto get_rpm() -> tl::expected<double, std::string>;
 };

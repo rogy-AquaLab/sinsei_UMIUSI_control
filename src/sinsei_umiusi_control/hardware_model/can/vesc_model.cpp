@@ -55,7 +55,8 @@ auto suchm::can::VescModel::receive_status_frame(VescStatusCommandID expected_cm
 
 auto suchm::can::VescModel::set_duty(double duty) -> tl::expected<void, std::string> {
     if (duty < -1.0 || duty > 1.0) {
-        return tl::make_unexpected("Duty must be between -1.0 and 1.0");
+        return tl::make_unexpected(
+            "Duty must be between -1.0 and 1.0 (duty: " + std::to_string(duty) + ")");
     }
     auto scaled_duty = static_cast<int32_t>(duty * DUTY_SCALE);
     auto bytes = this->to_bytes_be(scaled_duty);
@@ -70,16 +71,21 @@ auto suchm::can::VescModel::set_rpm(int8_t rpm) -> tl::expected<void, std::strin
 
 auto suchm::can::VescModel::set_servo(double value) -> tl::expected<void, std::string> {
     if (value < 0.0 || value > 1.0) {
-        return tl::make_unexpected("Servo value must be between 0.0 and 1.0");
+        return tl::make_unexpected(
+            "Servo value must be between 0.0 and 1.0 (value: " + std::to_string(value) + ")");
     }
     auto scaled_value = static_cast<int32_t>(value * SET_SERVO_SCALE);
     auto bytes = to_bytes_be(scaled_value);
     return this->send_command_packet(VescSimpleCommandID::CAN_PACKET_SET_SERVO, bytes);
 }
 
-auto suchm::can::VescModel::set_servo_angle(double angle) -> tl::expected<void, std::string> {
+auto suchm::can::VescModel::set_servo_angle(double deg) -> tl::expected<void, std::string> {
     // 0.0 ~ 180.0度の角度を0.0 ~ 1.0に変換
-    return this->set_servo(angle / 180.0);
+    if (deg < 0.0 || deg > 180.0) {
+        return tl::make_unexpected(
+            "Servo angle must be between 0.0 and 180.0 degrees (deg: " + std::to_string(deg) + ")");
+    }
+    return this->set_servo(deg / 180.0);
 }
 
 auto suchm::can::VescModel::get_erpm() -> tl::expected<double, std::string> {
