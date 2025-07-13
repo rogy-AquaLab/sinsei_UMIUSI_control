@@ -33,6 +33,7 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
     auto res = this->model->on_read();
     if (!res) {
         RCLCPP_ERROR(this->get_logger(), "Failed to read CAN data: %s", res.error().c_str());
+        return hif::return_type::OK;
     }
 
     auto [servo_current, rpm, battery_current, battery_voltage, temperature, water_leaked] =
@@ -40,19 +41,21 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
     if (this->thruster_mode == util::ThrusterMode::Can) {
         for (size_t i = 0; i < 4; ++i) {
             auto thruster_name = "thruster" + std::to_string(i + 1);
-            this->set_state(
+            // TODO: 実装したらコメントアウトを外す
+            /*this->set_state(
                 thruster_name + "/servo/servo_current_raw",
-                *reinterpret_cast<const double *>(&servo_current[i]));
+                *reinterpret_cast<const double *>(&servo_current[i]));*/
             this->set_state(
                 thruster_name + "/esc/rpm_raw", *reinterpret_cast<const double *>(&rpm[i]));
         }
     }
-    this->set_state(
-        "main_power/battery_current", *reinterpret_cast<const double *>(&battery_current));
-    this->set_state(
-        "main_power/battery_voltage", *reinterpret_cast<const double *>(&battery_voltage));
-    this->set_state("main_power/temperature", *reinterpret_cast<const double *>(&temperature));
-    this->set_state("main_power/water_leaked", *reinterpret_cast<const double *>(&water_leaked));
+    // TODO: 実装したらコメントアウトを外す
+    // this->set_state(
+    //     "main_power/battery_current", *reinterpret_cast<const double *>(&battery_current));
+    // this->set_state(
+    //     "main_power/battery_voltage", *reinterpret_cast<const double *>(&battery_voltage));
+    // this->set_state("main_power/temperature", *reinterpret_cast<const double *>(&temperature));
+    // this->set_state("main_power/water_leaked", *reinterpret_cast<const double *>(&water_leaked));
 
     return hif::return_type::OK;
 }

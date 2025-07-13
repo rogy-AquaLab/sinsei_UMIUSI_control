@@ -7,6 +7,12 @@
 
 namespace sinsei_umiusi_control::util {
 
+struct CanFrame {
+    uint32_t id;
+    uint8_t dlc;
+    std::array<uint8_t, 8> data;
+};
+
 class CanInterface {
   public:
     CanInterface() = default;
@@ -17,7 +23,7 @@ class CanInterface {
         -> tl::expected<void, std::string> = 0;
     virtual auto send_extframe(uint32_t id, const uint8_t * data, size_t length)
         -> tl::expected<void, std::string> = 0;
-    virtual auto receive_frame() -> tl::expected<void, std::string> = 0;
+    virtual auto receive_frame() -> tl::expected<CanFrame, std::string> = 0;
 };
 
 }  // namespace sinsei_umiusi_control::util

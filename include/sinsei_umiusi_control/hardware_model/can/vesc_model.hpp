@@ -44,6 +44,8 @@ class VescModel {
 
     uint8_t id;
 
+    static constexpr double BLDC_POLES = 14.0;
+
     static constexpr int STATUS_COMMAND_NUM = 6;
 
     std::array<bool, STATUS_COMMAND_NUM> transmit_status_command;
@@ -90,12 +92,19 @@ class VescModel {
     static constexpr double ADC3_SCALE = 1000;
     static constexpr double PPM_SCALE = 1000;
 
-    auto encode_int32_be(int32_t value) -> std::array<uint8_t, 4>;
+    auto to_bytes_be(int32_t value) -> std::array<uint8_t, 4>;
+
+    auto to_int32_be(std::array<uint8_t, 4> bytes) -> int32_t;
 
     auto send_command_packet(VescSimpleCommandID command_id, const std::array<uint8_t, 4> & data)
         -> tl::expected<void, std::string>;
 
+    auto receive_status_frame(VescStatusCommandID expected_cmd_id)
+        -> tl::expected<std::array<uint8_t, 8>, std::string>;
+
     auto set_servo(double value) -> tl::expected<void, std::string>;  // lispBMにより実装。0 ~ 1.0
+
+    auto get_erpm() -> tl::expected<double, std::string>;
 
   public:
     VescModel(std::shared_ptr<util::CanInterface> can, uint8_t id);
@@ -104,27 +113,7 @@ class VescModel {
     auto set_rpm(int8_t rpm) -> tl::expected<void, std::string>;
     auto set_servo_angle(double angle) -> tl::expected<void, std::string>;
 
-    // TODO: get系の関数も必要なもの以外削除する
-    auto get_eprm() -> tl::expected<double, std::string>;
-    auto get_current() -> tl::expected<double, std::string>;
-    auto get_duty() -> tl::expected<double, std::string>;
-
-    auto get_amp_hours() -> tl::expected<double, std::string>;
-    auto get_amp_hours_charge() -> tl::expected<double, std::string>;
-
-    auto get_watt_hours() -> tl::expected<double, std::string>;
-    auto get_watt_hours_charge() -> tl::expected<double, std::string>;
-
-    auto get_temp_fet() -> tl::expected<double, std::string>;
-    auto get_temp_motor() -> tl::expected<double, std::string>;
-    auto get_current_in() -> tl::expected<double, std::string>;
-    auto get_pid_pos() -> tl::expected<double, std::string>;
-
-    auto get_tachometer() -> tl::expected<double, std::string>;
-    auto get_volt_in() -> tl::expected<double, std::string>;
-
-    auto get_adc_data(VescAdcChannel adc) -> tl::expected<double, std::string>;
-    auto get_ppm() -> tl::expected<double, std::string>;
+    auto get_rpm() -> tl::expected<double, std::string>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::can

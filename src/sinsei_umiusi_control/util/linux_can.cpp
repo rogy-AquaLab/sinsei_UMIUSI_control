@@ -94,7 +94,7 @@ auto suc_util::LinuxCan::send_extframe(uint32_t id, const uint8_t * data, size_t
     return send_frame(id, data, length, true);
 }
 
-auto suc_util::LinuxCan::receive_frame() -> tl::expected<void, std::string> {
+auto suc_util::LinuxCan::receive_frame() -> tl::expected<CanFrame, std::string> {
     if (this->sock < 0) {
         return tl::unexpected<std::string>("CAN socket is not initialized");
     }
@@ -129,5 +129,5 @@ auto suc_util::LinuxCan::receive_frame() -> tl::expected<void, std::string> {
     result.dlc = frame.can_dlc;
     std::memcpy(result.data.data(), frame.data, CAN_MAX_DLEN);
 
-    return {};
+    return result;
 }

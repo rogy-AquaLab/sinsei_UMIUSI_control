@@ -7,12 +7,6 @@
 
 namespace sinsei_umiusi_control::util {
 
-struct CanFrame {
-    uint32_t id;
-    uint8_t dlc;
-    std::array<uint8_t, CAN_MAX_DLEN> data;
-};
-
 class LinuxCan : public CanInterface {
   private:
     int sock;
@@ -24,12 +18,12 @@ class LinuxCan : public CanInterface {
     LinuxCan();
     ~LinuxCan();
 
-    auto init(const std::string ifname) -> tl::expected<void, std::string>;
+    auto init(const std::string ifname) -> tl::expected<void, std::string> override;
     auto send_stdframe(uint32_t id, const uint8_t * data, size_t length)
-        -> tl::expected<void, std::string>;
+        -> tl::expected<void, std::string> override;
     auto send_extframe(uint32_t id, const uint8_t * data, size_t length)
-        -> tl::expected<void, std::string>;
-    auto receive_frame() -> tl::expected<void, std::string>;
+        -> tl::expected<void, std::string> override;
+    auto receive_frame() -> tl::expected<CanFrame, std::string> override;
 };
 
 }  // namespace sinsei_umiusi_control::util

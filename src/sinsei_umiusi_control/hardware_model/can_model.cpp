@@ -1,5 +1,6 @@
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 
+#include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 namespace suc = sinsei_umiusi_control;
@@ -16,8 +17,26 @@ auto suchm::CanModel::on_read()
             suc::state::main_power::BatteryVoltage, suc::state::main_power::Temperature,
             suc::state::main_power::WaterLeaked>,
         std::string> {
-    // TODO: 中身を実装する
-    return {};
+    // std::array<suc::state::thruster::ServoCurrent, 4> servo_current;
+    std::array<suc::state::thruster::Rpm, 4> rpm;
+    // suc::state::main_power::BatteryCurrent battery_current;
+    // suc::state::main_power::BatteryVoltage battery_voltage;
+    // suc::state::main_power::Temperature temperature;
+
+    for (size_t i = 0; i < 4; ++i) {
+        auto rpm_res = this->vesc_models[i].get_rpm();
+        if (!rpm_res) {
+            return tl::make_unexpected(
+                "Failed to get RPM for thruster " + std::to_string(i + 1) + ": " + rpm_res.error());
+        }
+        rpm[i] = suc::state::thruster::Rpm{rpm_res.value()};
+    }
+
+    // FIXME: 仮の値を返している
+    return std::make_tuple(
+        std::array<suc::state::thruster::ServoCurrent, 4>{}, rpm,
+        suc::state::main_power::BatteryCurrent{0.0}, suc::state::main_power::BatteryVoltage{0.0},
+        suc::state::main_power::Temperature{0}, suc::state::main_power::WaterLeaked{false});
 }
 
 auto suchm::CanModel::on_write(
