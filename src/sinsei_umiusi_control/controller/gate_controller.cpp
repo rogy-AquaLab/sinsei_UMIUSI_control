@@ -40,21 +40,23 @@ auto succ::GateController::on_init() -> cif::CallbackReturn {
 
 auto succ::GateController::on_configure(const rlc::State & /*pervious_state*/)
     -> cif::CallbackReturn {
+    const auto cmd_prefix = std::string("cmd/");
+    const auto state_prefix = std::string("state/");
     this->indicator_led_enabled_subscriber =
         this->get_node()->create_subscription<std_msgs::msg::Bool>(
-            "indicator_led_enabled", rclcpp::SystemDefaultsQoS(),
+            cmd_prefix + "indicator_led_enabled", rclcpp::SystemDefaultsQoS(),
             [this](const std_msgs::msg::Bool::SharedPtr input) {
                 this->indicator_led_enabled_ref.value = input->data;
             });
     this->main_power_enabled_subscriber =
         this->get_node()->create_subscription<std_msgs::msg::Bool>(
-            "main_power_enabled", rclcpp::SystemDefaultsQoS(),
+            cmd_prefix + "main_power_enabled", rclcpp::SystemDefaultsQoS(),
             [this](const std_msgs::msg::Bool::SharedPtr input) {
                 this->main_power_enabled_ref.value = input->data;
             });
     this->led_tape_color_subscriber =
         this->get_node()->create_subscription<std_msgs::msg::ColorRGBA>(
-            "led_tape_color", rclcpp::SystemDefaultsQoS(),
+            cmd_prefix + "led_tape_color", rclcpp::SystemDefaultsQoS(),
             [this](const std_msgs::msg::ColorRGBA::SharedPtr input) {
                 // alphaは無視
                 this->led_tape_color_ref.red = static_cast<uint8_t>(input->r);
@@ -62,33 +64,33 @@ auto succ::GateController::on_configure(const rlc::State & /*pervious_state*/)
                 this->led_tape_color_ref.blue = static_cast<uint8_t>(input->b);
             });
     this->high_beam_enabled_subscriber = this->get_node()->create_subscription<std_msgs::msg::Bool>(
-        "high_beam_enabled", rclcpp::SystemDefaultsQoS(),
+        cmd_prefix + "high_beam_enabled", rclcpp::SystemDefaultsQoS(),
         [this](const std_msgs::msg::Bool::SharedPtr input) {
             this->high_beam_enabled_ref.value = input->data;
         });
     this->low_beam_enabled_subscriber = this->get_node()->create_subscription<std_msgs::msg::Bool>(
-        "low_beam_enabled", rclcpp::SystemDefaultsQoS(),
+        cmd_prefix + "low_beam_enabled", rclcpp::SystemDefaultsQoS(),
         [this](const std_msgs::msg::Bool::SharedPtr input) {
             this->low_beam_enabled_ref.value = input->data;
         });
     this->ir_enabled_subscriber = this->get_node()->create_subscription<std_msgs::msg::Bool>(
-        "ir_enabled", rclcpp::SystemDefaultsQoS(),
+        cmd_prefix + "ir_enabled", rclcpp::SystemDefaultsQoS(),
         [this](const std_msgs::msg::Bool::SharedPtr input) {
             this->ir_enabled_ref.value = input->data;
         });
     this->servo_enabled_subscriber = this->get_node()->create_subscription<std_msgs::msg::Bool>(
-        "servo_enabled", rclcpp::SystemDefaultsQoS(),
+        cmd_prefix + "servo_enabled", rclcpp::SystemDefaultsQoS(),
         [this](const std_msgs::msg::Bool::SharedPtr input) {
             this->servo_enabled_ref.value = input->data;
         });
     this->esc_enabled_subscriber = this->get_node()->create_subscription<std_msgs::msg::Bool>(
-        "esc_enabled", rclcpp::SystemDefaultsQoS(),
+        cmd_prefix + "esc_enabled", rclcpp::SystemDefaultsQoS(),
         [this](const std_msgs::msg::Bool::SharedPtr input) {
             this->esc_enabled_ref.value = input->data;
         });
     this->target_orientation_subscriber =
         this->get_node()->create_subscription<geometry_msgs::msg::Vector3>(
-            "target_orientation", rclcpp::SystemDefaultsQoS(),
+            cmd_prefix + "target_orientation", rclcpp::SystemDefaultsQoS(),
             [this](const geometry_msgs::msg::Vector3::SharedPtr input) {
                 this->target_orientation_ref.x = input->x;
                 this->target_orientation_ref.y = input->y;
@@ -96,7 +98,7 @@ auto succ::GateController::on_configure(const rlc::State & /*pervious_state*/)
             });
     this->target_velocity_subscriber =
         this->get_node()->create_subscription<geometry_msgs::msg::Vector3>(
-            "target_velocity", rclcpp::SystemDefaultsQoS(),
+            cmd_prefix + "target_velocity", rclcpp::SystemDefaultsQoS(),
             [this](const geometry_msgs::msg::Vector3::SharedPtr input) {
                 this->target_velocity_ref.x = input->x;
                 this->target_velocity_ref.y = input->y;
@@ -104,27 +106,28 @@ auto succ::GateController::on_configure(const rlc::State & /*pervious_state*/)
             });
 
     this->battery_current_publisher = this->get_node()->create_publisher<std_msgs::msg::Float64>(
-        "battery_current", rclcpp::SystemDefaultsQoS());
+        state_prefix + "battery_current", rclcpp::SystemDefaultsQoS());
     this->battery_voltage_publisher = this->get_node()->create_publisher<std_msgs::msg::Float64>(
-        "battery_voltage", rclcpp::SystemDefaultsQoS());
+        state_prefix + "battery_voltage", rclcpp::SystemDefaultsQoS());
     this->main_temperature_publisher = this->get_node()->create_publisher<std_msgs::msg::Int8>(
-        "main_temperature", rclcpp::SystemDefaultsQoS());
+        state_prefix + "main_temperature", rclcpp::SystemDefaultsQoS());
     this->water_leaked_publisher = this->get_node()->create_publisher<std_msgs::msg::Bool>(
-        "water_leaked", rclcpp::SystemDefaultsQoS());
+        state_prefix + "water_leaked", rclcpp::SystemDefaultsQoS());
     for (size_t i = 0; i < 4; ++i) {
         this->servo_current_publisher[i] =
             this->get_node()->create_publisher<std_msgs::msg::Float64>(
-                "servo_current_" + std::to_string(i + 1), rclcpp::SystemDefaultsQoS());
+                state_prefix + "servo_current_" + std::to_string(i + 1),
+                rclcpp::SystemDefaultsQoS());
         this->rpm_publisher[i] = this->get_node()->create_publisher<std_msgs::msg::Float64>(
-            "rpm_" + std::to_string(i + 1), rclcpp::SystemDefaultsQoS());
+            state_prefix + "rpm_" + std::to_string(i + 1), rclcpp::SystemDefaultsQoS());
     }
     this->imu_orientation_publisher =
         this->get_node()->create_publisher<geometry_msgs::msg::Vector3>(
-            "imu_orientation", rclcpp::SystemDefaultsQoS());
+            state_prefix + "imu_orientation", rclcpp::SystemDefaultsQoS());
     this->imu_velocity_publisher = this->get_node()->create_publisher<geometry_msgs::msg::Vector3>(
-        "imu_velocity", rclcpp::SystemDefaultsQoS());
+        state_prefix + "imu_velocity", rclcpp::SystemDefaultsQoS());
     this->imu_temperature_publisher = this->get_node()->create_publisher<std_msgs::msg::Float64>(
-        "imu_temperature", rclcpp::SystemDefaultsQoS());
+        state_prefix + "imu_temperature", rclcpp::SystemDefaultsQoS());
 
     return cif::CallbackReturn::SUCCESS;
 }

@@ -7,6 +7,8 @@
   <!-- Launch Arguments -->
   <arg name="thruster_mode" default="can" />
 
+  <arg name="namespace" default="" />
+
   <arg name="robot_description"
     default="$(command 'xacro $(find-pkg-share $(var pkg_name))/urdf/sinsei_umiusi_control.urdf.xacro thruster_mode:=\&apos;\&quot;$(var thruster_mode)\&quot;\&apos;')" />
 
@@ -17,16 +19,20 @@
   <!-- Launch nodes -->
   <node
     pkg="controller_manager"
-    exec="ros2_control_node" output="both">
+    exec="ros2_control_node" namespace="/$(var namespace)" output="both">
     <param from="$(var robot_controllers_path)" />
     <param name="thruster_mode" value="$(var thruster_mode)" />
   </node>
 
-  <node pkg="controller_manager"
+  <node
+    pkg="controller_manager"
     exec="spawner"
-    args="thruster_controller1 thruster_controller2 thruster_controller3 thruster_controller4 app_controller gate_controller --param-file $(var robot_controllers_path)" />
+    args="thruster_controller1 thruster_controller2 thruster_controller3 thruster_controller4 app_controller gate_controller --param-file $(var robot_controllers_path)"
+    namespace="/$(var namespace)" />
 
-  <node pkg="robot_state_publisher" exec="robot_state_publisher" output="both">
+  <node pkg="robot_state_publisher"
+    exec="robot_state_publisher" namespace="/$(var namespace)"
+    output="both">
     <param name="robot_description" value="$(var robot_description)" />
   </node>
 
