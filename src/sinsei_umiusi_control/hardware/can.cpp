@@ -30,9 +30,19 @@ auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
 
 auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
     -> hif::return_type {
+    if (!this->model.has_value()) {
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_WARN_THROTTLE(
+            this->get_logger(), *this->get_clock(), DURATION, "\n  Can model is not initialized");
+        return hif::return_type::OK;
+    }
+
     auto res = this->model->on_read();
     if (!res) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to read CAN data: %s", res.error().c_str());
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_ERROR_THROTTLE(
+            this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to read CAN data: %s",
+            res.error().c_str());
         return hif::return_type::OK;
     }
 
@@ -62,6 +72,34 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
 
 auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     -> hif::return_type {
+    auto isCan = this->thruster_mode == util::ThrusterMode::Can;
+
+    std::array<suc::cmd::thruster::EscEnabled, 4> thruster_esc_enabled_cmd;
+    std::array<suc::cmd::thruster::ServoEnabled, 4> thruster_servo_enabled_cmd;
+    std::array<suc::cmd::thruster::Angle, 4> thruster_angle_cmd;
+    std::array<suc::cmd::thruster::Thrust, 4> thruster_thrust_cmd;
+
+    if (isCan) {
+        for (size_t i = 0; i < 4; ++i) {
+            auto thruster_name = "thruster" + std::to_string(i + 1);
+            auto esc_enabled_raw = this->get_command(thruster_name + "/esc/enabled_raw");
+            auto servo_enabled_raw = this->get_command(thruster_name + "/servo/enabled_raw");
+            auto angle_raw = this->get_command(thruster_name + "/servo/angle_raw");
+            auto thrust_raw = this->get_command(thruster_name + "/esc/thrust_raw");
+
+            thruster_esc_enabled_cmd[i] =
+                *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::EscEnabled *>(
+                    &esc_enabled_raw);
+            thruster_servo_enabled_cmd[i] =
+                *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::ServoEnabled *>(
+                    &servo_enabled_raw);
+            thruster_angle_cmd[i] =
+                *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::Angle *>(&angle_raw);
+            thruster_thrust_cmd[i] =
+                *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::Thrust *>(&thrust_raw);
+        }
+    }
+
     auto main_power_enabled = this->get_command("main_power/enabled");
     auto led_tape_color = this->get_command("led_tape/color");
 
@@ -70,42 +108,23 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
     auto led_tape_color_cmd =
         *reinterpret_cast<sinsei_umiusi_control::cmd::led_tape::Color *>(&led_tape_color);
 
-    if (this->thruster_mode == util::ThrusterMode::Direct) {
-        if (this->model.has_value()) {
-            this->model->on_write(main_power_enabled_cmd, led_tape_color_cmd);
-        };
-
+    if (!this->model.has_value()) {
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_WARN_THROTTLE(
+            this->get_logger(), *this->get_clock(), DURATION, "\n  Can model is not initialized");
         return hif::return_type::OK;
     }
 
-    std::array<suc::cmd::thruster::EscEnabled, 4> thruster_esc_enabled_cmd;
-    std::array<suc::cmd::thruster::ServoEnabled, 4> thruster_servo_enabled_cmd;
-    std::array<suc::cmd::thruster::Angle, 4> thruster_angle_cmd;
-    std::array<suc::cmd::thruster::Thrust, 4> thruster_thrust_cmd;
-
-    for (size_t i = 0; i < 4; ++i) {
-        auto thruster_name = "thruster" + std::to_string(i + 1);
-        auto esc_enabled_raw = this->get_command(thruster_name + "/esc/enabled_raw");
-        auto servo_enabled_raw = this->get_command(thruster_name + "/servo/enabled_raw");
-        auto angle_raw = this->get_command(thruster_name + "/servo/angle_raw");
-        auto thrust_raw = this->get_command(thruster_name + "/esc/thrust_raw");
-
-        thruster_esc_enabled_cmd[i] =
-            *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::EscEnabled *>(&esc_enabled_raw);
-        thruster_servo_enabled_cmd[i] =
-            *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::ServoEnabled *>(
-                &servo_enabled_raw);
-        thruster_angle_cmd[i] =
-            *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::Angle *>(&angle_raw);
-        thruster_thrust_cmd[i] =
-            *reinterpret_cast<sinsei_umiusi_control::cmd::thruster::Thrust *>(&thrust_raw);
+    auto res = isCan ? this->model->on_write(
+                           thruster_esc_enabled_cmd, thruster_servo_enabled_cmd, thruster_angle_cmd,
+                           thruster_thrust_cmd, main_power_enabled_cmd, led_tape_color_cmd)
+                     : this->model->on_write(main_power_enabled_cmd, led_tape_color_cmd);
+    if (!res) {
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_ERROR_THROTTLE(
+            this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to write Can: %s",
+            res.error().c_str());
     }
-
-    if (this->model.has_value()) {
-        this->model->on_write(
-            thruster_esc_enabled_cmd, thruster_servo_enabled_cmd, thruster_angle_cmd,
-            thruster_thrust_cmd, main_power_enabled_cmd, led_tape_color_cmd);
-    };
 
     return hif::return_type::OK;
 }
