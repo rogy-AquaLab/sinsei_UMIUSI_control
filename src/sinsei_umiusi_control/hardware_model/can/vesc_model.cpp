@@ -23,12 +23,12 @@ auto suchm::can::VescModel::send_command_packet(
     VescSimpleCommandID command_id,
     const std::array<uint8_t, 4> & data) -> tl::expected<void, std::string> {
     auto can_id = (static_cast<uint32_t>(command_id) & 0xFF) << 8 | (this->id & 0xFF);
-    return can->send_extframe(can_id, data.data(), data.size());
+    return this->can->send_extframe(can_id, data.data(), data.size());
 }
 
 auto suchm::can::VescModel::receive_status_frame(VescStatusCommandID expected_cmd_id)
     -> tl::expected<std::array<uint8_t, 8>, std::string> {
-    auto frame_result = can->receive_frame();
+    auto frame_result = this->can->receive_frame();
     if (!frame_result) {
         return tl::make_unexpected("Failed to receive CAN frame: " + frame_result.error());
     }
