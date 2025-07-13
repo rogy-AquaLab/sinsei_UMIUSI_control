@@ -139,7 +139,7 @@ jobs:
 
   colcon-test:
     name: Colcon Test
-    needs: [parse-env-file, colcon-build]
+    needs: [parse-env-file]
     runs-on: ubuntu-latest
     container:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
@@ -155,13 +155,20 @@ jobs:
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
 
-      - name: Download Build results (`build` directory)
-        uses: actions/download-artifact@v4
-        with:
-          name: colcon-build-results-build
-          path: ros_ws/build
-
       - name: Colcon Test
         uses: ros-tooling/action-ros-ci@v0.4
         with:
           target-ros2-distro: ${{ env.ROS_DISTRO }}
+          extra-cmake-args: |
+            -DCMAKE_CXX_FLAGS='-coverage' \
+            -DCMAKE_C_FLAGS='-coverage'
+          coverage-result: false
+
+      - run: colcon lcov-result --build-base ros_ws/build --filter '/usr/*' '/opt/ros/*' --lcov-args --ignore-errors mismatch
+
+      - name: Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ros_ws/lcov/total_coverage.info
+          name: Coverage of sinsei_UMIUSI_control
+          token: ${{ secrets.CODECOV_TOKEN }}
