@@ -77,6 +77,7 @@ if(BUILD_TESTING)
 
   ament_add_pytest_test(pytest test/python)
   ament_auto_add_gmock(test_hardware_model test/cpp/hardware_model.cpp)
+  ament_auto_add_gmock(test_util test/cpp/util.cpp)
 endif()
 
 ament_auto_package(

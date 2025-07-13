@@ -27,7 +27,7 @@ auto suchw::Headlights::on_init(const hif::HardwareInfo & info) -> hif::Callback
     auto res = this->model->on_init();
     if (!res) {
         RCLCPP_ERROR(
-            this->get_logger(), "Failed to initialize Headlights: %s", res.error().c_str());
+            this->get_logger(), "\n  Failed to initialize Headlights: %s", res.error().c_str());
     }
 
     return hif::CallbackReturn::SUCCESS;
@@ -54,14 +54,19 @@ auto suchw::Headlights::write(const rclcpp::Time & /*time*/, const rclcpp::Durat
         *reinterpret_cast<sinsei_umiusi_control::cmd::headlights::IrEnabled *>(&ir_enabled_raw);
 
     if (!this->model.has_value()) {
-        RCLCPP_WARN(
-            this->get_logger(), "Headlights model is not initialized, skipping write operation");
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_WARN_THROTTLE(
+            this->get_logger(), *this->get_clock(), DURATION,
+            "\n  Headlights model is not initialized");
         return hif::return_type::OK;
     }
 
     auto res = this->model->on_write(high_beam_enabled, low_beam_enabled, ir_enabled);
     if (!res) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to write Headlights: %s", res.error().c_str());
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_ERROR_THROTTLE(
+            this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to write Headlights: %s",
+            res.error().c_str());
     }
 
     return hif::return_type::OK;

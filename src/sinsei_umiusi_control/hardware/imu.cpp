@@ -13,7 +13,9 @@ auto suchw::Imu::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
 
     auto res = this->model->begin();
     if (!res) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to initialize IMU: %s", res.error().c_str());
+        RCLCPP_ERROR(this->get_logger(), "\n  Failed to initialize IMU: %s", res.error().c_str());
+        // IMUの初期化に失敗した場合、モデルにnullを再代入する
+        this->model.reset();
     }
 
     return hif::CallbackReturn::SUCCESS;
@@ -21,20 +23,30 @@ auto suchw::Imu::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
 
 auto suchw::Imu::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
     -> hif::return_type {
-    auto res = this->model->on_read();
-    if (res) {
-        auto [orientation, velocity, temperature] = res.value();
-
-        this->set_state("imu/orientation_raw.x", orientation.x);
-        this->set_state("imu/orientation_raw.y", orientation.y);
-        this->set_state("imu/orientation_raw.z", orientation.z);
-        // this->set_state("imu/velocity_raw.x", velocity.x);
-        // this->set_state("imu/velocity_raw.y", velocity.y);
-        // this->set_state("imu/velocity_raw.z", velocity.z);
-        this->set_state("imu/temperature", *reinterpret_cast<const double *>(&temperature));
-    } else {
-        RCLCPP_ERROR(this->get_logger(), "Failed to read IMU data: %s", res.error().c_str());
+    if (!this->model.has_value()) {
+        constexpr auto DURATION = 3000;
+        RCLCPP_WARN_THROTTLE(
+            this->get_logger(), *this->get_clock(), DURATION, "\n  IMU model is not initialized");
+        return hif::return_type::OK;
     }
+
+    auto res = this->model->on_read();
+    if (!res) {
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_ERROR_THROTTLE(
+            this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to read IMU data: %s",
+            res.error().c_str());
+    }
+
+    auto [orientation, velocity, temperature] = res.value();
+
+    this->set_state("imu/orientation_raw.x", orientation.x);
+    this->set_state("imu/orientation_raw.y", orientation.y);
+    this->set_state("imu/orientation_raw.z", orientation.z);
+    // this->set_state("imu/velocity_raw.x", velocity.x);
+    // this->set_state("imu/velocity_raw.y", velocity.y);
+    // this->set_state("imu/velocity_raw.z", velocity.z);
+    this->set_state("imu/temperature", *reinterpret_cast<const double *>(&temperature));
 
     return hif::return_type::OK;
 }

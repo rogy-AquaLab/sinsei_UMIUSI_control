@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <rcpputils/tl_expected/expected.hpp>
+#include <string>
 
 namespace sinsei_umiusi_control::util {
 
@@ -22,6 +23,39 @@ enum class GpioError {
     I2cReadFailed,
     UnknownError,
 };
+
+inline auto gpio_error_to_string(GpioError error) -> std::string {
+    switch (error) {
+        case GpioError::NotPermitted:
+            return "Not permitted";
+        case GpioError::BadGpio:
+            return "Bad GPIO pin specified";
+        case GpioError::BadLevel:
+            return "Bad level specified";
+        case GpioError::BadFlags:
+            return "Bad flags specified";
+        case GpioError::BadHandle:
+            return "Bad handle specified";
+        case GpioError::BadParameter:
+            return "Bad parameter specified";
+        case GpioError::NoHandle:
+            return "No handle available";
+        case GpioError::I2cNotOpen:
+            return "I2C not open";
+        case GpioError::I2cBadBus:
+            return "I2C bad bus";
+        case GpioError::I2CBadAddress:
+            return "I2C bad address";
+        case GpioError::I2cOpenFailed:
+            return "I2C open failed";
+        case GpioError::I2cWriteFailed:
+            return "I2C write failed";
+        case GpioError::I2cReadFailed:
+            return "I2C read failed";
+        default:
+            return "Unknown error";
+    }
+}
 
 class GpioInterface {
   public:

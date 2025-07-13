@@ -13,9 +13,12 @@ coverage:
         informational: true
 
 comment:
-  layout: "diff, flags, components, files, header, footer"
+  layout: "diff, files"
   hide_project_coverage: false
-  behavior: new
+  behavior: once
 
 fixes:
   - "ros_ws/src/*/sinsei_UMIUSI_control/sinsei_umiusi_control/::"
+
+github_checks:
+  annotations: false
