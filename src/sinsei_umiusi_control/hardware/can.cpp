@@ -86,14 +86,14 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
 
 auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     -> hif::return_type {
-    auto isCan = this->thruster_mode == util::ThrusterMode::Can;
+    auto is_can = this->thruster_mode == util::ThrusterMode::Can;
 
     std::array<suc::cmd::thruster::EscEnabled, 4> thruster_esc_enabled_cmd;
     std::array<suc::cmd::thruster::ServoEnabled, 4> thruster_servo_enabled_cmd;
     std::array<suc::cmd::thruster::Angle, 4> thruster_angle_cmd;
     std::array<suc::cmd::thruster::Thrust, 4> thruster_thrust_cmd;
 
-    if (isCan) {
+    if (is_can) {
         for (size_t i = 0; i < 4; ++i) {
             auto thruster_name = "thruster" + std::to_string(i + 1);
             auto esc_enabled_raw = this->get_command(thruster_name + "/esc/enabled_raw");
@@ -129,10 +129,11 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
         return hif::return_type::OK;
     }
 
-    auto res = isCan ? this->model->on_write(
-                           thruster_esc_enabled_cmd, thruster_servo_enabled_cmd, thruster_angle_cmd,
-                           thruster_thrust_cmd, main_power_enabled_cmd, led_tape_color_cmd)
-                     : this->model->on_write(main_power_enabled_cmd, led_tape_color_cmd);
+    auto res = is_can
+                   ? this->model->on_write(
+                         thruster_esc_enabled_cmd, thruster_servo_enabled_cmd, thruster_angle_cmd,
+                         thruster_thrust_cmd, main_power_enabled_cmd, led_tape_color_cmd)
+                   : this->model->on_write(main_power_enabled_cmd, led_tape_color_cmd);
     if (!res) {
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(
