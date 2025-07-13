@@ -10,15 +10,7 @@ suchm::CanModel::CanModel(std::shared_ptr<suc::util::CanInterface> can, util::Th
 : can(std::move(can)), mode(mode) {}
 
 auto suchm::CanModel::on_destroy() -> tl::expected<void, std::string> {
-    // スラスターを停止
-    for (size_t i = 0; i < 4; ++i) {
-        // TODO: `thruster_esc_enabled`と`thruster_servo_enabled`の処理を実装する
-        auto thrust_res = this->vesc_models[i].set_rpm(0);
-        if (!thrust_res) {
-            return tl::make_unexpected(
-                "\n  Failed to stop thruster " + std::to_string(i + 1) + ": " + thrust_res.error());
-        }
-    }
+    // TODO: ここで念のためスラスターを停止しておく
 
     auto res = this->can->close();
     if (!res) {
