@@ -1,6 +1,7 @@
 #include "sinsei_umiusi_control/controller/thruster_controller.hpp"
 
 #include "sinsei_umiusi_control/util/constexpr.hpp"
+#include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 namespace succ = sinsei_umiusi_control::controller;
 namespace suc_util = sinsei_umiusi_control::util;
@@ -11,7 +12,7 @@ namespace cif = controller_interface;
 auto succ::ThrusterController::command_interface_configuration() const
     -> cif::InterfaceConfiguration {
     std::vector<std::string> cmd_names;
-    if (this->mode == ThrusterMode::Can) {
+    if (this->mode == util::ThrusterMode::Can) {
         cmd_names.assign(
             std::begin(this->CAN_CMD_INTERFACE_NAMES), std::end(this->CAN_CMD_INTERFACE_NAMES));
     } else {
@@ -21,7 +22,7 @@ auto succ::ThrusterController::command_interface_configuration() const
     }
 
     // リストではスラスタ名が省略されているため、ここで付与する
-    std::string prefix = (this->mode == ThrusterMode::Can ? "thruster" : "thruster_direct") +
+    std::string prefix = (this->mode == util::ThrusterMode::Can ? "thruster" : "thruster_direct") +
                          std::to_string(this->id);
     for (auto & name : cmd_names) {
         name = prefix + "/" + name;
@@ -36,7 +37,7 @@ auto succ::ThrusterController::command_interface_configuration() const
 auto succ::ThrusterController::state_interface_configuration() const
     -> cif::InterfaceConfiguration {
     std::vector<std::string> state_names;
-    if (this->mode == ThrusterMode::Can) {
+    if (this->mode == util::ThrusterMode::Can) {
         state_names.assign(
             std::begin(this->CAN_STATE_INTERFACE_NAMES), std::end(this->CAN_STATE_INTERFACE_NAMES));
     } else {
@@ -44,7 +45,7 @@ auto succ::ThrusterController::state_interface_configuration() const
     }
 
     // リストではスラスタ名が省略されているため、ここで付与する
-    std::string prefix = (this->mode == ThrusterMode::Can ? "thruster" : "thruster_direct") +
+    std::string prefix = (this->mode == util::ThrusterMode::Can ? "thruster" : "thruster_direct") +
                          std::to_string(this->id);
 
     for (auto & name : state_names) {
@@ -64,14 +65,12 @@ auto succ::ThrusterController::on_init() -> cif::CallbackReturn {
 
     this->get_node()->declare_parameter("thruster_mode", "can");
     std::string mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
-    if (mode_str == "can") {
-        this->mode = ThrusterMode::Can;
-    } else if (mode_str == "direct") {
-        this->mode = ThrusterMode::Direct;
-    } else {
+    auto mode_res = util::get_mode_from_str(mode_str);
+    if (!mode_res) {
         RCLCPP_ERROR(this->get_node()->get_logger(), "Invalid thruster mode: %s", mode_str.c_str());
         return cif::CallbackReturn::ERROR;
     }
+    this->mode = mode_res.value();
 
     this->can_interface_helper =
         std::make_unique<InterfaceAccessHelper<CAN_CMD_SIZE, CAN_STATE_SIZE>>(
@@ -138,7 +137,7 @@ auto succ::ThrusterController::update_reference_from_subscribers(
 
 auto succ::ThrusterController::update_and_write_commands(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> cif::return_type {
-    if (this->mode == ThrusterMode::Can) {
+    if (this->mode == util::ThrusterMode::Can) {
         constexpr auto SERVO_ENABLED_INDEX =
             suc_util::get_index("servo/enabled_raw", CAN_CMD_INTERFACE_NAMES);
         constexpr auto ANGLE_INDEX =

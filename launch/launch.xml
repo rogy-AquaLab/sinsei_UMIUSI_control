@@ -10,7 +10,7 @@
   <arg name="namespace" default="" />
 
   <arg name="robot_description"
-    default="$(command 'xacro $(find-pkg-share $(var pkg_name))/urdf/sinsei_umiusi_control.urdf.xacro thruster_mode:=\&apos;\&quot;$(var thruster_mode)\&quot;\&apos;')" />
+    default="$(command 'xacro $(find-pkg-share $(var pkg_name))/urdf/sinsei_umiusi_control.urdf.xacro \&quot;thruster_mode:=\&apos;$(var thruster_mode)\&apos;\&quot;')" />
 
   <arg
     name="robot_controllers_path"
