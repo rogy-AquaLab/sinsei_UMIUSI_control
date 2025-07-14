@@ -76,7 +76,7 @@ TEST(HeadlightsModelOnInitTest, all) {
     auto headlights_model =
         suchm::HeadlightsModel(std::move(gpio), HIGH_BEAM_PIN, LOW_BEAM_PIN, IR_PIN);
     auto result = headlights_model.on_init();
-    ASSERT_TRUE(result.has_value()) << std::string("Error: ") + result.error();
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
 
 TEST_P(HeadlightsModelOnWriteTest, all) {
@@ -144,7 +144,7 @@ TEST(ImuModelBeginTest, success) {
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.begin();
-    ASSERT_TRUE(result.has_value()) << std::string("Error: ") + result.error();
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
 
 TEST(ImuModelBeginTest, fail_on_open) {
@@ -155,7 +155,7 @@ TEST(ImuModelBeginTest, fail_on_open) {
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.begin();
-    ASSERT_FALSE(result.has_value());
+    ASSERT_FALSE(result);
 }
 
 TEST(ImuModelBeginTest, fail_on_read_chip_id) {
@@ -170,7 +170,7 @@ TEST(ImuModelBeginTest, fail_on_read_chip_id) {
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.begin();
-    ASSERT_FALSE(result.has_value());
+    ASSERT_FALSE(result);
 }
 
 TEST(ImuModelBeginTest, fail_on_wrong_chip_id) {
@@ -185,7 +185,7 @@ TEST(ImuModelBeginTest, fail_on_wrong_chip_id) {
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.begin();
-    ASSERT_FALSE(result.has_value());
+    ASSERT_FALSE(result);
 }
 
 TEST(ImuModelBeginTest, fail_on_set_opr_mode_config) {
@@ -203,7 +203,7 @@ TEST(ImuModelBeginTest, fail_on_set_opr_mode_config) {
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.begin();
-    ASSERT_FALSE(result.has_value());
+    ASSERT_FALSE(result);
 }
 
 TEST(ImuModelBeginTest, fail_on_trigger_reset) {
@@ -224,7 +224,7 @@ TEST(ImuModelBeginTest, fail_on_trigger_reset) {
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.begin();
-    ASSERT_FALSE(result.has_value());
+    ASSERT_FALSE(result);
 }
 
 TEST(ImuModelBeginTest, fail_on_wait_for_reboot) {
@@ -240,7 +240,7 @@ TEST(ImuModelBeginTest, fail_on_wait_for_reboot) {
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.begin();
-    ASSERT_FALSE(result.has_value());
+    ASSERT_FALSE(result);
 }
 
 TEST(ImuModelBeginTest, fail_on_set_power_mode_normal) {
@@ -264,7 +264,7 @@ TEST(ImuModelBeginTest, fail_on_set_power_mode_normal) {
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.begin();
-    ASSERT_FALSE(result.has_value());
+    ASSERT_FALSE(result);
 }
 
 TEST(ImuModelBeginTest, fail_on_set_page_id) {
@@ -291,7 +291,7 @@ TEST(ImuModelBeginTest, fail_on_set_page_id) {
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.begin();
-    ASSERT_FALSE(result.has_value());
+    ASSERT_FALSE(result);
 }
 
 TEST(ImuModelBeginTest, fail_on_clear_sys_trigger) {
@@ -321,7 +321,7 @@ TEST(ImuModelBeginTest, fail_on_clear_sys_trigger) {
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.begin();
-    ASSERT_FALSE(result.has_value());
+    ASSERT_FALSE(result);
 }
 
 TEST(ImuModelBeginTest, fail_on_set_opr_mode_ndof) {
@@ -351,7 +351,7 @@ TEST(ImuModelBeginTest, fail_on_set_opr_mode_ndof) {
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.begin();
-    ASSERT_FALSE(result.has_value());
+    ASSERT_FALSE(result);
 }
 
 TEST(ImuModelOnReadTest, all) {
@@ -369,7 +369,7 @@ TEST(ImuModelOnReadTest, all) {
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_read();
-    ASSERT_TRUE(result.has_value()) << std::string("Error: ") + result.error();
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
 
 TEST(ImuModelOnReadTest, fail_on_read_orientation) {
@@ -380,7 +380,7 @@ TEST(ImuModelOnReadTest, fail_on_read_orientation) {
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_read();
-    ASSERT_FALSE(result.has_value());
+    ASSERT_FALSE(result);
 }
 
 TEST(ImuModelOnReadTest, fail_on_read_temperature) {
@@ -396,7 +396,7 @@ TEST(ImuModelOnReadTest, fail_on_read_temperature) {
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_read();
-    ASSERT_FALSE(result.has_value());
+    ASSERT_FALSE(result);
 }
 
 }  // namespace imu
@@ -419,7 +419,7 @@ TEST(IndicatorLedModelOnInitTest, all) {
 
     auto indicator_led_model = suchm::IndicatorLedModel(std::move(gpio), LED_PIN);
     auto result = indicator_led_model.on_init();
-    ASSERT_TRUE(result.has_value()) << std::string("Error: ") + result.error();
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
 
 TEST_P(IndicatorLedModelOnWriteTest, all) {

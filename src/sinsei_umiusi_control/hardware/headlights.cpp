@@ -35,7 +35,7 @@ auto suchw::Headlights::on_init(const hif::HardwareInfo & info) -> hif::Callback
 
 auto suchw::Headlights::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
     -> hif::return_type {
-    if (this->model.has_value()) this->model->on_read();
+    if (this->model) this->model->on_read();
     return hif::return_type::OK;
 }
 
@@ -53,7 +53,7 @@ auto suchw::Headlights::write(const rclcpp::Time & /*time*/, const rclcpp::Durat
     auto ir_enabled =
         *reinterpret_cast<sinsei_umiusi_control::cmd::headlights::IrEnabled *>(&ir_enabled_raw);
 
-    if (!this->model.has_value()) {
+    if (!this->model) {
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_WARN_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION,

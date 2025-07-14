@@ -52,7 +52,7 @@ class InterfaceAccessHelper {
         }
         auto & interface = state_interfaces_[index];
         auto opt = interface.get_optional();
-        if (!opt.has_value()) {
+        if (!opt) {
             RCLCPP_ERROR(
                 node_->get_logger(), "State interface not ready: %s", interface.get_name().c_str());
             return false;

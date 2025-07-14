@@ -7,7 +7,7 @@ namespace hif = hardware_interface;
 namespace rlc = rclcpp_lifecycle;
 
 suchw::Can::~Can() {
-    if (!this->model.has_value()) {
+    if (!this->model) {
         RCLCPP_ERROR(this->get_logger(), "Can model is not initialized.");
     }
 
@@ -49,7 +49,7 @@ auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
 
 auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
     -> hif::return_type {
-    if (!this->model.has_value()) {
+    if (!this->model) {
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_WARN_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  Can model is not initialized");
@@ -127,7 +127,7 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
     auto led_tape_color_cmd =
         *reinterpret_cast<sinsei_umiusi_control::cmd::led_tape::Color *>(&led_tape_color);
 
-    if (!this->model.has_value()) {
+    if (!this->model) {
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_WARN_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  Can model is not initialized");

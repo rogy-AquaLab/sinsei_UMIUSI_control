@@ -23,7 +23,7 @@ auto suchw::Imu::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
 
 auto suchw::Imu::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
     -> hif::return_type {
-    if (!this->model.has_value()) {
+    if (!this->model) {
         constexpr auto DURATION = 3000;
         RCLCPP_WARN_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  IMU model is not initialized");
