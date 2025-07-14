@@ -26,11 +26,11 @@ auto suchm::can::VescModel::send_command_packet(
     return this->can->send_extframe(can_id, data.data(), data.size());
 }
 
-auto suchm::can::VescModel::receive_status_frame(VescStatusCommandID expected_cmd_id)
+auto suchm::can::VescModel::recv_status_frame(VescStatusCommandID expected_cmd_id)
     -> tl::expected<std::array<uint8_t, 8>, std::string> {
-    auto frame_result = this->can->receive_frame();
+    auto frame_result = this->can->recv_frame();
     if (!frame_result) {
-        return tl::make_unexpected("Failed to receive CAN frame: " + frame_result.error());
+        return tl::make_unexpected("Failed to recv CAN frame: " + frame_result.error());
     }
 
     const auto & frame = *frame_result;
@@ -89,7 +89,7 @@ auto suchm::can::VescModel::set_servo_angle(double deg) -> tl::expected<void, st
 }
 
 auto suchm::can::VescModel::get_erpm() -> tl::expected<double, std::string> {
-    auto res = receive_status_frame(VescStatusCommandID::CAN_PACKET_STATUS);
+    auto res = recv_status_frame(VescStatusCommandID::CAN_PACKET_STATUS);
     if (!res) return tl::make_unexpected(res.error());
 
     std::array<uint8_t, 4> bytes;

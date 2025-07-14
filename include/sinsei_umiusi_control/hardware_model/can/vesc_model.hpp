@@ -99,7 +99,7 @@ class VescModel {
     auto send_command_packet(VescSimpleCommandID command_id, const std::array<uint8_t, 4> & data)
         -> tl::expected<void, std::string>;
 
-    auto receive_status_frame(VescStatusCommandID expected_cmd_id)
+    auto recv_status_frame(VescStatusCommandID expected_cmd_id)
         -> tl::expected<std::array<uint8_t, 8>, std::string>;
 
     auto set_servo(double value) -> tl::expected<void, std::string>;  // lispBMにより実装。0 ~ 1.0

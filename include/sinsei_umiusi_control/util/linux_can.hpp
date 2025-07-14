@@ -23,7 +23,7 @@ class LinuxCan : public CanInterface {
         -> tl::expected<void, std::string> override;
     auto send_extframe(uint32_t id, const uint8_t * data, size_t length)
         -> tl::expected<void, std::string> override;
-    auto receive_frame() -> tl::expected<CanFrame, std::string> override;
+    auto recv_frame() -> tl::expected<CanFrame, std::string> override;
 };
 
 }  // namespace sinsei_umiusi_control::util

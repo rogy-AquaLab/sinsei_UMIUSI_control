@@ -24,7 +24,7 @@ class CanInterface {
         -> tl::expected<void, std::string> = 0;
     virtual auto send_extframe(uint32_t id, const uint8_t * data, size_t length)
         -> tl::expected<void, std::string> = 0;
-    virtual auto receive_frame() -> tl::expected<CanFrame, std::string> = 0;
+    virtual auto recv_frame() -> tl::expected<CanFrame, std::string> = 0;
 };
 
 }  // namespace sinsei_umiusi_control::util
