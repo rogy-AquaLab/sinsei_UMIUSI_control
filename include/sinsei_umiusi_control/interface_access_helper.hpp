@@ -10,7 +10,7 @@
 
 namespace sinsei_umiusi_control {
 
-template <std::size_t CMD_SIZE, std::size_t STATE_SIZE>
+template <size_t CMD_SIZE, size_t STATE_SIZE>
 class InterfaceAccessHelper {
   public:
     InterfaceAccessHelper(
@@ -26,7 +26,7 @@ class InterfaceAccessHelper {
       state_names_(state_names) {}
 
     template <typename T>
-    auto set_cmd_value(const std::size_t & index, const T & value) -> bool {
+    auto set_cmd_value(const size_t & index, const T & value) -> bool {
         if (index >= cmd_interfaces_.size()) {
             const std::string name = cmd_names_[index];
             RCLCPP_ERROR(
@@ -43,7 +43,7 @@ class InterfaceAccessHelper {
     }
 
     template <typename T>
-    auto get_state_value(const std::size_t & index, T & target) -> bool {
+    auto get_state_value(const size_t & index, T & target) -> bool {
         if (index >= state_interfaces_.size()) {
             const std::string name = state_names_[index];
             RCLCPP_ERROR(
