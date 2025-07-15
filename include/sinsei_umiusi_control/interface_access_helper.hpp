@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "sinsei_umiusi_control/util/new_type.hpp"
+#include "sinsei_umiusi_control/util/serialization.hpp"
 
 namespace sinsei_umiusi_control {
 
@@ -36,7 +36,7 @@ class InterfaceAccessHelper {
             return false;
         }
         auto & interface = cmd_interfaces_[index];
-        auto res = interface.set_value(util::to_double(value));
+        auto res = interface.set_value(util::to_interface_data(value));
         if (!res) {
             RCLCPP_WARN(
                 node_->get_logger(), "Failed to set value for: %s", interface.get_name().c_str());
@@ -59,7 +59,7 @@ class InterfaceAccessHelper {
                 node_->get_logger(), "State interface not ready: %s", interface.get_name().c_str());
             return false;
         }
-        target = util::to_new_type<T>(opt.value());
+        target = util::from_interface_data<T>(opt.value());
         return true;
     }
 

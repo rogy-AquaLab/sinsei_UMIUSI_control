@@ -1,7 +1,7 @@
 #include "sinsei_umiusi_control/hardware/can.hpp"
 
 #include "sinsei_umiusi_control/util/linux_can.hpp"
-#include "sinsei_umiusi_control/util/new_type.hpp"
+#include "sinsei_umiusi_control/util/serialization.hpp"
 
 namespace suchw = sinsei_umiusi_control::hardware;
 namespace hif = hardware_interface;
@@ -74,17 +74,17 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
             // TODO: 実装したらコメントアウトを外す
             /*this->set_state(
                 thruster_name + "/servo/servo_current_raw",
-                util::to_double(servo_current[i]));*/
-            this->set_state(thruster_name + "/esc/rpm_raw", util::to_double(rpm[i]));
+                util::to_interface_data(servo_current[i]));*/
+            this->set_state(thruster_name + "/esc/rpm_raw", util::to_interface_data(rpm[i]));
         }
     }
     // TODO: 実装したらコメントアウトを外す
     // this->set_state(
-    //     "main_power/battery_current", util::to_double(battery_current));
+    //     "main_power/battery_current", util::to_interface_data(battery_current));
     // this->set_state(
-    //     "main_power/battery_voltage", util::to_double(battery_voltage));
-    // this->set_state("main_power/temperature", util::to_double(temperature));
-    // this->set_state("main_power/water_leaked", util::to_double(water_leaked));
+    //     "main_power/battery_voltage", util::to_interface_data(battery_voltage));
+    // this->set_state("main_power/temperature", util::to_interface_data(temperature));
+    // this->set_state("main_power/water_leaked", util::to_interface_data(water_leaked));
 
     return hif::return_type::OK;
 }
@@ -107,15 +107,15 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
             auto thrust_raw = this->get_command(thruster_name + "/esc/thrust_raw");
 
             thruster_esc_enabled_cmd[i] =
-                util::to_new_type<sinsei_umiusi_control::cmd::thruster::EscEnabled>(
+                util::from_interface_data<sinsei_umiusi_control::cmd::thruster::EscEnabled>(
                     esc_enabled_raw);
             thruster_servo_enabled_cmd[i] =
-                util::to_new_type<sinsei_umiusi_control::cmd::thruster::ServoEnabled>(
+                util::from_interface_data<sinsei_umiusi_control::cmd::thruster::ServoEnabled>(
                     servo_enabled_raw);
             thruster_angle_cmd[i] =
-                util::to_new_type<sinsei_umiusi_control::cmd::thruster::Angle>(angle_raw);
+                util::from_interface_data<sinsei_umiusi_control::cmd::thruster::Angle>(angle_raw);
             thruster_thrust_cmd[i] =
-                util::to_new_type<sinsei_umiusi_control::cmd::thruster::Thrust>(thrust_raw);
+                util::from_interface_data<sinsei_umiusi_control::cmd::thruster::Thrust>(thrust_raw);
         }
     }
 
@@ -123,9 +123,10 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
     auto led_tape_color = this->get_command("led_tape/color");
 
     auto main_power_enabled_cmd =
-        util::to_new_type<sinsei_umiusi_control::cmd::main_power::Enabled>(main_power_enabled);
+        util::from_interface_data<sinsei_umiusi_control::cmd::main_power::Enabled>(
+            main_power_enabled);
     auto led_tape_color_cmd =
-        util::to_new_type<sinsei_umiusi_control::cmd::led_tape::Color>(led_tape_color);
+        util::from_interface_data<sinsei_umiusi_control::cmd::led_tape::Color>(led_tape_color);
 
     if (!this->model) {
         constexpr auto DURATION = 3000;  // ms
