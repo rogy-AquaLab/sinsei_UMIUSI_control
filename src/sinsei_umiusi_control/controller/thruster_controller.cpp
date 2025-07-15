@@ -1,6 +1,7 @@
 #include "sinsei_umiusi_control/controller/thruster_controller.hpp"
 
 #include "sinsei_umiusi_control/util/constexpr.hpp"
+#include "sinsei_umiusi_control/util/new_type.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 namespace succ = sinsei_umiusi_control::controller;
@@ -105,15 +106,13 @@ auto succ::ThrusterController::on_export_reference_interfaces()
 
     auto interfaces = std::vector<hif::CommandInterface>{};
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name(), "servo_enabled",
-        reinterpret_cast<double *>(&this->servo_enabled)));
+        this->get_node()->get_name(), "servo_enabled", util::to_double_ptr(this->servo_enabled)));
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name(), "esc_enabled",
-        reinterpret_cast<double *>(&this->esc_enabled)));
+        this->get_node()->get_name(), "esc_enabled", util::to_double_ptr(this->esc_enabled)));
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name(), "angle", reinterpret_cast<double *>(&this->angle)));
+        this->get_node()->get_name(), "angle", util::to_double_ptr(this->angle)));
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name(), "thrust", reinterpret_cast<double *>(&this->thrust)));
+        this->get_node()->get_name(), "thrust", util::to_double_ptr(this->thrust)));
     return interfaces;
 }
 
@@ -121,10 +120,9 @@ auto succ::ThrusterController::on_export_state_interfaces() -> std::vector<hif::
     auto interfaces = std::vector<hif::StateInterface>{};
 
     interfaces.emplace_back(hif::StateInterface(
-        this->get_node()->get_name(), "servo_current",
-        reinterpret_cast<double *>(&this->servo_current)));
-    interfaces.emplace_back(hif::StateInterface(
-        this->get_node()->get_name(), "rpm", reinterpret_cast<double *>(&this->rpm)));
+        this->get_node()->get_name(), "servo_current", util::to_double_ptr(this->servo_current)));
+    interfaces.emplace_back(
+        hif::StateInterface(this->get_node()->get_name(), "rpm", util::to_double_ptr(this->rpm)));
     return interfaces;
 }
 
