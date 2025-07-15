@@ -1,6 +1,7 @@
 #include "sinsei_umiusi_control/hardware/indicator_led.hpp"
 
 #include "sinsei_umiusi_control/util/pigpio.hpp"
+#include "sinsei_umiusi_control/util/serialization.hpp"
 
 namespace suchw = sinsei_umiusi_control::hardware;
 namespace hif = hardware_interface;
@@ -33,7 +34,7 @@ auto suchw::IndicatorLed::write(const rclcpp::Time & /*time*/, const rclcpp::Dur
     -> hif::return_type {
     double enabled_raw = get_command("indicator_led/enabled");
     auto enabled =
-        *reinterpret_cast<sinsei_umiusi_control::cmd::indicator_led::Enabled *>(&enabled_raw);
+        util::from_interface_data<sinsei_umiusi_control::cmd::indicator_led::Enabled>(enabled_raw);
     if (!this->model) {
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_WARN_THROTTLE(

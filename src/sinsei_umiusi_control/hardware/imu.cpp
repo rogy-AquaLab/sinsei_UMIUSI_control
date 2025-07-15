@@ -1,6 +1,7 @@
 #include "sinsei_umiusi_control/hardware/imu.hpp"
 
 #include "sinsei_umiusi_control/util/pigpio.hpp"
+#include "sinsei_umiusi_control/util/serialization.hpp"
 
 namespace suchw = sinsei_umiusi_control::hardware;
 namespace hif = hardware_interface;
@@ -46,7 +47,7 @@ auto suchw::Imu::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
     // this->set_state("imu/velocity_raw.x", velocity.x);
     // this->set_state("imu/velocity_raw.y", velocity.y);
     // this->set_state("imu/velocity_raw.z", velocity.z);
-    this->set_state("imu/temperature", *reinterpret_cast<const double *>(&temperature));
+    this->set_state("imu/temperature", util::to_interface_data(temperature));
 
     return hif::return_type::OK;
 }

@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "sinsei_umiusi_control/util/pigpio.hpp"
+#include "sinsei_umiusi_control/util/serialization.hpp"
 
 namespace suchw = sinsei_umiusi_control::hardware;
 namespace hif = hardware_interface;
@@ -45,13 +46,13 @@ auto suchw::Headlights::write(const rclcpp::Time & /*time*/, const rclcpp::Durat
     double low_beam_enabled_raw = get_command("headlights/low_beam_enabled");
     double ir_enabled_raw = get_command("headlights/ir_enabled");
     auto high_beam_enabled =
-        *reinterpret_cast<sinsei_umiusi_control::cmd::headlights::HighBeamEnabled *>(
-            &high_beam_enabled_raw);
+        util::from_interface_data<sinsei_umiusi_control::cmd::headlights::HighBeamEnabled>(
+            high_beam_enabled_raw);
     auto low_beam_enabled =
-        *reinterpret_cast<sinsei_umiusi_control::cmd::headlights::LowBeamEnabled *>(
-            &low_beam_enabled_raw);
-    auto ir_enabled =
-        *reinterpret_cast<sinsei_umiusi_control::cmd::headlights::IrEnabled *>(&ir_enabled_raw);
+        util::from_interface_data<sinsei_umiusi_control::cmd::headlights::LowBeamEnabled>(
+            low_beam_enabled_raw);
+    auto ir_enabled = util::from_interface_data<sinsei_umiusi_control::cmd::headlights::IrEnabled>(
+        ir_enabled_raw);
 
     if (!this->model) {
         constexpr auto DURATION = 3000;  // ms
