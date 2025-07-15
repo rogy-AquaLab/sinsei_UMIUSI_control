@@ -6,6 +6,7 @@
 
 namespace sinsei_umiusi_control::util {
 
+// ros2_controlでは、Command / State Interfaceの中身に`double`型しか使えない
 using InterfaceData = double;
 
 template <typename T>
