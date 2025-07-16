@@ -15,12 +15,14 @@ auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
     }
 
     // 正しいデバイスであることを確認
-    auto id_opt_res =
-        this->gpio->i2c_read_byte_data(CHIP_ID_ADDR).map_error(util::gpio_error_to_string);
+    auto id_opt_res = this->gpio->i2c_read_byte_data(CHIP_ID_ADDR)
+                          .map_error(util::gpio_error_to_string)
+                          .map(std::to_integer<uint32_t>);
     if (!id_opt_res || id_opt_res.value() != ID) {
         rclcpp::sleep_for(std::chrono::milliseconds(1000));  // hold on for boot
-        id_opt_res =
-            this->gpio->i2c_read_byte_data(CHIP_ID_ADDR).map_error(util::gpio_error_to_string);
+        id_opt_res = this->gpio->i2c_read_byte_data(CHIP_ID_ADDR)
+                         .map_error(util::gpio_error_to_string)
+                         .map(std::to_integer<uint32_t>);
         if (!id_opt_res) {
             return tl::unexpected<std::string>(
                 "Failed to read CHIP_ID from BNO055: I2C read error: " + id_opt_res.error());
@@ -41,7 +43,7 @@ auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
     }
 
     // リセット
-    res = this->gpio->i2c_write_byte_data(SYS_TRIGGER_ADDR, 0x20)
+    res = this->gpio->i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20})
               .map_error(util::gpio_error_to_string);
     if (!res) {
         return tl::unexpected<std::string>(
@@ -54,9 +56,9 @@ auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
     constexpr int WAIT_INTERVAL_MS = 10;
     bool timeout = true;
     for (int time = 0; time < TIMEOUT_MS; time += WAIT_INTERVAL_MS) {
-        auto res =
-            this->gpio->i2c_read_byte_data(CHIP_ID_ADDR).map_error(util::gpio_error_to_string);
-
+        auto res = this->gpio->i2c_read_byte_data(CHIP_ID_ADDR)
+                       .map_error(util::gpio_error_to_string)
+                       .map(std::to_integer<uint32_t>);
         if (res && res.value() == ID) {  // 正常にBNO055が起動したことを確認
             timeout = false;
             break;
@@ -78,13 +80,14 @@ auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
     }
     rclcpp::sleep_for(std::chrono::milliseconds(10));
 
-    res = this->gpio->i2c_write_byte_data(PAGE_ID_ADDR, 0x0).map_error(util::gpio_error_to_string);
+    res = this->gpio->i2c_write_byte_data(PAGE_ID_ADDR, std::byte{0x0})
+              .map_error(util::gpio_error_to_string);
     if (!res) {
         return tl::unexpected<std::string>(
             "Failed to set BNO055 to PAGE 0: I2C write error: " + res.error());
     }
 
-    res = this->gpio->i2c_write_byte_data(SYS_TRIGGER_ADDR, 0x0)
+    res = this->gpio->i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x0})
               .map_error(util::gpio_error_to_string);
     if (!res) {
         return tl::unexpected<std::string>(
@@ -130,7 +133,7 @@ auto suchm::ImuModel::on_read()
 auto suchm::ImuModel::read_orientation() -> tl::expected<state::imu::Orientation, std::string> {
     // ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.cpp#L401
 
-    std::array<uint8_t, 6> buffer{};
+    std::array<std::byte, 6> buffer{};
 
     for (int i = 0; i < 6; ++i) {
         auto byte_opt_res = this->gpio->i2c_read_byte_data(EULER_H_LSB_ADDR + i)
@@ -142,11 +145,14 @@ auto suchm::ImuModel::read_orientation() -> tl::expected<state::imu::Orientation
     }
 
     const int16_t x = static_cast<int16_t>(
-        static_cast<int16_t>(buffer[0]) | (static_cast<int16_t>(buffer[1]) << 8));
+        (std::to_integer<int16_t>(buffer[0] & std::byte{0xFF})) |
+        (std::to_integer<int16_t>(buffer[1] << 8)));
     const int16_t y = static_cast<int16_t>(
-        static_cast<int16_t>(buffer[2]) | (static_cast<int16_t>(buffer[3]) << 8));
+        (std::to_integer<int16_t>(buffer[2] & std::byte{0xFF})) |
+        (std::to_integer<int16_t>(buffer[3] << 8)));
     const int16_t z = static_cast<int16_t>(
-        static_cast<int16_t>(buffer[4]) | (static_cast<int16_t>(buffer[5]) << 8));
+        (std::to_integer<int16_t>(buffer[4] & std::byte{0xFF})) |
+        (std::to_integer<int16_t>(buffer[5] << 8)));
 
     const state::imu::Orientation orientation{
         static_cast<double>(x) / 16.0, static_cast<double>(y) / 16.0,

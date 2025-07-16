@@ -2,16 +2,17 @@
 
 #include <pigpio.h>
 #include <pigpiod_if2.h>
+#include <sys/types.h>
 
 namespace suc_util = sinsei_umiusi_control::util;
 
-suc_util::Pigpio::Pigpio() { this->pi = pigpio_start(NULL, NULL); }
+suc_util::Pigpio::Pigpio() { this->pi = ::pigpio_start(NULL, NULL); }
 
-suc_util::Pigpio::~Pigpio() { pigpio_stop(pi); }
+suc_util::Pigpio::~Pigpio() { ::pigpio_stop(pi); }
 
-auto suc_util::Pigpio::set_mode_output(std::vector<uint8_t> pins) -> tl::expected<void, GpioError> {
+auto suc_util::Pigpio::set_mode_output(std::vector<GpioPin> pins) -> tl::expected<void, GpioError> {
     for (const auto & pin : pins) {
-        auto res = set_mode(this->pi, pin, PI_OUTPUT);
+        auto res = ::set_mode(this->pi, pin, PI_OUTPUT);
         if (res == 0) {
             continue;
         }
@@ -27,9 +28,9 @@ auto suc_util::Pigpio::set_mode_output(std::vector<uint8_t> pins) -> tl::expecte
     return {};
 }
 
-auto suc_util::Pigpio::set_mode_input(std::vector<uint8_t> pins) -> tl::expected<void, GpioError> {
+auto suc_util::Pigpio::set_mode_input(std::vector<GpioPin> pins) -> tl::expected<void, GpioError> {
     for (const auto & pin : pins) {
-        auto res = set_mode(this->pi, pin, PI_INPUT);
+        auto res = ::set_mode(this->pi, pin, PI_INPUT);
         if (res == 0) {
             continue;
         }
@@ -45,8 +46,8 @@ auto suc_util::Pigpio::set_mode_input(std::vector<uint8_t> pins) -> tl::expected
     return {};
 }
 
-auto suc_util::Pigpio::write_digital(uint8_t pin, bool enabled) -> tl::expected<void, GpioError> {
-    auto res = gpio_write(pi, pin, enabled ? 1 : 0);
+auto suc_util::Pigpio::write_digital(GpioPin pin, bool enabled) -> tl::expected<void, GpioError> {
+    auto res = ::gpio_write(pi, pin, enabled ? 1 : 0);
     if (res == 0) {
         return {};
     }
@@ -67,9 +68,9 @@ auto suc_util::Pigpio::write_pwm() -> tl::expected<void, GpioError> {
     return tl::unexpected(GpioError::UnknownError);
 }
 
-auto suc_util::Pigpio::i2c_open(int address) -> tl::expected<void, GpioError> {
+auto suc_util::Pigpio::i2c_open(uint32_t address) -> tl::expected<void, GpioError> {
     this->i2c_address = address;
-    auto res = ::i2c_open(pi, I2C_BUS, this->i2c_address, 0);
+    auto res = ::i2c_open(pi, I2C_BUS, this->i2c_address, 0U);
     if (res >= 0) {
         this->i2c_handle = res;
         return {};
@@ -91,13 +92,13 @@ auto suc_util::Pigpio::i2c_open(int address) -> tl::expected<void, GpioError> {
 }
 
 auto suc_util::Pigpio::i2c_close() -> tl::expected<void, GpioError> {
-    if (this->i2c_handle < 0) {
+    if (!this->i2c_handle) {
         return tl::unexpected(GpioError::NoHandle);
     }
-    auto res = ::i2c_close(pi, this->i2c_handle);
+    auto res = ::i2c_close(pi, this->i2c_handle.value());
     switch (res) {
         case 0:
-            this->i2c_handle = -1;
+            this->i2c_handle = std::nullopt;
             return {};
         case PI_BAD_HANDLE:
             return tl::unexpected(GpioError::BadHandle);
@@ -106,11 +107,12 @@ auto suc_util::Pigpio::i2c_close() -> tl::expected<void, GpioError> {
     }
 }
 
-auto suc_util::Pigpio::i2c_write_byte(uint8_t value) -> tl::expected<void, GpioError> {
-    if (this->i2c_handle < 0) {
+auto suc_util::Pigpio::i2c_write_byte(std::byte value) -> tl::expected<void, GpioError> {
+    if (!this->i2c_handle) {
         return tl::unexpected(GpioError::NoHandle);
     }
-    auto res = ::i2c_write_byte(pi, this->i2c_handle, value);
+    const auto b_val = std::to_integer<uint32_t>(value);
+    auto res = ::i2c_write_byte(pi, this->i2c_handle.value(), b_val);
     switch (res) {
         case 0:
             return {};
@@ -125,13 +127,13 @@ auto suc_util::Pigpio::i2c_write_byte(uint8_t value) -> tl::expected<void, GpioE
     }
 }
 
-auto suc_util::Pigpio::i2c_read_byte() -> tl::expected<uint8_t, GpioError> {
-    if (this->i2c_handle < 0) {
+auto suc_util::Pigpio::i2c_read_byte() -> tl::expected<std::byte, GpioError> {
+    if (!this->i2c_handle) {
         return tl::unexpected(GpioError::NoHandle);
     }
-    auto res = ::i2c_read_byte(pi, this->i2c_handle);
+    auto res = ::i2c_read_byte(pi, this->i2c_handle.value());
     if (res >= 0) {
-        return static_cast<uint8_t>(res);
+        return static_cast<std::byte>(res & 0xFF);
     }
     switch (res) {
         case PI_BAD_HANDLE:
@@ -143,12 +145,13 @@ auto suc_util::Pigpio::i2c_read_byte() -> tl::expected<uint8_t, GpioError> {
     }
 }
 
-auto suc_util::Pigpio::i2c_write_byte_data(uint8_t reg, uint8_t value)
+auto suc_util::Pigpio::i2c_write_byte_data(uint32_t reg, std::byte value)
     -> tl::expected<void, GpioError> {
-    if (this->i2c_handle < 0) {
+    if (!this->i2c_handle) {
         return tl::unexpected(GpioError::NoHandle);
     }
-    auto res = ::i2c_write_byte_data(pi, this->i2c_handle, reg, value);
+    const auto b_val = std::to_integer<uint32_t>(value);
+    auto res = ::i2c_write_byte_data(pi, this->i2c_handle.value(), reg, b_val);
     switch (res) {
         case 0:
             return {};
@@ -163,13 +166,13 @@ auto suc_util::Pigpio::i2c_write_byte_data(uint8_t reg, uint8_t value)
     }
 }
 
-auto suc_util::Pigpio::i2c_read_byte_data(uint8_t reg) -> tl::expected<uint8_t, GpioError> {
-    if (this->i2c_handle < 0) {
+auto suc_util::Pigpio::i2c_read_byte_data(uint32_t reg) -> tl::expected<std::byte, GpioError> {
+    if (!this->i2c_handle) {
         return tl::unexpected(GpioError::NoHandle);
     }
-    auto res = ::i2c_read_byte_data(pi, this->i2c_handle, reg);
+    auto res = ::i2c_read_byte_data(pi, this->i2c_handle.value(), reg);
     if (res >= 0) {
-        return static_cast<uint8_t>(res);
+        return static_cast<std::byte>(res & 0xFF);
     }
     switch (res) {
         case PI_BAD_HANDLE:

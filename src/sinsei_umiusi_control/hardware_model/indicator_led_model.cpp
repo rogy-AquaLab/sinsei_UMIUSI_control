@@ -8,7 +8,7 @@ namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
 suchm::IndicatorLedModel::IndicatorLedModel(
-    std::unique_ptr<suc::util::GpioInterface> gpio, uint8_t led_pin)
+    std::unique_ptr<suc::util::GpioInterface> gpio, util::GpioPin led_pin)
 : gpio(std::move(gpio)), led_pin(led_pin) {}
 
 auto suchm::IndicatorLedModel::on_init() -> tl::expected<void, std::string> {

@@ -9,8 +9,8 @@ namespace suchm = suc::hardware_model;
 
 suchm::HeadlightsModel::HeadlightsModel(
     std::unique_ptr<suc::util::GpioInterface> gpio,
-    uint8_t high_beam_pin,  // NOLINT(bugprone-easily-swappable-parameters) TODO: いずれ修正したい
-    uint8_t low_beam_pin, uint8_t ir_pin)
+    util::GpioPin high_beam_pin,  // NOLINT(bugprone-*) TODO: いずれ修正したい
+    util::GpioPin low_beam_pin, util::GpioPin ir_pin)
 : gpio(std::move(gpio)), high_beam_pin(high_beam_pin), low_beam_pin(low_beam_pin), ir_pin(ir_pin) {}
 
 auto suchm::HeadlightsModel::on_init() -> tl::expected<void, std::string> {
