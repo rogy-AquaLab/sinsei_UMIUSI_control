@@ -58,7 +58,7 @@ auto suchm::can::VescModel::set_duty(double duty) -> tl::expected<void, std::str
         return tl::make_unexpected(
             "Duty must be between -1.0 and 1.0 (duty: " + std::to_string(duty) + ")");
     }
-    auto scaled_duty = static_cast<int32_t>(duty * DUTY_SCALE);
+    auto scaled_duty = static_cast<int32_t>(duty * SET_DUTY_SCALE);
     auto bytes = this->to_bytes_be(scaled_duty);
     return this->send_command_packet(VescSimpleCommandID::CAN_PACKET_SET_DUTY, bytes);
 }
