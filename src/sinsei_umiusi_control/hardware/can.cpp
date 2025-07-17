@@ -1,7 +1,5 @@
 #include "sinsei_umiusi_control/hardware/can.hpp"
 
-#include <cmath>
-
 #include "sinsei_umiusi_control/util/linux_can.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
@@ -91,7 +89,7 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
     return hif::return_type::OK;
 }
 
-auto suchw::Can::write(const rclcpp::Time & time, const rclcpp::Duration & /*period*/)
+auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     -> hif::return_type {
     auto is_can = this->thruster_mode == util::ThrusterMode::Can;
 
@@ -106,8 +104,7 @@ auto suchw::Can::write(const rclcpp::Time & time, const rclcpp::Duration & /*per
             auto esc_enabled_raw = this->get_command(thruster_name + "/esc/enabled_raw");
             auto servo_enabled_raw = this->get_command(thruster_name + "/servo/enabled_raw");
             auto angle_raw = this->get_command(thruster_name + "/servo/angle_raw");
-            // auto thrust_raw = this->get_command(thruster_name + "/esc/thrust_raw");
-            auto thrust_raw = std::sin(time.seconds());  // FIXME: dummy value
+            auto thrust_raw = this->get_command(thruster_name + "/esc/thrust_raw");
 
             thruster_esc_enabled_cmd[i] =
                 util::from_interface_data<sinsei_umiusi_control::cmd::thruster::EscEnabled>(
