@@ -51,6 +51,9 @@ auto suchm::CanModel::on_read()
     // }
 
     auto frame = this->can->recv_frame();
+    if (!frame) {
+        return tl::make_unexpected("Failed to receive CAN frame: " + frame.error());
+    }
     printf("Received CAN frame: %s\n", frame.value().data.data());
 
     // FIXME: 仮の値を返している
@@ -97,6 +100,10 @@ auto suchm::CanModel::on_write(
     auto write_res = this->can->send_frame_std(
         0x123,  // 仮のID、実際のIDに置き換える必要がある
         data, 6);
+    if (!write_res) {
+        return tl::make_unexpected("Failed to send CAN frame: " + write_res.error());
+    }
+    printf("Sent CAN frame with ID 0x123 and data: %s\n", data);
     return {};
 }
 
