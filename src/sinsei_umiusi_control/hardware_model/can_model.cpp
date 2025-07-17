@@ -41,7 +41,7 @@ auto suchm::CanModel::on_read()
     // suc::state::main_power::BatteryVoltage battery_voltage;
     // suc::state::main_power::Temperature temperature;
 
-    for (size_t i = 0; i < 4; ++i) {
+    for (size_t i = 0; i < 1; ++i) {
         auto rpm_res = this->vesc_models[i].get_rpm();
         if (!rpm_res) {
             return tl::make_unexpected(
@@ -64,7 +64,7 @@ auto suchm::CanModel::on_write(
     std::array<suc::cmd::thruster::Thrust, 4> thruster_thrust,
     suc::cmd::main_power::Enabled main_power_enabled,
     suc::cmd::led_tape::Color led_tape_color) -> tl::expected<void, std::string> {
-    for (size_t i = 0; i < 4; ++i) {
+    for (size_t i = 0; i < 1; ++i) {
         // TODO: `thruster_esc_enabled`と`thruster_servo_enabled`の処理を実装する
 
         auto thrust = thruster_thrust[i].value;
