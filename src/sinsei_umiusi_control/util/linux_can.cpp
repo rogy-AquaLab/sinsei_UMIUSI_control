@@ -14,54 +14,105 @@
 
 namespace suc_util = sinsei_umiusi_control::util;
 
-suc_util::LinuxCan::LinuxCan() : sock(-1) {}
+suc_util::LinuxCan::LinuxCan() : sock_tx(-1), sock_rx(-1) {}
 
 auto suc_util::LinuxCan::close() -> tl::expected<void, std::string> {
-    if (this->sock < 0) {
+    if (this->sock_tx < 0) {
         return tl::make_unexpected("CAN socket is not initialized");
     }
-    auto res = ::close(this->sock);
-    if (res < 0) {
+    auto res_tx = ::close(this->sock_tx);
+    if (res_tx < 0) {
         return tl::make_unexpected("Failed to close CAN socket: " + std::string(strerror(errno)));
     }
-    this->sock = -1;
+    this->sock_tx = -1;
+
+    if (this->sock_rx < 0) {
+        return tl::make_unexpected("CAN socket is not initialized");
+    }
+    auto res_rx = ::close(this->sock_rx);
+    if (res_rx < 0) {
+        return tl::make_unexpected("Failed to close CAN socket: " + std::string(strerror(errno)));
+    }
+    this->sock_rx = -1;
     return {};
 }
 
 auto suc_util::LinuxCan::init(const std::string ifname) -> tl::expected<void, std::string> {
     // Create a socket
-    this->sock = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
-    if (this->sock < 0) {
+    this->sock_tx = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
+    if (this->sock_tx < 0) {
         return tl::make_unexpected("Failed to create CAN socket: " + std::string(strerror(errno)));
     }
 
     // Interface request (name -> if_index mapping)
-    struct ifreq ifr {};
-    std::strncpy(ifr.ifr_name, ifname.c_str(), IFNAMSIZ - 1);
-    auto res = ::ioctl(this->sock, SIOCGIFINDEX, &ifr);
-    if (res < 0) {
-        auto res = this->close();
-        if (!res) {
+    struct ifreq ifr_tx {};
+    std::strncpy(ifr_tx.ifr_name, ifname.c_str(), IFNAMSIZ - 1);
+    auto res_tx = ::ioctl(this->sock_tx, SIOCGIFINDEX, &ifr_tx);
+    if (res_tx < 0) {
+        auto res_tx = this->close();
+        if (!res_tx) {
             return tl::make_unexpected(
-                "Failed to close CAN socket after ioctl failure: " + res.error());
+                "Failed to close CAN socket after ioctl failure: " + res_tx.error());
         }
         return tl::make_unexpected(
             "Failed to get interface index: " + std::string(strerror(errno)));
     }
 
     // Set up the socket address structure
-    sockaddr_can addr{};
-    addr.can_family = AF_CAN;
-    addr.can_ifindex = ifr.ifr_ifindex;
+    sockaddr_can addr_tx{};
+    addr_tx.can_family = AF_CAN;
+    addr_tx.can_ifindex = ifr_tx.ifr_ifindex;
 
     // Disable local loopback mode and ID filters
     const bool loopback = false;
-    ::setsockopt(this->sock, SOL_CAN_RAW, CAN_RAW_LOOPBACK, &loopback, sizeof(loopback));
-    ::setsockopt(this->sock, SOL_CAN_RAW, CAN_RAW_FILTER, nullptr, 0);
+    ::setsockopt(this->sock_tx, SOL_CAN_RAW, CAN_RAW_LOOPBACK, &loopback, sizeof(loopback));
+    ::setsockopt(this->sock_tx, SOL_CAN_RAW, CAN_RAW_FILTER, nullptr, 0);
 
     // Bind the socket to the CAN interface
-    res = ::bind(this->sock, reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
-    if (res < 0) {
+    auto bind_res_tx =
+        ::bind(this->sock_tx, reinterpret_cast<sockaddr *>(&addr_tx), sizeof(addr_tx));
+    if (bind_res_tx < 0) {
+        auto res = this->close();
+        if (!res) {
+            return tl::make_unexpected(
+                "Failed to close CAN socket after bind failure: " + res.error());
+        }
+        return tl::make_unexpected("Failed to bind CAN socket: " + std::string(strerror(errno)));
+    }
+
+    // Create a socket
+    this->sock_rx = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
+    if (this->sock_rx < 0) {
+        return tl::make_unexpected("Failed to create CAN socket: " + std::string(strerror(errno)));
+    }
+
+    // Interface request (name -> if_index mapping)
+    struct ifreq ifr_rx {};
+    std::strncpy(ifr_rx.ifr_name, ifname.c_str(), IFNAMSIZ - 1);
+    auto res_rx = ::ioctl(this->sock_rx, SIOCGIFINDEX, &ifr_rx);
+    if (res_rx < 0) {
+        auto res_rx = this->close();
+        if (!res_rx) {
+            return tl::make_unexpected(
+                "Failed to close CAN socket after ioctl failure: " + res_rx.error());
+        }
+        return tl::make_unexpected(
+            "Failed to get interface index: " + std::string(strerror(errno)));
+    }
+
+    // Set up the socket address structure
+    sockaddr_can addr_rx{};
+    addr_rx.can_family = AF_CAN;
+    addr_rx.can_ifindex = ifr_rx.ifr_ifindex;
+
+    // Disable local loopback mode and ID filters
+    ::setsockopt(this->sock_rx, SOL_CAN_RAW, CAN_RAW_LOOPBACK, &loopback, sizeof(loopback));
+    ::setsockopt(this->sock_rx, SOL_CAN_RAW, CAN_RAW_FILTER, nullptr, 0);
+
+    // Bind the socket to the CAN interface
+    auto bind_res_rx =
+        ::bind(this->sock_rx, reinterpret_cast<sockaddr *>(&addr_rx), sizeof(addr_rx));
+    if (bind_res_rx < 0) {
         auto res = this->close();
         if (!res) {
             return tl::make_unexpected(
@@ -76,7 +127,7 @@ auto suc_util::LinuxCan::init(const std::string ifname) -> tl::expected<void, st
 auto suc_util::LinuxCan::send_frame(
     uint32_t id, const uint8_t * data, size_t length,
     bool is_extended) -> tl::expected<void, std::string> {
-    if (this->sock < 0) {
+    if (this->sock_tx < 0) {
         return tl::make_unexpected("CAN socket is not initialized");
     }
 
@@ -98,7 +149,7 @@ auto suc_util::LinuxCan::send_frame(
 
     // Send the CAN frame
     const auto bytes_to_write = sizeof(frame);
-    const auto bytes_written = ::write(this->sock, &frame, bytes_to_write);
+    const auto bytes_written = ::write(this->sock_tx, &frame, bytes_to_write);
     if (bytes_written < 0) {
         return tl::make_unexpected("Failed to write CAN frame: " + std::string(strerror(errno)));
     }
@@ -123,13 +174,13 @@ auto suc_util::LinuxCan::send_frame_ext(uint32_t id, const uint8_t * data, size_
 }
 
 auto suc_util::LinuxCan::recv_frame() -> tl::expected<CanFrame, std::string> {
-    if (this->sock < 0) {
+    if (this->sock_rx < 0) {
         return tl::make_unexpected("CAN socket is not initialized");
     }
 
     fd_set read_fds;
-    FD_ZERO(&read_fds);             // Clear the set
-    FD_SET(this->sock, &read_fds);  // Add the socket to the set
+    FD_ZERO(&read_fds);                // Clear the set
+    FD_SET(this->sock_rx, &read_fds);  // Add the socket to the set
 
     // Set a timeout for select (1 sec)
     constexpr int TIMEOUT_MS = 1000;
@@ -150,7 +201,7 @@ auto suc_util::LinuxCan::recv_frame() -> tl::expected<CanFrame, std::string> {
     // Read the CAN frame from the socket
     struct can_frame frame {};
     const auto bytes_to_read = sizeof(frame);
-    const auto bytes_read = ::read(this->sock, &frame, bytes_to_read);
+    const auto bytes_read = ::read(this->sock_rx, &frame, bytes_to_read);
     if (bytes_read < 0) {
         return tl::make_unexpected("read() failed: " + std::string(strerror(errno)));
     }
