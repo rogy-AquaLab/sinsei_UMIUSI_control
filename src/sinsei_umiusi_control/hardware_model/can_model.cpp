@@ -70,7 +70,7 @@ auto suchm::CanModel::on_write(
         auto thrust = thruster_thrust[i].value;
         // TODO: dutyとRPMどちらを指定するか検討する
         // TODO: RPMにするのであれば、`MAX_RPM`の値を調べて`[-MAX_RPM, MAX_RPM]`の範囲に収める
-        auto thrust_res = this->vesc_models[i].set_rpm(thrust);
+        auto thrust_res = this->vesc_models[i].set_duty(thrust);
         if (!thrust_res) {
             return tl::make_unexpected(
                 "Failed to set thrust for thruster " + std::to_string(i + 1) + ": " +
