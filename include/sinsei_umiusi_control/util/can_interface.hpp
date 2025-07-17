@@ -20,9 +20,9 @@ class CanInterface {
 
     virtual auto init(const std::string ifname) -> tl::expected<void, std::string> = 0;
     virtual auto close() -> tl::expected<void, std::string> = 0;
-    virtual auto send_stdframe(uint32_t id, const uint8_t * data, size_t length)
+    virtual auto send_frame_std(uint32_t id, const uint8_t * data, size_t length)
         -> tl::expected<void, std::string> = 0;
-    virtual auto send_extframe(uint32_t id, const uint8_t * data, size_t length)
+    virtual auto send_frame_ext(uint32_t id, const uint8_t * data, size_t length)
         -> tl::expected<void, std::string> = 0;
     virtual auto recv_frame() -> tl::expected<CanFrame, std::string> = 0;
 };

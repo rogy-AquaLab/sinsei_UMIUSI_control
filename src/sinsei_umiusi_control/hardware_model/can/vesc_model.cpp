@@ -23,7 +23,7 @@ auto suchm::can::VescModel::send_command_packet(
     VescSimpleCommandID command_id,
     const std::array<uint8_t, 4> & data) -> tl::expected<void, std::string> {
     auto can_id = (static_cast<uint32_t>(command_id) & 0xFF) << 8 | (this->id & 0xFF);
-    return this->can->send_extframe(can_id, data.data(), data.size());
+    return this->can->send_frame_ext(can_id, data.data(), data.size());
 }
 
 auto suchm::can::VescModel::recv_status_frame(VescStatusCommandID expected_cmd_id)
