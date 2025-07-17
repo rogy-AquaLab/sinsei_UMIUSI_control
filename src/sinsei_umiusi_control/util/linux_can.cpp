@@ -139,13 +139,13 @@ auto suc_util::LinuxCan::recv_frame() -> tl::expected<CanFrame, std::string> {
     };
 
     // Wait for data to be available on the socket
-    const auto nfds = this->sock + 1;  // highest file descriptor + 1
-    auto res = ::select(nfds, &read_fds, nullptr, nullptr, &timeout);
-    if (res < 0) {
-        return tl::make_unexpected("select() failed: " + std::string(strerror(errno)));
-    } else if (res == 0) {
-        return tl::make_unexpected("No data available on CAN socket within timeout period");
-    }
+    // const auto nfds = this->sock + 1;  // highest file descriptor + 1
+    // auto res = ::select(nfds, &read_fds, nullptr, nullptr, &timeout);
+    // if (res < 0) {
+    //     return tl::make_unexpected("select() failed: " + std::string(strerror(errno)));
+    // } else if (res == 0) {
+    //     return tl::make_unexpected("No data available on CAN socket within timeout period");
+    // }
 
     // Read the CAN frame from the socket
     struct can_frame frame {};

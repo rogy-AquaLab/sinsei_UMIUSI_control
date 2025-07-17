@@ -54,7 +54,11 @@ auto suchm::CanModel::on_read()
     if (!frame) {
         return tl::make_unexpected("Failed to receive CAN frame: " + frame.error());
     }
-    printf("Received CAN frame: %s\n", frame.value().data.data());
+    printf("Received CAN frame: ");
+    for (size_t i = 0; i < frame->data.size(); ++i) {
+        printf("%02X ", frame->data[i]);
+    }
+    printf("\n");
 
     // FIXME: 仮の値を返している
     return std::make_tuple(
@@ -103,7 +107,11 @@ auto suchm::CanModel::on_write(
     if (!write_res) {
         return tl::make_unexpected("Failed to send CAN frame: " + write_res.error());
     }
-    printf("Sent CAN frame with ID 0x123 and data: %s\n", data);
+    printf("Sent CAN frame with ID 0x123 and data: ");
+    for (size_t i = 0; i < 6; ++i) {
+        printf("%02X ", data[i]);
+    }
+    printf("\n");
     return {};
 }
 
