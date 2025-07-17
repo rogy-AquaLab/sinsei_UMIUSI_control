@@ -76,8 +76,17 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 
   ament_add_pytest_test(pytest test/python)
-  ament_auto_add_gmock(test_hardware_model test/cpp/hardware_model.cpp)
-  ament_auto_add_gmock(test_util test/cpp/util.cpp)
+  ament_auto_add_gmock(test_hardware_model
+    test/cpp/hardware_model/headlights.cpp
+    test/cpp/hardware_model/imu.cpp
+    test/cpp/hardware_model/indicator_led.cpp
+  )
+  target_include_directories(test_hardware_model
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/cpp>
+  )
+  ament_auto_add_gmock(test_util
+    test/cpp/util.cpp
+  )
 endif()
 
 ament_auto_package(

@@ -1,106 +1,18 @@
-#ifndef SINSEI_UMIUSI_CONTROL_test_TEST_HARDWARE_MODEL_HPP
-#define SINSEI_UMIUSI_CONTROL_test_TEST_HARDWARE_MODEL_HPP
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <cstdint>
 #include <rcpputils/tl_expected/expected.hpp>
 
-#include "sinsei_umiusi_control/cmd/headlights.hpp"
-#include "sinsei_umiusi_control/cmd/indicator_led.hpp"
-#include "sinsei_umiusi_control/hardware_model/headlights_model.hpp"
+#include "mock/gpio.hpp"
 #include "sinsei_umiusi_control/hardware_model/imu_model.hpp"
-#include "sinsei_umiusi_control/hardware_model/indicator_led_model.hpp"
-#include "sinsei_umiusi_control/util/gpio_interface.hpp"
 
 namespace suchm = sinsei_umiusi_control::hardware_model;
-namespace succmd = sinsei_umiusi_control::cmd;
-namespace sucst = sinsei_umiusi_control::state;
 namespace sucutil = sinsei_umiusi_control::util;
 
 using testing::AtLeast;
 using testing::Return;
 
-namespace sinsei_umiusi_control::test::hardware_model {
-
-constexpr auto _ = ::testing::_;
-
-namespace mock {
-
-class Gpio : public sinsei_umiusi_control::util::GpioInterface {
-  public:
-    MOCK_METHOD1(
-        set_mode_output, tl::expected<void, sucutil::GpioError>(std::vector<util::GpioPin> pins));
-    MOCK_METHOD1(
-        set_mode_input, tl::expected<void, sucutil::GpioError>(std::vector<util::GpioPin> pins));
-    MOCK_METHOD2(
-        write_digital, tl::expected<void, sucutil::GpioError>(util::GpioPin pin, bool enabled));
-    MOCK_METHOD0(write_pwm, tl::expected<void, sucutil::GpioError>());  // TODO: 未実装
-    MOCK_METHOD1(i2c_open, tl::expected<void, sucutil::GpioError>(uint32_t address));
-    MOCK_METHOD0(i2c_close, tl::expected<void, sucutil::GpioError>());
-    MOCK_METHOD1(i2c_write_byte, tl::expected<void, sucutil::GpioError>(std::byte value));
-    MOCK_METHOD0(i2c_read_byte, tl::expected<std::byte, sucutil::GpioError>());
-    MOCK_METHOD2(
-        i2c_write_byte_data, tl::expected<void, sucutil::GpioError>(uint32_t reg, std::byte value));
-    MOCK_METHOD1(i2c_read_byte_data, tl::expected<std::byte, sucutil::GpioError>(uint32_t reg));
-};
-
-}  // namespace mock
-
-namespace headlights {
-
-constexpr uint8_t HIGH_BEAM_PIN = 5;
-constexpr uint8_t LOW_BEAM_PIN = 6;
-constexpr uint8_t IR_PIN = 25;
-
-class HeadlightsModelOnWriteTest
-: public ::testing::TestWithParam<std::tuple<
-      succmd::headlights::HighBeamEnabled, succmd::headlights::LowBeamEnabled,
-      succmd::headlights::IrEnabled>> {};
-INSTANTIATE_TEST_CASE_P(
-    HeadlightsModelTest, HeadlightsModelOnWriteTest,
-    ::testing::Combine(
-        ::testing::Values(
-            succmd::headlights::HighBeamEnabled{true}, succmd::headlights::HighBeamEnabled{false}),
-        ::testing::Values(
-            succmd::headlights::LowBeamEnabled{true}, succmd::headlights::LowBeamEnabled{false}),
-        ::testing::Values(
-            succmd::headlights::IrEnabled{true}, succmd::headlights::IrEnabled{false})));
-
-TEST(HeadlightsModelOnInitTest, all) {
-    auto gpio = std::make_unique<mock::Gpio>();
-
-    EXPECT_CALL(*gpio, set_mode_output(_))
-        .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
-
-    auto headlights_model =
-        suchm::HeadlightsModel(std::move(gpio), HIGH_BEAM_PIN, LOW_BEAM_PIN, IR_PIN);
-    auto result = headlights_model.on_init();
-    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
-}
-
-TEST_P(HeadlightsModelOnWriteTest, all) {
-    auto [high_beam_enabled, low_beam_enabled, ir_enabled] = GetParam();
-
-    auto gpio = std::make_unique<mock::Gpio>();
-
-    int n_true = static_cast<int>(high_beam_enabled.value) +
-                 static_cast<int>(low_beam_enabled.value) + static_cast<int>(ir_enabled.value);
-
-    EXPECT_CALL(*gpio, write_digital(_, true)).Times(n_true);
-    EXPECT_CALL(*gpio, write_digital(_, false)).Times(3 - n_true);
-
-    auto headlights_model =
-        suchm::HeadlightsModel(std::move(gpio), HIGH_BEAM_PIN, LOW_BEAM_PIN, IR_PIN);
-    headlights_model.on_init();
-    headlights_model.on_write(high_beam_enabled, low_beam_enabled, ir_enabled);
-}
-
-}  // namespace headlights
-
-namespace imu {
+namespace sinsei_umiusi_control::test::hardware_model::imu {
 
 // copied from sinsei_umiusi_control/hardware_model/imu_model.hpp
 static constexpr uint32_t ADDRESS = 0x28;
@@ -401,42 +313,4 @@ TEST(ImuModelOnReadTest, fail_on_read_temperature) {
     ASSERT_FALSE(result);
 }
 
-}  // namespace imu
-
-namespace indicator_led {
-
-constexpr uint8_t LED_PIN = 24;
-
-class IndicatorLedModelOnWriteTest : public ::testing::TestWithParam<cmd::indicator_led::Enabled> {
-};
-INSTANTIATE_TEST_CASE_P(
-    IndicatorLedModelTest, IndicatorLedModelOnWriteTest,
-    ::testing::Values(succmd::indicator_led::Enabled{true}, succmd::indicator_led::Enabled{false}));
-
-TEST(IndicatorLedModelOnInitTest, all) {
-    auto gpio = std::make_unique<mock::Gpio>();
-    EXPECT_CALL(*gpio, set_mode_output(_))
-        .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
-
-    auto indicator_led_model = suchm::IndicatorLedModel(std::move(gpio), LED_PIN);
-    auto result = indicator_led_model.on_init();
-    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
-}
-
-TEST_P(IndicatorLedModelOnWriteTest, all) {
-    auto enabled = GetParam();
-
-    auto gpio = std::make_unique<mock::Gpio>();
-    EXPECT_CALL(*gpio, write_digital(_, enabled.value)).Times(1);
-
-    auto indicator_led_model = suchm::IndicatorLedModel(std::move(gpio), LED_PIN);
-    indicator_led_model.on_init();
-    indicator_led_model.on_write(enabled);
-}
-
-}  // namespace indicator_led
-
-}  // namespace sinsei_umiusi_control::test::hardware_model
-
-#endif  // SINSEI_UMIUSI_CONTROL_test_TEST_HARDWARE_MODEL_HPP
+}  // namespace sinsei_umiusi_control::test::hardware_model::imu
