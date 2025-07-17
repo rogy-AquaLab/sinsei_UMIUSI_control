@@ -92,11 +92,12 @@ class VescModel {
     static constexpr double ADC3_SCALE = 1000;
     static constexpr double PPM_SCALE = 1000;
 
-    static auto to_bytes_be(int32_t value) -> std::array<uint8_t, 4>;
+    // Convert int32_t to 8-byte array in big-endian order
+    static auto to_bytes_be(int32_t value) -> std::array<uint8_t, 8>;
+    // Convert 8-byte array in big-endian order to int32_t
+    static auto to_int32_be(std::array<uint8_t, 8> bytes) -> int32_t;
 
-    static auto to_int32_be(std::array<uint8_t, 4> bytes) -> int32_t;
-
-    auto send_command_packet(VescSimpleCommandID command_id, const std::array<uint8_t, 4> & data)
+    auto send_command_packet(VescSimpleCommandID command_id, const std::array<uint8_t, 8> & data)
         -> tl::expected<void, std::string>;
 
     auto recv_status_frame(VescStatusCommandID expected_cmd_id)

@@ -61,6 +61,35 @@ auto _init(int & sock, const std::string & ifname) -> tl::expected<void, std::st
     return {};
 }
 
+auto _to_linux_can_frame(suc_util::CanFrame && frame) -> can_frame {
+    can_frame linux_can_frame{};
+    if (frame.is_extended) {
+        linux_can_frame.can_id = (frame.id & CAN_EFF_MASK) | CAN_EFF_FLAG;  // Extended frame ID
+    } else {
+        linux_can_frame.can_id = frame.id & CAN_SFF_MASK;  // Standard frame ID
+    }
+    linux_can_frame.len = frame.dlc;
+    const auto first = frame.data.begin();
+    const auto last = first + frame.dlc;
+    std::copy(first, last, std::begin(linux_can_frame.data));
+    return linux_can_frame;
+}
+
+auto _from_linux_can_frame(const can_frame & linux_can_frame) -> suc_util::CanFrame {
+    suc_util::CanFrame frame{};
+    frame.is_extended = (linux_can_frame.can_id & CAN_EFF_FLAG) != 0;
+    if (frame.is_extended) {
+        frame.id = linux_can_frame.can_id & CAN_EFF_MASK;  // Extended frame ID
+    } else {
+        frame.id = linux_can_frame.can_id & CAN_SFF_MASK;  // Standard frame ID
+    }
+    frame.dlc = linux_can_frame.len;
+    const auto first = std::begin(frame.data);
+    const auto last = first + linux_can_frame.len;
+    std::copy(first, last, frame.data.begin());
+    return frame;
+}
+
 }  // namespace
 
 suc_util::LinuxCan::LinuxCan() : sock_tx(-1), sock_rx(-1) {}
@@ -90,28 +119,15 @@ auto suc_util::LinuxCan::init(const std::string ifname) -> tl::expected<void, st
     return {};
 }
 
-auto suc_util::LinuxCan::send_frame(
-    uint32_t id, const uint8_t * data, size_t length,
-    bool is_extended) -> tl::expected<void, std::string> {
+auto suc_util::LinuxCan::send_linux_can_frame(can_frame && frame)
+    -> tl::expected<void, std::string> {
     if (this->sock_tx < 0) {
         return tl::make_unexpected("CAN socket is not initialized");
     }
 
-    if (length > CAN_MAX_DLEN) {
+    if (frame.len > CAN_MAX_DLEN) {
         return tl::make_unexpected("DLC exceeds maximum allowed CAN data length");
     }
-
-    // Prepare a CAN frame to send
-    can_frame frame{};
-    if (is_extended) {
-        frame.can_id = (id & CAN_EFF_MASK) | CAN_EFF_FLAG;  // Extended frame ID
-    } else {
-        frame.can_id = id & CAN_SFF_MASK;  // Standard frame ID
-    }
-    frame.can_dlc = static_cast<uint8_t>(length);  // always safe (bc. length <= CAN_MAX_DLEN = 8)
-    const auto data_begin = data;
-    const auto data_end = data + length;
-    std::copy(data_begin, data_end, frame.data);
 
     // Send the CAN frame
     const auto bytes_to_write = sizeof(frame);
@@ -129,17 +145,7 @@ auto suc_util::LinuxCan::send_frame(
     return {};
 }
 
-auto suc_util::LinuxCan::send_frame_std(uint32_t id, const uint8_t * data, size_t length)
-    -> tl::expected<void, std::string> {
-    return this->send_frame(id, data, length, false);
-}
-
-auto suc_util::LinuxCan::send_frame_ext(uint32_t id, const uint8_t * data, size_t length)
-    -> tl::expected<void, std::string> {
-    return this->send_frame(id, data, length, true);
-}
-
-auto suc_util::LinuxCan::recv_frame() -> tl::expected<CanFrame, std::string> {
+auto suc_util::LinuxCan::recv_linux_can_frame() -> tl::expected<can_frame, std::string> {
     if (this->sock_rx < 0) {
         return tl::make_unexpected("CAN socket is not initialized");
     }
@@ -177,14 +183,20 @@ auto suc_util::LinuxCan::recv_frame() -> tl::expected<CanFrame, std::string> {
             " bytes, got " + std::to_string(bytes_read) + " bytes");
     }
 
-    // Prepare the CanFrame result
-    CanFrame result{};
-    result.id = frame.can_id;
-    result.dlc = frame.can_dlc;
-    const auto data_length = std::min<uint8_t>(frame.can_dlc, CAN_MAX_DLEN);
-    const auto data_begin = frame.data;
-    const auto data_end = frame.data + data_length;
-    std::copy(data_begin, data_end, result.data.begin());
+    return frame;
+}
 
-    return result;
+auto suc_util::LinuxCan::send_frame(suc_util::CanFrame && frame)
+    -> tl::expected<void, std::string> {
+    auto linux_can_frame = _to_linux_can_frame(std::move(frame));
+    return this->send_linux_can_frame(std::move(linux_can_frame));
+}
+
+auto suc_util::LinuxCan::recv_frame() -> tl::expected<CanFrame, std::string> {
+    auto linux_can_frame_result = this->recv_linux_can_frame();
+    if (!linux_can_frame_result) {
+        return tl::make_unexpected(
+            "Failed to receive CAN frame: " + linux_can_frame_result.error());
+    }
+    return _from_linux_can_frame(std::move(linux_can_frame_result.value()));
 }

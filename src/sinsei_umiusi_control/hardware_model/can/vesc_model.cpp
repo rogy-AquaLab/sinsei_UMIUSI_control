@@ -2,28 +2,30 @@
 
 #include <algorithm>
 
+#include "sinsei_umiusi_control/util/can_interface.hpp"
+
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
 suchm::can::VescModel::VescModel(std::shared_ptr<suc::util::CanInterface> can, uint8_t id)
 : can(std::move(can)), id(id) {}
 
-auto suchm::can::VescModel::to_bytes_be(int32_t value) -> std::array<uint8_t, 4> {
+auto suchm::can::VescModel::to_bytes_be(int32_t value) -> std::array<uint8_t, 8> {
     return {
         static_cast<uint8_t>(value >> 24), static_cast<uint8_t>(value >> 16),
         static_cast<uint8_t>(value >> 8), static_cast<uint8_t>(value)};
 }
 
-auto suchm::can::VescModel::to_int32_be(std::array<uint8_t, 4> bytes) -> int32_t {
+auto suchm::can::VescModel::to_int32_be(std::array<uint8_t, 8> bytes) -> int32_t {
     return (static_cast<int32_t>(bytes[0]) << 24) | (static_cast<int32_t>(bytes[1]) << 16) |
            (static_cast<int32_t>(bytes[2]) << 8) | static_cast<int32_t>(bytes[3]);
 }
 
 auto suchm::can::VescModel::send_command_packet(
     VescSimpleCommandID command_id,
-    const std::array<uint8_t, 4> & data) -> tl::expected<void, std::string> {
+    const std::array<uint8_t, 8> & data) -> tl::expected<void, std::string> {
     auto can_id = (static_cast<uint32_t>(command_id) & 0xFF) << 8 | (this->id & 0xFF);
-    return this->can->send_frame_ext(can_id, data.data(), data.size());
+    return this->can->send_frame(util::CanFrame{can_id, 4, data, true});
 }
 
 auto suchm::can::VescModel::recv_status_frame(VescStatusCommandID expected_cmd_id)
@@ -92,7 +94,7 @@ auto suchm::can::VescModel::get_erpm() -> tl::expected<double, std::string> {
     auto res = recv_status_frame(VescStatusCommandID::CAN_PACKET_STATUS);
     if (!res) return tl::make_unexpected(res.error());
 
-    std::array<uint8_t, 4> bytes;
+    std::array<uint8_t, 8> bytes;
     std::copy_n(res.value().begin(), 4, bytes.begin());
 
     auto scaled_erpm = to_int32_be(bytes);
