@@ -152,8 +152,9 @@ auto succ::AppController::compute_outputs() -> void {
     // TODO: PID制御などの処理はここに記述する
     // 現在はダミー
     for (size_t i = 0; i < 4; ++i) {
-        this->thruster_angles[i].value = 0.0;
-        this->thruster_thrusts[i].value = 0.0;
+        // FIXME: target_orientationとtarget_velocityをangleとthrustに無理やり割り当てている
+        this->thruster_angles[i].value = this->target_orientation.x;
+        this->thruster_thrusts[i].value = this->target_velocity.x;
     }
 }
 
