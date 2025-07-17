@@ -41,14 +41,17 @@ auto suchm::CanModel::on_read()
     // suc::state::main_power::BatteryVoltage battery_voltage;
     // suc::state::main_power::Temperature temperature;
 
-    for (size_t i = 0; i < 4; ++i) {
-        auto rpm_res = this->vesc_models[i].get_rpm();
-        if (!rpm_res) {
-            return tl::make_unexpected(
-                "Failed to get RPM for thruster " + std::to_string(i + 1) + ": " + rpm_res.error());
-        }
-        rpm[i] = suc::state::thruster::Rpm{rpm_res.value()};
-    }
+    // for (size_t i = 0; i < 4; ++i) {
+    //     auto rpm_res = this->vesc_models[i].get_rpm();
+    //     if (!rpm_res) {
+    //         return tl::make_unexpected(
+    //             "Failed to get RPM for thruster " + std::to_string(i + 1) + ": " + rpm_res.error());
+    //     }
+    //     rpm[i] = suc::state::thruster::Rpm{rpm_res.value()};
+    // }
+
+    auto frame = this->can->recv_frame();
+    printf("Received CAN frame: %s\n", frame.value().data.data());
 
     // FIXME: 仮の値を返している
     return std::make_tuple(
@@ -64,32 +67,36 @@ auto suchm::CanModel::on_write(
     std::array<suc::cmd::thruster::Thrust, 4> thruster_thrust,
     suc::cmd::main_power::Enabled main_power_enabled,
     suc::cmd::led_tape::Color led_tape_color) -> tl::expected<void, std::string> {
-    for (size_t i = 0; i < 4; ++i) {
-        // TODO: `thruster_esc_enabled`と`thruster_servo_enabled`の処理を実装する
+    // for (size_t i = 0; i < 4; ++i) {
+    //     // TODO: `thruster_esc_enabled`と`thruster_servo_enabled`の処理を実装する
 
-        auto thrust = thruster_thrust[i].value;
-        // TODO: dutyとRPMどちらを指定するか検討する
-        // TODO: RPMにするのであれば、`MAX_RPM`の値を調べて`[-MAX_RPM, MAX_RPM]`の範囲に収める
-        auto thrust_res = this->vesc_models[i].set_rpm(thrust);
-        if (!thrust_res) {
-            return tl::make_unexpected(
-                "Failed to set thrust for thruster " + std::to_string(i + 1) + ": " +
-                thrust_res.error());
-        }
+    //     auto thrust = thruster_thrust[i].value;
+    //     // TODO: dutyとRPMどちらを指定するか検討する
+    //     // TODO: RPMにするのであれば、`MAX_RPM`の値を調べて`[-MAX_RPM, MAX_RPM]`の範囲に収める
+    //     auto thrust_res = this->vesc_models[i].set_rpm(thrust);
+    //     if (!thrust_res) {
+    //         return tl::make_unexpected(
+    //             "Failed to set thrust for thruster " + std::to_string(i + 1) + ": " +
+    //             thrust_res.error());
+    //     }
 
-        auto angle = thruster_angle[i].value;
-        auto angle_res = this->vesc_models[i].set_servo_angle(angle);
-        if (!angle_res) {
-            return tl::make_unexpected(
-                "Failed to set servo angle for thruster " + std::to_string(i + 1) + ": " +
-                angle_res.error());
-        }
-    }
+    //     auto angle = thruster_angle[i].value;
+    //     auto angle_res = this->vesc_models[i].set_servo_angle(angle);
+    //     if (!angle_res) {
+    //         return tl::make_unexpected(
+    //             "Failed to set servo angle for thruster " + std::to_string(i + 1) + ": " +
+    //             angle_res.error());
+    //     }
+    // }
 
-    auto write_res = this->on_write(main_power_enabled, led_tape_color);
-    if (!write_res) {
-        return tl::make_unexpected("Failed to write main power and LED tape: " + write_res.error());
-    }
+    // auto write_res = this->on_write(main_power_enabled, led_tape_color);
+    // if (!write_res) {
+    //     return tl::make_unexpected("Failed to write main power and LED tape: " + write_res.error());
+    // }
+    uint8_t data[6] = {1, 2, 3, 4, 5};
+    auto write_res = this->can->send_frame_std(
+        0x123,  // 仮のID、実際のIDに置き換える必要がある
+        data, 6);
     return {};
 }
 
