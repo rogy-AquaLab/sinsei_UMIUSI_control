@@ -15,7 +15,7 @@ struct Angle {
     uint8_t value;
 };
 struct Thrust {
-    int8_t value;
+    double value;
 };
 
 }  // namespace sinsei_umiusi_control::cmd::thruster
