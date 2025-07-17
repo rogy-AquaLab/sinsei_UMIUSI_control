@@ -9,7 +9,8 @@ namespace sinsei_umiusi_control::util {
 
 class LinuxCan : public CanInterface {
   private:
-    int sock;
+    int sock_tx;
+    int sock_rx;
 
     auto send_frame(uint32_t id, const uint8_t * data, size_t length, bool is_extended)
         -> tl::expected<void, std::string>;

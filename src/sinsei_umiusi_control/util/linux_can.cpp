@@ -14,37 +14,34 @@
 
 namespace suc_util = sinsei_umiusi_control::util;
 
-suc_util::LinuxCan::LinuxCan() : sock(-1) {}
+namespace {
 
-auto suc_util::LinuxCan::close() -> tl::expected<void, std::string> {
-    if (this->sock < 0) {
-        return tl::make_unexpected("CAN socket is not initialized");
+// TODO: use optional<int> instead of int
+auto _close(int & sock) -> tl::expected<void, std::string> {
+    if (sock < 0) {
+        return tl::make_unexpected("Socket is not initialized");
     }
-    auto res = ::close(this->sock);
+    auto res = ::close(sock);
     if (res < 0) {
-        return tl::make_unexpected("Failed to close CAN socket: " + std::string(strerror(errno)));
+        return tl::make_unexpected("Failed to close socket: " + std::string(strerror(errno)));
     }
-    this->sock = -1;
+    sock = -1;  // Reset the socket descriptor
     return {};
 }
 
-auto suc_util::LinuxCan::init(const std::string ifname) -> tl::expected<void, std::string> {
+auto _init(int & sock, const std::string & ifname) -> tl::expected<void, std::string> {
     // Create a socket
-    this->sock = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
-    if (this->sock < 0) {
+    sock = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
+    if (sock < 0) {
         return tl::make_unexpected("Failed to create CAN socket: " + std::string(strerror(errno)));
     }
 
     // Interface request (name -> if_index mapping)
     struct ifreq ifr {};
     std::strncpy(ifr.ifr_name, ifname.c_str(), IFNAMSIZ - 1);
-    auto res = ::ioctl(this->sock, SIOCGIFINDEX, &ifr);
+    auto res = ::ioctl(sock, SIOCGIFINDEX, &ifr);
     if (res < 0) {
-        auto res = this->close();
-        if (!res) {
-            return tl::make_unexpected(
-                "Failed to close CAN socket after ioctl failure: " + res.error());
-        }
+        _close(sock);  // Reset the socket descriptor on error
         return tl::make_unexpected(
             "Failed to get interface index: " + std::string(strerror(errno)));
     }
@@ -55,14 +52,39 @@ auto suc_util::LinuxCan::init(const std::string ifname) -> tl::expected<void, st
     addr.can_ifindex = ifr.ifr_ifindex;
 
     // Bind the socket to the CAN interface
-    res = ::bind(this->sock, reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
+    res = ::bind(sock, reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
     if (res < 0) {
-        auto res = this->close();
-        if (!res) {
-            return tl::make_unexpected(
-                "Failed to close CAN socket after bind failure: " + res.error());
-        }
+        _close(sock);  // Reset the socket descriptor on error
         return tl::make_unexpected("Failed to bind CAN socket: " + std::string(strerror(errno)));
+    }
+
+    return {};
+}
+
+}  // namespace
+
+suc_util::LinuxCan::LinuxCan() : sock_tx(-1), sock_rx(-1) {}
+
+auto suc_util::LinuxCan::close() -> tl::expected<void, std::string> {
+    auto res_tx = _close(this->sock_tx);
+    auto res_rx = _close(this->sock_rx);
+
+    if (!res_tx || !res_rx) {
+        return tl::make_unexpected(
+            "Failed to close sockets: \n    TX: " + res_tx.error() + "\n    RX: " + res_rx.error());
+    }
+
+    return {};
+}
+
+auto suc_util::LinuxCan::init(const std::string ifname) -> tl::expected<void, std::string> {
+    auto res_tx = _init(this->sock_tx, ifname);
+    auto res_rx = _init(this->sock_rx, ifname);
+
+    if (!res_tx || !res_rx) {
+        return tl::make_unexpected(
+            "Failed to initialize sockets: \n    TX: " + res_tx.error() +
+            "\n    RX: " + res_rx.error());
     }
 
     return {};
@@ -71,7 +93,7 @@ auto suc_util::LinuxCan::init(const std::string ifname) -> tl::expected<void, st
 auto suc_util::LinuxCan::send_frame(
     uint32_t id, const uint8_t * data, size_t length,
     bool is_extended) -> tl::expected<void, std::string> {
-    if (this->sock < 0) {
+    if (this->sock_tx < 0) {
         return tl::make_unexpected("CAN socket is not initialized");
     }
 
@@ -93,7 +115,7 @@ auto suc_util::LinuxCan::send_frame(
 
     // Send the CAN frame
     const auto bytes_to_write = sizeof(frame);
-    const auto bytes_written = ::write(this->sock, &frame, bytes_to_write);
+    const auto bytes_written = ::write(this->sock_tx, &frame, bytes_to_write);
     if (bytes_written < 0) {
         return tl::make_unexpected("Failed to write CAN frame: " + std::string(strerror(errno)));
     }
@@ -118,23 +140,23 @@ auto suc_util::LinuxCan::send_frame_ext(uint32_t id, const uint8_t * data, size_
 }
 
 auto suc_util::LinuxCan::recv_frame() -> tl::expected<CanFrame, std::string> {
-    if (this->sock < 0) {
+    if (this->sock_rx < 0) {
         return tl::make_unexpected("CAN socket is not initialized");
     }
 
     fd_set read_fds;
-    FD_ZERO(&read_fds);             // Clear the set
-    FD_SET(this->sock, &read_fds);  // Add the socket to the set
+    FD_ZERO(&read_fds);                // Clear the set
+    FD_SET(this->sock_rx, &read_fds);  // Add the socket to the set
 
-    // Set a timeout for select (1 sec)
-    constexpr int TIMEOUT_MS = 1000;
+    // Set a timeout for select (5 ms)
+    constexpr int TIMEOUT_MS = 5;
     struct timeval timeout = {
         TIMEOUT_MS / 1000,                                 // seconds
         (static_cast<int64_t>(TIMEOUT_MS % 1000)) * 1000,  // microseconds
     };
 
     // Wait for data to be available on the socket
-    const auto nfds = this->sock + 1;  // highest file descriptor + 1
+    const auto nfds = this->sock_rx + 1;  // highest file descriptor + 1
     auto res = ::select(nfds, &read_fds, nullptr, nullptr, &timeout);
     if (res < 0) {
         return tl::make_unexpected("select() failed: " + std::string(strerror(errno)));
@@ -145,7 +167,7 @@ auto suc_util::LinuxCan::recv_frame() -> tl::expected<CanFrame, std::string> {
     // Read the CAN frame from the socket
     struct can_frame frame {};
     const auto bytes_to_read = sizeof(frame);
-    const auto bytes_read = ::read(this->sock, &frame, bytes_to_read);
+    const auto bytes_read = ::read(this->sock_rx, &frame, bytes_to_read);
     if (bytes_read < 0) {
         return tl::make_unexpected("read() failed: " + std::string(strerror(errno)));
     }
