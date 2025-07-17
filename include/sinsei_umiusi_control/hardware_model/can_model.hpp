@@ -25,7 +25,7 @@ class CanModel {
 
     // FIXME: IDは適当
     std::array<can::VescModel, 4> vesc_models = {
-        can::VescModel(can, 0x01), can::VescModel(can, 0x02), can::VescModel(can, 0x03),
+        can::VescModel(can, 45), can::VescModel(can, 0x02), can::VescModel(can, 0x03),
         can::VescModel(can, 0x04)};
 
   public:

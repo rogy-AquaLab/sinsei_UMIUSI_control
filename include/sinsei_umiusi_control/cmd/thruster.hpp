@@ -12,10 +12,10 @@ struct EscEnabled {
     bool value;
 };
 struct Angle {
-    uint8_t value;
+    double value;
 };
 struct Thrust {
-    int8_t value;
+    double value;
 };
 
 }  // namespace sinsei_umiusi_control::cmd::thruster

@@ -54,11 +54,6 @@ auto suc_util::LinuxCan::init(const std::string ifname) -> tl::expected<void, st
     addr.can_family = AF_CAN;
     addr.can_ifindex = ifr.ifr_ifindex;
 
-    // Disable local loopback mode and ID filters
-    const bool loopback = false;
-    ::setsockopt(this->sock, SOL_CAN_RAW, CAN_RAW_LOOPBACK, &loopback, sizeof(loopback));
-    ::setsockopt(this->sock, SOL_CAN_RAW, CAN_RAW_FILTER, nullptr, 0);
-
     // Bind the socket to the CAN interface
     res = ::bind(this->sock, reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
     if (res < 0) {
