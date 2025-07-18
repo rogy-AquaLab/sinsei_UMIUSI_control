@@ -3,14 +3,18 @@
 
 #include <linux/can.h>
 
+#include <optional>
+
 #include "sinsei_umiusi_control/util/can_interface.hpp"
 
 namespace sinsei_umiusi_control::util {
 
+using Socket = int;
+
 class LinuxCan : public CanInterface {
   private:
-    int sock_tx;
-    int sock_rx;
+    std::optional<Socket> sock_tx;
+    std::optional<Socket> sock_rx;
 
     auto send_linux_can_frame(can_frame && frame) -> tl::expected<void, std::string>;
     auto recv_linux_can_frame() -> tl::expected<can_frame, std::string>;
