@@ -34,7 +34,8 @@ auto _init(std::optional<suc_util::Socket> & sock, const std::string & ifname)
     -> tl::expected<void, std::string> {
     // Create a socket
     sock = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
-    if (!sock) {
+    if (sock < 0) {
+        sock.reset();
         return tl::make_unexpected("Failed to create CAN socket: " + std::string(strerror(errno)));
     }
 
