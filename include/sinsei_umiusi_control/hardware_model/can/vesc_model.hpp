@@ -111,7 +111,7 @@ class VescModel {
     VescModel(std::shared_ptr<util::CanInterface> can, uint8_t id);
 
     auto set_duty(double duty) -> tl::expected<void, std::string>;
-    auto set_rpm(double rpm) -> tl::expected<void, std::string>;
+    auto set_rpm(int8_t rpm) -> tl::expected<void, std::string>;
     auto set_servo_angle(double deg) -> tl::expected<void, std::string>;
 
     auto get_rpm() -> tl::expected<double, std::string>;

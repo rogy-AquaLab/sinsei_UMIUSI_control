@@ -65,7 +65,7 @@ auto suchm::can::VescModel::set_duty(double duty) -> tl::expected<void, std::str
     return this->send_command_packet(VescSimpleCommandID::CAN_PACKET_SET_DUTY, bytes);
 }
 
-auto suchm::can::VescModel::set_rpm(double rpm) -> tl::expected<void, std::string> {
+auto suchm::can::VescModel::set_rpm(int8_t rpm) -> tl::expected<void, std::string> {
     auto scaled_rpm = static_cast<int32_t>(rpm * SET_RPM_SCALE);
     auto bytes = this->to_bytes_be(scaled_rpm);
     return this->send_command_packet(VescSimpleCommandID::CAN_PACKET_SET_RPM, bytes);
