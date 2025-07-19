@@ -64,15 +64,19 @@ auto suchm::can::VescModel::set_servo_angle(double deg) -> tl::expected<void, st
 }
 
 auto suchm::can::VescModel::handle_frame(const util::CanFrame & frame)
-    -> std::optional<suc::state::thruster::Rpm> {
+    -> tl::expected<suc::state::thruster::Rpm, std::string> {
     const auto cmd_id = static_cast<uint8_t>((frame.id >> 8) & 0xFF);
     const auto vesc_id = static_cast<uint8_t>(frame.id & 0xFF);
 
     if (vesc_id != this->id) {
-        return std::nullopt;
+        return tl::make_unexpected(
+            "Received CAN frame for different VESC ID (expected: " + std::to_string(this->id) +
+            ", received: " + std::to_string(vesc_id) + ")");
     }
     if (frame.dlc != 8) {
-        return std::nullopt;
+        return tl::make_unexpected(
+            "Received CAN frame with invalid DLC (expected: 8, received: " +
+            std::to_string(frame.dlc) + ")");
     }
 
     std::array<uint8_t, 8> bytes;
@@ -90,7 +94,8 @@ auto suchm::can::VescModel::handle_frame(const util::CanFrame & frame)
             break;
         }
         default:
-            return std::nullopt;
+            return tl::make_unexpected(
+                "Received CAN frame with unknown command ID: " + std::to_string(cmd_id));
     }
 
     return rpm;

@@ -4,7 +4,6 @@
 #include <array>
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 
@@ -112,7 +111,7 @@ class VescModel {
     auto set_servo_angle(double deg) -> tl::expected<void, std::string>;
 
     auto handle_frame(const util::CanFrame & frame)
-        -> std::optional<sinsei_umiusi_control::state::thruster::Rpm>;
+        -> tl::expected<sinsei_umiusi_control::state::thruster::Rpm, std::string>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::can

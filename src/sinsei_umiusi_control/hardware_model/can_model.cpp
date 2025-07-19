@@ -49,20 +49,23 @@ auto suchm::CanModel::on_read()
     }
 
     auto success = false;
+    std::string error_message;
 
     for (size_t i = 0; i < 4; ++i) {
         if (!success) {
-            if (auto res = this->vesc_models[i].handle_frame(frame.value())) {
-                rpm[i] = res.value();
-                success = true;
+            auto res = this->vesc_models[i].handle_frame(frame.value());
+            if (!res) {
+                error_message += "    VESC " + std::to_string(i + 1) + ": " + res.error() + "\n";
             }
+            rpm[i] = res.value();
+            success = true;
         }
     }
 
     if (!success) {
         return tl::make_unexpected(
             "Failed to handle CAN frame \"" + std::to_string(frame.value().id) +
-            "\" in all models");
+            "\" in all models: \n" + error_message);
     }
 
     // FIXME: 仮の値を返している
