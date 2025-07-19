@@ -87,7 +87,7 @@ auto _from_linux_can_frame(const can_frame & linux_can_frame) -> suc_util::CanFr
         frame.id = linux_can_frame.can_id & CAN_SFF_MASK;  // Standard frame ID
     }
     frame.dlc = linux_can_frame.len;
-    const auto first = std::begin(frame.data);
+    const auto first = std::begin(linux_can_frame.data);
     const auto last = first + linux_can_frame.len;
     std::copy(first, last, frame.data.begin());
     return frame;
