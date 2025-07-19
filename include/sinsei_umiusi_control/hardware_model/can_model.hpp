@@ -11,7 +11,6 @@
 #include "sinsei_umiusi_control/state/main_power.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/can_interface.hpp"
-#include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 namespace suc = sinsei_umiusi_control;
 
@@ -21,15 +20,13 @@ class CanModel {
   private:
     std::shared_ptr<util::CanInterface> can;
 
-    util::ThrusterMode mode;
-
     // FIXME: IDは適当
     std::array<can::VescModel, 4> vesc_models = {
         can::VescModel(can, 45), can::VescModel(can, 0x02), can::VescModel(can, 0x03),
         can::VescModel(can, 0x04)};
 
   public:
-    CanModel(std::shared_ptr<util::CanInterface> can, util::ThrusterMode mode);
+    CanModel(std::shared_ptr<util::CanInterface> can);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_destroy() -> tl::expected<void, std::string>;
     auto on_read()

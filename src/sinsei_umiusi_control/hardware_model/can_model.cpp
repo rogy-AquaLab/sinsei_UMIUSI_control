@@ -3,13 +3,11 @@
 #include <string>
 
 #include "sinsei_umiusi_control/state/thruster.hpp"
-#include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
-suchm::CanModel::CanModel(std::shared_ptr<suc::util::CanInterface> can, util::ThrusterMode mode)
-: can(std::move(can)), mode(mode) {}
+suchm::CanModel::CanModel(std::shared_ptr<suc::util::CanInterface> can) : can(std::move(can)) {}
 
 auto suchm::CanModel::on_init() -> tl::expected<void, std::string> {
     auto res = this->can->init("can0");
