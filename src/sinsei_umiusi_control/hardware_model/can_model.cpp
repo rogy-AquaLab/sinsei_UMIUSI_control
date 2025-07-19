@@ -1,13 +1,13 @@
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 
+#include <string>
+
 #include "sinsei_umiusi_control/state/thruster.hpp"
-#include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
-suchm::CanModel::CanModel(std::shared_ptr<suc::util::CanInterface> can, util::ThrusterMode mode)
-: can(std::move(can)), mode(mode) {}
+suchm::CanModel::CanModel(std::shared_ptr<suc::util::CanInterface> can) : can(std::move(can)) {}
 
 auto suchm::CanModel::on_init() -> tl::expected<void, std::string> {
     auto res = this->can->init("can0");
@@ -41,13 +41,30 @@ auto suchm::CanModel::on_read()
     // suc::state::main_power::BatteryVoltage battery_voltage;
     // suc::state::main_power::Temperature temperature;
 
+    auto frame = this->can->recv_frame();
+    if (!frame) {
+        return tl::make_unexpected("Failed to receive CAN frame: " + frame.error());
+    }
+
+    auto success = false;
+    std::string error_message;
+
     for (size_t i = 0; i < 4; ++i) {
-        auto rpm_res = this->vesc_models[i].get_rpm();
-        if (!rpm_res) {
-            return tl::make_unexpected(
-                "Failed to get RPM for thruster " + std::to_string(i + 1) + ": " + rpm_res.error());
+        if (!success) {
+            auto res = this->vesc_models[i].handle_frame(frame.value());
+            if (!res) {
+                error_message += "    VESC " + std::to_string(i + 1) + ": " + res.error() + "\n";
+                continue;
+            }
+            rpm[i] = res.value();
+            success = true;
         }
-        rpm[i] = suc::state::thruster::Rpm{rpm_res.value()};
+    }
+
+    if (!success) {
+        return tl::make_unexpected(
+            "Failed to handle CAN frame \"" + std::to_string(frame.value().id) +
+            "\" in all models: \n" + error_message);
     }
 
     // FIXME: 仮の値を返している
@@ -68,9 +85,7 @@ auto suchm::CanModel::on_write(
         // TODO: `thruster_esc_enabled`と`thruster_servo_enabled`の処理を実装する
 
         auto thrust = thruster_thrust[i].value;
-        // TODO: dutyとRPMどちらを指定するか検討する
-        // TODO: RPMにするのであれば、`MAX_RPM`の値を調べて`[-MAX_RPM, MAX_RPM]`の範囲に収める
-        auto thrust_res = this->vesc_models[i].set_rpm(thrust);
+        auto thrust_res = this->vesc_models[i].set_duty(thrust);
         if (!thrust_res) {
             return tl::make_unexpected(
                 "Failed to set thrust for thruster " + std::to_string(i + 1) + ": " +

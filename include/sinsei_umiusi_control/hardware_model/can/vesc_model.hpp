@@ -7,6 +7,7 @@
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 
+#include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/can_interface.hpp"
 
 // ref: https://github.com/vedderb/bldc/blob/822d270/documentation/comm_can.md
@@ -92,19 +93,15 @@ class VescModel {
     static constexpr double ADC3_SCALE = 1000;
     static constexpr double PPM_SCALE = 1000;
 
-    static auto to_bytes_be(int32_t value) -> std::array<uint8_t, 4>;
+    // Convert int32_t to 8-byte array in big-endian order
+    static auto to_bytes_be(int32_t value) -> std::array<uint8_t, 8>;
+    // Convert 8-byte array in big-endian order to int32_t
+    static auto to_int32_be(std::array<uint8_t, 8> bytes) -> int32_t;
 
-    static auto to_int32_be(std::array<uint8_t, 4> bytes) -> int32_t;
-
-    auto send_command_packet(VescSimpleCommandID command_id, const std::array<uint8_t, 4> & data)
+    auto send_command_packet(VescSimpleCommandID command_id, const std::array<uint8_t, 8> & data)
         -> tl::expected<void, std::string>;
 
-    auto recv_status_frame(VescStatusCommandID expected_cmd_id)
-        -> tl::expected<std::array<uint8_t, 8>, std::string>;
-
     auto set_servo(double value) -> tl::expected<void, std::string>;  // lispBMにより実装。0 ~ 1.0
-
-    auto get_erpm() -> tl::expected<double, std::string>;
 
   public:
     VescModel(std::shared_ptr<util::CanInterface> can, uint8_t id);
@@ -113,7 +110,8 @@ class VescModel {
     auto set_rpm(int8_t rpm) -> tl::expected<void, std::string>;
     auto set_servo_angle(double deg) -> tl::expected<void, std::string>;
 
-    auto get_rpm() -> tl::expected<double, std::string>;
+    auto handle_frame(const util::CanFrame & frame)
+        -> tl::expected<sinsei_umiusi_control::state::thruster::Rpm, std::string>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::can

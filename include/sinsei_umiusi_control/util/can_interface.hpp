@@ -11,6 +11,7 @@ struct CanFrame {
     uint32_t id;
     uint8_t dlc;
     std::array<uint8_t, 8> data;
+    bool is_extended;
 };
 
 class CanInterface {
@@ -20,10 +21,7 @@ class CanInterface {
 
     virtual auto init(const std::string ifname) -> tl::expected<void, std::string> = 0;
     virtual auto close() -> tl::expected<void, std::string> = 0;
-    virtual auto send_frame_std(uint32_t id, const uint8_t * data, size_t length)
-        -> tl::expected<void, std::string> = 0;
-    virtual auto send_frame_ext(uint32_t id, const uint8_t * data, size_t length)
-        -> tl::expected<void, std::string> = 0;
+    virtual auto send_frame(CanFrame && frame) -> tl::expected<void, std::string> = 0;
     virtual auto recv_frame() -> tl::expected<CanFrame, std::string> = 0;
 };
 

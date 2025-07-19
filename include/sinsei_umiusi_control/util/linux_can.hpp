@@ -3,26 +3,28 @@
 
 #include <linux/can.h>
 
+#include <optional>
+
 #include "sinsei_umiusi_control/util/can_interface.hpp"
 
 namespace sinsei_umiusi_control::util {
 
+using FileDescriptor = int;
+
 class LinuxCan : public CanInterface {
   private:
-    int sock;
+    std::optional<FileDescriptor> sock_tx;
+    std::optional<FileDescriptor> sock_rx;
 
-    auto send_frame(uint32_t id, const uint8_t * data, size_t length, bool is_extended)
-        -> tl::expected<void, std::string>;
+    auto send_linux_can_frame(can_frame && frame) -> tl::expected<void, std::string>;
+    auto recv_linux_can_frame() -> tl::expected<can_frame, std::string>;
 
   public:
     LinuxCan();
 
     auto init(const std::string ifname) -> tl::expected<void, std::string> override;
     auto close() -> tl::expected<void, std::string> override;
-    auto send_frame_std(uint32_t id, const uint8_t * data, size_t length)
-        -> tl::expected<void, std::string> override;
-    auto send_frame_ext(uint32_t id, const uint8_t * data, size_t length)
-        -> tl::expected<void, std::string> override;
+    auto send_frame(CanFrame && frame) -> tl::expected<void, std::string> override;
     auto recv_frame() -> tl::expected<CanFrame, std::string> override;
 };
 

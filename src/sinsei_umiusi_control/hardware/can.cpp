@@ -37,8 +37,7 @@ auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
     }
     this->thruster_mode = mode_res.value();
 
-    this->model.emplace(
-        std::make_shared<sinsei_umiusi_control::util::LinuxCan>(), this->thruster_mode);
+    this->model.emplace(std::make_shared<sinsei_umiusi_control::util::LinuxCan>());
 
     auto res = this->model->on_init();
     if (!res) {
