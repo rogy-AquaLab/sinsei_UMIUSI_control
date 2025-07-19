@@ -13,7 +13,6 @@
         <gpio name="${thruster_name}/servo">
           <command_interface name="enabled_raw" />
           <command_interface name="angle_raw" />
-          <state_interface name="servo_current_raw" />
         </gpio>
 
         <gpio name="${thruster_name}/esc">
