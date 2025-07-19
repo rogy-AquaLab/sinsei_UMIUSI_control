@@ -30,12 +30,10 @@ auto suchm::CanModel::on_destroy() -> tl::expected<void, std::string> {
 auto suchm::CanModel::on_read()
     -> tl::expected<
         std::tuple<
-            std::array<suc::state::thruster::ServoCurrent, 4>,
             std::array<suc::state::thruster::Rpm, 4>, suc::state::main_power::BatteryCurrent,
             suc::state::main_power::BatteryVoltage, suc::state::main_power::Temperature,
             suc::state::main_power::WaterLeaked>,
         std::string> {
-    // std::array<suc::state::thruster::ServoCurrent, 4> servo_current;
     std::array<suc::state::thruster::Rpm, 4> rpm;
     // suc::state::main_power::BatteryCurrent battery_current;
     // suc::state::main_power::BatteryVoltage battery_voltage;
@@ -52,9 +50,9 @@ auto suchm::CanModel::on_read()
 
     // FIXME: 仮の値を返している
     return std::make_tuple(
-        std::array<suc::state::thruster::ServoCurrent, 4>{}, rpm,
-        suc::state::main_power::BatteryCurrent{0.0}, suc::state::main_power::BatteryVoltage{0.0},
-        suc::state::main_power::Temperature{0}, suc::state::main_power::WaterLeaked{false});
+        rpm, suc::state::main_power::BatteryCurrent{0.0},
+        suc::state::main_power::BatteryVoltage{0.0}, suc::state::main_power::Temperature{0},
+        suc::state::main_power::WaterLeaked{false});
 }
 
 auto suchm::CanModel::on_write(

@@ -114,10 +114,6 @@ auto succ::GateController::on_configure(const rlc::State & /*pervious_state*/)
     this->water_leaked_publisher = this->get_node()->create_publisher<std_msgs::msg::Bool>(
         state_prefix + "water_leaked", rclcpp::SystemDefaultsQoS());
     for (size_t i = 0; i < 4; ++i) {
-        this->servo_current_publisher[i] =
-            this->get_node()->create_publisher<std_msgs::msg::Float64>(
-                state_prefix + "servo_current_" + std::to_string(i + 1),
-                rclcpp::SystemDefaultsQoS());
         this->rpm_publisher[i] = this->get_node()->create_publisher<std_msgs::msg::Float64>(
             state_prefix + "rpm_" + std::to_string(i + 1), rclcpp::SystemDefaultsQoS());
     }
@@ -194,14 +190,6 @@ auto succ::GateController::update(
         suc_util::get_index("main_power/temperature", STATE_INTERFACE_NAMES);
     constexpr auto WATER_LEAKED_INDEX =
         suc_util::get_index("main_power/water_leaked", STATE_INTERFACE_NAMES);
-    constexpr auto SERVO1_CURRENT_INDEX =
-        suc_util::get_index("thruster_controller1/servo_current", STATE_INTERFACE_NAMES);
-    constexpr auto SERVO2_CURRENT_INDEX =
-        suc_util::get_index("thruster_controller2/servo_current", STATE_INTERFACE_NAMES);
-    constexpr auto SERVO3_CURRENT_INDEX =
-        suc_util::get_index("thruster_controller3/servo_current", STATE_INTERFACE_NAMES);
-    constexpr auto SERVO4_CURRENT_INDEX =
-        suc_util::get_index("thruster_controller4/servo_current", STATE_INTERFACE_NAMES);
     constexpr auto RPM1_INDEX =
         suc_util::get_index("thruster_controller1/rpm", STATE_INTERFACE_NAMES);
     constexpr auto RPM2_INDEX =
@@ -255,10 +243,6 @@ auto succ::GateController::update(
     this->interface_helper->get_state_value(
         MAIN_TEMPERATURE_INDEX, this->main_temperature_ref.value);
     this->interface_helper->get_state_value(WATER_LEAKED_INDEX, this->water_leaked_ref.value);
-    this->interface_helper->get_state_value(SERVO1_CURRENT_INDEX, this->servo_current_ref[0].value);
-    this->interface_helper->get_state_value(SERVO2_CURRENT_INDEX, this->servo_current_ref[1].value);
-    this->interface_helper->get_state_value(SERVO3_CURRENT_INDEX, this->servo_current_ref[2].value);
-    this->interface_helper->get_state_value(SERVO4_CURRENT_INDEX, this->servo_current_ref[3].value);
     this->interface_helper->get_state_value(RPM1_INDEX, this->rpm_ref[0].value);
     this->interface_helper->get_state_value(RPM2_INDEX, this->rpm_ref[1].value);
     this->interface_helper->get_state_value(RPM3_INDEX, this->rpm_ref[2].value);
@@ -280,8 +264,6 @@ auto succ::GateController::update(
     this->water_leaked_publisher->publish(
         std_msgs::msg::Bool().set__data(this->water_leaked_ref.value));
     for (size_t i = 0; i < 4; ++i) {
-        this->servo_current_publisher[i]->publish(
-            std_msgs::msg::Float64().set__data(this->servo_current_ref[i].value));
         this->rpm_publisher[i]->publish(std_msgs::msg::Float64().set__data(this->rpm_ref[i].value));
     }
     this->imu_orientation_publisher->publish(geometry_msgs::msg::Vector3()

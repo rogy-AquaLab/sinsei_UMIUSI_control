@@ -3,9 +3,6 @@
 
 namespace sinsei_umiusi_control::state::thruster {
 
-struct ServoCurrent {
-    double value;
-};
 struct Rpm {
     double value;
 };

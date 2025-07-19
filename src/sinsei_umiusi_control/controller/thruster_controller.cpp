@@ -122,9 +122,6 @@ auto succ::ThrusterController::on_export_state_interfaces() -> std::vector<hif::
     auto interfaces = std::vector<hif::StateInterface>{};
 
     interfaces.emplace_back(hif::StateInterface(
-        this->get_node()->get_name(), "servo_current",
-        util::to_interface_data_ptr(this->servo_current)));
-    interfaces.emplace_back(hif::StateInterface(
         this->get_node()->get_name(), "rpm", util::to_interface_data_ptr(this->rpm)));
     return interfaces;
 }
@@ -148,8 +145,6 @@ auto succ::ThrusterController::update_and_write_commands(
         constexpr auto THRUST_INDEX =
             suc_util::get_index("esc/thrust_raw", CAN_CMD_INTERFACE_NAMES);
 
-        constexpr auto SERVO_CURRENT_INDEX =
-            suc_util::get_index("servo/servo_current_raw", CAN_STATE_INTERFACE_NAMES);
         constexpr auto RPM_INDEX = suc_util::get_index("esc/rpm_raw", CAN_STATE_INTERFACE_NAMES);
 
         this->can_interface_helper->set_cmd_value(SERVO_ENABLED_INDEX, this->servo_enabled);
@@ -157,7 +152,6 @@ auto succ::ThrusterController::update_and_write_commands(
         this->can_interface_helper->set_cmd_value(ESC_ENABLED_INDEX, this->esc_enabled);
         this->can_interface_helper->set_cmd_value(THRUST_INDEX, this->thrust);
 
-        this->can_interface_helper->get_state_value(SERVO_CURRENT_INDEX, this->servo_current);
         this->can_interface_helper->get_state_value(RPM_INDEX, this->rpm);
 
     } else {

@@ -39,7 +39,6 @@ class GateController : public controller_interface::ControllerInterface {
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr battery_voltage_publisher;
     rclcpp::Publisher<std_msgs::msg::Int8>::SharedPtr main_temperature_publisher;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr water_leaked_publisher;
-    std::array<rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr, 4> servo_current_publisher;
     std::array<rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr, 4> rpm_publisher;
     rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_orientation_publisher;
     rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_velocity_publisher;
@@ -60,7 +59,6 @@ class GateController : public controller_interface::ControllerInterface {
     state::main_power::BatteryVoltage battery_voltage_ref;
     state::main_power::Temperature main_temperature_ref;
     state::main_power::WaterLeaked water_leaked_ref;
-    std::array<state::thruster::ServoCurrent, 4> servo_current_ref;
     std::array<state::thruster::Rpm, 4> rpm_ref;
     state::imu::Orientation imu_orientation_ref;
     state::imu::Velocity imu_velocity_ref;
@@ -89,16 +87,12 @@ class GateController : public controller_interface::ControllerInterface {
         "app_controller/target_velocity.y",
         "app_controller/target_velocity.z",
     };
-    static constexpr size_t STATE_SIZE = 19;
+    static constexpr size_t STATE_SIZE = 15;
     static constexpr const char * STATE_INTERFACE_NAMES[STATE_SIZE] = {
         "main_power/battery_current",
         "main_power/battery_voltage",
         "main_power/temperature",
         "main_power/water_leaked",
-        "thruster_controller1/servo_current",
-        "thruster_controller2/servo_current",
-        "thruster_controller3/servo_current",
-        "thruster_controller4/servo_current",
         "thruster_controller1/rpm",
         "thruster_controller2/rpm",
         "thruster_controller3/rpm",
