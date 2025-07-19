@@ -28,33 +28,6 @@ auto suchm::can::VescModel::send_command_packet(
     return this->can->send_frame(util::CanFrame{can_id, 4, data, true});
 }
 
-auto suchm::can::VescModel::recv_status_frame(VescStatusCommandID expected_cmd_id)
-    -> tl::expected<std::array<uint8_t, 8>, std::string> {
-    auto frame_result = this->can->recv_frame();
-    if (!frame_result) {
-        return tl::make_unexpected("Failed to recv CAN frame: " + frame_result.error());
-    }
-
-    const auto & frame = *frame_result;
-
-    const auto cmd_id = static_cast<uint8_t>((frame.id >> 8) & 0xFF);
-    const auto vesc_id = static_cast<uint8_t>(frame.id & 0xFF);
-
-    if (vesc_id != this->id) {
-        return tl::make_unexpected("Unexpected VESC ID: " + std::to_string(vesc_id));
-    }
-
-    if (cmd_id != static_cast<uint8_t>(expected_cmd_id)) {
-        return tl::make_unexpected("Unexpected Command ID: " + std::to_string(cmd_id));
-    }
-
-    if (frame.dlc != 8) {
-        return tl::make_unexpected("Unexpected DLC (must be 8)");
-    }
-
-    return frame.data;
-}
-
 auto suchm::can::VescModel::set_duty(double duty) -> tl::expected<void, std::string> {
     if (duty < -1.0 || duty > 1.0) {
         return tl::make_unexpected(
@@ -90,22 +63,33 @@ auto suchm::can::VescModel::set_servo_angle(double deg) -> tl::expected<void, st
     return this->set_servo(deg / 180.0);
 }
 
-auto suchm::can::VescModel::get_erpm() -> tl::expected<double, std::string> {
-    auto res = recv_status_frame(VescStatusCommandID::CAN_PACKET_STATUS);
-    if (!res) return tl::make_unexpected(res.error());
+auto suchm::can::VescModel::handle_frame(
+    const util::CanFrame & frame, suc::state::thruster::Rpm & rpm) -> bool {
+    const auto cmd_id = static_cast<uint8_t>((frame.id >> 8) & 0xFF);
+    const auto vesc_id = static_cast<uint8_t>(frame.id & 0xFF);
+
+    if (vesc_id != this->id) {
+        return false;
+    }
+    if (frame.dlc != 8) {
+        return false;
+    }
 
     std::array<uint8_t, 8> bytes;
-    std::copy_n(res.value().begin(), 4, bytes.begin());
+    std::copy_n(frame.data.begin(), 8, bytes.begin());
 
-    auto scaled_erpm = to_int32_be(bytes);
-    return static_cast<double>(scaled_erpm) / ERPM_SCALE;
-}
+    switch (cmd_id) {
+        case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS): {
+            auto scaled_erpm = to_int32_be(bytes);
+            auto erpm = static_cast<double>(scaled_erpm) / ERPM_SCALE;
+            static constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
+            // ERPMを極対数で割ってRPMに変換
+            rpm.value = erpm / BLDC_POLE_PAIR;
+            break;
+        }
+        default:
+            return false;
+    }
 
-auto suchm::can::VescModel::get_rpm() -> tl::expected<double, std::string> {
-    auto erpm_res = this->get_erpm();
-    if (!erpm_res) return tl::make_unexpected(erpm_res.error());
-
-    static constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
-    // ERPMを極対数で割ってRPMに変換
-    return erpm_res.value() / BLDC_POLE_PAIR;
+    return true;
 }

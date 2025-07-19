@@ -41,13 +41,21 @@ auto suchm::CanModel::on_read()
     // suc::state::main_power::BatteryVoltage battery_voltage;
     // suc::state::main_power::Temperature temperature;
 
+    auto frame = this->can->recv_frame();
+    if (!frame) {
+        return tl::make_unexpected("Failed to receive CAN frame: " + frame.error());
+    }
+
+    auto success = false;
+
     for (size_t i = 0; i < 4; ++i) {
-        auto rpm_res = this->vesc_models[i].get_rpm();
-        if (!rpm_res) {
-            return tl::make_unexpected(
-                "Failed to get RPM for thruster " + std::to_string(i + 1) + ": " + rpm_res.error());
+        if (!success) {
+            success = this->vesc_models[i].handle_frame(frame.value(), rpm[i]);
         }
-        rpm[i] = suc::state::thruster::Rpm{rpm_res.value()};
+    }
+
+    if (!success) {
+        return tl::make_unexpected("Failed to handle CAN frame in all models");
     }
 
     // FIXME: 仮の値を返している
