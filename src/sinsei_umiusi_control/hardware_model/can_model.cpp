@@ -56,6 +56,7 @@ auto suchm::CanModel::on_read()
             auto res = this->vesc_models[i].handle_frame(frame.value());
             if (!res) {
                 error_message += "    VESC " + std::to_string(i + 1) + ": " + res.error() + "\n";
+                continue;
             }
             rpm[i] = res.value();
             success = true;
