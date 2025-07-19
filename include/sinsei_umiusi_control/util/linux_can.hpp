@@ -9,12 +9,12 @@
 
 namespace sinsei_umiusi_control::util {
 
-using Socket = int;
+using FileDescriptor = int;
 
 class LinuxCan : public CanInterface {
   private:
-    std::optional<Socket> sock_tx;
-    std::optional<Socket> sock_rx;
+    std::optional<FileDescriptor> sock_tx;
+    std::optional<FileDescriptor> sock_rx;
 
     auto send_linux_can_frame(can_frame && frame) -> tl::expected<void, std::string>;
     auto recv_linux_can_frame() -> tl::expected<can_frame, std::string>;
