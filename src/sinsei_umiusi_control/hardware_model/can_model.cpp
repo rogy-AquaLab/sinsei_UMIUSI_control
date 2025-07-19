@@ -1,5 +1,7 @@
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 
+#include <string>
+
 #include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
@@ -55,7 +57,9 @@ auto suchm::CanModel::on_read()
     }
 
     if (!success) {
-        return tl::make_unexpected("Failed to handle CAN frame in all models");
+        return tl::make_unexpected(
+            "Failed to handle CAN frame \"" + std::to_string(frame.value().id) +
+            "\" in all models");
     }
 
     // FIXME: 仮の値を返している
