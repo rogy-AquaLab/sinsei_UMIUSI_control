@@ -63,20 +63,22 @@ auto suchm::can::VescModel::set_servo_angle(double deg) -> tl::expected<void, st
     return this->set_servo(deg / 180.0);
 }
 
-auto suchm::can::VescModel::handle_frame(
-    const util::CanFrame & frame, suc::state::thruster::Rpm & rpm) -> bool {
+auto suchm::can::VescModel::handle_frame(const util::CanFrame & frame)
+    -> std::optional<suc::state::thruster::Rpm> {
     const auto cmd_id = static_cast<uint8_t>((frame.id >> 8) & 0xFF);
     const auto vesc_id = static_cast<uint8_t>(frame.id & 0xFF);
 
     if (vesc_id != this->id) {
-        return false;
+        return std::nullopt;
     }
     if (frame.dlc != 8) {
-        return false;
+        return std::nullopt;
     }
 
     std::array<uint8_t, 8> bytes;
     std::copy_n(frame.data.begin(), 8, bytes.begin());
+
+    auto rpm = suc::state::thruster::Rpm{};
 
     switch (cmd_id) {
         case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS): {
@@ -88,8 +90,8 @@ auto suchm::can::VescModel::handle_frame(
             break;
         }
         default:
-            return false;
+            return std::nullopt;
     }
 
-    return true;
+    return rpm;
 }

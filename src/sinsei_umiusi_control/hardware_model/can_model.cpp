@@ -52,7 +52,10 @@ auto suchm::CanModel::on_read()
 
     for (size_t i = 0; i < 4; ++i) {
         if (!success) {
-            success = this->vesc_models[i].handle_frame(frame.value(), rpm[i]);
+            if (auto res = this->vesc_models[i].handle_frame(frame.value())) {
+                rpm[i] = res.value();
+                success = true;
+            }
         }
     }
 
