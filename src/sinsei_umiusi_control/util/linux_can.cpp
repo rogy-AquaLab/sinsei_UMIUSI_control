@@ -17,7 +17,6 @@ namespace suc_util = sinsei_umiusi_control::util;
 
 namespace {
 
-// TODO: use optional<int> instead of int
 auto _close(std::optional<suc_util::FileDescriptor> & sock) -> tl::expected<void, std::string> {
     if (!sock) {
         return tl::make_unexpected("Socket is not initialized");
