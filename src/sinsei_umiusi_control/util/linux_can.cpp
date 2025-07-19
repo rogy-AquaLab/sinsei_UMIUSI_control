@@ -196,5 +196,5 @@ auto suc_util::LinuxCan::send_frame(suc_util::CanFrame && frame)
 }
 
 auto suc_util::LinuxCan::recv_frame() -> tl::expected<CanFrame, std::string> {
-    return this->recv_linux_can_frame().map(_from_linux_can_frame);
+    return this->recv_linux_can_frame().map(std::move(_from_linux_can_frame));
 }
