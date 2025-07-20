@@ -63,11 +63,12 @@ auto suchm::CanModel::on_read()
             error_message += "    VESC " + std::to_string(i + 1) + ": " + rpm_res.error() + "\n";
             continue;
         }
-        if (!rpm_res.value()) {
+        auto rpm_opt = rpm_res.value();
+        if (!rpm_opt) {
             // フレームにRPMの情報が含まれていない場合はスキップ
             continue;
         }
-        rpm[i] = rpm_res.value().value();
+        rpm[i] = rpm_opt.value();
         success = true;
     }
 
