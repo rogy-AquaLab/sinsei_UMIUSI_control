@@ -1,7 +1,5 @@
 #include "sinsei_umiusi_control/hardware_model/can/vesc_model.hpp"
 
-#include <algorithm>
-
 #include "sinsei_umiusi_control/util/byte.hpp"
 #include "sinsei_umiusi_control/util/can_interface.hpp"
 
