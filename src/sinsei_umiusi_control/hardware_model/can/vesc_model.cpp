@@ -2,23 +2,13 @@
 
 #include <algorithm>
 
+#include "sinsei_umiusi_control/util/byte.hpp"
 #include "sinsei_umiusi_control/util/can_interface.hpp"
 
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
 suchm::can::VescModel::VescModel(uint8_t id) : id(id) {}
-
-auto suchm::can::VescModel::to_bytes_be(int32_t value) -> std::array<uint8_t, 8> {
-    return {
-        static_cast<uint8_t>(value >> 24), static_cast<uint8_t>(value >> 16),
-        static_cast<uint8_t>(value >> 8), static_cast<uint8_t>(value)};
-}
-
-auto suchm::can::VescModel::to_int32_be(std::array<uint8_t, 8> bytes) -> int32_t {
-    return (static_cast<int32_t>(bytes[0]) << 24) | (static_cast<int32_t>(bytes[1]) << 16) |
-           (static_cast<int32_t>(bytes[2]) << 8) | static_cast<int32_t>(bytes[3]);
-}
 
 auto suchm::can::VescModel::make_frame(
     VescSimpleCommandID command_id, const std::array<uint8_t, 8> & data) -> util::CanFrame {
@@ -33,14 +23,14 @@ auto suchm::can::VescModel::make_duty_frame(double duty)
             "Duty must be between -1.0 and 1.0 (duty: " + std::to_string(duty) + ")");
     }
     auto scaled_duty = static_cast<int32_t>(duty * SET_DUTY_SCALE);
-    auto bytes = this->to_bytes_be(scaled_duty);
+    auto bytes = suc::util::to_bytes_be(scaled_duty);
     return this->make_frame(VescSimpleCommandID::CAN_PACKET_SET_DUTY, bytes);
 }
 
 auto suchm::can::VescModel::make_rpm_frame(int8_t rpm)
     -> tl::expected<util::CanFrame, std::string> {
     auto scaled_rpm = static_cast<int32_t>(rpm * SET_RPM_SCALE);
-    auto bytes = this->to_bytes_be(scaled_rpm);
+    auto bytes = suc::util::to_bytes_be(scaled_rpm);
     return this->make_frame(VescSimpleCommandID::CAN_PACKET_SET_RPM, bytes);
 }
 
@@ -51,7 +41,7 @@ auto suchm::can::VescModel::make_servo_frame(double value)
             "Servo value must be between 0.0 and 1.0 (value: " + std::to_string(value) + ")");
     }
     auto scaled_value = static_cast<int32_t>(value * SET_SERVO_SCALE);
-    auto bytes = to_bytes_be(scaled_value);
+    auto bytes = suc::util::to_bytes_be(scaled_value);
     return this->make_frame(VescSimpleCommandID::CAN_PACKET_SET_SERVO, bytes);
 }
 
@@ -88,7 +78,7 @@ auto suchm::can::VescModel::handle_frame(const util::CanFrame & frame)
 
     switch (cmd_id) {
         case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS): {
-            auto scaled_erpm = to_int32_be(bytes);
+            auto scaled_erpm = suc::util::to_int32_be(bytes);
             auto erpm = static_cast<double>(scaled_erpm) / ERPM_SCALE;
             static constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
             // ERPMを極対数で割ってRPMに変換

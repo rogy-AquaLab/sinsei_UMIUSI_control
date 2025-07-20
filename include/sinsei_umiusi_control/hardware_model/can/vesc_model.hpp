@@ -90,11 +90,6 @@ class VescModel {
     static constexpr double ADC3_SCALE = 1000;
     static constexpr double PPM_SCALE = 1000;
 
-    // Convert int32_t to 8-byte array in big-endian order
-    static auto to_bytes_be(int32_t value) -> std::array<uint8_t, 8>;
-    // Convert 8-byte array in big-endian order to int32_t
-    static auto to_int32_be(std::array<uint8_t, 8> bytes) -> int32_t;
-
     auto make_frame(VescSimpleCommandID command_id, const std::array<uint8_t, 8> & data)
         -> util::CanFrame;
 
