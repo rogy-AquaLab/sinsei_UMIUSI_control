@@ -18,7 +18,7 @@
         </hardware>
         <gpio name="${thruster_name}/esc_direct">
           <command_interface name="enabled_raw" />
-          <command_interface name="thrust_raw" />
+          <command_interface name="duty_cycle_raw" />
         </gpio>
       </ros2_control>
     </xacro:macro>

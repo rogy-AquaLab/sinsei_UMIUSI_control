@@ -101,20 +101,20 @@ auto succ::AppController::update_and_write_commands(
 
     constexpr auto ANGLE1_INDEX =
         suc_util::get_index("thruster_controller1/angle", CMD_INTERFACE_NAMES);
-    constexpr auto THRUST1_INDEX =
-        suc_util::get_index("thruster_controller1/thrust", CMD_INTERFACE_NAMES);
+    constexpr auto DUTY_CYCLE1_INDEX =
+        suc_util::get_index("thruster_controller1/duty_cycle", CMD_INTERFACE_NAMES);
     constexpr auto ANGLE2_INDEX =
         suc_util::get_index("thruster_controller2/angle", CMD_INTERFACE_NAMES);
-    constexpr auto THRUST2_INDEX =
-        suc_util::get_index("thruster_controller2/thrust", CMD_INTERFACE_NAMES);
+    constexpr auto DUTY_CYCLE2_INDEX =
+        suc_util::get_index("thruster_controller2/duty_cycle", CMD_INTERFACE_NAMES);
     constexpr auto ANGLE3_INDEX =
         suc_util::get_index("thruster_controller3/angle", CMD_INTERFACE_NAMES);
-    constexpr auto THRUST3_INDEX =
-        suc_util::get_index("thruster_controller3/thrust", CMD_INTERFACE_NAMES);
+    constexpr auto DUTY_CYCLE3_INDEX =
+        suc_util::get_index("thruster_controller3/duty_cycle", CMD_INTERFACE_NAMES);
     constexpr auto ANGLE4_INDEX =
         suc_util::get_index("thruster_controller4/angle", CMD_INTERFACE_NAMES);
-    constexpr auto THRUST4_INDEX =
-        suc_util::get_index("thruster_controller4/thrust", CMD_INTERFACE_NAMES);
+    constexpr auto DUTY_CYCLE4_INDEX =
+        suc_util::get_index("thruster_controller4/duty_cycle", CMD_INTERFACE_NAMES);
 
     constexpr auto ORIENTATION_X_INDEX =
         suc_util::get_index("imu/orientation_raw.x", STATE_INTERFACE_NAMES);
@@ -130,13 +130,13 @@ auto succ::AppController::update_and_write_commands(
         suc_util::get_index("imu/velocity_raw.z", STATE_INTERFACE_NAMES);
 
     this->interface_helper->set_cmd_value(ANGLE1_INDEX, this->thruster_angles[0]);
-    this->interface_helper->set_cmd_value(THRUST1_INDEX, this->thruster_thrusts[0]);
+    this->interface_helper->set_cmd_value(DUTY_CYCLE1_INDEX, this->thruster_duty_cycles[0]);
     this->interface_helper->set_cmd_value(ANGLE2_INDEX, this->thruster_angles[1]);
-    this->interface_helper->set_cmd_value(THRUST2_INDEX, this->thruster_thrusts[1]);
+    this->interface_helper->set_cmd_value(DUTY_CYCLE2_INDEX, this->thruster_duty_cycles[1]);
     this->interface_helper->set_cmd_value(ANGLE3_INDEX, this->thruster_angles[2]);
-    this->interface_helper->set_cmd_value(THRUST3_INDEX, this->thruster_thrusts[2]);
+    this->interface_helper->set_cmd_value(DUTY_CYCLE3_INDEX, this->thruster_duty_cycles[2]);
     this->interface_helper->set_cmd_value(ANGLE4_INDEX, this->thruster_angles[3]);
-    this->interface_helper->set_cmd_value(THRUST4_INDEX, this->thruster_thrusts[3]);
+    this->interface_helper->set_cmd_value(DUTY_CYCLE4_INDEX, this->thruster_duty_cycles[3]);
 
     this->interface_helper->get_state_value(ORIENTATION_X_INDEX, this->imu_orientation.x);
     this->interface_helper->get_state_value(ORIENTATION_Y_INDEX, this->imu_orientation.y);
@@ -153,7 +153,7 @@ auto succ::AppController::compute_outputs() -> void {
     // 現在はダミー
     for (size_t i = 0; i < 4; ++i) {
         this->thruster_angles[i].value = 0.0;
-        this->thruster_thrusts[i].value = 0.0;
+        this->thruster_duty_cycles[i].value = 0.0;
     }
 }
 

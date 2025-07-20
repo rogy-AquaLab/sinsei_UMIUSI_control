@@ -12,7 +12,7 @@ struct EscEnabled {
 struct Angle {
     double value;
 };
-struct Thrust {
+struct DutyCycle {
     double value;
 };
 

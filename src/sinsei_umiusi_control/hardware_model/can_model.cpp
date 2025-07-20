@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "sinsei_umiusi_control/cmd/thruster.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 
 namespace suc = sinsei_umiusi_control;
@@ -88,14 +89,14 @@ auto suchm::CanModel::on_write(
     std::array<suc::cmd::thruster::EscEnabled, 4> /*thruster_esc_enabled*/,
     std::array<suc::cmd::thruster::ServoEnabled, 4> /*thruster_servo_enabled*/,
     std::array<suc::cmd::thruster::Angle, 4> thruster_angle,
-    std::array<suc::cmd::thruster::Thrust, 4> thruster_thrust,
+    std::array<suc::cmd::thruster::DutyCycle, 4> thruster_duty_cycle,
     suc::cmd::main_power::Enabled main_power_enabled,
     suc::cmd::led_tape::Color led_tape_color) -> tl::expected<void, std::string> {
     for (size_t i = 0; i < 4; ++i) {
         // TODO: `thruster_esc_enabled`と`thruster_servo_enabled`の処理を実装する
 
-        auto thrust = thruster_thrust[i].value;
-        auto duty_frame = this->vesc_models[i].make_duty_frame(thrust);
+        auto duty = thruster_duty_cycle[i].value;
+        auto duty_frame = this->vesc_models[i].make_duty_frame(duty);
         if (!duty_frame) {
             return tl::make_unexpected(
                 "Failed to create duty frame for thruster " + std::to_string(i + 1) + ": " +
