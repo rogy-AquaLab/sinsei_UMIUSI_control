@@ -97,7 +97,10 @@ class VescModel {
     auto make_servo_frame(double value)
         -> tl::expected<util::CanFrame, std::string>;  // lispBMにより実装。0 ~ 1.0
 
-    auto get_cmd_id(const util::CanFrame & frame) -> tl::expected<VescStatusCommandID, std::string>;
+    auto id_matches(const util::CanFrame & frame) -> bool;
+
+    static auto get_cmd_id(const util::CanFrame & frame)
+        -> tl::expected<VescStatusCommandID, std::string>;
 
   public:
     VescModel(uint8_t id);

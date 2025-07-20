@@ -53,6 +53,11 @@ auto suchm::can::VescModel::make_servo_angle_frame(double deg)
     return this->make_servo_frame(deg / 180.0);
 }
 
+auto suchm::can::VescModel::id_matches(const util::CanFrame & frame) -> bool {
+    const auto vesc_id = static_cast<uint8_t>(frame.id & 0xFF);
+    return vesc_id == this->id;
+}
+
 auto suchm::can::VescModel::get_cmd_id(const util::CanFrame & frame)
     -> tl::expected<VescStatusCommandID, std::string> {
     if (frame.len != 8) {
@@ -61,13 +66,7 @@ auto suchm::can::VescModel::get_cmd_id(const util::CanFrame & frame)
             std::to_string(frame.len) + ")");
     }
 
-    const auto vesc_id = static_cast<uint8_t>(frame.id & 0xFF);
-    if (vesc_id != this->id) {
-        return tl::make_unexpected(
-            "Received CAN frame for different VESC ID (expected: " + std::to_string(this->id) +
-            ", received: " + std::to_string(vesc_id) + ")");
-    }
-
+    // TODO: refactor
     const auto cmd_id = static_cast<uint8_t>((frame.id >> 8) & 0xFF);
     switch (cmd_id) {
         case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS):
@@ -90,6 +89,10 @@ auto suchm::can::VescModel::get_cmd_id(const util::CanFrame & frame)
 
 auto suchm::can::VescModel::get_rpm(const util::CanFrame & frame)
     -> tl::expected<std::optional<sinsei_umiusi_control::state::thruster::Rpm>, std::string> {
+    if (!this->id_matches(frame)) {
+        return std::nullopt;
+    }
+
     auto cmd_id = this->get_cmd_id(frame);
     if (!cmd_id) {
         return tl::make_unexpected("Failed to get command ID: " + cmd_id.error());
