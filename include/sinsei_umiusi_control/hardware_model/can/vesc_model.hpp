@@ -3,7 +3,6 @@
 
 #include <array>
 #include <cstdint>
-#include <memory>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 
