@@ -70,9 +70,9 @@ auto _to_linux_can_frame(suc_util::CanFrame && frame) -> can_frame {
     } else {
         linux_can_frame.can_id = frame.id & CAN_SFF_MASK;  // Standard frame ID
     }
-    linux_can_frame.len = frame.dlc;
+    linux_can_frame.len = frame.len;
     const auto first = frame.data.begin();
-    const auto last = first + frame.dlc;
+    const auto last = first + frame.len;
     std::copy(first, last, std::begin(linux_can_frame.data));
     return linux_can_frame;
 }
@@ -85,7 +85,7 @@ auto _from_linux_can_frame(const can_frame & linux_can_frame) -> suc_util::CanFr
     } else {
         frame.id = linux_can_frame.can_id & CAN_SFF_MASK;  // Standard frame ID
     }
-    frame.dlc = linux_can_frame.len;
+    frame.len = linux_can_frame.len;
     const auto first = std::begin(linux_can_frame.data);
     const auto last = first + linux_can_frame.len;
     std::copy(first, last, frame.data.begin());
@@ -128,7 +128,7 @@ auto suc_util::LinuxCan::send_linux_can_frame(can_frame && frame)
     }
 
     if (frame.len > CAN_MAX_DLEN) {
-        return tl::make_unexpected("DLC exceeds maximum allowed CAN data length");
+        return tl::make_unexpected("len exceeds maximum allowed CAN data length");
     }
 
     // Send the CAN frame

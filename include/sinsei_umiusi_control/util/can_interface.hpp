@@ -9,7 +9,7 @@ namespace sinsei_umiusi_control::util {
 
 struct CanFrame {
     uint32_t id;
-    uint8_t dlc;
+    uint8_t len;
     std::array<uint8_t, 8> data;
     bool is_extended;
 };

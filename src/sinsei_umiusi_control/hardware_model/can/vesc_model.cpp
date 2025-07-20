@@ -65,10 +65,10 @@ auto suchm::can::VescModel::handle_frame(const util::CanFrame & frame)
             "Received CAN frame for different VESC ID (expected: " + std::to_string(this->id) +
             ", received: " + std::to_string(vesc_id) + ")");
     }
-    if (frame.dlc != 8) {
+    if (frame.len != 8) {
         return tl::make_unexpected(
-            "Received CAN frame with invalid DLC (expected: 8, received: " +
-            std::to_string(frame.dlc) + ")");
+            "Received CAN frame with invalid length (expected: 8, received: " +
+            std::to_string(frame.len) + ")");
     }
 
     std::array<uint8_t, 8> bytes;
