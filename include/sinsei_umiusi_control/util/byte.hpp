@@ -19,6 +19,8 @@ inline auto to_int32_be(std::array<uint8_t, 8> bytes) -> int32_t {
            (static_cast<int32_t>(bytes[2]) << 8) | static_cast<int32_t>(bytes[3]);
 }
 
+// TODO: implement to_int64_be
+
 }  // namespace sinsei_umiusi_control::util
 
 #endif  // SINSEI_UMIUSI_CONTROL_UTIL_BYTE_HPP
