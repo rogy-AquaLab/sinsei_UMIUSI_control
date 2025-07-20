@@ -39,7 +39,7 @@ class CanModel {
         std::array<suc::cmd::thruster::EscEnabled, 4> thruster_esc_enabled,
         std::array<suc::cmd::thruster::ServoEnabled, 4> thruster_servo_enabled,
         std::array<suc::cmd::thruster::Angle, 4> thruster_angle,
-        std::array<suc::cmd::thruster::Thrust, 4> thruster_thrust,
+        std::array<suc::cmd::thruster::DutyCycle, 4> thruster_duty_cycle,
         suc::cmd::main_power::Enabled main_power_enabled,
         suc::cmd::led_tape::Color led_tape_color) -> tl::expected<void, std::string>;
 

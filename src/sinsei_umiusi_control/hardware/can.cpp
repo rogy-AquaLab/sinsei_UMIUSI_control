@@ -1,5 +1,6 @@
 #include "sinsei_umiusi_control/hardware/can.hpp"
 
+#include "sinsei_umiusi_control/cmd/thruster.hpp"
 #include "sinsei_umiusi_control/util/linux_can.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
@@ -90,7 +91,7 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
     std::array<suc::cmd::thruster::EscEnabled, 4> thruster_esc_enabled_cmd;
     std::array<suc::cmd::thruster::ServoEnabled, 4> thruster_servo_enabled_cmd;
     std::array<suc::cmd::thruster::Angle, 4> thruster_angle_cmd;
-    std::array<suc::cmd::thruster::Thrust, 4> thruster_thrust_cmd;
+    std::array<suc::cmd::thruster::DutyCycle, 4> thruster_duty_cycle_cmd;
 
     if (is_can) {
         for (size_t i = 0; i < 4; ++i) {
@@ -98,7 +99,7 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
             auto esc_enabled_raw = this->get_command(thruster_name + "/esc/enabled_raw");
             auto servo_enabled_raw = this->get_command(thruster_name + "/servo/enabled_raw");
             auto angle_raw = this->get_command(thruster_name + "/servo/angle_raw");
-            auto thrust_raw = this->get_command(thruster_name + "/esc/thrust_raw");
+            auto duty_cycle_raw = this->get_command(thruster_name + "/esc/duty_cycle_raw");
 
             thruster_esc_enabled_cmd[i] =
                 util::from_interface_data<sinsei_umiusi_control::cmd::thruster::EscEnabled>(
@@ -108,8 +109,9 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
                     servo_enabled_raw);
             thruster_angle_cmd[i] =
                 util::from_interface_data<sinsei_umiusi_control::cmd::thruster::Angle>(angle_raw);
-            thruster_thrust_cmd[i] =
-                util::from_interface_data<sinsei_umiusi_control::cmd::thruster::Thrust>(thrust_raw);
+            thruster_duty_cycle_cmd[i] =
+                util::from_interface_data<sinsei_umiusi_control::cmd::thruster::DutyCycle>(
+                    duty_cycle_raw);
         }
     }
 
@@ -132,7 +134,7 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
     auto res = is_can
                    ? this->model->on_write(
                          thruster_esc_enabled_cmd, thruster_servo_enabled_cmd, thruster_angle_cmd,
-                         thruster_thrust_cmd, main_power_enabled_cmd, led_tape_color_cmd)
+                         thruster_duty_cycle_cmd, main_power_enabled_cmd, led_tape_color_cmd)
                    : this->model->on_write(main_power_enabled_cmd, led_tape_color_cmd);
     if (!res) {
         constexpr auto DURATION = 3000;  // ms

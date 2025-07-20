@@ -19,7 +19,7 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     sinsei_umiusi_control::cmd::thruster::ServoEnabled servo_enabled;
     sinsei_umiusi_control::cmd::thruster::EscEnabled esc_enabled;
     sinsei_umiusi_control::cmd::thruster::Angle angle;
-    sinsei_umiusi_control::cmd::thruster::Thrust thrust;
+    sinsei_umiusi_control::cmd::thruster::DutyCycle duty_cycle;
 
     // State interfaces (out)
     sinsei_umiusi_control::state::thruster::Rpm rpm;
@@ -30,7 +30,7 @@ class ThrusterController : public controller_interface::ChainableControllerInter
         "servo/enabled_raw",
         "servo/angle_raw",
         "esc/enabled_raw",
-        "esc/thrust_raw",
+        "esc/duty_cycle_raw",
     };
     static constexpr size_t CAN_STATE_SIZE = 1;
     static constexpr const char * CAN_STATE_INTERFACE_NAMES[CAN_STATE_SIZE] = {
@@ -41,7 +41,7 @@ class ThrusterController : public controller_interface::ChainableControllerInter
         "servo_direct/enabled_raw",
         "servo_direct/angle_raw",
         "esc_direct/enabled_raw",
-        "esc_direct/thrust_raw",
+        "esc_direct/duty_cycle_raw",
     };
     // `thruster_mode`が`direct`のときState Interfaceは存在しないが、配列のサイズは0にできないので1としている
     static constexpr size_t DIRECT_STATE_SIZE = 1;

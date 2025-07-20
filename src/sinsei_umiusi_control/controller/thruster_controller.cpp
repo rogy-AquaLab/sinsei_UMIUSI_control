@@ -114,7 +114,7 @@ auto succ::ThrusterController::on_export_reference_interfaces()
     interfaces.emplace_back(hif::CommandInterface(
         this->get_node()->get_name(), "angle", util::to_interface_data_ptr(this->angle)));
     interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name(), "thrust", util::to_interface_data_ptr(this->thrust)));
+        this->get_node()->get_name(), "duty_cycle", util::to_interface_data_ptr(this->duty_cycle)));
     return interfaces;
 }
 
@@ -142,15 +142,15 @@ auto succ::ThrusterController::update_and_write_commands(
             suc_util::get_index("servo/angle_raw", CAN_CMD_INTERFACE_NAMES);
         constexpr auto ESC_ENABLED_INDEX =
             suc_util::get_index("esc/enabled_raw", CAN_CMD_INTERFACE_NAMES);
-        constexpr auto THRUST_INDEX =
-            suc_util::get_index("esc/thrust_raw", CAN_CMD_INTERFACE_NAMES);
+        constexpr auto DUTY_CYCLE_INDEX =
+            suc_util::get_index("esc/duty_cycle_raw", CAN_CMD_INTERFACE_NAMES);
 
         constexpr auto RPM_INDEX = suc_util::get_index("esc/rpm_raw", CAN_STATE_INTERFACE_NAMES);
 
         this->can_interface_helper->set_cmd_value(SERVO_ENABLED_INDEX, this->servo_enabled);
         this->can_interface_helper->set_cmd_value(ANGLE_INDEX, this->angle);
         this->can_interface_helper->set_cmd_value(ESC_ENABLED_INDEX, this->esc_enabled);
-        this->can_interface_helper->set_cmd_value(THRUST_INDEX, this->thrust);
+        this->can_interface_helper->set_cmd_value(DUTY_CYCLE_INDEX, this->duty_cycle);
 
         this->can_interface_helper->get_state_value(RPM_INDEX, this->rpm);
 
@@ -161,13 +161,13 @@ auto succ::ThrusterController::update_and_write_commands(
             suc_util::get_index("servo_direct/angle_raw", DIRECT_CMD_INTERFACE_NAMES);
         constexpr auto ESC_ENABLED_INDEX =
             suc_util::get_index("esc_direct/enabled_raw", DIRECT_CMD_INTERFACE_NAMES);
-        constexpr auto THRUST_INDEX =
-            suc_util::get_index("esc_direct/thrust_raw", DIRECT_CMD_INTERFACE_NAMES);
+        constexpr auto DUTY_CYCLE_INDEX =
+            suc_util::get_index("esc_direct/duty_cycle_raw", DIRECT_CMD_INTERFACE_NAMES);
 
         this->direct_interface_helper->set_cmd_value(SERVO_ENABLED_INDEX, this->servo_enabled);
         this->direct_interface_helper->set_cmd_value(ANGLE_INDEX, this->angle);
         this->direct_interface_helper->set_cmd_value(ESC_ENABLED_INDEX, this->esc_enabled);
-        this->direct_interface_helper->set_cmd_value(THRUST_INDEX, this->thrust);
+        this->direct_interface_helper->set_cmd_value(DUTY_CYCLE_INDEX, this->duty_cycle);
     }
 
     return cif::return_type::OK;
