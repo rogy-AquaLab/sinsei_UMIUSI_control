@@ -3,10 +3,11 @@
 
 #include <array>
 #include <cstdint>
-#include <memory>
+#include <optional>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 
+#include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/can_interface.hpp"
 
 // ref: https://github.com/vedderb/bldc/blob/822d270/documentation/comm_can.md
@@ -40,8 +41,6 @@ enum class VescAdcChannel : uint8_t { ADC1, ADC2, ADC3 };
 
 class VescModel {
   private:
-    std::shared_ptr<util::CanInterface> can;
-
     uint8_t id;
 
     static constexpr double BLDC_POLES = 14.0;
@@ -92,28 +91,26 @@ class VescModel {
     static constexpr double ADC3_SCALE = 1000;
     static constexpr double PPM_SCALE = 1000;
 
-    static auto to_bytes_be(int32_t value) -> std::array<uint8_t, 4>;
+    auto make_frame(VescSimpleCommandID command_id, const std::array<uint8_t, 8> & data)
+        -> util::CanFrame;
 
-    static auto to_int32_be(std::array<uint8_t, 4> bytes) -> int32_t;
+    auto make_servo_frame(double value)
+        -> tl::expected<util::CanFrame, std::string>;  // lispBMにより実装。0 ~ 1.0
 
-    auto send_command_packet(VescSimpleCommandID command_id, const std::array<uint8_t, 4> & data)
-        -> tl::expected<void, std::string>;
+    auto id_matches(const util::CanFrame & frame) -> bool;
 
-    auto recv_status_frame(VescStatusCommandID expected_cmd_id)
-        -> tl::expected<std::array<uint8_t, 8>, std::string>;
-
-    auto set_servo(double value) -> tl::expected<void, std::string>;  // lispBMにより実装。0 ~ 1.0
-
-    auto get_erpm() -> tl::expected<double, std::string>;
+    static auto get_cmd_id(const util::CanFrame & frame)
+        -> tl::expected<VescStatusCommandID, std::string>;
 
   public:
-    VescModel(std::shared_ptr<util::CanInterface> can, uint8_t id);
+    VescModel(uint8_t id);
 
-    auto set_duty(double duty) -> tl::expected<void, std::string>;
-    auto set_rpm(int8_t rpm) -> tl::expected<void, std::string>;
-    auto set_servo_angle(double deg) -> tl::expected<void, std::string>;
+    auto make_duty_frame(double duty) -> tl::expected<util::CanFrame, std::string>;
+    auto make_rpm_frame(int8_t rpm) -> tl::expected<util::CanFrame, std::string>;
+    auto make_servo_angle_frame(double deg) -> tl::expected<util::CanFrame, std::string>;
 
-    auto get_rpm() -> tl::expected<double, std::string>;
+    auto get_rpm(const util::CanFrame & frame)
+        -> tl::expected<std::optional<sinsei_umiusi_control::state::thruster::Rpm>, std::string>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::can

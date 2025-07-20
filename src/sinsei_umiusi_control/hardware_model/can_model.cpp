@@ -1,13 +1,13 @@
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 
+#include <string>
+
 #include "sinsei_umiusi_control/state/thruster.hpp"
-#include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
-suchm::CanModel::CanModel(std::shared_ptr<suc::util::CanInterface> can, util::ThrusterMode mode)
-: can(std::move(can)), mode(mode) {}
+suchm::CanModel::CanModel(std::shared_ptr<suc::util::CanInterface> can) : can(std::move(can)) {}
 
 auto suchm::CanModel::on_init() -> tl::expected<void, std::string> {
     auto res = this->can->init("can0");
@@ -39,13 +39,42 @@ auto suchm::CanModel::on_read()
     // suc::state::main_power::BatteryVoltage battery_voltage;
     // suc::state::main_power::Temperature temperature;
 
+    auto frame = this->can->recv_frame();
+    if (!frame) {
+        return tl::make_unexpected("Failed to receive CAN frame: " + frame.error());
+    }
+
+    // フレームを各モデルに渡していく
+
+    auto success = false;
+    std::string error_message;
+
+    // TODO: この位置に`can::MainPowerModel`の処理を追加する
+
     for (size_t i = 0; i < 4; ++i) {
-        auto rpm_res = this->vesc_models[i].get_rpm();
-        if (!rpm_res) {
-            return tl::make_unexpected(
-                "Failed to get RPM for thruster " + std::to_string(i + 1) + ": " + rpm_res.error());
+        if (success) {
+            // すでに成功したモデルがある場合はfor文ごとスキップ
+            break;
         }
-        rpm[i] = suc::state::thruster::Rpm{rpm_res.value()};
+        auto rpm_res = this->vesc_models[i].get_rpm(frame.value());
+        if (!rpm_res) {
+            error_message += "    VESC " + std::to_string(i + 1) + ": " + rpm_res.error() + "\n";
+            continue;
+        }
+        auto rpm_opt = rpm_res.value();
+        if (!rpm_opt) {
+            // フレームにRPMの情報が含まれていない場合はスキップ
+            continue;
+        }
+        rpm[i] = rpm_opt.value();
+        success = true;
+    }
+
+    // すべてのモデルでフレームを処理できなかった場合はエラー
+    if (!success) {
+        return tl::make_unexpected(
+            "Failed to handle CAN frame \"" + std::to_string(frame.value().id) +
+            "\" in all models: \n" + error_message);
     }
 
     // FIXME: 仮の値を返している
@@ -66,21 +95,33 @@ auto suchm::CanModel::on_write(
         // TODO: `thruster_esc_enabled`と`thruster_servo_enabled`の処理を実装する
 
         auto thrust = thruster_thrust[i].value;
-        // TODO: dutyとRPMどちらを指定するか検討する
-        // TODO: RPMにするのであれば、`MAX_RPM`の値を調べて`[-MAX_RPM, MAX_RPM]`の範囲に収める
-        auto thrust_res = this->vesc_models[i].set_rpm(thrust);
-        if (!thrust_res) {
+        auto duty_frame = this->vesc_models[i].make_duty_frame(thrust);
+        if (!duty_frame) {
             return tl::make_unexpected(
-                "Failed to set thrust for thruster " + std::to_string(i + 1) + ": " +
-                thrust_res.error());
+                "Failed to create duty frame for thruster " + std::to_string(i + 1) + ": " +
+                duty_frame.error());
+        }
+
+        auto duty_send_res = this->can->send_frame(std::move(duty_frame.value()));
+        if (!duty_send_res) {
+            return tl::make_unexpected(
+                "Failed to send duty frame for thruster " + std::to_string(i + 1) + ": " +
+                duty_send_res.error());
         }
 
         auto angle = thruster_angle[i].value;
-        auto angle_res = this->vesc_models[i].set_servo_angle(angle);
-        if (!angle_res) {
+        auto angle_frame = this->vesc_models[i].make_servo_angle_frame(angle);
+        if (!angle_frame) {
             return tl::make_unexpected(
-                "Failed to set servo angle for thruster " + std::to_string(i + 1) + ": " +
-                angle_res.error());
+                "Failed to create servo angle frame for thruster " + std::to_string(i + 1) + ": " +
+                angle_frame.error());
+        }
+
+        auto angle_send_res = this->can->send_frame(std::move(angle_frame.value()));
+        if (!angle_send_res) {
+            return tl::make_unexpected(
+                "Failed to send servo angle frame for thruster " + std::to_string(i + 1) + ": " +
+                angle_send_res.error());
         }
     }
 
