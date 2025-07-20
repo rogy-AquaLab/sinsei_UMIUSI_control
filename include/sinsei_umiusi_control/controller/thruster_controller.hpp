@@ -22,7 +22,6 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     sinsei_umiusi_control::cmd::thruster::Thrust thrust;
 
     // State interfaces (out)
-    sinsei_umiusi_control::state::thruster::ServoCurrent servo_current;
     sinsei_umiusi_control::state::thruster::Rpm rpm;
 
     // 正式なinterface名は前に`thruster(_direct)(1-4)/`がつくが、リストを静的にするため特別に省略している
@@ -33,9 +32,8 @@ class ThrusterController : public controller_interface::ChainableControllerInter
         "esc/enabled_raw",
         "esc/thrust_raw",
     };
-    static constexpr size_t CAN_STATE_SIZE = 2;
+    static constexpr size_t CAN_STATE_SIZE = 1;
     static constexpr const char * CAN_STATE_INTERFACE_NAMES[CAN_STATE_SIZE] = {
-        "servo/servo_current_raw",
         "esc/rpm_raw",
     };
     static constexpr size_t DIRECT_CMD_SIZE = 4;

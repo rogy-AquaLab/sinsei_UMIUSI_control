@@ -35,7 +35,6 @@ class CanModel {
     auto on_read()
         -> tl::expected<
             std::tuple<
-                std::array<suc::state::thruster::ServoCurrent, 4>,
                 std::array<suc::state::thruster::Rpm, 4>, suc::state::main_power::BatteryCurrent,
                 suc::state::main_power::BatteryVoltage, suc::state::main_power::Temperature,
                 suc::state::main_power::WaterLeaked>,

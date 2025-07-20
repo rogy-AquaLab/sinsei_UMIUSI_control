@@ -66,15 +66,10 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
         return hif::return_type::OK;
     }
 
-    auto [servo_current, rpm, battery_current, battery_voltage, temperature, water_leaked] =
-        res.value();
+    auto [rpm, battery_current, battery_voltage, temperature, water_leaked] = res.value();
     if (this->thruster_mode == util::ThrusterMode::Can) {
         for (size_t i = 0; i < 4; ++i) {
             auto thruster_name = "thruster" + std::to_string(i + 1);
-            // TODO: 実装したらコメントアウトを外す
-            /*this->set_state(
-                thruster_name + "/servo/servo_current_raw",
-                util::to_interface_data(servo_current[i]));*/
             this->set_state(thruster_name + "/esc/rpm_raw", util::to_interface_data(rpm[i]));
         }
     }
