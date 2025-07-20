@@ -46,21 +46,32 @@ auto suchm::CanModel::on_read()
         return tl::make_unexpected("Failed to receive CAN frame: " + frame.error());
     }
 
+    // フレームを各モデルに渡していく
+
     auto success = false;
     std::string error_message;
 
+    // TODO: この位置に`can::MainPowerModel`の処理を追加する
+
     for (size_t i = 0; i < 4; ++i) {
-        if (!success) {
-            auto res = this->vesc_models[i].handle_frame(frame.value());
-            if (!res) {
-                error_message += "    VESC " + std::to_string(i + 1) + ": " + res.error() + "\n";
-                continue;
-            }
-            rpm[i] = res.value();
-            success = true;
+        if (success) {
+            // すでに成功したモデルがある場合はfor文ごとスキップ
+            break;
         }
+        auto rpm_res = this->vesc_models[i].get_rpm(frame.value());
+        if (!rpm_res) {
+            error_message += "    VESC " + std::to_string(i + 1) + ": " + rpm_res.error() + "\n";
+            continue;
+        }
+        if (!rpm_res.value()) {
+            // フレームにRPMの情報が含まれていない場合はスキップ
+            continue;
+        }
+        rpm[i] = rpm_res.value().value();
+        success = true;
     }
 
+    // すべてのモデルでフレームを処理できなかった場合はエラー
     if (!success) {
         return tl::make_unexpected(
             "Failed to handle CAN frame \"" + std::to_string(frame.value().id) +

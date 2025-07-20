@@ -55,40 +55,56 @@ auto suchm::can::VescModel::make_servo_angle_frame(double deg)
     return this->make_servo_frame(deg / 180.0);
 }
 
-auto suchm::can::VescModel::handle_frame(const util::CanFrame & frame)
-    -> tl::expected<suc::state::thruster::Rpm, std::string> {
-    const auto cmd_id = static_cast<uint8_t>((frame.id >> 8) & 0xFF);
-    const auto vesc_id = static_cast<uint8_t>(frame.id & 0xFF);
-
-    if (vesc_id != this->id) {
-        return tl::make_unexpected(
-            "Received CAN frame for different VESC ID (expected: " + std::to_string(this->id) +
-            ", received: " + std::to_string(vesc_id) + ")");
-    }
+auto suchm::can::VescModel::get_cmd_id(const util::CanFrame & frame)
+    -> tl::expected<VescStatusCommandID, std::string> {
     if (frame.len != 8) {
         return tl::make_unexpected(
             "Received CAN frame with invalid length (expected: 8, received: " +
             std::to_string(frame.len) + ")");
     }
 
-    std::array<uint8_t, 8> bytes;
-    std::copy_n(frame.data.begin(), 8, bytes.begin());
+    const auto vesc_id = static_cast<uint8_t>(frame.id & 0xFF);
+    if (vesc_id != this->id) {
+        return tl::make_unexpected(
+            "Received CAN frame for different VESC ID (expected: " + std::to_string(this->id) +
+            ", received: " + std::to_string(vesc_id) + ")");
+    }
 
-    auto rpm = suc::state::thruster::Rpm{};
-
+    const auto cmd_id = static_cast<uint8_t>((frame.id >> 8) & 0xFF);
     switch (cmd_id) {
-        case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS): {
-            auto scaled_erpm = suc::util::to_int32_be(bytes);
-            auto erpm = static_cast<double>(scaled_erpm) / ERPM_SCALE;
-            static constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
-            // ERPMを極対数で割ってRPMに変換
-            rpm.value = erpm / BLDC_POLE_PAIR;
-            break;
-        }
+        case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS):
+            return VescStatusCommandID::CAN_PACKET_STATUS;
+        case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS_2):
+            return VescStatusCommandID::CAN_PACKET_STATUS_2;
+        case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS_3):
+            return VescStatusCommandID::CAN_PACKET_STATUS_3;
+        case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS_4):
+            return VescStatusCommandID::CAN_PACKET_STATUS_4;
+        case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS_5):
+            return VescStatusCommandID::CAN_PACKET_STATUS_5;
+        case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS_6):
+            return VescStatusCommandID::CAN_PACKET_STATUS_6;
         default:
             return tl::make_unexpected(
                 "Received CAN frame with unknown command ID: " + std::to_string(cmd_id));
     }
+}
 
-    return rpm;
+auto suchm::can::VescModel::get_rpm(const util::CanFrame & frame)
+    -> tl::expected<std::optional<sinsei_umiusi_control::state::thruster::Rpm>, std::string> {
+    auto cmd_id = this->get_cmd_id(frame);
+    if (!cmd_id) {
+        return tl::make_unexpected("Failed to get command ID: " + cmd_id.error());
+    }
+
+    if (cmd_id.value() != VescStatusCommandID::CAN_PACKET_STATUS) {
+        // このフレームはERPMの情報を含んでいない
+        return std::nullopt;
+    }
+
+    auto scaled_erpm = suc::util::to_int32_be(frame.data);
+    auto erpm = static_cast<double>(scaled_erpm) / ERPM_SCALE;
+    static constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
+    // ERPMを極対数で割ってRPMに変換
+    return suc::state::thruster::Rpm{erpm / BLDC_POLE_PAIR};
 }

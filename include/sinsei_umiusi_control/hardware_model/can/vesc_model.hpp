@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 
@@ -96,6 +97,8 @@ class VescModel {
     auto make_servo_frame(double value)
         -> tl::expected<util::CanFrame, std::string>;  // lispBMにより実装。0 ~ 1.0
 
+    auto get_cmd_id(const util::CanFrame & frame) -> tl::expected<VescStatusCommandID, std::string>;
+
   public:
     VescModel(uint8_t id);
 
@@ -103,8 +106,8 @@ class VescModel {
     auto make_rpm_frame(int8_t rpm) -> tl::expected<util::CanFrame, std::string>;
     auto make_servo_angle_frame(double deg) -> tl::expected<util::CanFrame, std::string>;
 
-    auto handle_frame(const util::CanFrame & frame)
-        -> tl::expected<sinsei_umiusi_control::state::thruster::Rpm, std::string>;
+    auto get_rpm(const util::CanFrame & frame)
+        -> tl::expected<std::optional<sinsei_umiusi_control::state::thruster::Rpm>, std::string>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::can
