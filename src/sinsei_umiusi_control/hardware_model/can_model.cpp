@@ -85,19 +85,33 @@ auto suchm::CanModel::on_write(
         // TODO: `thruster_esc_enabled`と`thruster_servo_enabled`の処理を実装する
 
         auto thrust = thruster_thrust[i].value;
-        auto thrust_res = this->vesc_models[i].set_duty(thrust);
-        if (!thrust_res) {
+        auto duty_frame = this->vesc_models[i].make_duty_frame(thrust);
+        if (!duty_frame) {
             return tl::make_unexpected(
-                "Failed to set thrust for thruster " + std::to_string(i + 1) + ": " +
-                thrust_res.error());
+                "Failed to create duty frame for thruster " + std::to_string(i + 1) + ": " +
+                duty_frame.error());
+        }
+
+        auto duty_send_res = this->can->send_frame(std::move(duty_frame.value()));
+        if (!duty_send_res) {
+            return tl::make_unexpected(
+                "Failed to send duty frame for thruster " + std::to_string(i + 1) + ": " +
+                duty_send_res.error());
         }
 
         auto angle = thruster_angle[i].value;
-        auto angle_res = this->vesc_models[i].set_servo_angle(angle);
-        if (!angle_res) {
+        auto angle_frame = this->vesc_models[i].make_servo_angle_frame(angle);
+        if (!angle_frame) {
             return tl::make_unexpected(
-                "Failed to set servo angle for thruster " + std::to_string(i + 1) + ": " +
-                angle_res.error());
+                "Failed to create servo angle frame for thruster " + std::to_string(i + 1) + ": " +
+                angle_frame.error());
+        }
+
+        auto angle_send_res = this->can->send_frame(std::move(angle_frame.value()));
+        if (!angle_send_res) {
+            return tl::make_unexpected(
+                "Failed to send servo angle frame for thruster " + std::to_string(i + 1) + ": " +
+                angle_send_res.error());
         }
     }
 

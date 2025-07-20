@@ -41,8 +41,6 @@ enum class VescAdcChannel : uint8_t { ADC1, ADC2, ADC3 };
 
 class VescModel {
   private:
-    std::shared_ptr<util::CanInterface> can;
-
     uint8_t id;
 
     static constexpr double BLDC_POLES = 14.0;
@@ -98,17 +96,18 @@ class VescModel {
     // Convert 8-byte array in big-endian order to int32_t
     static auto to_int32_be(std::array<uint8_t, 8> bytes) -> int32_t;
 
-    auto send_command_packet(VescSimpleCommandID command_id, const std::array<uint8_t, 8> & data)
-        -> tl::expected<void, std::string>;
+    auto make_frame(VescSimpleCommandID command_id, const std::array<uint8_t, 8> & data)
+        -> util::CanFrame;
 
-    auto set_servo(double value) -> tl::expected<void, std::string>;  // lispBMにより実装。0 ~ 1.0
+    auto make_servo_frame(double value)
+        -> tl::expected<util::CanFrame, std::string>;  // lispBMにより実装。0 ~ 1.0
 
   public:
-    VescModel(std::shared_ptr<util::CanInterface> can, uint8_t id);
+    VescModel(uint8_t id);
 
-    auto set_duty(double duty) -> tl::expected<void, std::string>;
-    auto set_rpm(int8_t rpm) -> tl::expected<void, std::string>;
-    auto set_servo_angle(double deg) -> tl::expected<void, std::string>;
+    auto make_duty_frame(double duty) -> tl::expected<util::CanFrame, std::string>;
+    auto make_rpm_frame(int8_t rpm) -> tl::expected<util::CanFrame, std::string>;
+    auto make_servo_angle_frame(double deg) -> tl::expected<util::CanFrame, std::string>;
 
     auto handle_frame(const util::CanFrame & frame)
         -> tl::expected<sinsei_umiusi_control::state::thruster::Rpm, std::string>;
