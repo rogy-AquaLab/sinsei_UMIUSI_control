@@ -6,11 +6,11 @@
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
-suchm::can::VescModel::VescModel(uint8_t id) : id(id) {}
+suchm::can::VescModel::VescModel(suchm::can::VescModel::Id id) : id(id) {}
 
 auto suchm::can::VescModel::make_frame(
     VescSimpleCommandID command_id, const util::CanFrame::Data & data) -> util::CanFrame {
-    auto can_id = (static_cast<uint32_t>(command_id) & 0xFF) << 8 | (this->id & 0xFF);
+    auto can_id = (static_cast<util::CanFrame::Id>(command_id) & 0xFF) << 8 | (this->id & 0xFF);
     return util::CanFrame{can_id, 4, data, true};
 }
 
@@ -54,7 +54,7 @@ auto suchm::can::VescModel::make_servo_angle_frame(double deg)
 }
 
 auto suchm::can::VescModel::id_matches(const util::CanFrame & frame) -> bool {
-    const auto vesc_id = static_cast<uint8_t>(frame.id & 0xFF);
+    const auto vesc_id = static_cast<suchm::can::VescModel::Id>(frame.id & 0xFF);
     return vesc_id == this->id;
 }
 

@@ -40,8 +40,10 @@ enum class VescStatusCommandID : uint32_t {
 enum class VescAdcChannel : uint8_t { ADC1, ADC2, ADC3 };
 
 class VescModel {
+    using Id = uint8_t;
+
   private:
-    uint8_t id;
+    Id id;
 
     static constexpr double BLDC_POLES = 14.0;
 
@@ -103,7 +105,7 @@ class VescModel {
         -> tl::expected<VescStatusCommandID, std::string>;
 
   public:
-    VescModel(uint8_t id);
+    VescModel(Id id);
 
     auto make_duty_frame(double duty) -> tl::expected<util::CanFrame, std::string>;
     auto make_rpm_frame(int8_t rpm) -> tl::expected<util::CanFrame, std::string>;
