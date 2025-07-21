@@ -1,7 +1,6 @@
 #ifndef SINSEI_UMIUSI_CONTROL_hardware_model_CAN_VESC_MODEL_HPP
 #define SINSEI_UMIUSI_CONTROL_hardware_model_CAN_VESC_MODEL_HPP
 
-#include <array>
 #include <cstdint>
 #include <optional>
 #include <rcpputils/tl_expected/expected.hpp>
@@ -91,7 +90,7 @@ class VescModel {
     static constexpr double ADC3_SCALE = 1000;
     static constexpr double PPM_SCALE = 1000;
 
-    auto make_frame(VescSimpleCommandID command_id, const std::array<uint8_t, 8> & data)
+    auto make_frame(VescSimpleCommandID command_id, const util::CanFrame::Data & data)
         -> util::CanFrame;
 
     auto make_servo_frame(double value)

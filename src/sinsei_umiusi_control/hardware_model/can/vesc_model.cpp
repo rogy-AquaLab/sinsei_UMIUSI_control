@@ -9,7 +9,7 @@ namespace suchm = suc::hardware_model;
 suchm::can::VescModel::VescModel(uint8_t id) : id(id) {}
 
 auto suchm::can::VescModel::make_frame(
-    VescSimpleCommandID command_id, const std::array<uint8_t, 8> & data) -> util::CanFrame {
+    VescSimpleCommandID command_id, const util::CanFrame::Data & data) -> util::CanFrame {
     auto can_id = (static_cast<uint32_t>(command_id) & 0xFF) << 8 | (this->id & 0xFF);
     return util::CanFrame{can_id, 4, data, true};
 }
