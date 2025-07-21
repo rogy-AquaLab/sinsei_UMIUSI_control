@@ -124,17 +124,17 @@ constexpr auto enum_cast(CanFrame::Id value)
     using sinsei_umiusi_control::hardware_model::can::VescStatusCommandID;
 
     switch (value) {
-        case 9:
+        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS):
             return VescStatusCommandID::CAN_PACKET_STATUS;
-        case 14:
+        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS_2):
             return VescStatusCommandID::CAN_PACKET_STATUS_2;
-        case 15:
+        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS_3):
             return VescStatusCommandID::CAN_PACKET_STATUS_3;
-        case 16:
+        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS_4):
             return VescStatusCommandID::CAN_PACKET_STATUS_4;
-        case 27:
+        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS_5):
             return VescStatusCommandID::CAN_PACKET_STATUS_5;
-        case 58:
+        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS_6):
             return VescStatusCommandID::CAN_PACKET_STATUS_6;
         default:
             return tl::make_unexpected(EnumCastError::InvalidValue);
