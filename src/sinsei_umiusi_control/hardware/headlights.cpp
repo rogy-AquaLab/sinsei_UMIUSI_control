@@ -17,13 +17,29 @@ auto suchw::Headlights::on_init(const hif::HardwareInfo & info) -> hif::Callback
     auto low_beam_pin = std::make_unique<sinsei_umiusi_control::util::Pigpio>();
     auto ir_pin = std::make_unique<sinsei_umiusi_control::util::Pigpio>();
 
-    // FIXME: ピン番号はパラメーターなどで設定できるようにする
-    this->model.emplace(
-        std::move(gpio),
-        5,  // Pin number of High Beam
-        6,  // Pin number of Low Beam
-        25  // Pin number of IR
-    );
+    // ピン番号をパラメーターから取得
+    const auto high_beam_pin_num_it = info.hardware_parameters.find("high_beam_pin");
+    if (high_beam_pin_num_it == info.hardware_parameters.end()) {
+        RCLCPP_ERROR(
+            this->get_logger(), "Parameter 'high_beam_pin' not found in hardware parameters.");
+        return hif::CallbackReturn::ERROR;
+    }
+    const auto low_beam_pin_num_it = info.hardware_parameters.find("low_beam_pin");
+    if (low_beam_pin_num_it == info.hardware_parameters.end()) {
+        RCLCPP_ERROR(
+            this->get_logger(), "Parameter 'low_beam_pin' not found in hardware parameters.");
+        return hif::CallbackReturn::ERROR;
+    }
+    const auto ir_pin_num_it = info.hardware_parameters.find("ir_pin");
+    if (ir_pin_num_it == info.hardware_parameters.end()) {
+        RCLCPP_ERROR(this->get_logger(), "Parameter 'ir_pin' not found in hardware parameters.");
+        return hif::CallbackReturn::ERROR;
+    }
+    const auto high_beam_pin_num = std::stoi(high_beam_pin_num_it->second);
+    const auto low_beam_pin_num = std::stoi(low_beam_pin_num_it->second);
+    const auto ir_pin_num = std::stoi(ir_pin_num_it->second);
+
+    this->model.emplace(std::move(gpio), high_beam_pin_num, low_beam_pin_num, ir_pin_num);
 
     auto res = this->model->on_init();
     if (!res) {

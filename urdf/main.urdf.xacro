@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
+
+  <xacro:arg name="thruster_mode" default="'unknown'" />
+  <xacro:arg name="high_beam_pin" default="'unknown'" />
+  <xacro:arg name="low_beam_pin" default="'unknown'" />
+  <xacro:arg name="ir_pin" default="'unknown'" />
+  <xacro:arg name="indicator_led_pin" default="'unknown'" />
+
+  <xacro:include filename="sinsei_umiusi_control.urdf.xacro" />
+
+  <xacro:sinsei_umiusi_control
+    thruster_mode="$(arg thruster_mode)"
+    high_beam_pin="$(arg high_beam_pin)"
+    low_beam_pin="$(arg low_beam_pin)"
+    ir_pin="$(arg ir_pin)"
+    indicator_led_pin="$(arg indicator_led_pin)"
+    mock="false"
+  />
+
+</robot>
