@@ -97,12 +97,12 @@ class GateController : public controller_interface::ControllerInterface {
         "thruster_controller2/rpm",
         "thruster_controller3/rpm",
         "thruster_controller4/rpm",
-        "app_controller/imu_orientation.x",
-        "app_controller/imu_orientation.y",
-        "app_controller/imu_orientation.z",
-        "app_controller/imu_velocity.x",
-        "app_controller/imu_velocity.y",
-        "app_controller/imu_velocity.z",
+        "app_controller/imu/orientation.x",
+        "app_controller/imu/orientation.y",
+        "app_controller/imu/orientation.z",
+        "app_controller/imu/velocity.x",
+        "app_controller/imu/velocity.y",
+        "app_controller/imu/velocity.z",
         "imu/temperature",
     };
 

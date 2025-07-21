@@ -199,17 +199,17 @@ auto succ::GateController::update(
     constexpr auto RPM4_INDEX =
         suc_util::get_index("thruster_controller4/rpm", STATE_INTERFACE_NAMES);
     constexpr auto IMU_ORIENTATION_X_INDEX =
-        suc_util::get_index("app_controller/imu_orientation.x", STATE_INTERFACE_NAMES);
+        suc_util::get_index("app_controller/imu/orientation.x", STATE_INTERFACE_NAMES);
     constexpr auto IMU_ORIENTATION_Y_INDEX =
-        suc_util::get_index("app_controller/imu_orientation.y", STATE_INTERFACE_NAMES);
+        suc_util::get_index("app_controller/imu/orientation.y", STATE_INTERFACE_NAMES);
     constexpr auto IMU_ORIENTATION_Z_INDEX =
-        suc_util::get_index("app_controller/imu_orientation.z", STATE_INTERFACE_NAMES);
+        suc_util::get_index("app_controller/imu/orientation.z", STATE_INTERFACE_NAMES);
     constexpr auto IMU_VELOCITY_X_INDEX =
-        suc_util::get_index("app_controller/imu_velocity.x", STATE_INTERFACE_NAMES);
+        suc_util::get_index("app_controller/imu/velocity.x", STATE_INTERFACE_NAMES);
     constexpr auto IMU_VELOCITY_Y_INDEX =
-        suc_util::get_index("app_controller/imu_velocity.y", STATE_INTERFACE_NAMES);
+        suc_util::get_index("app_controller/imu/velocity.y", STATE_INTERFACE_NAMES);
     constexpr auto IMU_VELOCITY_Z_INDEX =
-        suc_util::get_index("app_controller/imu_velocity.z", STATE_INTERFACE_NAMES);
+        suc_util::get_index("app_controller/imu/velocity.z", STATE_INTERFACE_NAMES);
     constexpr auto IMU_TEMPERATURE_INDEX =
         suc_util::get_index("imu/temperature", STATE_INTERFACE_NAMES);
 

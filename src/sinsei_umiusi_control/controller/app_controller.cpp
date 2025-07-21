@@ -1,6 +1,10 @@
 #include "sinsei_umiusi_control/controller/app_controller.hpp"
 
-#include "sinsei_umiusi_control/util/constexpr.hpp"
+#include <cstddef>
+#include <optional>
+#include <rclcpp/logging.hpp>
+
+#include "sinsei_umiusi_control/util/serialization.hpp"
 
 namespace succ = sinsei_umiusi_control::controller;
 namespace suc_util = sinsei_umiusi_control::util;
@@ -9,8 +13,10 @@ namespace hif = hardware_interface;
 namespace cif = controller_interface;
 
 auto succ::AppController::command_interface_configuration() const -> cif::InterfaceConfiguration {
-    std::vector<std::string> cmd_names(
-        std::begin(this->CMD_INTERFACE_NAMES), std::end(this->CMD_INTERFACE_NAMES));
+    auto cmd_names = std::vector<std::string>{};
+    for (const auto & [name, _] : this->command_interface_data) {
+        cmd_names.push_back(name);
+    }
 
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
@@ -19,9 +25,10 @@ auto succ::AppController::command_interface_configuration() const -> cif::Interf
 }
 
 auto succ::AppController::state_interface_configuration() const -> cif::InterfaceConfiguration {
-    std::vector<std::string> state_names(
-        std::begin(this->STATE_INTERFACE_NAMES), std::end(this->STATE_INTERFACE_NAMES));
-
+    auto state_names = std::vector<std::string>{};
+    for (const auto & [name, _] : this->state_interface_data) {
+        state_names.push_back(name);
+    }
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
         state_names,
@@ -29,9 +36,48 @@ auto succ::AppController::state_interface_configuration() const -> cif::Interfac
 }
 
 auto succ::AppController::on_init() -> cif::CallbackReturn {
-    this->interface_helper = std::make_unique<InterfaceAccessHelper<CMD_SIZE, STATE_SIZE>>(
-        this->get_node().get(), this->command_interfaces_, this->CMD_INTERFACE_NAMES,
-        this->state_interfaces_, this->STATE_INTERFACE_NAMES);
+    constexpr const std::string_view CMD_INTERFACE_NAMES[8] = {
+        "thruster_controller1/angle", "thruster_controller1/duty_cycle",
+        "thruster_controller2/angle", "thruster_controller2/duty_cycle",
+        "thruster_controller3/angle", "thruster_controller3/duty_cycle",
+        "thruster_controller4/angle", "thruster_controller4/duty_cycle",
+    };
+    for (size_t i = 0; i < 4; ++i) {
+        this->command_interface_data.emplace_back(
+            CMD_INTERFACE_NAMES[i * 2], util::to_interface_data_ptr(this->thruster_angles[i]));
+        this->command_interface_data.emplace_back(
+            CMD_INTERFACE_NAMES[i * 2 + 1],
+            util::to_interface_data_ptr(this->thruster_duty_cycles[i]));
+    }
+
+    constexpr const std::string_view STATE_INTERFACE_NAMES[6] = {
+        "imu/orientation.x", "imu/orientation.y", "imu/orientation.z",
+        "imu/velocity.x",    "imu/velocity.y",    "imu/velocity.z",
+    };
+    for (size_t i = 0; i < 2; ++i) {
+        this->state_interface_data.emplace_back(
+            STATE_INTERFACE_NAMES[i * 3], util::to_interface_data_ptr(this->imu_orientation.x));
+        this->state_interface_data.emplace_back(
+            STATE_INTERFACE_NAMES[i * 3 + 1], util::to_interface_data_ptr(this->imu_orientation.y));
+        this->state_interface_data.emplace_back(
+            STATE_INTERFACE_NAMES[i * 3 + 2], util::to_interface_data_ptr(this->imu_orientation.z));
+    }
+
+    constexpr const std::string_view REFERENCE_INTERFACE_NAMES[6] = {
+        "target_orientation.x", "target_orientation.y", "target_orientation.z",
+        "target_velocity.x",    "target_velocity.y",    "target_velocity.z",
+    };
+    for (size_t i = 0; i < 2; ++i) {
+        this->reference_interface_data.emplace_back(
+            REFERENCE_INTERFACE_NAMES[i * 3],
+            util::to_interface_data_ptr(this->target_orientation.x));
+        this->reference_interface_data.emplace_back(
+            REFERENCE_INTERFACE_NAMES[i * 3 + 1],
+            util::to_interface_data_ptr(this->target_orientation.y));
+        this->reference_interface_data.emplace_back(
+            REFERENCE_INTERFACE_NAMES[i * 3 + 2],
+            util::to_interface_data_ptr(this->target_orientation.z));
+    }
 
     return cif::CallbackReturn::SUCCESS;
 }
@@ -55,35 +101,17 @@ auto succ::AppController::on_export_reference_interfaces() -> std::vector<hif::C
     this->reference_interfaces_.resize(6);
 
     auto interfaces = std::vector<hif::CommandInterface>{};
-    interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name(), "target_orientation.x", &this->target_orientation.x));
-    interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name(), "target_orientation.y", &this->target_orientation.y));
-    interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name(), "target_orientation.z", &this->target_orientation.z));
-    interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name(), "target_velocity.x", &this->target_velocity.x));
-    interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name(), "target_velocity.y", &this->target_velocity.y));
-    interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name(), "target_velocity.z", &this->target_velocity.z));
+    for (auto & [name, data] : this->reference_interface_data) {
+        interfaces.emplace_back(hif::CommandInterface(this->get_node()->get_name(), name, data));
+    }
     return interfaces;
 }
 
 auto succ::AppController::on_export_state_interfaces() -> std::vector<hif::StateInterface> {
     auto interfaces = std::vector<hif::StateInterface>{};
-    interfaces.emplace_back(hif::StateInterface(
-        this->get_node()->get_name(), "imu_orientation.x", &this->imu_orientation.x));
-    interfaces.emplace_back(hif::StateInterface(
-        this->get_node()->get_name(), "imu_orientation.y", &this->imu_orientation.y));
-    interfaces.emplace_back(hif::StateInterface(
-        this->get_node()->get_name(), "imu_orientation.z", &this->imu_orientation.z));
-    interfaces.emplace_back(
-        hif::StateInterface(this->get_node()->get_name(), "imu_velocity.x", &this->imu_velocity.x));
-    interfaces.emplace_back(
-        hif::StateInterface(this->get_node()->get_name(), "imu_velocity.y", &this->imu_velocity.y));
-    interfaces.emplace_back(
-        hif::StateInterface(this->get_node()->get_name(), "imu_velocity.z", &this->imu_velocity.z));
+    for (auto & [name, data] : this->state_interface_data) {
+        interfaces.emplace_back(hif::StateInterface(this->get_node()->get_name(), name, data));
+    }
     return interfaces;
 }
 
@@ -96,54 +124,35 @@ auto succ::AppController::update_reference_from_subscribers(
 
 auto succ::AppController::update_and_write_commands(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> cif::return_type {
+    // 状態を取得
+    for (size_t i = 0; i < this->state_interface_data.size(); ++i) {
+        auto & [name, data] = this->state_interface_data[i];
+        auto res = this->state_interfaces_.at(i).get_optional();
+        if (!res) {
+            auto node = this->get_node();
+            constexpr auto DURATION = 3000;  // ms
+            RCLCPP_WARN_THROTTLE(
+                node->get_logger(), *node->get_clock(), DURATION,
+                "Failed to set value for state interface: %s", name.c_str());
+        }
+        *data = res.value();
+    }
+
     // 姿勢制御の関数を呼び出す
     this->compute_outputs();
 
-    constexpr auto ANGLE1_INDEX =
-        suc_util::get_index("thruster_controller1/angle", CMD_INTERFACE_NAMES);
-    constexpr auto DUTY_CYCLE1_INDEX =
-        suc_util::get_index("thruster_controller1/duty_cycle", CMD_INTERFACE_NAMES);
-    constexpr auto ANGLE2_INDEX =
-        suc_util::get_index("thruster_controller2/angle", CMD_INTERFACE_NAMES);
-    constexpr auto DUTY_CYCLE2_INDEX =
-        suc_util::get_index("thruster_controller2/duty_cycle", CMD_INTERFACE_NAMES);
-    constexpr auto ANGLE3_INDEX =
-        suc_util::get_index("thruster_controller3/angle", CMD_INTERFACE_NAMES);
-    constexpr auto DUTY_CYCLE3_INDEX =
-        suc_util::get_index("thruster_controller3/duty_cycle", CMD_INTERFACE_NAMES);
-    constexpr auto ANGLE4_INDEX =
-        suc_util::get_index("thruster_controller4/angle", CMD_INTERFACE_NAMES);
-    constexpr auto DUTY_CYCLE4_INDEX =
-        suc_util::get_index("thruster_controller4/duty_cycle", CMD_INTERFACE_NAMES);
-
-    constexpr auto ORIENTATION_X_INDEX =
-        suc_util::get_index("imu/orientation_raw.x", STATE_INTERFACE_NAMES);
-    constexpr auto ORIENTATION_Y_INDEX =
-        suc_util::get_index("imu/orientation_raw.y", STATE_INTERFACE_NAMES);
-    constexpr auto ORIENTATION_Z_INDEX =
-        suc_util::get_index("imu/orientation_raw.z", STATE_INTERFACE_NAMES);
-    constexpr auto VELOCITY_X_INDEX =
-        suc_util::get_index("imu/velocity_raw.x", STATE_INTERFACE_NAMES);
-    constexpr auto VELOCITY_Y_INDEX =
-        suc_util::get_index("imu/velocity_raw.y", STATE_INTERFACE_NAMES);
-    constexpr auto VELOCITY_Z_INDEX =
-        suc_util::get_index("imu/velocity_raw.z", STATE_INTERFACE_NAMES);
-
-    this->interface_helper->set_cmd_value(ANGLE1_INDEX, this->thruster_angles[0]);
-    this->interface_helper->set_cmd_value(DUTY_CYCLE1_INDEX, this->thruster_duty_cycles[0]);
-    this->interface_helper->set_cmd_value(ANGLE2_INDEX, this->thruster_angles[1]);
-    this->interface_helper->set_cmd_value(DUTY_CYCLE2_INDEX, this->thruster_duty_cycles[1]);
-    this->interface_helper->set_cmd_value(ANGLE3_INDEX, this->thruster_angles[2]);
-    this->interface_helper->set_cmd_value(DUTY_CYCLE3_INDEX, this->thruster_duty_cycles[2]);
-    this->interface_helper->set_cmd_value(ANGLE4_INDEX, this->thruster_angles[3]);
-    this->interface_helper->set_cmd_value(DUTY_CYCLE4_INDEX, this->thruster_duty_cycles[3]);
-
-    this->interface_helper->get_state_value(ORIENTATION_X_INDEX, this->imu_orientation.x);
-    this->interface_helper->get_state_value(ORIENTATION_Y_INDEX, this->imu_orientation.y);
-    this->interface_helper->get_state_value(ORIENTATION_Z_INDEX, this->imu_orientation.z);
-    this->interface_helper->get_state_value(VELOCITY_X_INDEX, this->imu_velocity.x);
-    this->interface_helper->get_state_value(VELOCITY_Y_INDEX, this->imu_velocity.y);
-    this->interface_helper->get_state_value(VELOCITY_Z_INDEX, this->imu_velocity.z);
+    // コマンドを送信
+    for (size_t i = 0; i < this->command_interface_data.size(); ++i) {
+        const auto & [name, data] = this->command_interface_data[i];
+        auto res = this->command_interfaces_.at(i).set_value(*data);
+        if (!res) {
+            auto node = this->get_node();
+            constexpr auto DURATION = 3000;  // ms
+            RCLCPP_WARN_THROTTLE(
+                node->get_logger(), *node->get_clock(), DURATION,
+                "Failed to set value for command interface: %s", name.c_str());
+        }
+    }
 
     return cif::return_type::OK;
 }
