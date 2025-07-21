@@ -9,6 +9,8 @@
 
   <xacro:include filename="sinsei_umiusi_control.urdf.xacro" />
 
+  <link name="base_link"></link>
+
   <xacro:sinsei_umiusi_control
     thruster_mode="$(arg thruster_mode)"
     high_beam_pin="$(arg high_beam_pin)"
