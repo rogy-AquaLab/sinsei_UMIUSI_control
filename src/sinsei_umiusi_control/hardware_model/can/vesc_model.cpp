@@ -66,25 +66,11 @@ auto suchm::can::VescModel::get_cmd_id(const util::CanFrame & frame)
             std::to_string(frame.len) + ")");
     }
 
-    // TODO: refactor
-    const auto cmd_id = static_cast<uint8_t>((frame.id >> 8) & 0xFF);
-    switch (cmd_id) {
-        case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS):
-            return VescStatusCommandID::CAN_PACKET_STATUS;
-        case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS_2):
-            return VescStatusCommandID::CAN_PACKET_STATUS_2;
-        case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS_3):
-            return VescStatusCommandID::CAN_PACKET_STATUS_3;
-        case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS_4):
-            return VescStatusCommandID::CAN_PACKET_STATUS_4;
-        case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS_5):
-            return VescStatusCommandID::CAN_PACKET_STATUS_5;
-        case static_cast<uint8_t>(VescStatusCommandID::CAN_PACKET_STATUS_6):
-            return VescStatusCommandID::CAN_PACKET_STATUS_6;
-        default:
-            return tl::make_unexpected(
-                "Received CAN frame with unknown command ID: " + std::to_string(cmd_id));
-    }
+    const auto cmd_id = (frame.id >> 8) & 0xFF;
+    return util::enum_cast<util::CanFrame::Id, VescStatusCommandID>(cmd_id).map_error(
+        [&cmd_id](const auto &) {
+            return "Received CAN frame with unknown command ID: " + std::to_string(cmd_id);
+        });
 }
 
 auto suchm::can::VescModel::get_rpm(const util::CanFrame & frame)

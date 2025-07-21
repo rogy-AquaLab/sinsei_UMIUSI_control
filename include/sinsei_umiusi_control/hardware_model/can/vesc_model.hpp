@@ -8,6 +8,7 @@
 
 #include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/can_interface.hpp"
+#include "sinsei_umiusi_control/util/enum_cast.hpp"
 
 // ref: https://github.com/vedderb/bldc/blob/822d270/documentation/comm_can.md
 // ref: https://github.com/rogy-AquaLab/sinsei-UMIUSI/blob/fa11563/ESP32_CAN/lib/vesc_can_esp32/vesc_can_esp32.hpp
@@ -113,5 +114,33 @@ class VescModel {
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::can
+
+namespace sinsei_umiusi_control::util {
+
+template <>
+constexpr auto enum_cast(CanFrame::Id value)
+    -> tl::expected<
+        sinsei_umiusi_control::hardware_model::can::VescStatusCommandID, EnumCastError> {
+    using sinsei_umiusi_control::hardware_model::can::VescStatusCommandID;
+
+    switch (value) {
+        case 9:
+            return VescStatusCommandID::CAN_PACKET_STATUS;
+        case 14:
+            return VescStatusCommandID::CAN_PACKET_STATUS_2;
+        case 15:
+            return VescStatusCommandID::CAN_PACKET_STATUS_3;
+        case 16:
+            return VescStatusCommandID::CAN_PACKET_STATUS_4;
+        case 27:
+            return VescStatusCommandID::CAN_PACKET_STATUS_5;
+        case 58:
+            return VescStatusCommandID::CAN_PACKET_STATUS_6;
+        default:
+            return tl::make_unexpected(EnumCastError::InvalidValue);
+    }
+}
+
+}  // namespace sinsei_umiusi_control::util
 
 #endif  // SINSEI_UMIUSI_CONTROL_hardware_model_CAN_VESC_MODEL_HPP
