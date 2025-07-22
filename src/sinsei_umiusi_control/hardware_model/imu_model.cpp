@@ -7,7 +7,7 @@ namespace suchm = suc::hardware_model;
 
 suchm::ImuModel::ImuModel(std::unique_ptr<suc::util::GpioInterface> gpio) : gpio(std::move(gpio)) {}
 
-auto suchm::ImuModel::begin() -> tl::expected<void, std::string> {
+auto suchm::ImuModel::on_init() -> tl::expected<void, std::string> {
     auto res = this->gpio->i2c_open(ADDRESS).map_error(util::gpio_error_to_string);
     if (!res) {
         return tl::unexpected<std::string>(
