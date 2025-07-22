@@ -1,9 +1,9 @@
 #include "sinsei_umiusi_control/controller/app_controller.hpp"
 
 #include <cstddef>
-#include <optional>
 #include <rclcpp/logging.hpp>
 
+#include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
 namespace succ = sinsei_umiusi_control::controller;
@@ -82,21 +82,6 @@ auto succ::AppController::on_init() -> cif::CallbackReturn {
     return cif::CallbackReturn::SUCCESS;
 }
 
-auto succ::AppController::on_configure(const rlc::State & /*pervious_state*/)
-    -> cif::CallbackReturn {
-    return cif::CallbackReturn::SUCCESS;
-}
-
-auto succ::AppController::on_activate(const rlc::State & /*previous_state*/)
-    -> cif::CallbackReturn {
-    return cif::CallbackReturn::SUCCESS;
-}
-
-auto succ::AppController::on_deactivate(const rlc::State & /*previous_state*/)
-    -> cif::CallbackReturn {
-    return cif::CallbackReturn::SUCCESS;
-}
-
 auto succ::AppController::on_export_reference_interfaces() -> std::vector<hif::CommandInterface> {
     this->reference_interfaces_.resize(6);
 
@@ -125,33 +110,26 @@ auto succ::AppController::update_reference_from_subscribers(
 auto succ::AppController::update_and_write_commands(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> cif::return_type {
     // 状態を取得
-    for (size_t i = 0; i < this->state_interface_data.size(); ++i) {
-        auto & [name, data] = this->state_interface_data[i];
-        auto res = this->state_interfaces_.at(i).get_optional();
-        if (!res) {
-            auto node = this->get_node();
-            constexpr auto DURATION = 3000;  // ms
-            RCLCPP_WARN_THROTTLE(
-                node->get_logger(), *node->get_clock(), DURATION,
-                "Failed to set value for state interface: %s", name.c_str());
-        }
-        *data = res.value();
+    auto res = util::interface_accessor::get_states_from_loaned_interfaces(
+        this->state_interfaces_, this->state_interface_data);
+    if (!res) {
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_WARN_THROTTLE(
+            this->get_node()->get_logger(), *this->get_node()->get_clock(), DURATION,
+            "Failed to get value of state interfaces");
     }
 
     // 姿勢制御の関数を呼び出す
     this->compute_outputs();
 
     // コマンドを送信
-    for (size_t i = 0; i < this->command_interface_data.size(); ++i) {
-        const auto & [name, data] = this->command_interface_data[i];
-        auto res = this->command_interfaces_.at(i).set_value(*data);
-        if (!res) {
-            auto node = this->get_node();
-            constexpr auto DURATION = 3000;  // ms
-            RCLCPP_WARN_THROTTLE(
-                node->get_logger(), *node->get_clock(), DURATION,
-                "Failed to set value for command interface: %s", name.c_str());
-        }
+    res = util::interface_accessor::set_commands_to_loaned_interfaces(
+        this->command_interfaces_, this->command_interface_data);
+    if (!res) {
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_WARN_THROTTLE(
+            this->get_node()->get_logger(), *this->get_node()->get_clock(), DURATION,
+            "Failed to set value for command interfaces");
     }
 
     return cif::return_type::OK;

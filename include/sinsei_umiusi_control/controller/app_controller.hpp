@@ -8,7 +8,7 @@
 #include "sinsei_umiusi_control/cmd/app.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
-#include "sinsei_umiusi_control/util/serialization.hpp"
+#include "sinsei_umiusi_control/util/interface_accessor.hpp"
 
 namespace sinsei_umiusi_control::controller {
 
@@ -27,10 +27,9 @@ class AppController : public controller_interface::ChainableControllerInterface 
 
     auto compute_outputs() -> void;
 
-    using InterfaceDataContainer = std::vector<std::pair<std::string, util::InterfaceData *>>;
-    InterfaceDataContainer command_interface_data;
-    InterfaceDataContainer state_interface_data;
-    InterfaceDataContainer reference_interface_data;
+    util::interface_accessor::InterfaceDataContainer command_interface_data;
+    util::interface_accessor::InterfaceDataContainer state_interface_data;
+    util::interface_accessor::InterfaceDataContainer reference_interface_data;
 
   public:
     AppController() = default;
@@ -40,9 +39,6 @@ class AppController : public controller_interface::ChainableControllerInterface 
     auto state_interface_configuration() const
         -> controller_interface::InterfaceConfiguration override;
     auto on_init() -> CallbackReturn override;
-    auto on_configure(const rclcpp_lifecycle::State & previous_state) -> CallbackReturn override;
-    auto on_activate(const rclcpp_lifecycle::State & previous_state) -> CallbackReturn override;
-    auto on_deactivate(const rclcpp_lifecycle::State & previous_state) -> CallbackReturn override;
     auto on_export_reference_interfaces()
         -> std::vector<hardware_interface::CommandInterface> override;
     auto on_export_state_interfaces() -> std::vector<hardware_interface::StateInterface> override;

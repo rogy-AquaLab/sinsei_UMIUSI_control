@@ -63,6 +63,7 @@ ament_auto_add_library(${PROJECT_NAME}_controller SHARED
   src/${PROJECT_NAME}/controller/gate_controller.cpp
   src/${PROJECT_NAME}/controller/app_controller.cpp
   src/${PROJECT_NAME}/controller/thruster_controller.cpp
+  src/${PROJECT_NAME}/util/interface_accessor.cpp
   include/${PROJECT_NAME}/controller/gate_controller.hpp
   include/${PROJECT_NAME}/controller/app_controller.hpp
   include/${PROJECT_NAME}/controller/thruster_controller.hpp
