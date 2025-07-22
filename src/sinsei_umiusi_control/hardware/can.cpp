@@ -28,7 +28,8 @@ auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
 
     const auto thruster_mode = util::find_param(info.hardware_parameters, "thruster_mode");
     if (!thruster_mode) {
-        RCLCPP_ERROR(this->get_logger(), "Parameter 'thruster_mode' not found.");
+        RCLCPP_ERROR(
+            this->get_logger(), "Parameter 'thruster_mode' not found in hardware parameters.");
         return hif::CallbackReturn::ERROR;
     }
     const auto mode_res = util::get_mode_from_str(thruster_mode.value());
