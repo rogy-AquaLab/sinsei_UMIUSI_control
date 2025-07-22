@@ -109,12 +109,12 @@ auto succ::ThrusterController::on_export_state_interfaces() -> std::vector<hif::
     auto interfaces = std::vector<hif::StateInterface>{};
     for (auto & [name, data] : this->state_interface_data) {
         // Thruster ID を隠蔽する (e.g. thruster1/rpm -> thruster/rpm)
-        const auto offset = std::size("thrusterN") - 1;  // 末尾のnull文字を除くため、-1
+        constexpr auto OFFSET = std::size("thrusterN") - 1;  // 末尾のnull文字を除くため、-1
         interfaces.emplace_back(hif::StateInterface(
-            this->get_node()->get_name(), "thruster" + name.substr(offset), data));
+            this->get_node()->get_name(), "thruster" + name.substr(OFFSET), data));
         RCLCPP_INFO(
             this->get_node()->get_logger(), "Exported state interface: %s",
-            ("thruster" + name.substr(offset)).c_str());
+            ("thruster" + name.substr(OFFSET)).c_str());
     }
     return interfaces;
 }
