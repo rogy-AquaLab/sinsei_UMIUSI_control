@@ -11,6 +11,7 @@ namespace rlc = rclcpp_lifecycle;
 suchw::Can::~Can() {
     if (!this->model) {
         RCLCPP_ERROR(this->get_logger(), "Can model is not initialized.");
+        return;
     }
 
     auto res = this->model->on_destroy();
@@ -43,6 +44,8 @@ auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
     auto res = this->model->on_init();
     if (!res) {
         RCLCPP_ERROR(this->get_logger(), "\n  Failed to initialize Can: %s", res.error().c_str());
+        // CANの初期化に失敗した場合、モデルにnullを再代入する
+        this->model.reset();
     }
 
     return hif::CallbackReturn::SUCCESS;
