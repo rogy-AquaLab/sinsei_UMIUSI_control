@@ -41,6 +41,17 @@ auto succ::AppController::state_interface_configuration() const -> cif::Interfac
 auto succ::AppController::on_init() -> cif::CallbackReturn {
     this->get_node()->declare_parameter("thruster_mode", "unknown");
 
+    this->target_orientation = sinsei_umiusi_control::cmd::app::Orientation{};
+    this->target_velocity = sinsei_umiusi_control::cmd::app::Velocity{};
+
+    this->imu_orientation = sinsei_umiusi_control::state::imu::Orientation{};
+    this->imu_velocity = sinsei_umiusi_control::state::imu::Velocity{};
+
+    this->thruster_angles.fill(sinsei_umiusi_control::cmd::thruster::Angle{});
+    this->thruster_duty_cycles.fill(sinsei_umiusi_control::cmd::thruster::DutyCycle{});
+
+    this->thruster_rpms.fill(sinsei_umiusi_control::state::thruster::Rpm{});
+
     return cif::CallbackReturn::SUCCESS;
 }
 

@@ -42,6 +42,13 @@ auto succ::ThrusterController::on_init() -> cif::CallbackReturn {
     this->get_node()->declare_parameter("id", 1);
     this->get_node()->declare_parameter("thruster_mode", "unknown");
 
+    this->servo_enabled = sinsei_umiusi_control::cmd::thruster::ServoEnabled{};
+    this->esc_enabled = sinsei_umiusi_control::cmd::thruster::EscEnabled{};
+    this->angle = sinsei_umiusi_control::cmd::thruster::Angle{};
+    this->duty_cycle = sinsei_umiusi_control::cmd::thruster::DutyCycle{};
+
+    this->rpm = sinsei_umiusi_control::state::thruster::Rpm{};
+
     return cif::CallbackReturn::SUCCESS;
 }
 
