@@ -51,34 +51,31 @@ auto succ::AppController::on_init() -> cif::CallbackReturn {
             util::to_interface_data_ptr(this->thruster_duty_cycles[i]));
     }
 
-    constexpr const std::string_view STATE_INTERFACE_NAMES[6] = {
-        "imu/orientation.x", "imu/orientation.y", "imu/orientation.z",
-        "imu/velocity.x",    "imu/velocity.y",    "imu/velocity.z",
-    };
-    for (size_t i = 0; i < 2; ++i) {
-        this->state_interface_data.emplace_back(
-            STATE_INTERFACE_NAMES[i * 3 + 0], util::to_interface_data_ptr(this->imu_orientation.x));
-        this->state_interface_data.emplace_back(
-            STATE_INTERFACE_NAMES[i * 3 + 1], util::to_interface_data_ptr(this->imu_orientation.y));
-        this->state_interface_data.emplace_back(
-            STATE_INTERFACE_NAMES[i * 3 + 2], util::to_interface_data_ptr(this->imu_orientation.z));
-    }
+    this->state_interface_data.emplace_back(
+        "imu/orientation.x", util::to_interface_data_ptr(this->imu_orientation.x));
+    this->state_interface_data.emplace_back(
+        "imu/orientation.y", util::to_interface_data_ptr(this->imu_orientation.y));
+    this->state_interface_data.emplace_back(
+        "imu/orientation.z", util::to_interface_data_ptr(this->imu_orientation.z));
+    this->state_interface_data.emplace_back(
+        "imu/velocity.x", util::to_interface_data_ptr(this->imu_velocity.x));
+    this->state_interface_data.emplace_back(
+        "imu/velocity.y", util::to_interface_data_ptr(this->imu_velocity.y));
+    this->state_interface_data.emplace_back(
+        "imu/velocity.z", util::to_interface_data_ptr(this->imu_velocity.z));
 
-    constexpr const std::string_view REF_INTERFACE_NAMES[6] = {
-        "target_orientation.x", "target_orientation.y", "target_orientation.z",
-        "target_velocity.x",    "target_velocity.y",    "target_velocity.z",
-    };
-    for (size_t i = 0; i < 2; ++i) {
-        this->ref_interface_data.emplace_back(
-            REF_INTERFACE_NAMES[i * 3 + 0],
-            util::to_interface_data_ptr(this->target_orientation.x));
-        this->ref_interface_data.emplace_back(
-            REF_INTERFACE_NAMES[i * 3 + 1],
-            util::to_interface_data_ptr(this->target_orientation.y));
-        this->ref_interface_data.emplace_back(
-            REF_INTERFACE_NAMES[i * 3 + 2],
-            util::to_interface_data_ptr(this->target_orientation.z));
-    }
+    this->ref_interface_data.emplace_back(
+        "target_orientation.x", util::to_interface_data_ptr(this->target_orientation.x));
+    this->ref_interface_data.emplace_back(
+        "target_orientation.y", util::to_interface_data_ptr(this->target_orientation.y));
+    this->ref_interface_data.emplace_back(
+        "target_orientation.z", util::to_interface_data_ptr(this->target_orientation.z));
+    this->ref_interface_data.emplace_back(
+        "target_velocity.x", util::to_interface_data_ptr(this->target_velocity.x));
+    this->ref_interface_data.emplace_back(
+        "target_velocity.y", util::to_interface_data_ptr(this->target_velocity.y));
+    this->ref_interface_data.emplace_back(
+        "target_velocity.z", util::to_interface_data_ptr(this->target_velocity.z));
 
     return cif::CallbackReturn::SUCCESS;
 }
