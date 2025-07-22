@@ -29,6 +29,7 @@ auto succ::AppController::state_interface_configuration() const -> cif::Interfac
     for (const auto & [name, _] : this->state_interface_data) {
         state_names.push_back(name);
     }
+
     return cif::InterfaceConfiguration{
         cif::interface_configuration_type::INDIVIDUAL,
         state_names,
@@ -44,7 +45,7 @@ auto succ::AppController::on_init() -> cif::CallbackReturn {
     };
     for (size_t i = 0; i < 4; ++i) {
         this->command_interface_data.emplace_back(
-            CMD_INTERFACE_NAMES[i * 2], util::to_interface_data_ptr(this->thruster_angles[i]));
+            CMD_INTERFACE_NAMES[i * 2 + 0], util::to_interface_data_ptr(this->thruster_angles[i]));
         this->command_interface_data.emplace_back(
             CMD_INTERFACE_NAMES[i * 2 + 1],
             util::to_interface_data_ptr(this->thruster_duty_cycles[i]));
@@ -56,26 +57,26 @@ auto succ::AppController::on_init() -> cif::CallbackReturn {
     };
     for (size_t i = 0; i < 2; ++i) {
         this->state_interface_data.emplace_back(
-            STATE_INTERFACE_NAMES[i * 3], util::to_interface_data_ptr(this->imu_orientation.x));
+            STATE_INTERFACE_NAMES[i * 3 + 0], util::to_interface_data_ptr(this->imu_orientation.x));
         this->state_interface_data.emplace_back(
             STATE_INTERFACE_NAMES[i * 3 + 1], util::to_interface_data_ptr(this->imu_orientation.y));
         this->state_interface_data.emplace_back(
             STATE_INTERFACE_NAMES[i * 3 + 2], util::to_interface_data_ptr(this->imu_orientation.z));
     }
 
-    constexpr const std::string_view REFERENCE_INTERFACE_NAMES[6] = {
+    constexpr const std::string_view REF_INTERFACE_NAMES[6] = {
         "target_orientation.x", "target_orientation.y", "target_orientation.z",
         "target_velocity.x",    "target_velocity.y",    "target_velocity.z",
     };
     for (size_t i = 0; i < 2; ++i) {
-        this->reference_interface_data.emplace_back(
-            REFERENCE_INTERFACE_NAMES[i * 3],
+        this->ref_interface_data.emplace_back(
+            REF_INTERFACE_NAMES[i * 3 + 0],
             util::to_interface_data_ptr(this->target_orientation.x));
-        this->reference_interface_data.emplace_back(
-            REFERENCE_INTERFACE_NAMES[i * 3 + 1],
+        this->ref_interface_data.emplace_back(
+            REF_INTERFACE_NAMES[i * 3 + 1],
             util::to_interface_data_ptr(this->target_orientation.y));
-        this->reference_interface_data.emplace_back(
-            REFERENCE_INTERFACE_NAMES[i * 3 + 2],
+        this->ref_interface_data.emplace_back(
+            REF_INTERFACE_NAMES[i * 3 + 2],
             util::to_interface_data_ptr(this->target_orientation.z));
     }
 
@@ -83,10 +84,11 @@ auto succ::AppController::on_init() -> cif::CallbackReturn {
 }
 
 auto succ::AppController::on_export_reference_interfaces() -> std::vector<hif::CommandInterface> {
-    this->reference_interfaces_.resize(6);
+    // To avoid bug in ros2 control. `reference_interfaces_` is actually not used.
+    this->reference_interfaces_.resize(this->ref_interface_data.size());
 
     auto interfaces = std::vector<hif::CommandInterface>{};
-    for (auto & [name, data] : this->reference_interface_data) {
+    for (auto & [name, data] : this->ref_interface_data) {
         interfaces.emplace_back(hif::CommandInterface(this->get_node()->get_name(), name, data));
     }
     return interfaces;

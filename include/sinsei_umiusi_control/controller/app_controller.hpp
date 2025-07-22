@@ -22,14 +22,15 @@ class AppController : public controller_interface::ChainableControllerInterface 
     sinsei_umiusi_control::state::imu::Orientation imu_orientation;
     sinsei_umiusi_control::state::imu::Velocity imu_velocity;
 
+    // Command interfaces (out)
     std::array<sinsei_umiusi_control::cmd::thruster::Angle, 4> thruster_angles;
     std::array<sinsei_umiusi_control::cmd::thruster::DutyCycle, 4> thruster_duty_cycles;
 
     auto compute_outputs() -> void;
 
-    util::interface_accessor::InterfaceDataContainer command_interface_data;
-    util::interface_accessor::InterfaceDataContainer state_interface_data;
-    util::interface_accessor::InterfaceDataContainer reference_interface_data;
+    sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer command_interface_data;
+    sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer state_interface_data;
+    sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer ref_interface_data;
 
   public:
     AppController() = default;
