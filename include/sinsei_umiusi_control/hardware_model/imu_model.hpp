@@ -39,7 +39,7 @@ class ImuModel {
 
   public:
     ImuModel(std::unique_ptr<util::GpioInterface> gpio);
-    auto begin() -> tl::expected<void, std::string>;
+    auto on_init() -> tl::expected<void, std::string>;
     auto on_read() -> tl::expected<
                        std::tuple<
                            sinsei_umiusi_control::state::imu::Orientation,
