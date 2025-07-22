@@ -112,9 +112,6 @@ auto succ::ThrusterController::on_export_state_interfaces() -> std::vector<hif::
         constexpr auto OFFSET = std::size("thrusterN") - 1;  // 末尾のnull文字を除くため、-1
         interfaces.emplace_back(hif::StateInterface(
             this->get_node()->get_name(), "thruster" + name.substr(OFFSET), data));
-        RCLCPP_INFO(
-            this->get_node()->get_logger(), "Exported state interface: %s",
-            ("thruster" + name.substr(OFFSET)).c_str());
     }
     return interfaces;
 }
