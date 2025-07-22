@@ -55,6 +55,8 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
     }
     this->thruster_mode = mode_res.value();
 
+    constexpr std::string_view THRUSTER_SUFFIX[4] = {"_lf", "_lb", "_rb", "_rf"};
+
     {  // Command interface
         using util::to_interface_data_ptr;
 
@@ -89,7 +91,7 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
             "app_controller/target_velocity.z",
             to_interface_data_ptr(this->cmd.target_velocity_ref.z));
         for (size_t i = 0; i < 4; ++i) {
-            auto prefix = "thruster_controller" + std::to_string(i + 1) + "/";
+            auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
 
             this->command_interface_data.emplace_back(
                 prefix + "servo_enabled", to_interface_data_ptr(this->cmd.servo_enabled_ref));
@@ -197,43 +199,42 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
             "app_controller/imu/velocity.z", to_interface_data_ptr(this->state.imu_velocity.z));
         if (this->thruster_mode == util::ThrusterMode::Can) {
             for (size_t i = 0; i < 4; ++i) {
-                const auto id_str = std::to_string(i + 1);
-                const auto prefix =
-                    "app_controller/thruster_controller" + id_str + "/thruster" + id_str + "/";
+                const auto prefix = "app_controller/thruster_controller" +
+                                    std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
 
                 this->state_interface_data.emplace_back(
                     prefix + "esc/rpm", to_interface_data_ptr(this->state.rpm[i].value));
             }
         }
-    }
+        // Publishers
+        const auto state_prefix = std::string("state/");
+        const auto qos = rclcpp::SystemDefaultsQoS();
+        this->pub.battery_current_publisher =
+            this->get_node()->create_publisher<std_msgs::msg::Float64>(
+                state_prefix + "battery_current", qos);
+        this->pub.battery_voltage_publisher =
+            this->get_node()->create_publisher<std_msgs::msg::Float64>(
+                state_prefix + "battery_voltage", qos);
+        this->pub.main_temperature_publisher =
+            this->get_node()->create_publisher<std_msgs::msg::Int8>(
+                state_prefix + "main_temperature", qos);
+        this->pub.water_leaked_publisher = this->get_node()->create_publisher<std_msgs::msg::Bool>(
+            state_prefix + "water_leaked", qos);
+        this->pub.imu_temperature_publisher =
+            this->get_node()->create_publisher<std_msgs::msg::Float64>(
+                state_prefix + "imu_temperature", qos);
+        this->pub.imu_orientation_publisher =
+            this->get_node()->create_publisher<geometry_msgs::msg::Vector3>(
+                state_prefix + "imu_orientation", qos);
+        this->pub.imu_velocity_publisher =
+            this->get_node()->create_publisher<geometry_msgs::msg::Vector3>(
+                state_prefix + "imu_velocity", qos);
+        for (size_t i = 0; i < 4; ++i) {
+            using util::to_interface_data_ptr;
 
-    // Publishers
-    const auto state_prefix = std::string("state/");
-    const auto qos = rclcpp::SystemDefaultsQoS();
-    this->pub.battery_current_publisher =
-        this->get_node()->create_publisher<std_msgs::msg::Float64>(
-            state_prefix + "battery_current", qos);
-    this->pub.battery_voltage_publisher =
-        this->get_node()->create_publisher<std_msgs::msg::Float64>(
-            state_prefix + "battery_voltage", qos);
-    this->pub.main_temperature_publisher = this->get_node()->create_publisher<std_msgs::msg::Int8>(
-        state_prefix + "main_temperature", qos);
-    this->pub.water_leaked_publisher =
-        this->get_node()->create_publisher<std_msgs::msg::Bool>(state_prefix + "water_leaked", qos);
-    this->pub.imu_temperature_publisher =
-        this->get_node()->create_publisher<std_msgs::msg::Float64>(
-            state_prefix + "imu_temperature", qos);
-    this->pub.imu_orientation_publisher =
-        this->get_node()->create_publisher<geometry_msgs::msg::Vector3>(
-            state_prefix + "imu_orientation", qos);
-    this->pub.imu_velocity_publisher =
-        this->get_node()->create_publisher<geometry_msgs::msg::Vector3>(
-            state_prefix + "imu_velocity", qos);
-    for (size_t i = 0; i < 4; ++i) {
-        using util::to_interface_data_ptr;
-
-        this->pub.rpm_publisher[i] = this->get_node()->create_publisher<std_msgs::msg::Float64>(
-            state_prefix + "thruster_rpm_" + std::to_string(i + 1), qos);
+            this->pub.rpm_publisher[i] = this->get_node()->create_publisher<std_msgs::msg::Float64>(
+                state_prefix + "thruster_rpm" + std::string(THRUSTER_SUFFIX[i]), qos);
+        }
     }
 
     return cif::CallbackReturn::SUCCESS;

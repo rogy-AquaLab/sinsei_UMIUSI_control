@@ -55,7 +55,7 @@
   <node
     pkg="controller_manager"
     exec="spawner"
-    args="thruster_controller1 thruster_controller2 thruster_controller3 thruster_controller4 app_controller gate_controller --param-file $(var controllers_config_file)"
+    args="thruster_controller_lf thruster_controller_lb thruster_controller_rb thruster_controller_rf app_controller gate_controller --param-file $(var controllers_config_file)"
     namespace="/$(var namespace)" />
 
   <node

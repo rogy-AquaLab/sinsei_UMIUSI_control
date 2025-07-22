@@ -67,8 +67,10 @@ auto succ::AppController::on_configure(const rlc::State & /*previous_state*/)
 
     RCLCPP_INFO(this->get_node()->get_logger(), "Thruster MODE: %s", mode_str.c_str());
 
+    constexpr std::string_view THRUSTER_SUFFIX[4] = {"_lf", "_lb", "_rb", "_rf"};
+
     for (size_t i = 0; i < 4; ++i) {
-        const auto prefix = "thruster_controller" + std::to_string(i + 1) + "/";
+        const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
         this->command_interface_data.emplace_back(
             prefix + "angle", util::to_interface_data_ptr(this->thruster_angles[i]));
         this->command_interface_data.emplace_back(
@@ -78,8 +80,8 @@ auto succ::AppController::on_configure(const rlc::State & /*previous_state*/)
     if (this->thruster_mode == util::ThrusterMode::Can) {
         // `can`モードのときは、RPMを取得するためのインターフェースを追加する。
         for (size_t i = 0; i < 4; ++i) {
-            const auto id_str = std::to_string(i + 1);
-            const auto prefix = "thruster_controller" + id_str + "/thruster" + id_str + "/";
+            const auto prefix =
+                "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
             this->state_interface_data.emplace_back(
                 prefix + "esc/rpm", util::to_interface_data_ptr(this->thruster_rpms[i]));
         }
