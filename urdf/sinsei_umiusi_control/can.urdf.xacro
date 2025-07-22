@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
-  <xacro:macro name="can" params="thruster_mode">
+  <xacro:macro name="can" params="thruster_mode vesc1_id vesc2_id vesc3_id vesc4_id">
     <ros2_control name="can" type="system">
       <hardware>
         <plugin>sinsei_umiusi_control/hardware/Can</plugin>
         <param name="thruster_mode">${thruster_mode}</param>
+        <param name="vesc1_id">${vesc1_id}</param>
+        <param name="vesc2_id">${vesc2_id}</param>
+        <param name="vesc3_id">${vesc3_id}</param>
+        <param name="vesc4_id">${vesc4_id}</param>
       </hardware>
 
       <xacro:macro name="thruster" params="id">

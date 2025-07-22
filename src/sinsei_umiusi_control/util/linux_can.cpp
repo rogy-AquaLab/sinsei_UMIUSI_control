@@ -7,7 +7,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <optional>
@@ -71,9 +70,9 @@ auto _to_linux_can_frame(suc_util::CanFrame && frame) -> can_frame {
         linux_can_frame.can_id = frame.id & CAN_SFF_MASK;  // Standard frame ID
     }
     linux_can_frame.len = frame.len;
-    const auto first = frame.data.begin();
-    const auto last = first + frame.len;
-    std::copy(first, last, std::begin(linux_can_frame.data));
+    for (size_t i = 0; i < frame.len; ++i) {
+        linux_can_frame.data[i] = std::to_integer<uint8_t>(frame.data[i]);
+    }
     return linux_can_frame;
 }
 
@@ -86,9 +85,9 @@ auto _from_linux_can_frame(const can_frame & linux_can_frame) -> suc_util::CanFr
         frame.id = linux_can_frame.can_id & CAN_SFF_MASK;  // Standard frame ID
     }
     frame.len = linux_can_frame.len;
-    const auto first = std::begin(linux_can_frame.data);
-    const auto last = first + linux_can_frame.len;
-    std::copy(first, last, frame.data.begin());
+    for (size_t i = 0; i < frame.len; ++i) {
+        frame.data[i] = std::byte(linux_can_frame.data[i]);
+    }
     return frame;
 }
 

@@ -8,9 +8,16 @@
 namespace sinsei_umiusi_control::util {
 
 struct CanFrame {
-    uint32_t id;
-    uint8_t len;
-    std::array<uint8_t, 8> data;
+    // CAN ID in can frame; 11 bits for standard, 29 bits for extended
+    using Id = uint32_t;
+    // DLC value in can frame; up to 8
+    using DataLength = uint8_t;
+    // Data in can frame; 8 bytes
+    using Data = std::array<std::byte, 8>;
+
+    Id id;
+    DataLength len;
+    Data data;
     bool is_extended;
 };
 

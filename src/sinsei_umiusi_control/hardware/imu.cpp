@@ -12,7 +12,7 @@ auto suchw::Imu::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
 
     this->model.emplace(std::make_unique<sinsei_umiusi_control::util::Pigpio>());
 
-    auto res = this->model->begin();
+    auto res = this->model->on_init();
     if (!res) {
         RCLCPP_ERROR(this->get_logger(), "\n  Failed to initialize IMU: %s", res.error().c_str());
         // IMUの初期化に失敗した場合、モデルにnullを再代入する
