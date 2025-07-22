@@ -129,7 +129,7 @@ auto succ::AppController::update_reference_from_subscribers(
 }
 
 auto succ::AppController::update_and_write_commands(
-    const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> cif::return_type {
+    const rclcpp::Time & time, const rclcpp::Duration & period) -> cif::return_type {
     // 状態を取得
     auto res = util::interface_accessor::get_states_from_loaned_interfaces(
         this->state_interfaces_, this->state_interface_data);
@@ -141,7 +141,7 @@ auto succ::AppController::update_and_write_commands(
     }
 
     // 姿勢制御の関数を呼び出す
-    this->compute_outputs();
+    this->compute_outputs(time, period);
 
     // コマンドを送信
     res = util::interface_accessor::set_commands_to_loaned_interfaces(
@@ -156,7 +156,8 @@ auto succ::AppController::update_and_write_commands(
     return cif::return_type::OK;
 }
 
-auto succ::AppController::compute_outputs() -> void {
+auto succ::AppController::compute_outputs(
+    const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> void {
     // TODO: PID制御などの処理はここに記述する
     // 現在はダミー
     for (size_t i = 0; i < 4; ++i) {

@@ -33,7 +33,7 @@ class AppController : public controller_interface::ChainableControllerInterface 
 
     sinsei_umiusi_control::util::ThrusterMode thruster_mode;
 
-    auto compute_outputs() -> void;
+    auto compute_outputs(const rclcpp::Time & time, const rclcpp::Duration & period) -> void;
 
     sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer command_interface_data;
     sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer state_interface_data;
