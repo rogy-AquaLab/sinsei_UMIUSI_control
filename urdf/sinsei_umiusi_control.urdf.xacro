@@ -1,20 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
-  <xacro:arg name="thruster_mode" default="'unknown'" />
 
-  <xacro:include filename="sinsei_umiusi_control/can.urdf.xacro" />
-  <xacro:include filename="sinsei_umiusi_control/thruster_direct.urdf.xacro" />
-  <xacro:include filename="sinsei_umiusi_control/indicator_led.urdf.xacro" />
-  <xacro:include filename="sinsei_umiusi_control/imu.urdf.xacro" />
-  <xacro:include filename="sinsei_umiusi_control/headlights.urdf.xacro" />
+  <xacro:macro name="sinsei_umiusi_control"
+    params="
+      thruster_mode
+      high_beam_pin
+      low_beam_pin
+      ir_pin
+      indicator_led_pin
+      vesc1_id
+      vesc2_id
+      vesc3_id
+      vesc4_id
+      mock
+    ">
 
-  <link name="base_link"></link>
+    <xacro:include filename="sinsei_umiusi_control/can.urdf.xacro" />
+    <xacro:include filename="sinsei_umiusi_control/thruster_direct.urdf.xacro" />
+    <xacro:include filename="sinsei_umiusi_control/indicator_led.urdf.xacro" />
+    <xacro:include filename="sinsei_umiusi_control/imu.urdf.xacro" />
+    <xacro:include filename="sinsei_umiusi_control/headlights.urdf.xacro" />
 
-  <xacro:can thruster_mode="$(arg thruster_mode)" />
-  <xacro:if value="${$(arg thruster_mode) == 'direct'}">
-    <xacro:thruster_direct />
-  </xacro:if>
-  <xacro:indicator_led />
-  <xacro:imu />
-  <xacro:headlights />
+    <xacro:can
+      thruster_mode="${thruster_mode}"
+      vesc1_id="${vesc1_id}"
+      vesc2_id="${vesc2_id}"
+      vesc3_id="${vesc3_id}"
+      vesc4_id="${vesc4_id}"
+    />
+    <xacro:if value="${thruster_mode == 'direct'}">
+      <xacro:thruster_direct />
+    </xacro:if>
+    <xacro:imu />
+    <xacro:headlights
+      high_beam_pin="${high_beam_pin}"
+      low_beam_pin="${low_beam_pin}"
+      ir_pin="${ir_pin}" />
+    <xacro:indicator_led
+      pin="${indicator_led_pin}"
+    />
+  </xacro:macro>
+
 </robot>

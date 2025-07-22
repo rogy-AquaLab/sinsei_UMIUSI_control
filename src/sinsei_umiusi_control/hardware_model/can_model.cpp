@@ -8,7 +8,14 @@
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
-suchm::CanModel::CanModel(std::shared_ptr<suc::util::CanInterface> can) : can(std::move(can)) {}
+suchm::CanModel::CanModel(std::shared_ptr<suc::util::CanInterface> can, std::array<int, 4> vesc_ids)
+: can(std::move(can)),
+  vesc_models{{
+      can::VescModel(vesc_ids[0]),
+      can::VescModel(vesc_ids[1]),
+      can::VescModel(vesc_ids[2]),
+      can::VescModel(vesc_ids[3]),
+  }} {}
 
 auto suchm::CanModel::on_init() -> tl::expected<void, std::string> {
     auto res = this->can->init("can0");
