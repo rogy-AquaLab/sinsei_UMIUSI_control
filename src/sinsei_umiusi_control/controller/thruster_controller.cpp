@@ -1,6 +1,8 @@
 #include "sinsei_umiusi_control/controller/thruster_controller.hpp"
 
-#include "sinsei_umiusi_control/util/constexpr.hpp"
+#include <rclcpp/logging.hpp>
+
+#include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
@@ -12,21 +14,9 @@ namespace cif = controller_interface;
 
 auto succ::ThrusterController::command_interface_configuration() const
     -> cif::InterfaceConfiguration {
-    std::vector<std::string> cmd_names;
-    if (this->mode == util::ThrusterMode::Can) {
-        cmd_names.assign(
-            std::begin(this->CAN_CMD_INTERFACE_NAMES), std::end(this->CAN_CMD_INTERFACE_NAMES));
-    } else {
-        cmd_names.assign(
-            std::begin(this->DIRECT_CMD_INTERFACE_NAMES),
-            std::end(this->DIRECT_CMD_INTERFACE_NAMES));
-    }
-
-    // リストではスラスタ名が省略されているため、ここで付与する
-    std::string prefix = (this->mode == util::ThrusterMode::Can ? "thruster" : "thruster_direct") +
-                         std::to_string(this->id);
-    for (auto & name : cmd_names) {
-        name = prefix + "/" + name;
+    auto cmd_names = std::vector<std::string>{};
+    for (const auto & [name, _] : this->command_interface_data) {
+        cmd_names.push_back(name);
     }
 
     return cif::InterfaceConfiguration{
@@ -37,20 +27,9 @@ auto succ::ThrusterController::command_interface_configuration() const
 
 auto succ::ThrusterController::state_interface_configuration() const
     -> cif::InterfaceConfiguration {
-    std::vector<std::string> state_names;
-    if (this->mode == util::ThrusterMode::Can) {
-        state_names.assign(
-            std::begin(this->CAN_STATE_INTERFACE_NAMES), std::end(this->CAN_STATE_INTERFACE_NAMES));
-    } else {
-        state_names = {};
-    }
-
-    // リストではスラスタ名が省略されているため、ここで付与する
-    std::string prefix = (this->mode == util::ThrusterMode::Can ? "thruster" : "thruster_direct") +
-                         std::to_string(this->id);
-
-    for (auto & name : state_names) {
-        name = prefix + "/" + name;
+    auto state_names = std::vector<std::string>{};
+    for (const auto & [name, _] : this->state_interface_data) {
+        state_names.push_back(name);
     }
 
     return cif::InterfaceConfiguration{
@@ -61,10 +40,15 @@ auto succ::ThrusterController::state_interface_configuration() const
 
 auto succ::ThrusterController::on_init() -> cif::CallbackReturn {
     this->get_node()->declare_parameter("id", 1);
-    this->id = this->get_node()->get_parameter("id").as_int();
-    RCLCPP_INFO(this->get_node()->get_logger(), "Thruster ID: %d", this->id);
-
     this->get_node()->declare_parameter("thruster_mode", "unknown");
+
+    return cif::CallbackReturn::SUCCESS;
+}
+
+auto succ::ThrusterController::on_configure(const rlc::State & /*pervious_state*/)
+    -> cif::CallbackReturn {
+    this->id = this->get_node()->get_parameter("id").as_int();
+
     std::string mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
     auto mode_res = util::get_mode_from_str(mode_str);
     if (!mode_res) {
@@ -73,56 +57,64 @@ auto succ::ThrusterController::on_init() -> cif::CallbackReturn {
     }
     this->mode = mode_res.value();
 
-    this->can_interface_helper =
-        std::make_unique<InterfaceAccessHelper<CAN_CMD_SIZE, CAN_STATE_SIZE>>(
-            this->get_node().get(), this->command_interfaces_, this->CAN_CMD_INTERFACE_NAMES,
-            this->state_interfaces_, this->CAN_STATE_INTERFACE_NAMES);
-    this->direct_interface_helper =
-        std::make_unique<InterfaceAccessHelper<DIRECT_CMD_SIZE, DIRECT_STATE_SIZE>>(
-            this->get_node().get(), this->command_interfaces_, this->DIRECT_CMD_INTERFACE_NAMES,
-            this->state_interfaces_, this->DIRECT_STATE_INTERFACE_NAMES);
+    RCLCPP_INFO(
+        this->get_node()->get_logger(), "Thruster <ID: %d, MODE: %s>", this->id, mode_str.c_str());
 
-    return cif::CallbackReturn::SUCCESS;
-}
+    const auto prefix = this->mode == util::ThrusterMode::Can
+                            ? "thruster" + std::to_string(this->id) + "/"
+                            : "thruster_direct" + std::to_string(this->id) + "/";
 
-auto succ::ThrusterController::on_configure(const rlc::State & /*pervious_state*/)
-    -> cif::CallbackReturn {
-    return cif::CallbackReturn::SUCCESS;
-}
+    this->command_interface_data.emplace_back(
+        prefix + "esc/enabled", util::to_interface_data_ptr(this->esc_enabled));
+    this->command_interface_data.emplace_back(
+        prefix + "esc/duty_cycle", util::to_interface_data_ptr(this->duty_cycle));
+    this->command_interface_data.emplace_back(
+        prefix + "servo/enabled", util::to_interface_data_ptr(this->servo_enabled));
+    this->command_interface_data.emplace_back(
+        prefix + "servo/angle", util::to_interface_data_ptr(this->angle));
 
-auto succ::ThrusterController::on_activate(const rlc::State & /*previous_state*/)
-    -> cif::CallbackReturn {
-    return cif::CallbackReturn::SUCCESS;
-}
+    if (this->mode == util::ThrusterMode::Can) {
+        this->state_interface_data.emplace_back(
+            prefix + "esc/rpm", util::to_interface_data_ptr(this->rpm));
+    }
 
-auto succ::ThrusterController::on_deactivate(const rlc::State & /*previous_state*/)
-    -> cif::CallbackReturn {
+    this->ref_interface_data.emplace_back(
+        "servo_enabled", util::to_interface_data_ptr(this->servo_enabled));
+    this->ref_interface_data.emplace_back(
+        "esc_enabled", util::to_interface_data_ptr(this->esc_enabled));
+    this->ref_interface_data.emplace_back("angle", util::to_interface_data_ptr(this->angle));
+    this->ref_interface_data.emplace_back(
+        "duty_cycle", util::to_interface_data_ptr(this->duty_cycle));
+
     return cif::CallbackReturn::SUCCESS;
 }
 
 auto succ::ThrusterController::on_export_reference_interfaces()
     -> std::vector<hif::CommandInterface> {
-    this->reference_interfaces_.resize(4);
+    // To avoid bug in ros2 control. `reference_interfaces_` is actually not used.
+    this->reference_interfaces_.resize(this->ref_interface_data.size());
 
     auto interfaces = std::vector<hif::CommandInterface>{};
-    interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name(), "servo_enabled",
-        util::to_interface_data_ptr(this->servo_enabled)));
-    interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name(), "esc_enabled",
-        util::to_interface_data_ptr(this->esc_enabled)));
-    interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name(), "angle", util::to_interface_data_ptr(this->angle)));
-    interfaces.emplace_back(hif::CommandInterface(
-        this->get_node()->get_name(), "duty_cycle", util::to_interface_data_ptr(this->duty_cycle)));
+    for (auto & [name, data] : this->ref_interface_data) {
+        interfaces.emplace_back(hif::CommandInterface(this->get_node()->get_name(), name, data));
+    }
     return interfaces;
 }
 
 auto succ::ThrusterController::on_export_state_interfaces() -> std::vector<hif::StateInterface> {
     auto interfaces = std::vector<hif::StateInterface>{};
 
-    interfaces.emplace_back(hif::StateInterface(
-        this->get_node()->get_name(), "rpm", util::to_interface_data_ptr(this->rpm)));
+    for (auto & [name, data] : this->state_interface_data) {
+        interfaces.emplace_back(hif::StateInterface(this->get_node()->get_name(), name, data));
+    }
+
+    // TODO: app / gate controller側で`thruster_mode`によって処理を変えるようにしたら消す
+    if (this->mode == util::ThrusterMode::Direct) {
+        // `can`モードとの互換性のため、ダミーのインターフェースを追加する。
+        const auto name = "thruster" + std::to_string(this->id) + "/esc/rpm";
+        interfaces.emplace_back(hif::StateInterface(
+            this->get_node()->get_name(), name, util::to_interface_data_ptr(this->rpm)));
+    }
     return interfaces;
 }
 
@@ -135,41 +127,25 @@ auto succ::ThrusterController::update_reference_from_subscribers(
 
 auto succ::ThrusterController::update_and_write_commands(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> cif::return_type {
-    if (this->mode == util::ThrusterMode::Can) {
-        constexpr auto SERVO_ENABLED_INDEX =
-            suc_util::get_index("servo/enabled_raw", CAN_CMD_INTERFACE_NAMES);
-        constexpr auto ANGLE_INDEX =
-            suc_util::get_index("servo/angle_raw", CAN_CMD_INTERFACE_NAMES);
-        constexpr auto ESC_ENABLED_INDEX =
-            suc_util::get_index("esc/enabled_raw", CAN_CMD_INTERFACE_NAMES);
-        constexpr auto DUTY_CYCLE_INDEX =
-            suc_util::get_index("esc/duty_cycle_raw", CAN_CMD_INTERFACE_NAMES);
-
-        constexpr auto RPM_INDEX = suc_util::get_index("esc/rpm_raw", CAN_STATE_INTERFACE_NAMES);
-
-        this->can_interface_helper->set_cmd_value(SERVO_ENABLED_INDEX, this->servo_enabled);
-        this->can_interface_helper->set_cmd_value(ANGLE_INDEX, this->angle);
-        this->can_interface_helper->set_cmd_value(ESC_ENABLED_INDEX, this->esc_enabled);
-        this->can_interface_helper->set_cmd_value(DUTY_CYCLE_INDEX, this->duty_cycle);
-
-        this->can_interface_helper->get_state_value(RPM_INDEX, this->rpm);
-
-    } else {
-        constexpr auto SERVO_ENABLED_INDEX =
-            suc_util::get_index("servo_direct/enabled_raw", DIRECT_CMD_INTERFACE_NAMES);
-        constexpr auto ANGLE_INDEX =
-            suc_util::get_index("servo_direct/angle_raw", DIRECT_CMD_INTERFACE_NAMES);
-        constexpr auto ESC_ENABLED_INDEX =
-            suc_util::get_index("esc_direct/enabled_raw", DIRECT_CMD_INTERFACE_NAMES);
-        constexpr auto DUTY_CYCLE_INDEX =
-            suc_util::get_index("esc_direct/duty_cycle_raw", DIRECT_CMD_INTERFACE_NAMES);
-
-        this->direct_interface_helper->set_cmd_value(SERVO_ENABLED_INDEX, this->servo_enabled);
-        this->direct_interface_helper->set_cmd_value(ANGLE_INDEX, this->angle);
-        this->direct_interface_helper->set_cmd_value(ESC_ENABLED_INDEX, this->esc_enabled);
-        this->direct_interface_helper->set_cmd_value(DUTY_CYCLE_INDEX, this->duty_cycle);
+    // 状態を取得
+    auto res = util::interface_accessor::get_states_from_loaned_interfaces(
+        this->state_interfaces_, this->state_interface_data);
+    if (!res) {
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_WARN_THROTTLE(
+            this->get_node()->get_logger(), *this->get_node()->get_clock(), DURATION,
+            "Failed to get value of state interfaces");
     }
 
+    // コマンドを送信
+    res = util::interface_accessor::set_commands_to_loaned_interfaces(
+        this->command_interfaces_, this->command_interface_data);
+    if (!res) {
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_WARN_THROTTLE(
+            this->get_node()->get_logger(), *this->get_node()->get_clock(), DURATION,
+            "Failed to set value of command interfaces");
+    }
     return cif::return_type::OK;
 }
 

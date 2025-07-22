@@ -94,7 +94,7 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
     if (this->thruster_mode == util::ThrusterMode::Can) {
         for (size_t i = 0; i < 4; ++i) {
             auto thruster_name = "thruster" + std::to_string(i + 1);
-            this->set_state(thruster_name + "/esc/rpm_raw", util::to_interface_data(rpm[i]));
+            this->set_state(thruster_name + "/esc/rpm", util::to_interface_data(rpm[i]));
         }
     }
     // TODO: 実装したらコメントアウトを外す
@@ -120,10 +120,10 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
     if (is_can) {
         for (size_t i = 0; i < 4; ++i) {
             auto thruster_name = "thruster" + std::to_string(i + 1);
-            auto esc_enabled_raw = this->get_command(thruster_name + "/esc/enabled_raw");
-            auto servo_enabled_raw = this->get_command(thruster_name + "/servo/enabled_raw");
-            auto angle_raw = this->get_command(thruster_name + "/servo/angle_raw");
-            auto duty_cycle_raw = this->get_command(thruster_name + "/esc/duty_cycle_raw");
+            auto esc_enabled_raw = this->get_command(thruster_name + "/esc/enabled");
+            auto servo_enabled_raw = this->get_command(thruster_name + "/servo/enabled");
+            auto angle_raw = this->get_command(thruster_name + "/servo/angle");
+            auto duty_cycle_raw = this->get_command(thruster_name + "/esc/duty_cycle");
 
             thruster_esc_enabled_cmd[i] =
                 util::from_interface_data<sinsei_umiusi_control::cmd::thruster::EscEnabled>(

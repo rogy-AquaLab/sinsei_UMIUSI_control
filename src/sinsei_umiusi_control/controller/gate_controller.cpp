@@ -178,10 +178,11 @@ auto succ::GateController::on_init() -> cif::CallbackReturn {
         this->state_interface_data.emplace_back(
             "app_controller/imu/velocity.z", to_interface_data_ptr(this->state.imu_velocity.z));
         for (size_t i = 0; i < 4; ++i) {
-            auto cname = "thruster_controller" + std::to_string(i + 1);
+            const auto id_str = std::to_string(i + 1);
+            const auto prefix = "thruster_controller" + id_str + "/thruster" + id_str + "/";
 
             this->state_interface_data.emplace_back(
-                cname + "/rpm", to_interface_data_ptr(this->state.rpm[i].value));
+                prefix + "esc/rpm", to_interface_data_ptr(this->state.rpm[i].value));
         }
 
         // Publishers
@@ -209,7 +210,7 @@ auto succ::GateController::on_init() -> cif::CallbackReturn {
                 state_prefix + "imu_velocity", qos);
         for (size_t i = 0; i < 4; ++i) {
             this->pub.rpm_publisher[i] = this->get_node()->create_publisher<std_msgs::msg::Float64>(
-                state_prefix + "rpm_" + std::to_string(i + 1), qos);
+                state_prefix + "thruster_rpm_" + std::to_string(i + 1), qos);
         }
     }
     return cif::CallbackReturn::SUCCESS;
