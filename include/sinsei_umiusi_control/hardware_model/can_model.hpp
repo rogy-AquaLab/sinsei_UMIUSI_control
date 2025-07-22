@@ -20,12 +20,10 @@ class CanModel {
   private:
     std::shared_ptr<util::CanInterface> can;
 
-    // FIXME: IDは適当
-    std::array<can::VescModel, 4> vesc_models = {
-        can::VescModel(45), can::VescModel(0x02), can::VescModel(0x03), can::VescModel(0x04)};
+    std::array<can::VescModel, 4> vesc_models;
 
   public:
-    CanModel(std::shared_ptr<util::CanInterface> can);
+    CanModel(std::shared_ptr<util::CanInterface> can, std::array<int, 4> vesc_ids);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_destroy() -> tl::expected<void, std::string>;
     auto on_read()

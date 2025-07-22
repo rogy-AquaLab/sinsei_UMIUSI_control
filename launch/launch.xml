@@ -6,10 +6,17 @@
 
   <!-- Launch Arguments -->
   <arg name="thruster_mode" default="can" />
+
   <arg name="high_beam_pin" default="5" />
   <arg name="low_beam_pin" default="6" />
   <arg name="ir_pin" default="25" />
   <arg name="indicator_led_pin" default="24" />
+
+  <!-- FIXME: 2番以降は仮のID -->
+  <arg name="vesc1_id" default="45" />
+  <arg name="vesc2_id" default="2" />
+  <arg name="vesc3_id" default="3" />
+  <arg name="vesc4_id" default="4" />
 
   <arg name="namespace" default="" />
 
@@ -30,6 +37,10 @@
         low_beam_pin:=$(var low_beam_pin) \
         ir_pin:=$(var ir_pin) \
         indicator_led_pin:=$(var indicator_led_pin) \
+        vesc1_id:=$(var vesc1_id) \
+        vesc2_id:=$(var vesc2_id) \
+        vesc3_id:=$(var vesc3_id) \
+        vesc4_id:=$(var vesc4_id) \
       ')"
   />
 

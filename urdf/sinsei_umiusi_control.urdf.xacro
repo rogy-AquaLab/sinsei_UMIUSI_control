@@ -8,6 +8,10 @@
       low_beam_pin
       ir_pin
       indicator_led_pin
+      vesc1_id
+      vesc2_id
+      vesc3_id
+      vesc4_id
       mock
     ">
 
@@ -17,7 +21,13 @@
     <xacro:include filename="sinsei_umiusi_control/imu.urdf.xacro" />
     <xacro:include filename="sinsei_umiusi_control/headlights.urdf.xacro" />
 
-    <xacro:can thruster_mode="${thruster_mode}" />
+    <xacro:can
+      thruster_mode="${thruster_mode}"
+      vesc1_id="${vesc1_id}"
+      vesc2_id="${vesc2_id}"
+      vesc3_id="${vesc3_id}"
+      vesc4_id="${vesc4_id}"
+    />
     <xacro:if value="${thruster_mode == 'direct'}">
       <xacro:thruster_direct />
     </xacro:if>
