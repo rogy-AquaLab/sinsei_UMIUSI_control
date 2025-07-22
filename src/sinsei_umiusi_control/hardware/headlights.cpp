@@ -53,6 +53,8 @@ auto suchw::Headlights::on_init(const hif::HardwareInfo & info) -> hif::Callback
     if (!res) {
         RCLCPP_ERROR(
             this->get_logger(), "\n  Failed to initialize Headlights: %s", res.error().c_str());
+        // GPIOの初期化に失敗した場合、モデルにnullを再代入する
+        this->model.reset();
     }
 
     return hif::CallbackReturn::SUCCESS;

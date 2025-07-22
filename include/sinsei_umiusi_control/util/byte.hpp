@@ -19,6 +19,7 @@ inline auto to_int32_be(std::array<std::byte, 8> bytes) -> int32_t {
            (std::to_integer<int32_t>(bytes[2]) << 8) | std::to_integer<int32_t>(bytes[3]);
 }
 
+// Convert 8-byte array in big-endian order to int64_t
 inline auto to_int64_be(std::array<std::byte, 8> bytes) -> int64_t {
     return (std::to_integer<int64_t>(bytes[0]) << 56) | (std::to_integer<int64_t>(bytes[1]) << 48) |
            (std::to_integer<int64_t>(bytes[2]) << 40) | (std::to_integer<int64_t>(bytes[3]) << 32) |

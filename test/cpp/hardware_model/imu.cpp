@@ -57,7 +57,7 @@ TEST(ImuModelBeginTest, success) {
         .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
-    auto result = imu_model.begin();
+    auto result = imu_model.on_init();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
 
@@ -68,7 +68,7 @@ TEST(ImuModelBeginTest, fail_on_open) {
         .WillOnce(Return(tl::make_unexpected(sucutil::GpioError::I2cOpenFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
-    auto result = imu_model.begin();
+    auto result = imu_model.on_init();
     ASSERT_FALSE(result);
 }
 
@@ -83,7 +83,7 @@ TEST(ImuModelBeginTest, fail_on_read_chip_id) {
         .WillRepeatedly(Return(tl::make_unexpected(sucutil::GpioError::I2cReadFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
-    auto result = imu_model.begin();
+    auto result = imu_model.on_init();
     ASSERT_FALSE(result);
 }
 
@@ -98,7 +98,7 @@ TEST(ImuModelBeginTest, fail_on_wrong_chip_id) {
         .WillRepeatedly(Return(tl::expected<std::byte, sucutil::GpioError>(std::byte{ID + 1})));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
-    auto result = imu_model.begin();
+    auto result = imu_model.on_init();
     ASSERT_FALSE(result);
 }
 
@@ -116,7 +116,7 @@ TEST(ImuModelBeginTest, fail_on_set_opr_mode_config) {
         .WillOnce(Return(tl::make_unexpected(sucutil::GpioError::I2cWriteFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
-    auto result = imu_model.begin();
+    auto result = imu_model.on_init();
     ASSERT_FALSE(result);
 }
 
@@ -137,7 +137,7 @@ TEST(ImuModelBeginTest, fail_on_trigger_reset) {
         .WillOnce(Return(tl::make_unexpected(sucutil::GpioError::I2cWriteFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
-    auto result = imu_model.begin();
+    auto result = imu_model.on_init();
     ASSERT_FALSE(result);
 }
 
@@ -153,7 +153,7 @@ TEST(ImuModelBeginTest, fail_on_wait_for_reboot) {
         .WillRepeatedly(Return(tl::expected<std::byte, sucutil::GpioError>(std::byte{ID + 1})));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
-    auto result = imu_model.begin();
+    auto result = imu_model.on_init();
     ASSERT_FALSE(result);
 }
 
@@ -177,7 +177,7 @@ TEST(ImuModelBeginTest, fail_on_set_power_mode_normal) {
         .WillOnce(Return(tl::make_unexpected(sucutil::GpioError::I2cWriteFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
-    auto result = imu_model.begin();
+    auto result = imu_model.on_init();
     ASSERT_FALSE(result);
 }
 
@@ -204,7 +204,7 @@ TEST(ImuModelBeginTest, fail_on_set_page_id) {
         .WillOnce(Return(tl::make_unexpected(sucutil::GpioError::I2cWriteFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
-    auto result = imu_model.begin();
+    auto result = imu_model.on_init();
     ASSERT_FALSE(result);
 }
 
@@ -234,7 +234,7 @@ TEST(ImuModelBeginTest, fail_on_clear_sys_trigger) {
         .WillOnce(Return(tl::make_unexpected(sucutil::GpioError::I2cWriteFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
-    auto result = imu_model.begin();
+    auto result = imu_model.on_init();
     ASSERT_FALSE(result);
 }
 
@@ -264,7 +264,7 @@ TEST(ImuModelBeginTest, fail_on_set_opr_mode_ndof) {
         .WillOnce(Return(tl::make_unexpected(sucutil::GpioError::I2cWriteFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
-    auto result = imu_model.begin();
+    auto result = imu_model.on_init();
     ASSERT_FALSE(result);
 }
 
