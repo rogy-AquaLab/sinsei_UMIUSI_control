@@ -1,6 +1,7 @@
 #include "sinsei_umiusi_control/controller/gate_controller.hpp"
 
 #include <rclcpp/logging.hpp>
+#include <rclcpp_lifecycle/state.hpp>
 
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
@@ -36,12 +37,27 @@ auto succ::GateController::state_interface_configuration() const -> cif::Interfa
 }
 
 auto succ::GateController::on_init() -> cif::CallbackReturn {
-    using util::to_interface_data_ptr;
+    this->get_node()->declare_parameter("thruster_mode", "unknown");
 
     this->cmd = succ::GateController::Command{};
     this->state = succ::GateController::State{};
 
+    return cif::CallbackReturn::SUCCESS;
+}
+
+auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
+    -> cif::CallbackReturn {
+    const auto mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
+    const auto mode_res = util::get_mode_from_str(mode_str);
+    if (!mode_res) {
+        RCLCPP_ERROR(this->get_node()->get_logger(), "Invalid thruster mode: %s", mode_str.c_str());
+        return cif::CallbackReturn::ERROR;
+    }
+    this->thruster_mode = mode_res.value();
+
     {  // Command interface
+        using util::to_interface_data_ptr;
+
         this->command_interface_data.emplace_back(
             "indicator_led/enabled", to_interface_data_ptr(this->cmd.indicator_led_enabled_ref));
         this->command_interface_data.emplace_back(
@@ -152,6 +168,8 @@ auto succ::GateController::on_init() -> cif::CallbackReturn {
                 });
     }
     {  // State interface
+        using util::to_interface_data_ptr;
+
         this->state_interface_data.emplace_back(
             "main_power/battery_current", to_interface_data_ptr(this->state.battery_current.value));
         this->state_interface_data.emplace_back(
@@ -177,42 +195,47 @@ auto succ::GateController::on_init() -> cif::CallbackReturn {
             "app_controller/imu/velocity.y", to_interface_data_ptr(this->state.imu_velocity.y));
         this->state_interface_data.emplace_back(
             "app_controller/imu/velocity.z", to_interface_data_ptr(this->state.imu_velocity.z));
-        for (size_t i = 0; i < 4; ++i) {
-            const auto id_str = std::to_string(i + 1);
-            const auto prefix = "thruster_controller" + id_str + "/thruster" + id_str + "/";
+        if (this->thruster_mode == util::ThrusterMode::Can) {
+            for (size_t i = 0; i < 4; ++i) {
+                const auto id_str = std::to_string(i + 1);
+                const auto prefix =
+                    "app_controller/thruster_controller" + id_str + "/thruster" + id_str + "/";
 
-            this->state_interface_data.emplace_back(
-                prefix + "esc/rpm", to_interface_data_ptr(this->state.rpm[i].value));
-        }
-
-        // Publishers
-        const auto state_prefix = std::string("state/");
-        const auto qos = rclcpp::SystemDefaultsQoS();
-        this->pub.battery_current_publisher =
-            this->get_node()->create_publisher<std_msgs::msg::Float64>(
-                state_prefix + "battery_current", qos);
-        this->pub.battery_voltage_publisher =
-            this->get_node()->create_publisher<std_msgs::msg::Float64>(
-                state_prefix + "battery_voltage", qos);
-        this->pub.main_temperature_publisher =
-            this->get_node()->create_publisher<std_msgs::msg::Int8>(
-                state_prefix + "main_temperature", qos);
-        this->pub.water_leaked_publisher = this->get_node()->create_publisher<std_msgs::msg::Bool>(
-            state_prefix + "water_leaked", qos);
-        this->pub.imu_temperature_publisher =
-            this->get_node()->create_publisher<std_msgs::msg::Float64>(
-                state_prefix + "imu_temperature", qos);
-        this->pub.imu_orientation_publisher =
-            this->get_node()->create_publisher<geometry_msgs::msg::Vector3>(
-                state_prefix + "imu_orientation", qos);
-        this->pub.imu_velocity_publisher =
-            this->get_node()->create_publisher<geometry_msgs::msg::Vector3>(
-                state_prefix + "imu_velocity", qos);
-        for (size_t i = 0; i < 4; ++i) {
-            this->pub.rpm_publisher[i] = this->get_node()->create_publisher<std_msgs::msg::Float64>(
-                state_prefix + "thruster_rpm_" + std::to_string(i + 1), qos);
+                this->state_interface_data.emplace_back(
+                    prefix + "esc/rpm", to_interface_data_ptr(this->state.rpm[i].value));
+            }
         }
     }
+
+    // Publishers
+    const auto state_prefix = std::string("state/");
+    const auto qos = rclcpp::SystemDefaultsQoS();
+    this->pub.battery_current_publisher =
+        this->get_node()->create_publisher<std_msgs::msg::Float64>(
+            state_prefix + "battery_current", qos);
+    this->pub.battery_voltage_publisher =
+        this->get_node()->create_publisher<std_msgs::msg::Float64>(
+            state_prefix + "battery_voltage", qos);
+    this->pub.main_temperature_publisher = this->get_node()->create_publisher<std_msgs::msg::Int8>(
+        state_prefix + "main_temperature", qos);
+    this->pub.water_leaked_publisher =
+        this->get_node()->create_publisher<std_msgs::msg::Bool>(state_prefix + "water_leaked", qos);
+    this->pub.imu_temperature_publisher =
+        this->get_node()->create_publisher<std_msgs::msg::Float64>(
+            state_prefix + "imu_temperature", qos);
+    this->pub.imu_orientation_publisher =
+        this->get_node()->create_publisher<geometry_msgs::msg::Vector3>(
+            state_prefix + "imu_orientation", qos);
+    this->pub.imu_velocity_publisher =
+        this->get_node()->create_publisher<geometry_msgs::msg::Vector3>(
+            state_prefix + "imu_velocity", qos);
+    for (size_t i = 0; i < 4; ++i) {
+        using util::to_interface_data_ptr;
+
+        this->pub.rpm_publisher[i] = this->get_node()->create_publisher<std_msgs::msg::Float64>(
+            state_prefix + "thruster_rpm_" + std::to_string(i + 1), qos);
+    }
+
     return cif::CallbackReturn::SUCCESS;
 }
 

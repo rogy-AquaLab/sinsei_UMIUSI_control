@@ -19,6 +19,7 @@
 #include "sinsei_umiusi_control/state/main_power.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
+#include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 namespace sinsei_umiusi_control::controller {
 
@@ -80,6 +81,8 @@ class GateController : public controller_interface::ControllerInterface {
     };
     Publishers pub;
 
+    sinsei_umiusi_control::util::ThrusterMode thruster_mode;
+
     sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer command_interface_data;
     sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer state_interface_data;
 
@@ -91,6 +94,7 @@ class GateController : public controller_interface::ControllerInterface {
     auto state_interface_configuration() const
         -> controller_interface::InterfaceConfiguration override;
     auto on_init() -> CallbackReturn override;
+    auto on_configure(const rclcpp_lifecycle::State & previous_state) -> CallbackReturn override;
     auto update(const rclcpp::Time & time, const rclcpp::Duration & period)
         -> controller_interface::return_type override;
 };

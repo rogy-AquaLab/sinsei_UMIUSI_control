@@ -8,7 +8,9 @@
 #include "sinsei_umiusi_control/cmd/app.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
+#include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
+#include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 namespace sinsei_umiusi_control::controller {
 
@@ -26,6 +28,11 @@ class AppController : public controller_interface::ChainableControllerInterface 
     std::array<sinsei_umiusi_control::cmd::thruster::Angle, 4> thruster_angles;
     std::array<sinsei_umiusi_control::cmd::thruster::DutyCycle, 4> thruster_duty_cycles;
 
+    // State interfaces (in)
+    std::array<sinsei_umiusi_control::state::thruster::Rpm, 4> thruster_rpms;
+
+    sinsei_umiusi_control::util::ThrusterMode thruster_mode;
+
     auto compute_outputs() -> void;
 
     sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer command_interface_data;
@@ -40,6 +47,7 @@ class AppController : public controller_interface::ChainableControllerInterface 
     auto state_interface_configuration() const
         -> controller_interface::InterfaceConfiguration override;
     auto on_init() -> CallbackReturn override;
+    auto on_configure(const rclcpp_lifecycle::State & previous_state) -> CallbackReturn override;
     auto on_export_reference_interfaces()
         -> std::vector<hardware_interface::CommandInterface> override;
     auto on_export_state_interfaces() -> std::vector<hardware_interface::StateInterface> override;

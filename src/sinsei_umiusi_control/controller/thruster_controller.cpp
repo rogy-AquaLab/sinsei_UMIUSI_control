@@ -49,16 +49,13 @@ auto succ::ThrusterController::on_configure(const rlc::State & /*pervious_state*
     -> cif::CallbackReturn {
     this->id = this->get_node()->get_parameter("id").as_int();
 
-    std::string mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
-    auto mode_res = util::get_mode_from_str(mode_str);
+    const auto mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
+    const auto mode_res = util::get_mode_from_str(mode_str);
     if (!mode_res) {
         RCLCPP_ERROR(this->get_node()->get_logger(), "Invalid thruster mode: %s", mode_str.c_str());
         return cif::CallbackReturn::ERROR;
     }
     this->mode = mode_res.value();
-
-    RCLCPP_INFO(
-        this->get_node()->get_logger(), "Thruster <ID: %d, MODE: %s>", this->id, mode_str.c_str());
 
     const auto prefix = this->mode == util::ThrusterMode::Can
                             ? "thruster" + std::to_string(this->id) + "/"
@@ -103,17 +100,8 @@ auto succ::ThrusterController::on_export_reference_interfaces()
 
 auto succ::ThrusterController::on_export_state_interfaces() -> std::vector<hif::StateInterface> {
     auto interfaces = std::vector<hif::StateInterface>{};
-
     for (auto & [name, data] : this->state_interface_data) {
         interfaces.emplace_back(hif::StateInterface(this->get_node()->get_name(), name, data));
-    }
-
-    // TODO: app / gate controller側で`thruster_mode`によって処理を変えるようにしたら消す
-    if (this->mode == util::ThrusterMode::Direct) {
-        // `can`モードとの互換性のため、ダミーのインターフェースを追加する。
-        const auto name = "thruster" + std::to_string(this->id) + "/esc/rpm";
-        interfaces.emplace_back(hif::StateInterface(
-            this->get_node()->get_name(), name, util::to_interface_data_ptr(this->rpm)));
     }
     return interfaces;
 }

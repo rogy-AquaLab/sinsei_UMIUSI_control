@@ -1,7 +1,9 @@
 #include "sinsei_umiusi_control/controller/app_controller.hpp"
 
+#include <controller_interface/controller_interface_base.hpp>
 #include <cstddef>
 #include <rclcpp/logging.hpp>
+#include <string>
 
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
@@ -37,20 +39,40 @@ auto succ::AppController::state_interface_configuration() const -> cif::Interfac
 }
 
 auto succ::AppController::on_init() -> cif::CallbackReturn {
-    constexpr const std::string_view CMD_INTERFACE_NAMES[8] = {
-        "thruster_controller1/angle", "thruster_controller1/duty_cycle",
-        "thruster_controller2/angle", "thruster_controller2/duty_cycle",
-        "thruster_controller3/angle", "thruster_controller3/duty_cycle",
-        "thruster_controller4/angle", "thruster_controller4/duty_cycle",
-    };
+    this->get_node()->declare_parameter("thruster_mode", "unknown");
+
+    return cif::CallbackReturn::SUCCESS;
+}
+
+auto succ::AppController::on_configure(const rlc::State & /*previous_state*/)
+    -> cif::CallbackReturn {
+    const auto mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
+    const auto mode_res = util::get_mode_from_str(mode_str);
+    if (!mode_res) {
+        RCLCPP_ERROR(this->get_node()->get_logger(), "Invalid thruster mode: %s", mode_str.c_str());
+        return cif::CallbackReturn::ERROR;
+    }
+    this->thruster_mode = mode_res.value();
+
+    RCLCPP_INFO(this->get_node()->get_logger(), "Thruster MODE: %s", mode_str.c_str());
+
     for (size_t i = 0; i < 4; ++i) {
+        const auto prefix = "thruster_controller" + std::to_string(i + 1) + "/";
         this->command_interface_data.emplace_back(
-            CMD_INTERFACE_NAMES[i * 2 + 0], util::to_interface_data_ptr(this->thruster_angles[i]));
+            prefix + "angle", util::to_interface_data_ptr(this->thruster_angles[i]));
         this->command_interface_data.emplace_back(
-            CMD_INTERFACE_NAMES[i * 2 + 1],
-            util::to_interface_data_ptr(this->thruster_duty_cycles[i]));
+            prefix + "duty_cycle", util::to_interface_data_ptr(this->thruster_duty_cycles[i]));
     }
 
+    if (this->thruster_mode == util::ThrusterMode::Can) {
+        // `can`モードのときは、RPMを取得するためのインターフェースを追加する。
+        for (size_t i = 0; i < 4; ++i) {
+            const auto id_str = std::to_string(i + 1);
+            const auto prefix = "thruster_controller" + id_str + "/thruster" + id_str + "/";
+            this->state_interface_data.emplace_back(
+                prefix + "esc/rpm", util::to_interface_data_ptr(this->thruster_rpms[i]));
+        }
+    }
     this->state_interface_data.emplace_back(
         "imu/orientation.x", util::to_interface_data_ptr(this->imu_orientation.x));
     this->state_interface_data.emplace_back(
