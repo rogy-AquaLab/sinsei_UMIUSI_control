@@ -17,6 +17,7 @@ services:
       TERM: xterm-color
       DISPLAY:
       ROS_DOMAIN_ID:
+      RCUTILS_COLORIZED_OUTPUT:
     restart: always
     ipc: host
     privileged: true
