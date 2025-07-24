@@ -40,8 +40,8 @@ def hardware_components(largs: dict[str, str]) -> set[str]:
     elif largs['thruster_mode'] == 'direct':
         return (
             base
-            | {f'thruster_direct{i}/servo_direct' for i in range(1, 5)}
-            | {f'thruster_direct{i}/esc_direct' for i in range(1, 5)}
+            | {f'thruster_direct{i}/servo' for i in range(1, 5)}
+            | {f'thruster_direct{i}/esc' for i in range(1, 5)}
         )
 
 
@@ -52,10 +52,10 @@ def controllers(largs: dict[str, str]) -> set[str]:
     base = {
         'gate_controller',
         'app_controller',
-        'thruster_controller1',
-        'thruster_controller2',
-        'thruster_controller3',
-        'thruster_controller4',
+        'thruster_controller_lf',
+        'thruster_controller_lb',
+        'thruster_controller_rb',
+        'thruster_controller_rf',
     }
     return base
 

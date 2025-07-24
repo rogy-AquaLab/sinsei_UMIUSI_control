@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
+
   <xacro:macro name="can" params="thruster_mode vesc1_id vesc2_id vesc3_id vesc4_id">
     <ros2_control name="can" type="system">
       <hardware>
@@ -15,14 +16,14 @@
         <xacro:property name="thruster_name" value="thruster${id}" />
 
         <gpio name="${thruster_name}/servo">
-          <command_interface name="enabled_raw" />
-          <command_interface name="angle_raw" />
+          <command_interface name="enabled" />
+          <command_interface name="angle" />
         </gpio>
 
         <gpio name="${thruster_name}/esc">
-          <command_interface name="enabled_raw" />
-          <command_interface name="duty_cycle_raw" />
-          <state_interface name="rpm_raw" />
+          <command_interface name="enabled" />
+          <command_interface name="duty_cycle" />
+          <state_interface name="rpm" />
         </gpio>
       </xacro:macro>
 
@@ -46,4 +47,5 @@
       </gpio>
     </ros2_control>
   </xacro:macro>
+
 </robot>

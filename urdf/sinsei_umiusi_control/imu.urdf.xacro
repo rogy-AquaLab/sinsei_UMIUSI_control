@@ -6,12 +6,12 @@
         <plugin>sinsei_umiusi_control/hardware/Imu</plugin>
       </hardware>
       <sensor name="imu">
-        <state_interface name="orientation_raw.x" />
-        <state_interface name="orientation_raw.y" />
-        <state_interface name="orientation_raw.z" />
-        <state_interface name="velocity_raw.x" />
-        <state_interface name="velocity_raw.y" />
-        <state_interface name="velocity_raw.z" />
+        <state_interface name="orientation.x" />
+        <state_interface name="orientation.y" />
+        <state_interface name="orientation.z" />
+        <state_interface name="velocity.x" />
+        <state_interface name="velocity.y" />
+        <state_interface name="velocity.z" />
         <state_interface name="temperature" />
       </sensor>
     </ros2_control>

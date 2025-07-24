@@ -1,24 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
+
   <xacro:macro name="thruster_direct">
     <xacro:macro name="thruster_direct" params="id">
       <xacro:property name="thruster_name" value="thruster_direct${id}" />
-      <ros2_control name="${thruster_name}/servo_direct" type="system">
+      <ros2_control name="${thruster_name}/servo" type="system">
         <hardware>
           <plugin>sinsei_umiusi_control/hardware/ServoDirect</plugin>
         </hardware>
-        <gpio name="${thruster_name}/servo_direct">
-          <command_interface name="enabled_raw" />
-          <command_interface name="angle_raw" />
+        <gpio name="${thruster_name}/servo">
+          <command_interface name="enabled" />
+          <command_interface name="angle" />
         </gpio>
       </ros2_control>
-      <ros2_control name="${thruster_name}/esc_direct" type="system">
+      <ros2_control name="${thruster_name}/esc" type="system">
         <hardware>
           <plugin>sinsei_umiusi_control/hardware/EscDirect</plugin>
         </hardware>
-        <gpio name="${thruster_name}/esc_direct">
-          <command_interface name="enabled_raw" />
-          <command_interface name="duty_cycle_raw" />
+        <gpio name="${thruster_name}/esc">
+          <command_interface name="enabled" />
+          <command_interface name="duty_cycle" />
         </gpio>
       </ros2_control>
     </xacro:macro>
@@ -28,4 +29,5 @@
     <xacro:thruster_direct id="3" />
     <xacro:thruster_direct id="4" />
   </xacro:macro>
+
 </robot>
