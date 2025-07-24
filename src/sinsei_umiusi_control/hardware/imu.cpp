@@ -41,12 +41,12 @@ auto suchw::Imu::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
 
     auto [orientation, velocity, temperature] = res.value();
 
-    this->set_state("imu/orientation_raw.x", orientation.x);
-    this->set_state("imu/orientation_raw.y", orientation.y);
-    this->set_state("imu/orientation_raw.z", orientation.z);
-    // this->set_state("imu/velocity_raw.x", velocity.x);
-    // this->set_state("imu/velocity_raw.y", velocity.y);
-    // this->set_state("imu/velocity_raw.z", velocity.z);
+    this->set_state("imu/orientation.x", orientation.x);
+    this->set_state("imu/orientation.y", orientation.y);
+    this->set_state("imu/orientation.z", orientation.z);
+    // this->set_state("imu/velocity.x", velocity.x);
+    // this->set_state("imu/velocity.y", velocity.y);
+    // this->set_state("imu/velocity.z", velocity.z);
     this->set_state("imu/temperature", util::to_interface_data(temperature));
 
     return hif::return_type::OK;
