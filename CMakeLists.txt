@@ -82,6 +82,7 @@ if(BUILD_TESTING)
     test/cpp/hardware_model/imu.cpp
     test/cpp/hardware_model/indicator_led.cpp
     test/cpp/hardware_model/can.cpp
+    test/cpp/hardware_model/can/vesc.cpp
   )
   target_include_directories(test_hardware_model
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/cpp>
