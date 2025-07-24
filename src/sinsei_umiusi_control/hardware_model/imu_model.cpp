@@ -125,7 +125,10 @@ auto suchm::ImuModel::on_read()
         return tl::unexpected<std::string>(
             "Failed to read temperature data from BNO055: I2C read error: " + temp_raw_res.error());
     }
-    const suc::state::imu::Temperature temperature{static_cast<int8_t>(temp_raw_res.value())};
+    const auto temp_raw = temp_raw_res.value();
+    // 取得した温度が「正しい温度 ± 128」となっている場合があるため補正する
+    const auto fixed_temp = temp_raw & std::byte{0x7F};
+    const suc::state::imu::Temperature temperature{static_cast<int8_t>(fixed_temp)};
 
     return std::make_tuple(orientation_res.value(), velocity, temperature);
 }
