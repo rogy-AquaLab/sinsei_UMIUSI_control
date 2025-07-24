@@ -58,10 +58,6 @@ TEST_P(HeadlightsModelOnWriteTest, all) {
     const int n_false = 3 - n_true;
 
     switch (error) {
-        case 0:  // No error
-            EXPECT_CALL(*gpio, write_digital(_, true)).Times(n_true);
-            EXPECT_CALL(*gpio, write_digital(_, false)).Times(n_false);
-            break;
         case 1:  // High beam error
             EXPECT_CALL(*gpio, write_digital(HIGH_BEAM_PIN, high_beam_enabled))
                 .Times(1)
@@ -82,6 +78,11 @@ TEST_P(HeadlightsModelOnWriteTest, all) {
                 .Times(1)
                 .WillOnce(Return(tl::make_unexpected(util::GpioError::UnknownError)));
             EXPECT_CALL(*gpio, write_digital(LOW_BEAM_PIN, low_beam_enabled)).Times(1);
+            break;
+        case 0:  // No error
+        default:
+            EXPECT_CALL(*gpio, write_digital(_, true)).Times(n_true);
+            EXPECT_CALL(*gpio, write_digital(_, false)).Times(n_false);
             break;
     }
 
