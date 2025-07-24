@@ -87,7 +87,7 @@ TEST(VescModelTest, VescModelGetRpmTest) {
     auto result = vesc_model.get_rpm(frame);
     ASSERT_TRUE(result) << "Error: " << result.error();
     ASSERT_TRUE(result.value());
-    EXPECT_EQ(result.value()->value, 100);
+    EXPECT_EQ(result.value()->value, 100);  // NOLINT(bugprone-unchecked-optional-access)
 }
 
 }  // namespace sinsei_umiusi_control::test::hardware_model::can::vesc
