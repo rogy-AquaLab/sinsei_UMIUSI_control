@@ -7,6 +7,7 @@
 #include <string>
 
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
+#include "sinsei_umiusi_control/state/esc.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/enum_cast.hpp"
 
@@ -113,6 +114,9 @@ class VescModel {
 
     auto get_rpm(const interface::CanFrame & frame)
         -> tl::expected<std::optional<sinsei_umiusi_control::state::thruster::Rpm>, std::string>;
+
+    auto get_water_leaked(const interface::CanFrame & frame)
+        -> tl::expected<std::optional<sinsei_umiusi_control::state::esc::WaterLeaked>, std::string>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::can

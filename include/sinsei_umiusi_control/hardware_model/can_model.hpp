@@ -9,6 +9,7 @@
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
 #include "sinsei_umiusi_control/hardware_model/can/vesc_model.hpp"
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
+#include "sinsei_umiusi_control/state/esc.hpp"
 #include "sinsei_umiusi_control/state/main_power.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 
@@ -29,7 +30,8 @@ class CanModel {
     auto on_read()
         -> tl::expected<
             std::tuple<
-                std::array<suc::state::thruster::Rpm, 4>, suc::state::main_power::BatteryCurrent,
+                std::array<suc::state::thruster::Rpm, 4>,
+                std::array<suc::state::esc::WaterLeaked, 4>, suc::state::main_power::BatteryCurrent,
                 suc::state::main_power::BatteryVoltage, suc::state::main_power::Temperature,
                 suc::state::main_power::WaterLeaked>,
             std::string>;

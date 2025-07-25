@@ -38,11 +38,12 @@ auto suchm::CanModel::on_destroy() -> tl::expected<void, std::string> {
 auto suchm::CanModel::on_read()
     -> tl::expected<
         std::tuple<
-            std::array<suc::state::thruster::Rpm, 4>, suc::state::main_power::BatteryCurrent,
-            suc::state::main_power::BatteryVoltage, suc::state::main_power::Temperature,
-            suc::state::main_power::WaterLeaked>,
+            std::array<suc::state::thruster::Rpm, 4>, std::array<suc::state::esc::WaterLeaked, 4>,
+            suc::state::main_power::BatteryCurrent, suc::state::main_power::BatteryVoltage,
+            suc::state::main_power::Temperature, suc::state::main_power::WaterLeaked>,
         std::string> {
     std::array<suc::state::thruster::Rpm, 4> rpm;
+    std::array<suc::state::esc::WaterLeaked, 4> water_leaked;
     // suc::state::main_power::BatteryCurrent battery_current;
     // suc::state::main_power::BatteryVoltage battery_voltage;
     // suc::state::main_power::Temperature temperature;
@@ -58,6 +59,8 @@ auto suchm::CanModel::on_read()
     std::string error_message;
 
     // TODO: この位置に`can::MainPowerModel`の処理を追加する
+
+    // TODO: `esc::WaterLeaked`の処理を追加する！
 
     for (size_t i = 0; i < 4; ++i) {
         if (success) {
@@ -87,7 +90,7 @@ auto suchm::CanModel::on_read()
 
     // FIXME: 仮の値を返している
     return std::make_tuple(
-        rpm, suc::state::main_power::BatteryCurrent{0.0},
+        rpm, water_leaked, suc::state::main_power::BatteryCurrent{0.0},
         suc::state::main_power::BatteryVoltage{0.0}, suc::state::main_power::Temperature{0},
         suc::state::main_power::WaterLeaked{false});
 }

@@ -96,3 +96,19 @@ auto suchm::can::VescModel::get_rpm(const interface::CanFrame & frame)
     // ERPMを極対数で割ってRPMに変換
     return suc::state::thruster::Rpm{erpm / BLDC_POLE_PAIR};
 }
+
+auto suchm::can::VescModel::get_water_leaked(const interface::CanFrame & frame)
+    -> tl::expected<std::optional<suc::state::esc::WaterLeaked>, std::string> {
+    if (!this->id_matches(frame)) {
+        return std::nullopt;
+    }
+
+    auto cmd_id = this->get_cmd_id(frame);
+    if (!cmd_id) {
+        return tl::make_unexpected("Failed to get command ID: " + cmd_id.error());
+    }
+
+    // TODO: 実装する
+
+    return std::nullopt;
+}
