@@ -2,7 +2,7 @@
 
 #include <rcpputils/tl_expected/expected.hpp>
 
-#include "sinsei_umiusi_control/util/gpio_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/gpio_interface.hpp"
 
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;

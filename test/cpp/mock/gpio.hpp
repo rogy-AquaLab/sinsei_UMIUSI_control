@@ -4,7 +4,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "sinsei_umiusi_control/util/gpio_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/gpio_interface.hpp"
 
 namespace sinsei_umiusi_control::test::mock {
 

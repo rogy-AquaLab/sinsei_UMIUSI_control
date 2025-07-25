@@ -1,6 +1,6 @@
 #include "sinsei_umiusi_control/hardware/imu.hpp"
 
-#include "sinsei_umiusi_control/util/pigpio.hpp"
+#include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
 namespace suchw = sinsei_umiusi_control::hardware;

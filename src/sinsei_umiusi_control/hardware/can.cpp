@@ -1,7 +1,7 @@
 #include "sinsei_umiusi_control/hardware/can.hpp"
 
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
-#include "sinsei_umiusi_control/util/linux_can.hpp"
+#include "sinsei_umiusi_control/hardware_model/impl/linux_can.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 

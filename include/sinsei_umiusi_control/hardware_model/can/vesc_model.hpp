@@ -6,8 +6,8 @@
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 
+#include "sinsei_umiusi_control/hardware_model/interface/can_interface.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
-#include "sinsei_umiusi_control/util/can_interface.hpp"
 #include "sinsei_umiusi_control/util/enum_cast.hpp"
 
 // ref: https://github.com/vedderb/bldc/blob/822d270/documentation/comm_can.md

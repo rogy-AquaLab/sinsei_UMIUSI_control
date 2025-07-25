@@ -1,4 +1,4 @@
-#include "sinsei_umiusi_control/util/linux_can.hpp"
+#include "sinsei_umiusi_control/hardware_model/impl/linux_can.hpp"
 
 #include <linux/can.h>
 #include <linux/can/raw.h>

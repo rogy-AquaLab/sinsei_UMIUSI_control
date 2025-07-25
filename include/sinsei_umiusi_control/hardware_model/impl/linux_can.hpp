@@ -1,11 +1,11 @@
-#ifndef SINSEI_UMIUSI_CONTROL_UTIL_LINUX_CAN_HPP
-#define SINSEI_UMIUSI_CONTROL_UTIL_LINUX_CAN_HPP
+#ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_IMPL_LINUX_CAN_HPP
+#define SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_IMPL_LINUX_CAN_HPP
 
 #include <linux/can.h>
 
 #include <optional>
 
-#include "sinsei_umiusi_control/util/can_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/can_interface.hpp"
 
 namespace sinsei_umiusi_control::util {
 
@@ -30,4 +30,4 @@ class LinuxCan : public CanInterface {
 
 }  // namespace sinsei_umiusi_control::util
 
-#endif  // SINSEI_UMIUSI_CONTROL_UTIL_LINUX_CAN_HPP
+#endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_IMPL_LINUX_CAN_HPP
