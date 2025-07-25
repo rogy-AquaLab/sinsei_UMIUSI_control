@@ -64,8 +64,8 @@ TEST(CanModelTest, CanModelOnReadTest) {
     // TODO: parameterlize
     EXPECT_CALL(*can, recv_frame())
         .Times(1)
-        .WillOnce(Return(tl::expected<sucutil::CanFrame, std::string>{
-            sucutil::CanFrame{DUMMY_FRAME_ID_RECV, 8, DUMMY_FRAME_DATA_RECV, true}}));
+        .WillOnce(Return(tl::expected<suchm::interface::CanFrame, std::string>{
+            suchm::interface::CanFrame{DUMMY_FRAME_ID_RECV, 8, DUMMY_FRAME_DATA_RECV, true}}));
 
     auto can_model = suchm::CanModel(can, VESC_IDS);
     auto result = can_model.on_read();

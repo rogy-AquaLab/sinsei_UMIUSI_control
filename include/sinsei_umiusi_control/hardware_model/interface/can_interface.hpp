@@ -5,7 +5,7 @@
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 
-namespace sinsei_umiusi_control::util {
+namespace sinsei_umiusi_control::hardware_model::interface {
 
 struct CanFrame {
     // CAN ID in can frame; 11 bits for standard, 29 bits for extended
@@ -32,6 +32,6 @@ class CanInterface {
     virtual auto recv_frame() -> tl::expected<CanFrame, std::string> = 0;
 };
 
-}  // namespace sinsei_umiusi_control::util
+}  // namespace sinsei_umiusi_control::hardware_model::interface
 
 #endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_CAN_INTERFACE_HPP

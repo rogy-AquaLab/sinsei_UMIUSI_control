@@ -6,7 +6,7 @@
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 
-namespace sinsei_umiusi_control::util {
+namespace sinsei_umiusi_control::hardware_model::interface {
 
 using GpioPin = uint8_t;
 
@@ -79,6 +79,6 @@ class GpioInterface {
     virtual auto i2c_read_byte_data(uint32_t reg) -> tl::expected<std::byte, GpioError> = 0;
 };
 
-}  // namespace sinsei_umiusi_control::util
+}  // namespace sinsei_umiusi_control::hardware_model::interface
 
 #endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_GPIO_INTERFACE_HPP

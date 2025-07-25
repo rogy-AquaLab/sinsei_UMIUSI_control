@@ -10,14 +10,16 @@
 
 namespace sinsei_umiusi_control::test::mock {
 
-class Can : public sinsei_umiusi_control::util::CanInterface {
+class Can : public sinsei_umiusi_control::hardware_model::interface::CanInterface {
   public:
     MOCK_METHOD1(init, tl::expected<void, std::string>(const std::string ifname));
     MOCK_METHOD0(close, tl::expected<void, std::string>());
     MOCK_METHOD1(
-        send_frame,
-        tl::expected<void, std::string>(sinsei_umiusi_control::util::CanFrame && frame));
-    MOCK_METHOD0(recv_frame, tl::expected<sinsei_umiusi_control::util::CanFrame, std::string>());
+        send_frame, tl::expected<void, std::string>(
+                        sinsei_umiusi_control::hardware_model::interface::CanFrame && frame));
+    MOCK_METHOD0(
+        recv_frame,
+        tl::expected<sinsei_umiusi_control::hardware_model::interface::CanFrame, std::string>());
 };
 
 }  // namespace sinsei_umiusi_control::test::mock

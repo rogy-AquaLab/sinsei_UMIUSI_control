@@ -12,15 +12,15 @@ namespace sinsei_umiusi_control::hardware_model {
 
 class HeadlightsModel {
   private:
-    std::unique_ptr<util::GpioInterface> gpio;
-    util::GpioPin high_beam_pin;
-    util::GpioPin low_beam_pin;
-    util::GpioPin ir_pin;
+    std::unique_ptr<interface::GpioInterface> gpio;
+    interface::GpioPin high_beam_pin;
+    interface::GpioPin low_beam_pin;
+    interface::GpioPin ir_pin;
 
   public:
     HeadlightsModel(
-        std::unique_ptr<util::GpioInterface> gpio, util::GpioPin high_beam_pin,
-        util::GpioPin low_beam_pin, util::GpioPin ir_pin);
+        std::unique_ptr<interface::GpioInterface> gpio, interface::GpioPin high_beam_pin,
+        interface::GpioPin low_beam_pin, interface::GpioPin ir_pin);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_read() -> tl::expected<void, std::string>;
     auto on_write(

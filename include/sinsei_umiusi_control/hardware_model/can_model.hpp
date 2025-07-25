@@ -18,12 +18,12 @@ namespace sinsei_umiusi_control::hardware_model {
 
 class CanModel {
   private:
-    std::shared_ptr<util::CanInterface> can;
+    std::shared_ptr<interface::CanInterface> can;
 
     std::array<can::VescModel, 4> vesc_models;
 
   public:
-    CanModel(std::shared_ptr<util::CanInterface> can, std::array<int, 4> vesc_ids);
+    CanModel(std::shared_ptr<interface::CanInterface> can, std::array<int, 4> vesc_ids);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_destroy() -> tl::expected<void, std::string>;
     auto on_read()

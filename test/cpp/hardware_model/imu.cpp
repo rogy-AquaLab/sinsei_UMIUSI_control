@@ -7,7 +7,6 @@
 #include "sinsei_umiusi_control/hardware_model/imu_model.hpp"
 
 namespace suchm = sinsei_umiusi_control::hardware_model;
-namespace sucutil = sinsei_umiusi_control::util;
 
 using testing::AtLeast;
 using testing::Return;
@@ -33,28 +32,29 @@ TEST(ImuModelBeginTest, success) {
     // TODO: 順序付けする
     EXPECT_CALL(*gpio, i2c_open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillRepeatedly(Return(tl::expected<std::byte, sucutil::GpioError>(std::byte{ID})));
+        .WillRepeatedly(
+            Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID})));
     EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(PWR_MODE_ADDR, POWER_MODE_NORMAL))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(PAGE_ID_ADDR, std::byte{0x0}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x0}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_NDOF))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_init();
@@ -65,7 +65,7 @@ TEST(ImuModelBeginTest, fail_on_open) {
     auto gpio = std::make_unique<mock::Gpio>();
     EXPECT_CALL(*gpio, i2c_open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::make_unexpected(sucutil::GpioError::I2cOpenFailed)));
+        .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::I2cOpenFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_init();
@@ -77,10 +77,10 @@ TEST(ImuModelBeginTest, fail_on_read_chip_id) {
     // TODO: 順序付けする
     EXPECT_CALL(*gpio, i2c_open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillRepeatedly(Return(tl::make_unexpected(sucutil::GpioError::I2cReadFailed)));
+        .WillRepeatedly(Return(tl::make_unexpected(suchm::interface::GpioError::I2cReadFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_init();
@@ -92,10 +92,11 @@ TEST(ImuModelBeginTest, fail_on_wrong_chip_id) {
     auto gpio = std::make_unique<mock::Gpio>();
     EXPECT_CALL(*gpio, i2c_open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillRepeatedly(Return(tl::expected<std::byte, sucutil::GpioError>(std::byte{ID + 1})));
+        .WillRepeatedly(
+            Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID + 1})));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_init();
@@ -107,13 +108,14 @@ TEST(ImuModelBeginTest, fail_on_set_opr_mode_config) {
     auto gpio = std::make_unique<mock::Gpio>();
     EXPECT_CALL(*gpio, i2c_open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillRepeatedly(Return(tl::expected<std::byte, sucutil::GpioError>(std::byte{ID})));
+        .WillRepeatedly(
+            Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID})));
     EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(sucutil::GpioError::I2cWriteFailed)));
+        .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::I2cWriteFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_init();
@@ -125,16 +127,17 @@ TEST(ImuModelBeginTest, fail_on_trigger_reset) {
     auto gpio = std::make_unique<mock::Gpio>();
     EXPECT_CALL(*gpio, i2c_open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillRepeatedly(Return(tl::expected<std::byte, sucutil::GpioError>(std::byte{ID})));
+        .WillRepeatedly(
+            Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID})));
     EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(sucutil::GpioError::I2cWriteFailed)));
+        .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::I2cWriteFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_init();
@@ -146,11 +149,12 @@ TEST(ImuModelBeginTest, fail_on_wait_for_reboot) {
     auto gpio = std::make_unique<mock::Gpio>();
     EXPECT_CALL(*gpio, i2c_open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<std::byte, sucutil::GpioError>(std::byte{ID})))
-        .WillRepeatedly(Return(tl::expected<std::byte, sucutil::GpioError>(std::byte{ID + 1})));
+        .WillOnce(Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID})))
+        .WillRepeatedly(
+            Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID + 1})));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_init();
@@ -162,19 +166,20 @@ TEST(ImuModelBeginTest, fail_on_set_power_mode_normal) {
     auto gpio = std::make_unique<mock::Gpio>();
     EXPECT_CALL(*gpio, i2c_open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillRepeatedly(Return(tl::expected<std::byte, sucutil::GpioError>(std::byte{ID})));
+        .WillRepeatedly(
+            Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID})));
     EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(PWR_MODE_ADDR, POWER_MODE_NORMAL))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(sucutil::GpioError::I2cWriteFailed)));
+        .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::I2cWriteFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_init();
@@ -186,22 +191,23 @@ TEST(ImuModelBeginTest, fail_on_set_page_id) {
     auto gpio = std::make_unique<mock::Gpio>();
     EXPECT_CALL(*gpio, i2c_open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillRepeatedly(Return(tl::expected<std::byte, sucutil::GpioError>(std::byte{ID})));
+        .WillRepeatedly(
+            Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID})));
     EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(PWR_MODE_ADDR, std::byte{POWER_MODE_NORMAL}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(PAGE_ID_ADDR, std::byte{0x0}))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(sucutil::GpioError::I2cWriteFailed)));
+        .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::I2cWriteFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_init();
@@ -213,25 +219,26 @@ TEST(ImuModelBeginTest, fail_on_clear_sys_trigger) {
     auto gpio = std::make_unique<mock::Gpio>();
     EXPECT_CALL(*gpio, i2c_open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillRepeatedly(Return(tl::expected<std::byte, sucutil::GpioError>(std::byte{ID})));
+        .WillRepeatedly(
+            Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID})));
     EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(PWR_MODE_ADDR, std::byte{POWER_MODE_NORMAL}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(PAGE_ID_ADDR, std::byte{0x0}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x0}))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(sucutil::GpioError::I2cWriteFailed)));
+        .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::I2cWriteFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_init();
@@ -243,25 +250,26 @@ TEST(ImuModelBeginTest, fail_on_set_opr_mode_ndof) {
     auto gpio = std::make_unique<mock::Gpio>();
     EXPECT_CALL(*gpio, i2c_open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillRepeatedly(Return(tl::expected<std::byte, sucutil::GpioError>(std::byte{ID})));
+        .WillRepeatedly(
+            Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID})));
     EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(PWR_MODE_ADDR, std::byte{POWER_MODE_NORMAL}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(PAGE_ID_ADDR, std::byte{0x0}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x0}))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(sucutil::GpioError::I2cWriteFailed)));
+        .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::I2cWriteFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_init();
@@ -274,12 +282,12 @@ TEST(ImuModelOnReadTest, all) {
         // TODO: test with dummy data
         EXPECT_CALL(*gpio, i2c_read_byte_data(EULER_H_LSB_ADDR + i))
             .Times(1)
-            .WillOnce(Return(tl::expected<std::byte, sucutil::GpioError>(std::byte{0})));
+            .WillOnce(Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{0})));
     }
     // TODO: test with dummy data
     EXPECT_CALL(*gpio, i2c_read_byte_data(TEMP_ADDR))
         .Times(1)
-        .WillOnce(Return(tl::expected<std::byte, sucutil::GpioError>(std::byte{0})));
+        .WillOnce(Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{0})));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_read();
@@ -290,7 +298,7 @@ TEST(ImuModelOnReadTest, fail_on_read_orientation) {
     auto gpio = std::make_unique<mock::Gpio>();
     EXPECT_CALL(*gpio, i2c_read_byte_data(EULER_H_LSB_ADDR))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(sucutil::GpioError::I2cReadFailed)));
+        .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::I2cReadFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_read();
@@ -302,11 +310,11 @@ TEST(ImuModelOnReadTest, fail_on_read_temperature) {
     for (int i = 0; i < 6; ++i) {
         EXPECT_CALL(*gpio, i2c_read_byte_data(EULER_H_LSB_ADDR + i))
             .Times(1)
-            .WillOnce(Return(tl::expected<std::byte, sucutil::GpioError>(std::byte{0})));
+            .WillOnce(Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{0})));
     }
     EXPECT_CALL(*gpio, i2c_read_byte_data(TEMP_ADDR))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(sucutil::GpioError::I2cReadFailed)));
+        .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::I2cReadFailed)));
 
     auto imu_model = suchm::ImuModel(std::move(gpio));
     auto result = imu_model.on_read();

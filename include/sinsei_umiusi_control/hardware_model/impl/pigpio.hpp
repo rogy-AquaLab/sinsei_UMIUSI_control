@@ -8,10 +8,13 @@
 
 #include "sinsei_umiusi_control/hardware_model/interface/gpio_interface.hpp"
 
-namespace sinsei_umiusi_control::util {
+namespace sinsei_umiusi_control::hardware_model::impl {
 
-class Pigpio : public GpioInterface {
+class Pigpio : public interface::GpioInterface {
   private:
+    using GpioPin = interface::GpioPin;
+    using GpioError = interface::GpioError;
+
     int pi;
 
     static constexpr uint32_t I2C_BUS = 1;
@@ -37,6 +40,6 @@ class Pigpio : public GpioInterface {
     auto i2c_read_byte_data(uint32_t reg) -> tl::expected<std::byte, GpioError> override;
 };
 
-}  // namespace sinsei_umiusi_control::util
+}  // namespace sinsei_umiusi_control::hardware_model::impl
 
 #endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_IMPL_PIGPIO_HPP

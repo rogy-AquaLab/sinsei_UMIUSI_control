@@ -60,7 +60,7 @@ auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
         }
     }
 
-    this->model.emplace(std::make_shared<sinsei_umiusi_control::util::LinuxCan>(), vesc_ids);
+    this->model.emplace(std::make_shared<hardware_model::impl::LinuxCan>(), vesc_ids);
 
     auto res = this->model->on_init();
     if (!res) {

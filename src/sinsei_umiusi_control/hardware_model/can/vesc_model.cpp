@@ -9,13 +9,14 @@ namespace suchm = suc::hardware_model;
 suchm::can::VescModel::VescModel(suchm::can::VescModel::Id id) : id(id) {}
 
 auto suchm::can::VescModel::make_frame(
-    VescSimpleCommandID command_id, const util::CanFrame::Data & data) -> util::CanFrame {
-    auto can_id = (static_cast<util::CanFrame::Id>(command_id) & 0xFF) << 8 | (this->id & 0xFF);
-    return util::CanFrame{can_id, 4, data, true};
+    VescSimpleCommandID command_id, const interface::CanFrame::Data & data) -> interface::CanFrame {
+    auto can_id =
+        (static_cast<interface::CanFrame::Id>(command_id) & 0xFF) << 8 | (this->id & 0xFF);
+    return interface::CanFrame{can_id, 4, data, true};
 }
 
 auto suchm::can::VescModel::make_duty_frame(double duty)
-    -> tl::expected<util::CanFrame, std::string> {
+    -> tl::expected<interface::CanFrame, std::string> {
     if (duty < -1.0 || duty > 1.0) {
         return tl::make_unexpected(
             "Duty must be between -1.0 and 1.0 (duty: " + std::to_string(duty) + ")");
@@ -26,14 +27,14 @@ auto suchm::can::VescModel::make_duty_frame(double duty)
 }
 
 auto suchm::can::VescModel::make_rpm_frame(int8_t rpm)
-    -> tl::expected<util::CanFrame, std::string> {
+    -> tl::expected<interface::CanFrame, std::string> {
     auto scaled_rpm = static_cast<int32_t>(rpm * SET_RPM_SCALE);
     auto bytes = suc::util::to_bytes_be(scaled_rpm);
     return this->make_frame(VescSimpleCommandID::CAN_PACKET_SET_RPM, bytes);
 }
 
 auto suchm::can::VescModel::make_servo_frame(double value)
-    -> tl::expected<util::CanFrame, std::string> {
+    -> tl::expected<interface::CanFrame, std::string> {
     if (value < 0.0 || value > 1.0) {
         return tl::make_unexpected(
             "Servo value must be between 0.0 and 1.0 (value: " + std::to_string(value) + ")");
@@ -44,7 +45,7 @@ auto suchm::can::VescModel::make_servo_frame(double value)
 }
 
 auto suchm::can::VescModel::make_servo_angle_frame(double deg)
-    -> tl::expected<util::CanFrame, std::string> {
+    -> tl::expected<interface::CanFrame, std::string> {
     // 0.0 ~ 180.0度の角度を0.0 ~ 1.0に変換
     if (deg < 0.0 || deg > 180.0) {
         return tl::make_unexpected(
@@ -53,12 +54,12 @@ auto suchm::can::VescModel::make_servo_angle_frame(double deg)
     return this->make_servo_frame(deg / 180.0);
 }
 
-auto suchm::can::VescModel::id_matches(const util::CanFrame & frame) -> bool {
+auto suchm::can::VescModel::id_matches(const interface::CanFrame & frame) -> bool {
     const auto vesc_id = static_cast<suchm::can::VescModel::Id>(frame.id & 0xFF);
     return vesc_id == this->id;
 }
 
-auto suchm::can::VescModel::get_cmd_id(const util::CanFrame & frame)
+auto suchm::can::VescModel::get_cmd_id(const interface::CanFrame & frame)
     -> tl::expected<VescStatusCommandID, std::string> {
     if (frame.len != 8) {
         return tl::make_unexpected(
@@ -67,13 +68,13 @@ auto suchm::can::VescModel::get_cmd_id(const util::CanFrame & frame)
     }
 
     const auto cmd_id = (frame.id >> 8) & 0xFF;
-    return util::enum_cast<util::CanFrame::Id, VescStatusCommandID>(cmd_id).map_error(
+    return util::enum_cast<interface::CanFrame::Id, VescStatusCommandID>(cmd_id).map_error(
         [&cmd_id](const auto &) {
             return "Received CAN frame with unknown command ID: " + std::to_string(cmd_id);
         });
 }
 
-auto suchm::can::VescModel::get_rpm(const util::CanFrame & frame)
+auto suchm::can::VescModel::get_rpm(const interface::CanFrame & frame)
     -> tl::expected<std::optional<sinsei_umiusi_control::state::thruster::Rpm>, std::string> {
     if (!this->id_matches(frame)) {
         return std::nullopt;

@@ -6,6 +6,7 @@
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
+namespace suchm = sinsei_umiusi_control::hardware_model;
 namespace suchw = sinsei_umiusi_control::hardware;
 namespace hif = hardware_interface;
 namespace rlc = rclcpp_lifecycle;
@@ -13,10 +14,10 @@ namespace rlc = rclcpp_lifecycle;
 auto suchw::Headlights::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
     this->hif::SystemInterface::on_init(info);
 
-    auto gpio = std::make_unique<sinsei_umiusi_control::util::Pigpio>();
-    auto high_beam_pin = std::make_unique<sinsei_umiusi_control::util::Pigpio>();
-    auto low_beam_pin = std::make_unique<sinsei_umiusi_control::util::Pigpio>();
-    auto ir_pin = std::make_unique<sinsei_umiusi_control::util::Pigpio>();
+    auto gpio = std::make_unique<suchm::impl::Pigpio>();
+    auto high_beam_pin = std::make_unique<suchm::impl::Pigpio>();
+    auto low_beam_pin = std::make_unique<suchm::impl::Pigpio>();
+    auto ir_pin = std::make_unique<suchm::impl::Pigpio>();
 
     // ピン番号をパラメーターから取得
     const auto high_beam_pin_num_str = util::find_param(info.hardware_parameters, "high_beam_pin");
