@@ -60,25 +60,36 @@ auto suchm::CanModel::on_read()
 
     // TODO: この位置に`can::MainPowerModel`の処理を追加する
 
-    // TODO: `esc::WaterLeaked`の処理を追加する！
-
     for (size_t i = 0; i < 4; ++i) {
         if (success) {
             // すでに成功したモデルがある場合はfor文ごとスキップ
             break;
         }
+
         auto rpm_res = this->vesc_models[i].get_rpm(frame.value());
         if (!rpm_res) {
             error_message += "    VESC " + std::to_string(i + 1) + ": " + rpm_res.error() + "\n";
             continue;
         }
         auto rpm_opt = rpm_res.value();
-        if (!rpm_opt) {
-            // フレームにRPMの情報が含まれていない場合はスキップ
+        if (rpm_opt) {
+            rpm[i] = rpm_opt.value();
+            success = true;
+            break;  // 成功したのでループを抜ける
+        }
+
+        auto water_leaked_res = this->vesc_models[i].get_water_leaked(frame.value());
+        if (!water_leaked_res) {
+            error_message +=
+                "    VESC " + std::to_string(i + 1) + ": " + water_leaked_res.error() + "\n";
             continue;
         }
-        rpm[i] = rpm_opt.value();
-        success = true;
+        auto water_leaked_opt = water_leaked_res.value();
+        if (water_leaked_opt) {
+            water_leaked[i] = water_leaked_opt.value();
+            success = true;
+            break;  // 成功したのでループを抜ける
+        }
     }
 
     // すべてのモデルでフレームを処理できなかった場合はエラー
