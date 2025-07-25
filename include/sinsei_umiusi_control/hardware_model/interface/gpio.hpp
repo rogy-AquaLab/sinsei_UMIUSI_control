@@ -1,5 +1,5 @@
-#ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_GPIO_INTERFACE_HPP
-#define SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_GPIO_INTERFACE_HPP
+#ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_GPIO_HPP
+#define SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_GPIO_HPP
 
 #include <cstddef>
 #include <cstdint>
@@ -60,10 +60,10 @@ inline auto gpio_error_to_string(GpioError error) -> std::string {
     }
 }
 
-class GpioInterface {
+class Gpio {
   public:
-    GpioInterface() = default;
-    virtual ~GpioInterface() = default;
+    Gpio() = default;
+    virtual ~Gpio() = default;
 
     virtual auto set_mode_output(std::vector<GpioPin> pins) -> tl::expected<void, GpioError> = 0;
     virtual auto set_mode_input(std::vector<GpioPin> pins) -> tl::expected<void, GpioError> = 0;
@@ -81,4 +81,4 @@ class GpioInterface {
 
 }  // namespace sinsei_umiusi_control::hardware_model::interface
 
-#endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_GPIO_INTERFACE_HPP
+#endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_GPIO_HPP

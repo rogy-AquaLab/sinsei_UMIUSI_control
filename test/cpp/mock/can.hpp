@@ -6,11 +6,11 @@
 
 #include <rcpputils/tl_expected/expected.hpp>
 
-#include "sinsei_umiusi_control/hardware_model/interface/can_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
 
 namespace sinsei_umiusi_control::test::mock {
 
-class Can : public sinsei_umiusi_control::hardware_model::interface::CanInterface {
+class Can : public sinsei_umiusi_control::hardware_model::interface::Can {
   public:
     MOCK_METHOD1(init, tl::expected<void, std::string>(const std::string ifname));
     MOCK_METHOD0(close, tl::expected<void, std::string>());

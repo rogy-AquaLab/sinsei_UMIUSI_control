@@ -5,13 +5,13 @@
 
 #include <optional>
 
-#include "sinsei_umiusi_control/hardware_model/interface/can_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
 
 namespace sinsei_umiusi_control::hardware_model::impl {
 
 using FileDescriptor = int;
 
-class LinuxCan : public interface::CanInterface {
+class LinuxCan : public interface::Can {
   private:
     using CanFrame = interface::CanFrame;
 

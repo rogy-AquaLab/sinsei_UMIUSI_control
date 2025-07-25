@@ -4,11 +4,11 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "sinsei_umiusi_control/hardware_model/interface/gpio_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/gpio.hpp"
 
 namespace sinsei_umiusi_control::test::mock {
 
-class Gpio : public hardware_model::interface::GpioInterface {
+class Gpio : public hardware_model::interface::Gpio {
   public:
     MOCK_METHOD1(
         set_mode_output, tl::expected<void, hardware_model::interface::GpioError>(

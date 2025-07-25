@@ -2,13 +2,13 @@
 
 #include <rcpputils/tl_expected/expected.hpp>
 
-#include "sinsei_umiusi_control/hardware_model/interface/gpio_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/gpio.hpp"
 
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
 suchm::HeadlightsModel::HeadlightsModel(
-    std::unique_ptr<suchm::interface::GpioInterface> gpio,
+    std::unique_ptr<suchm::interface::Gpio> gpio,
     suchm::interface::GpioPin high_beam_pin,  // NOLINT(bugprone-*) TODO: いずれ修正したい
     suchm::interface::GpioPin low_beam_pin, suchm::interface::GpioPin ir_pin)
 : gpio(std::move(gpio)), high_beam_pin(high_beam_pin), low_beam_pin(low_beam_pin), ir_pin(ir_pin) {}

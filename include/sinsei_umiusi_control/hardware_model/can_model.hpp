@@ -8,7 +8,7 @@
 #include "sinsei_umiusi_control/cmd/main_power.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
 #include "sinsei_umiusi_control/hardware_model/can/vesc_model.hpp"
-#include "sinsei_umiusi_control/hardware_model/interface/can_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
 #include "sinsei_umiusi_control/state/main_power.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 
@@ -18,12 +18,12 @@ namespace sinsei_umiusi_control::hardware_model {
 
 class CanModel {
   private:
-    std::shared_ptr<interface::CanInterface> can;
+    std::shared_ptr<interface::Can> can;
 
     std::array<can::VescModel, 4> vesc_models;
 
   public:
-    CanModel(std::shared_ptr<interface::CanInterface> can, std::array<int, 4> vesc_ids);
+    CanModel(std::shared_ptr<interface::Can> can, std::array<int, 4> vesc_ids);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_destroy() -> tl::expected<void, std::string>;
     auto on_read()

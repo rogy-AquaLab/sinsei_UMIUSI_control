@@ -6,11 +6,11 @@
 #include <rcpputils/tl_expected/expected.hpp>
 #include <vector>
 
-#include "sinsei_umiusi_control/hardware_model/interface/gpio_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/gpio.hpp"
 
 namespace sinsei_umiusi_control::hardware_model::impl {
 
-class Pigpio : public interface::GpioInterface {
+class Pigpio : public interface::Gpio {
   private:
     using GpioPin = interface::GpioPin;
     using GpioError = interface::GpioError;

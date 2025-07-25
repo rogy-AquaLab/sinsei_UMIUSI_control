@@ -5,7 +5,7 @@
 
 #include "gmock/gmock.h"
 #include "sinsei_umiusi_control/hardware_model/can/vesc_model.hpp"
-#include "sinsei_umiusi_control/hardware_model/interface/can_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
 #include "sinsei_umiusi_control/util/byte.hpp"
 
 namespace sucutil = sinsei_umiusi_control::util;

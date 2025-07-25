@@ -6,17 +6,17 @@
 #include <string>
 
 #include "sinsei_umiusi_control/cmd/indicator_led.hpp"
-#include "sinsei_umiusi_control/hardware_model/interface/gpio_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/gpio.hpp"
 
 namespace sinsei_umiusi_control::hardware_model {
 
 class IndicatorLedModel {
   private:
-    std::unique_ptr<interface::GpioInterface> gpio;
+    std::unique_ptr<interface::Gpio> gpio;
     interface::GpioPin led_pin;
 
   public:
-    IndicatorLedModel(std::unique_ptr<interface::GpioInterface> gpio, interface::GpioPin led_pin);
+    IndicatorLedModel(std::unique_ptr<interface::Gpio> gpio, interface::GpioPin led_pin);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_read() -> tl::expected<void, std::string>;
     auto on_write(sinsei_umiusi_control::cmd::indicator_led::Enabled & enabled)

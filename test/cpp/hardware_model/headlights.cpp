@@ -7,7 +7,7 @@
 
 #include "mock/gpio.hpp"
 #include "sinsei_umiusi_control/hardware_model/headlights_model.hpp"
-#include "sinsei_umiusi_control/hardware_model/interface/gpio_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/gpio.hpp"
 
 namespace succmd = sinsei_umiusi_control::cmd;
 namespace suchm = sinsei_umiusi_control::hardware_model;

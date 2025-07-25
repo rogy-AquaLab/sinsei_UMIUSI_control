@@ -8,8 +8,7 @@
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
-suchm::CanModel::CanModel(
-    std::shared_ptr<suchm::interface::CanInterface> can, std::array<int, 4> vesc_ids)
+suchm::CanModel::CanModel(std::shared_ptr<suchm::interface::Can> can, std::array<int, 4> vesc_ids)
 : can(std::move(can)),
   vesc_models{{
       can::VescModel(vesc_ids[0]),

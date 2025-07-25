@@ -1,6 +1,6 @@
 #include "sinsei_umiusi_control/hardware_model/can/vesc_model.hpp"
 
-#include "sinsei_umiusi_control/hardware_model/interface/can_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
 #include "sinsei_umiusi_control/util/byte.hpp"
 
 namespace suc = sinsei_umiusi_control;

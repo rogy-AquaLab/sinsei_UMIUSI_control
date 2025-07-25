@@ -6,7 +6,7 @@
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 
-#include "sinsei_umiusi_control/hardware_model/interface/can_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/enum_cast.hpp"
 

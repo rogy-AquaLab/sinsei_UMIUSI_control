@@ -5,8 +5,7 @@ namespace suchm = suc::hardware_model;
 
 // ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.cpp
 
-suchm::ImuModel::ImuModel(std::unique_ptr<suchm::interface::GpioInterface> gpio)
-: gpio(std::move(gpio)) {}
+suchm::ImuModel::ImuModel(std::unique_ptr<suchm::interface::Gpio> gpio) : gpio(std::move(gpio)) {}
 
 auto suchm::ImuModel::on_init() -> tl::expected<void, std::string> {
     auto res = this->gpio->i2c_open(ADDRESS).map_error(suchm::interface::gpio_error_to_string);

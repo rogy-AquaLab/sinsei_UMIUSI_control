@@ -6,20 +6,20 @@
 #include <string>
 
 #include "sinsei_umiusi_control/cmd/headlights.hpp"
-#include "sinsei_umiusi_control/hardware_model/interface/gpio_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/gpio.hpp"
 
 namespace sinsei_umiusi_control::hardware_model {
 
 class HeadlightsModel {
   private:
-    std::unique_ptr<interface::GpioInterface> gpio;
+    std::unique_ptr<interface::Gpio> gpio;
     interface::GpioPin high_beam_pin;
     interface::GpioPin low_beam_pin;
     interface::GpioPin ir_pin;
 
   public:
     HeadlightsModel(
-        std::unique_ptr<interface::GpioInterface> gpio, interface::GpioPin high_beam_pin,
+        std::unique_ptr<interface::Gpio> gpio, interface::GpioPin high_beam_pin,
         interface::GpioPin low_beam_pin, interface::GpioPin ir_pin);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_read() -> tl::expected<void, std::string>;
