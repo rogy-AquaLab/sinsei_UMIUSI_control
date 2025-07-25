@@ -108,7 +108,13 @@ auto suchm::can::VescModel::get_water_leaked(const interface::CanFrame & frame)
         return tl::make_unexpected("Failed to get command ID: " + cmd_id.error());
     }
 
-    // TODO: 実装する
+    if (cmd_id.value() != VescStatusCommandID::CAN_PACKET_STATUS_6) {
+        // このフレームはADC1の情報を含んでいない
+        return std::nullopt;
+    }
 
-    return std::nullopt;
+    auto scaled_adc1 = suc::util::to_int16_be(frame.data);
+    auto adc1 = static_cast<double>(scaled_adc1) / ADC1_SCALE;
+    auto water_leaked = adc1 > WATER_LEAKED_THRESHOLD;
+    return suc::state::esc::WaterLeaked{water_leaked};
 }

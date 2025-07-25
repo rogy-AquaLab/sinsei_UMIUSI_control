@@ -13,6 +13,12 @@ inline auto to_bytes_be(int64_t value) -> std::array<std::byte, 8> {
         std::byte(value >> 24), std::byte(value >> 16), std::byte(value >> 8), std::byte(value)};
 }
 
+// Convert 8-byte array in big-endian order to int16_t
+inline auto to_int16_be(std::array<std::byte, 8> bytes) -> int16_t {
+    return static_cast<int16_t>(
+        (std::to_integer<int16_t>(bytes[0]) << 8) | std::to_integer<int16_t>(bytes[1]));
+}
+
 // Convert 8-byte array in big-endian order to int32_t
 inline auto to_int32_be(std::array<std::byte, 8> bytes) -> int32_t {
     return (std::to_integer<int32_t>(bytes[0]) << 24) | (std::to_integer<int32_t>(bytes[1]) << 16) |

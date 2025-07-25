@@ -48,6 +48,9 @@ class VescModel {
 
     static constexpr double BLDC_POLES = 14.0;
 
+    // FIXME: 仮の値
+    static constexpr double WATER_LEAKED_THRESHOLD = 0.5;
+
     static constexpr int STATUS_COMMAND_NUM = 6;
 
     // std::array<bool, STATUS_COMMAND_NUM> transmit_status_command;
