@@ -8,9 +8,9 @@
 #include "sinsei_umiusi_control/cmd/main_power.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
 #include "sinsei_umiusi_control/hardware_model/can/vesc_model.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/can_interface.hpp"
 #include "sinsei_umiusi_control/state/main_power.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
-#include "sinsei_umiusi_control/util/can_interface.hpp"
 
 namespace suc = sinsei_umiusi_control;
 

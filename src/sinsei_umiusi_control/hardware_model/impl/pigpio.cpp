@@ -1,4 +1,4 @@
-#include "sinsei_umiusi_control/util/pigpio.hpp"
+#include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
 
 #include <pigpio.h>
 #include <pigpiod_if2.h>

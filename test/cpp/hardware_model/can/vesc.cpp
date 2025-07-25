@@ -5,8 +5,8 @@
 
 #include "gmock/gmock.h"
 #include "sinsei_umiusi_control/hardware_model/can/vesc_model.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/can_interface.hpp"
 #include "sinsei_umiusi_control/util/byte.hpp"
-#include "sinsei_umiusi_control/util/can_interface.hpp"
 
 namespace sucutil = sinsei_umiusi_control::util;
 namespace suchm = sinsei_umiusi_control::hardware_model;

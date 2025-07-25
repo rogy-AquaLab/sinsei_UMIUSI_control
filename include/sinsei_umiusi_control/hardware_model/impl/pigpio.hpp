@@ -1,12 +1,12 @@
-#ifndef SINSEI_UMIUSI_CONTROL_UTIL_PIGPIO_HPP
-#define SINSEI_UMIUSI_CONTROL_UTIL_PIGPIO_HPP
+#ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_IMPL_PIGPIO_HPP
+#define SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_IMPL_PIGPIO_HPP
 
 #include <cstddef>
 #include <optional>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <vector>
 
-#include "sinsei_umiusi_control/util/gpio_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/gpio_interface.hpp"
 
 namespace sinsei_umiusi_control::util {
 
@@ -39,4 +39,4 @@ class Pigpio : public GpioInterface {
 
 }  // namespace sinsei_umiusi_control::util
 
-#endif  // SINSEI_UMIUSI_CONTROL_UTIL_PIGPIO_HPP
+#endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_IMPL_PIGPIO_HPP

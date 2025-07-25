@@ -6,7 +6,7 @@
 
 #include <rcpputils/tl_expected/expected.hpp>
 
-#include "sinsei_umiusi_control/util/can_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/can_interface.hpp"
 
 namespace sinsei_umiusi_control::test::mock {
 
