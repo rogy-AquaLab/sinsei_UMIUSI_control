@@ -1,11 +1,11 @@
-#ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_CAN_INTERFACE_HPP
-#define SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_CAN_INTERFACE_HPP
+#ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_CAN_HPP
+#define SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_CAN_HPP
 
 #include <cstdint>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 
-namespace sinsei_umiusi_control::util {
+namespace sinsei_umiusi_control::hardware_model::interface {
 
 struct CanFrame {
     // CAN ID in can frame; 11 bits for standard, 29 bits for extended
@@ -21,10 +21,10 @@ struct CanFrame {
     bool is_extended;
 };
 
-class CanInterface {
+class Can {
   public:
-    CanInterface() = default;
-    virtual ~CanInterface() = default;
+    Can() = default;
+    virtual ~Can() = default;
 
     virtual auto init(const std::string ifname) -> tl::expected<void, std::string> = 0;
     virtual auto close() -> tl::expected<void, std::string> = 0;
@@ -32,6 +32,6 @@ class CanInterface {
     virtual auto recv_frame() -> tl::expected<CanFrame, std::string> = 0;
 };
 
-}  // namespace sinsei_umiusi_control::util
+}  // namespace sinsei_umiusi_control::hardware_model::interface
 
-#endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_CAN_INTERFACE_HPP
+#endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_CAN_HPP

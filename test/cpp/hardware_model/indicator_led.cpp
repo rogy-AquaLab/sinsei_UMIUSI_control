@@ -10,7 +10,6 @@
 #include "sinsei_umiusi_control/hardware_model/indicator_led_model.hpp"
 
 namespace succmd = sinsei_umiusi_control::cmd;
-namespace sucutil = sinsei_umiusi_control::util;
 namespace suchm = sinsei_umiusi_control::hardware_model;
 
 using testing::Return;
@@ -35,7 +34,7 @@ TEST(IndicatorLedModelOnInitTest, all) {
     auto gpio = std::make_unique<mock::Gpio>();
     EXPECT_CALL(*gpio, set_mode_output(_))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
 
     auto indicator_led_model = suchm::IndicatorLedModel(std::move(gpio), LED_PIN);
     auto result = indicator_led_model.on_init();

@@ -7,10 +7,9 @@
 
 #include "mock/gpio.hpp"
 #include "sinsei_umiusi_control/hardware_model/headlights_model.hpp"
-#include "sinsei_umiusi_control/hardware_model/interface/gpio_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/gpio.hpp"
 
 namespace succmd = sinsei_umiusi_control::cmd;
-namespace sucutil = sinsei_umiusi_control::util;
 namespace suchm = sinsei_umiusi_control::hardware_model;
 
 using sinsei_umiusi_control::test::mock::Gpio;
@@ -40,7 +39,7 @@ TEST(HeadlightsModelOnInitTest, all) {
 
     EXPECT_CALL(*gpio, set_mode_output(_))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, sucutil::GpioError>()));
+        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
 
     auto headlights_model =
         suchm::HeadlightsModel(std::move(gpio), HIGH_BEAM_PIN, LOW_BEAM_PIN, IR_PIN);
@@ -61,7 +60,7 @@ TEST_P(HeadlightsModelOnWriteTest, all) {
         case 1:  // High beam error
             EXPECT_CALL(*gpio, write_digital(HIGH_BEAM_PIN, high_beam_enabled))
                 .Times(1)
-                .WillOnce(Return(tl::make_unexpected(util::GpioError::UnknownError)));
+                .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::UnknownError)));
             EXPECT_CALL(*gpio, write_digital(LOW_BEAM_PIN, low_beam_enabled)).Times(1);
             EXPECT_CALL(*gpio, write_digital(IR_PIN, ir_enabled)).Times(1);
             break;
@@ -69,14 +68,14 @@ TEST_P(HeadlightsModelOnWriteTest, all) {
             EXPECT_CALL(*gpio, write_digital(HIGH_BEAM_PIN, high_beam_enabled)).Times(1);
             EXPECT_CALL(*gpio, write_digital(LOW_BEAM_PIN, low_beam_enabled))
                 .Times(1)
-                .WillOnce(Return(tl::make_unexpected(util::GpioError::UnknownError)));
+                .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::UnknownError)));
             EXPECT_CALL(*gpio, write_digital(IR_PIN, ir_enabled)).Times(1);
             break;
         case 3:  // IR error
             EXPECT_CALL(*gpio, write_digital(HIGH_BEAM_PIN, high_beam_enabled)).Times(1);
             EXPECT_CALL(*gpio, write_digital(IR_PIN, ir_enabled))
                 .Times(1)
-                .WillOnce(Return(tl::make_unexpected(util::GpioError::UnknownError)));
+                .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::UnknownError)));
             EXPECT_CALL(*gpio, write_digital(LOW_BEAM_PIN, low_beam_enabled)).Times(1);
             break;
         case 0:  // No error

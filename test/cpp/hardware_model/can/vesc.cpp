@@ -5,7 +5,7 @@
 
 #include "gmock/gmock.h"
 #include "sinsei_umiusi_control/hardware_model/can/vesc_model.hpp"
-#include "sinsei_umiusi_control/hardware_model/interface/can_interface.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
 #include "sinsei_umiusi_control/util/byte.hpp"
 
 namespace sucutil = sinsei_umiusi_control::util;
@@ -27,7 +27,7 @@ TEST(VescModelTest, VescModelMakeDutyFrameValidTest) {
     ASSERT_TRUE(result);
     auto frame = result.value();
     EXPECT_EQ(
-        frame.id, (static_cast<sinsei_umiusi_control::util::CanFrame::Id>(
+        frame.id, (static_cast<suchm::interface::CanFrame::Id>(
                        suchm::can::VescSimpleCommandID::CAN_PACKET_SET_DUTY) &
                    0xFF) << 8 |
                       DUMMY_ID);
@@ -47,7 +47,7 @@ TEST(VescModelTest, VescModelMakeRpmFrameTest) {
     ASSERT_TRUE(result);
     auto frame = result.value();
     EXPECT_EQ(
-        frame.id, (static_cast<sinsei_umiusi_control::util::CanFrame::Id>(
+        frame.id, (static_cast<suchm::interface::CanFrame::Id>(
                        suchm::can::VescSimpleCommandID::CAN_PACKET_SET_RPM) &
                    0xFF) << 8 |
                       DUMMY_ID);
@@ -61,7 +61,7 @@ TEST(VescModelTest, VescModelMakeServoAngleFrameValidTest) {
     ASSERT_TRUE(result);
     auto frame = result.value();
     EXPECT_EQ(
-        frame.id, (static_cast<sinsei_umiusi_control::util::CanFrame::Id>(
+        frame.id, (static_cast<suchm::interface::CanFrame::Id>(
                        suchm::can::VescSimpleCommandID::CAN_PACKET_SET_SERVO) &
                    0xFF) << 8 |
                       DUMMY_ID);
@@ -77,9 +77,10 @@ TEST(VescModelTest, VescModelMakeServoAngleFrameInvalidTest) {
 
 TEST(VescModelTest, VescModelGetRpmTest) {
     auto vesc_model = suchm::can::VescModel{DUMMY_ID};
-    util::CanFrame frame{
-        (static_cast<util::CanFrame::Id>(suchm::can::VescStatusCommandID::CAN_PACKET_STATUS) & 0xFF)
-                << 8 |
+    suchm::interface::CanFrame frame{
+        (static_cast<suchm::interface::CanFrame::Id>(
+             suchm::can::VescStatusCommandID::CAN_PACKET_STATUS) &
+         0xFF) << 8 |
             DUMMY_ID,
         8,
         sucutil::to_bytes_be(700),  // 100 RPM * 7
