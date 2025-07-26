@@ -90,23 +90,51 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
         return hif::return_type::OK;
     }
 
-    auto [rpm, esc_water_leaked, battery_current, battery_voltage, temperature, water_leaked] =
-        res.value();
-    if (this->thruster_mode == util::ThrusterMode::Can) {
-        for (size_t i = 0; i < 4; ++i) {
-            auto thruster_name = "thruster" + std::to_string(i + 1);
-            this->set_state(thruster_name + "/esc/rpm", util::to_interface_data(rpm[i]));
+    auto variant = res.value();
+
+    switch (variant.index()) {
+        case 0: {  // Rpm
+            auto rpm_pair =
+                std::get<std::pair<size_t, sinsei_umiusi_control::state::thruster::Rpm>>(variant);
+            auto thruster_name = "thruster" + std::to_string(rpm_pair.first + 1);
+            this->set_state(thruster_name + "/esc/rpm", util::to_interface_data(rpm_pair.second));
+            break;
+        }
+        case 1: {  // ESC WaterLeaked
+            auto water_leaked_pair =
+                std::get<std::pair<size_t, sinsei_umiusi_control::state::esc::WaterLeaked>>(
+                    variant);
+            auto thruster_name = "thruster" + std::to_string(water_leaked_pair.first + 1);
             this->set_state(
-                thruster_name + "/esc/water_leaked", util::to_interface_data(esc_water_leaked[i]));
+                thruster_name + "/esc/water_leaked",
+                util::to_interface_data(water_leaked_pair.second));
+            break;
+        }
+        case 2: {  // BatteryCurrent
+            auto battery_current =
+                std::get<sinsei_umiusi_control::state::main_power::BatteryCurrent>(variant);
+            this->set_state("main_power/battery_current", util::to_interface_data(battery_current));
+            break;
+        }
+        case 3: {  // BatteryVoltage
+            auto battery_voltage =
+                std::get<sinsei_umiusi_control::state::main_power::BatteryVoltage>(variant);
+            this->set_state("main_power/battery_voltage", util::to_interface_data(battery_voltage));
+            break;
+        }
+        case 4: {  // Temperature
+            auto temperature =
+                std::get<sinsei_umiusi_control::state::main_power::Temperature>(variant);
+            this->set_state("main_power/temperature", util::to_interface_data(temperature));
+            break;
+        }
+        case 5: {  // WaterLeaked
+            auto water_leaked =
+                std::get<sinsei_umiusi_control::state::main_power::WaterLeaked>(variant);
+            this->set_state("main_power/water_leaked", util::to_interface_data(water_leaked));
+            break;
         }
     }
-    // TODO: 実装したらコメントアウトを外す
-    // this->set_state(
-    //     "main_power/battery_current", util::to_interface_data(battery_current));
-    // this->set_state(
-    //     "main_power/battery_voltage", util::to_interface_data(battery_voltage));
-    // this->set_state("main_power/temperature", util::to_interface_data(temperature));
-    // this->set_state("main_power/water_leaked", util::to_interface_data(water_leaked));
 
     return hif::return_type::OK;
 }
