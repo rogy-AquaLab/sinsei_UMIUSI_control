@@ -2,6 +2,7 @@
 
 #include <rclcpp/logging.hpp>
 #include <rclcpp_lifecycle/state.hpp>
+#include <string>
 
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
@@ -204,6 +205,9 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
 
                 this->state_interface_data.emplace_back(
                     prefix + "esc/rpm", to_interface_data_ptr(this->state.rpm[i].value));
+                this->state_interface_data.emplace_back(
+                    "thruster" + std::to_string(i + 1) + "/esc/water_leaked",
+                    to_interface_data_ptr(this->state.esc_water_leaked[i].value));
             }
         }
         // Publishers
@@ -234,6 +238,9 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
 
             this->pub.rpm_publisher[i] = this->get_node()->create_publisher<std_msgs::msg::Float64>(
                 state_prefix + "thruster_rpm" + std::string(THRUSTER_SUFFIX[i]), qos);
+            this->pub.esc_water_leaked_publisher[i] =
+                this->get_node()->create_publisher<std_msgs::msg::Bool>(
+                    state_prefix + "esc" + std::to_string(i + 1) + "_water_leaked", qos);
         }
     }
 
@@ -269,6 +276,8 @@ auto succ::GateController::update(
     for (size_t i = 0; i < 4; ++i) {
         this->pub.rpm_publisher[i]->publish(
             std_msgs::msg::Float64().set__data(this->state.rpm[i].value));
+        this->pub.esc_water_leaked_publisher[i]->publish(
+            std_msgs::msg::Bool().set__data(this->state.esc_water_leaked[i].value));
     }
 
     // コマンドを送信

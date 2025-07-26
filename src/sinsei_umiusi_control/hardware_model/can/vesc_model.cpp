@@ -96,3 +96,25 @@ auto suchm::can::VescModel::get_rpm(const interface::CanFrame & frame)
     // ERPMを極対数で割ってRPMに変換
     return suc::state::thruster::Rpm{erpm / BLDC_POLE_PAIR};
 }
+
+auto suchm::can::VescModel::get_water_leaked(const interface::CanFrame & frame)
+    -> tl::expected<std::optional<suc::state::esc::WaterLeaked>, std::string> {
+    if (!this->id_matches(frame)) {
+        return std::nullopt;
+    }
+
+    auto cmd_id = this->get_cmd_id(frame);
+    if (!cmd_id) {
+        return tl::make_unexpected("Failed to get command ID: " + cmd_id.error());
+    }
+
+    if (cmd_id.value() != VescStatusCommandID::CAN_PACKET_STATUS_6) {
+        // このフレームはADC1の情報を含んでいない
+        return std::nullopt;
+    }
+
+    auto scaled_adc1 = suc::util::to_int16_be(frame.data);
+    auto adc1 = static_cast<double>(scaled_adc1) / ADC1_SCALE;
+    auto water_leaked = adc1 > WATER_LEAKED_THRESHOLD;
+    return suc::state::esc::WaterLeaked{water_leaked};
+}

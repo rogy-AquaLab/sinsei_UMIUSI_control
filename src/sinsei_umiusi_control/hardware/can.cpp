@@ -90,11 +90,14 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
         return hif::return_type::OK;
     }
 
-    auto [rpm, battery_current, battery_voltage, temperature, water_leaked] = res.value();
+    auto [rpm, esc_water_leaked, battery_current, battery_voltage, temperature, water_leaked] =
+        res.value();
     if (this->thruster_mode == util::ThrusterMode::Can) {
         for (size_t i = 0; i < 4; ++i) {
             auto thruster_name = "thruster" + std::to_string(i + 1);
             this->set_state(thruster_name + "/esc/rpm", util::to_interface_data(rpm[i]));
+            this->set_state(
+                thruster_name + "/esc/water_leaked", util::to_interface_data(esc_water_leaked[i]));
         }
     }
     // TODO: 実装したらコメントアウトを外す

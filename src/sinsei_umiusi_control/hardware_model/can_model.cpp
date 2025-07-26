@@ -38,11 +38,12 @@ auto suchm::CanModel::on_destroy() -> tl::expected<void, std::string> {
 auto suchm::CanModel::on_read()
     -> tl::expected<
         std::tuple<
-            std::array<suc::state::thruster::Rpm, 4>, suc::state::main_power::BatteryCurrent,
-            suc::state::main_power::BatteryVoltage, suc::state::main_power::Temperature,
-            suc::state::main_power::WaterLeaked>,
+            std::array<suc::state::thruster::Rpm, 4>, std::array<suc::state::esc::WaterLeaked, 4>,
+            suc::state::main_power::BatteryCurrent, suc::state::main_power::BatteryVoltage,
+            suc::state::main_power::Temperature, suc::state::main_power::WaterLeaked>,
         std::string> {
     std::array<suc::state::thruster::Rpm, 4> rpm;
+    std::array<suc::state::esc::WaterLeaked, 4> water_leaked;
     // suc::state::main_power::BatteryCurrent battery_current;
     // suc::state::main_power::BatteryVoltage battery_voltage;
     // suc::state::main_power::Temperature temperature;
@@ -64,18 +65,31 @@ auto suchm::CanModel::on_read()
             // すでに成功したモデルがある場合はfor文ごとスキップ
             break;
         }
+
         auto rpm_res = this->vesc_models[i].get_rpm(frame.value());
         if (!rpm_res) {
             error_message += "    VESC " + std::to_string(i + 1) + ": " + rpm_res.error() + "\n";
             continue;
         }
         auto rpm_opt = rpm_res.value();
-        if (!rpm_opt) {
-            // フレームにRPMの情報が含まれていない場合はスキップ
+        if (rpm_opt) {
+            rpm[i] = rpm_opt.value();
+            success = true;
+            break;  // 成功したのでループを抜ける
+        }
+
+        auto water_leaked_res = this->vesc_models[i].get_water_leaked(frame.value());
+        if (!water_leaked_res) {
+            error_message +=
+                "    VESC " + std::to_string(i + 1) + ": " + water_leaked_res.error() + "\n";
             continue;
         }
-        rpm[i] = rpm_opt.value();
-        success = true;
+        auto water_leaked_opt = water_leaked_res.value();
+        if (water_leaked_opt) {
+            water_leaked[i] = water_leaked_opt.value();
+            success = true;
+            break;  // 成功したのでループを抜ける
+        }
     }
 
     // すべてのモデルでフレームを処理できなかった場合はエラー
@@ -87,7 +101,7 @@ auto suchm::CanModel::on_read()
 
     // FIXME: 仮の値を返している
     return std::make_tuple(
-        rpm, suc::state::main_power::BatteryCurrent{0.0},
+        rpm, water_leaked, suc::state::main_power::BatteryCurrent{0.0},
         suc::state::main_power::BatteryVoltage{0.0}, suc::state::main_power::Temperature{0},
         suc::state::main_power::WaterLeaked{false});
 }

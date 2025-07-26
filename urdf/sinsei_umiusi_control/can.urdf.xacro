@@ -24,6 +24,7 @@
           <command_interface name="enabled" />
           <command_interface name="duty_cycle" />
           <state_interface name="rpm" />
+          <state_interface name="water_leaked" />
         </gpio>
       </xacro:macro>
 

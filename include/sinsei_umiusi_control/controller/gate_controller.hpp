@@ -15,6 +15,7 @@
 #include "sinsei_umiusi_control/cmd/led_tape.hpp"
 #include "sinsei_umiusi_control/cmd/main_power.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
+#include "sinsei_umiusi_control/state/esc.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/state/main_power.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
@@ -50,6 +51,7 @@ class GateController : public controller_interface::ControllerInterface {
         sinsei_umiusi_control::state::imu::Orientation imu_orientation;
         sinsei_umiusi_control::state::imu::Velocity imu_velocity;
         std::array<sinsei_umiusi_control::state::thruster::Rpm, 4> rpm;
+        std::array<sinsei_umiusi_control::state::esc::WaterLeaked, 4> esc_water_leaked;
     };
     State state;
 
@@ -78,6 +80,7 @@ class GateController : public controller_interface::ControllerInterface {
         rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_orientation_publisher;
         rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_velocity_publisher;
         std::array<rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr, 4> rpm_publisher;
+        std::array<rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr, 4> esc_water_leaked_publisher;
     };
     Publishers pub;
 
