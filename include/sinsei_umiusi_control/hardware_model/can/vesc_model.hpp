@@ -49,7 +49,7 @@ class VescModel {
     static constexpr double BLDC_POLES = 14.0;
 
     // FIXME: 仮の値
-    static constexpr double WATER_LEAKED_THRESHOLD = 2.0;
+    static constexpr double WATER_LEAKED_VOLTAGE_THRESHOLD = 2.0;
 
     static constexpr int STATUS_COMMAND_NUM = 6;
 
