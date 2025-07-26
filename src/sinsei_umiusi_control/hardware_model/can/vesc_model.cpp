@@ -114,7 +114,7 @@ auto suchm::can::VescModel::get_water_leaked(const interface::CanFrame & frame)
     }
 
     auto scaled_adc1 = suc::util::to_int16_be(frame.data);
-    auto adc1 = static_cast<double>(scaled_adc1) / ADC1_SCALE;
-    auto water_leaked = adc1 > WATER_LEAKED_THRESHOLD;
+    auto adc1_voltage = static_cast<double>(scaled_adc1) / ADC1_SCALE;
+    auto water_leaked = adc1_voltage > WATER_LEAKED_VOLTAGE_THRESHOLD;
     return suc::state::esc::WaterLeaked{water_leaked};
 }
