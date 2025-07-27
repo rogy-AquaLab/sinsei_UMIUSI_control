@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <rcpputils/tl_expected/expected.hpp>
+#include <variant>
 
 #include "sinsei_umiusi_control/cmd/led_tape.hpp"
 #include "sinsei_umiusi_control/cmd/main_power.hpp"
@@ -29,11 +30,11 @@ class CanModel {
     auto on_destroy() -> tl::expected<void, std::string>;
     auto on_read()
         -> tl::expected<
-            std::tuple<
-                std::array<suc::state::thruster::Rpm, 4>,
-                std::array<suc::state::esc::WaterLeaked, 4>, suc::state::main_power::BatteryCurrent,
-                suc::state::main_power::BatteryVoltage, suc::state::main_power::Temperature,
-                suc::state::main_power::WaterLeaked>,
+            std::variant<
+                std::pair<size_t, suc::state::thruster::Rpm>,
+                std::pair<size_t, suc::state::esc::WaterLeaked>,
+                suc::state::main_power::BatteryCurrent, suc::state::main_power::BatteryVoltage,
+                suc::state::main_power::Temperature, suc::state::main_power::WaterLeaked>,
             std::string>;
     auto on_write(
         std::array<suc::cmd::thruster::EscEnabled, 4> thruster_esc_enabled,
