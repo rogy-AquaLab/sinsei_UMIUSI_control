@@ -1,0 +1,33 @@
+launch:
+  - let:
+      name: pkg_name
+      value: "sinsei_umiusi_control"
+  - let:
+      name: ros2_control_common
+      value: "$(find-pkg-share $(var pkg_name))/launch/include/ros2_control_common.xml"
+
+  - arg:
+      name: launch_args
+      default: "$(find-pkg-share $(var pkg_name))/params/launch_args.yaml"
+
+  - include:
+      file: "$(var launch_args)"
+
+  - group:
+      - push_ros_namespace:
+          namespace: "$(var namespace)"
+
+      - include:
+          file: "$(var ros2_control_common)"
+
+      - node:
+          pkg: "controller_manager"
+          exec: "spawner"
+          args: |
+            thruster_controller_lf
+            thruster_controller_lb
+            thruster_controller_rb
+            thruster_controller_rf
+            app_controller
+            gate_controller
+            --param-file $(var controllers_param_file)
