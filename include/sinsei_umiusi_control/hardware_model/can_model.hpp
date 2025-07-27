@@ -36,13 +36,15 @@ class CanModel {
 
     std::array<can::VescModel, 4> vesc_models;
 
-    // Internal state (値の更新を確認するために使用)
-    cmd::main_power::Enabled main_power_enabled;
-    std::array<cmd::thruster::EscEnabled, 4> thruster_esc_enabled;
-    std::array<cmd::thruster::ServoEnabled, 4> thruster_servo_enabled;
-    std::array<cmd::thruster::DutyCycle, 4> thruster_duty_cycle;
-    std::array<cmd::thruster::Angle, 4> thruster_angle;
-    cmd::led_tape::Color led_tape_color;
+    // main_powerが更新されたときは必ずこれを送信する
+    cmd::main_power::Enabled last_main_power_enabled;
+
+    // `(% 16) / 4`: `EscEnabled`, `ServoEnabled`, `DutyCycle` or `Angle`
+    // `% 4`:        `thruster ID - 1`
+    size_t loop_times = 0;
+
+    // スラスタのコマンドが何周(16 * N回送信)するごとにLEDテープのコマンドを1回送信するか
+    static constexpr size_t PERIOD_LED_TAPE_PER_THRUSTERS = 10;
 
     // Update the internal state and select a command to write.
     auto update_and_generate_command(
@@ -51,7 +53,7 @@ class CanModel {
         std::array<cmd::thruster::ServoEnabled, 4> thruster_servo_enabled,
         std::array<cmd::thruster::DutyCycle, 4> thruster_duty_cycle,
         std::array<cmd::thruster::Angle, 4> thruster_angle,
-        cmd::led_tape::Color led_tape_color) -> std::optional<WriteCommand>;
+        cmd::led_tape::Color led_tape_color) -> WriteCommand;
 
   public:
     CanModel(std::shared_ptr<interface::Can> can, std::array<int, 4> vesc_ids);
