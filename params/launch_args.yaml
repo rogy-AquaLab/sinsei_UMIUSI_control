@@ -6,23 +6,6 @@ launch:
       default: "can"
 
   - arg:
-      # ID mapping for thrusters (Left Front)
-      name: thruster_lf_id
-      default: "1"
-  - arg:
-      # ID mapping for thrusters (Left Back)
-      name: thruster_lb_id
-      default: "2"
-  - arg:
-      # ID mapping for thrusters (Right Back)
-      name: thruster_rb_id
-      default: "3"
-  - arg:
-      # ID mapping for thrusters (Right Front)
-      name: thruster_rf_id
-      default: "4"
-
-  - arg:
       # CAN ID for VESC 1 (corresponds to thruster 1)
       name: vesc1_id
       default: "45"
