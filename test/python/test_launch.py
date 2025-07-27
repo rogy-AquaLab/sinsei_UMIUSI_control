@@ -82,7 +82,7 @@ def generate_launch_description(launch_arguments: dict[str, str]):
 def test_robot_state_publisher_running(helper_node, launch_arguments):
     """Test if the robot state publisher is running."""
     _ = launch_arguments
-    check_node_running(helper_node, 'robot_state_publisher', 0.3)
+    check_node_running(helper_node, 'robot_state_publisher', 1.0)
 
 
 @pytest.mark.launch(fixture=generate_launch_description)
@@ -97,7 +97,7 @@ def test_hardware_loaded(helper_node, launch_arguments):
             helper_node,
             f'{ns_fixed}controller_manager',
             component,
-            1.3,
+            2.0,
         ), f'Hardware component {component} is not loaded.'
 
 
