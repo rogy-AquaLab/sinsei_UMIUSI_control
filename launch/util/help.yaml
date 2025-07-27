@@ -1,0 +1,7 @@
+launch:
+  - let:
+      name: pkg_name
+      value: "sinsei_umiusi_control"
+
+  - include:
+      file: "$(find-pkg-share $(var pkg_name))/launch/include/help.py"
