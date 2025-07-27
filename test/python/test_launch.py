@@ -66,7 +66,7 @@ def generate_launch_description(launch_arguments: dict[str, str]):
     args = launch_arguments
     print(f'Launch arguments: {args}')
     launch_file = FrontendLaunchDescriptionSource(
-        os.path.join(get_package_share_directory(PACKAGE_NAME), 'launch', 'launch.xml')
+        os.path.join(get_package_share_directory(PACKAGE_NAME), 'launch', 'main.yaml')
     )
     return LaunchDescription(
         [

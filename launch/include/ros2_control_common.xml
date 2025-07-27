@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<launch>
+  <!-- Declare constants -->
+  <let name="pkg_name" value="sinsei_umiusi_control" />
+
+  <include file="$(var launch_args)" />
+
+  <!-- Launch nodes -->
+  <arg
+    name="robot_description"
+    default="$(command 'xacro $(var robot_description_file) \
+        thruster_mode:=$(var thruster_mode) \
+        high_beam_pin:=$(var high_beam_pin) \
+        low_beam_pin:=$(var low_beam_pin) \
+        ir_pin:=$(var ir_pin) \
+        indicator_led_pin:=$(var indicator_led_pin) \
+        vesc1_id:=$(var vesc1_id) \
+        vesc2_id:=$(var vesc2_id) \
+        vesc3_id:=$(var vesc3_id) \
+        vesc4_id:=$(var vesc4_id) \
+      ')"
+  />
+
+  <node
+    pkg="controller_manager"
+    exec="ros2_control_node"
+    output="both"
+  >
+    <param from="$(var controllers_param_file)" />
+    <param name="thruster_mode" value="$(var thruster_mode)" />
+  </node>
+
+  <node
+    pkg="robot_state_publisher"
+    exec="robot_state_publisher"
+    output="both"
+  >
+    <param name="robot_description" value="$(var robot_description)" />
+  </node>
+
+</launch>
