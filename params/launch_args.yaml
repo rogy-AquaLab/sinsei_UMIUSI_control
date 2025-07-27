@@ -1,0 +1,53 @@
+launch:
+  # Hardware dependent parameters
+  - arg:
+      # Thruster manipulation mode (can / direct)
+      name: thruster_mode
+      default: "can"
+
+  - arg:
+      # CAN ID for VESC 1 (corresponds to thruster 1)
+      name: vesc1_id
+      default: "45"
+  - arg:
+      # CAN ID for VESC 2 (corresponds to thruster 2)
+      name: vesc2_id
+      default: "2" # FIXME: 仮のID
+  - arg:
+      # CAN ID for VESC 3 (corresponds to thruster 3)
+      name: vesc3_id
+      default: "3" # FIXME: 仮のID
+  - arg:
+      # CAN ID for VESC 4 (corresponds to thruster 4)
+      name: vesc4_id
+      default: "4" # FIXME: 仮のID
+  - arg:
+      # GPIO pin number for High beam headlight
+      name: high_beam_pin
+      default: "5"
+  - arg:
+      # GPIO pin number for Low beam headlight
+      name: low_beam_pin
+      default: "6"
+  - arg:
+      # GPIO pin number for IR headlight
+      name: ir_pin
+      default: "25"
+  - arg:
+      # GPIO pin number for indicator LED
+      name: indicator_led_pin
+      default: "24"
+
+  # Environment dependent parameters
+  - arg:
+      # namespace for controllers
+      name: namespace
+      default: ""
+  - arg:
+      # File path for controllers parameters
+      name: controllers_param_file
+      default: "$(find-pkg-share $(var pkg_name))/params/controllers.yaml"
+  - arg:
+      # File path for robot description
+      name: robot_description_file
+      default: "$(find-pkg-share $(var pkg_name))/urdf/main.urdf.xacro"

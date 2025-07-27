@@ -23,7 +23,7 @@
         "ros2",
         "launch",
         "sinsei_umiusi_control",
-        "launch.xml"
+        "main.yaml"
       ],
     }
   ]
