@@ -21,7 +21,7 @@ class AppController : public controller_interface::ChainableControllerInterface 
     sinsei_umiusi_control::cmd::app::Velocity target_velocity;
 
     // State interfaces (out)
-    sinsei_umiusi_control::state::imu::Orientation imu_orientation;
+    sinsei_umiusi_control::state::imu::Quaternion imu_quaternion;
     sinsei_umiusi_control::state::imu::Velocity imu_velocity;
 
     // Command interfaces (out)

@@ -294,6 +294,7 @@ TEST(ImuModelOnReadTest, all) {
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
 
+// TODO: クオータニオンのテストに直す
 TEST(ImuModelOnReadTest, fail_on_read_orientation) {
     auto gpio = std::make_unique<mock::Gpio>();
     EXPECT_CALL(*gpio, i2c_read_byte_data(EULER_H_LSB_ADDR))

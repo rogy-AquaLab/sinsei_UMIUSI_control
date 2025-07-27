@@ -1,5 +1,7 @@
 #include "sinsei_umiusi_control/hardware_model/imu_model.hpp"
 
+#include "sinsei_umiusi_control/state/imu.hpp"
+
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
@@ -110,12 +112,12 @@ auto suchm::ImuModel::on_init() -> tl::expected<void, std::string> {
 auto suchm::ImuModel::on_read()
     -> tl::expected<
         std::tuple<
-            suc::state::imu::Orientation, suc::state::imu::Velocity, suc::state::imu::Temperature>,
+            suc::state::imu::Quaternion, suc::state::imu::Velocity, suc::state::imu::Temperature>,
         std::string> {
-    const auto orientation_res = this->read_orientation();
-    if (!orientation_res) {
+    const auto quaternion_res = this->read_quat();
+    if (!quaternion_res) {
         return tl::unexpected<std::string>(
-            "Failed to read orientation data from BNO055: " + orientation_res.error());
+            "Failed to read quaternion data from BNO055: " + quaternion_res.error());
     }
     const state::imu::Velocity velocity{0.0, 0.0, 0.0};
 
@@ -130,16 +132,16 @@ auto suchm::ImuModel::on_read()
     const auto fixed_temp = temp_raw & std::byte{0x7F};
     const suc::state::imu::Temperature temperature{static_cast<int8_t>(fixed_temp)};
 
-    return std::make_tuple(orientation_res.value(), velocity, temperature);
+    return std::make_tuple(quaternion_res.value(), velocity, temperature);
 }
 
-auto suchm::ImuModel::read_orientation() -> tl::expected<state::imu::Orientation, std::string> {
-    // ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.cpp#L401
+auto suchm::ImuModel::read_quat() -> tl::expected<state::imu::Quaternion, std::string> {
+    // ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.cpp#L466
 
-    std::array<std::byte, 6> buffer{};
+    std::array<std::byte, 8> buffer{};
 
-    for (int i = 0; i < 6; ++i) {
-        auto byte_opt_res = this->gpio->i2c_read_byte_data(EULER_H_LSB_ADDR + i)
+    for (int i = 0; i < 8; ++i) {
+        auto byte_opt_res = this->gpio->i2c_read_byte_data(QUATERNION_DATA_W_LSB_ADDR + i)
                                 .map_error(suchm::interface::gpio_error_to_string);
         if (!byte_opt_res) {
             return tl::unexpected<std::string>("I2C read error: " + byte_opt_res.error());
@@ -147,19 +149,15 @@ auto suchm::ImuModel::read_orientation() -> tl::expected<state::imu::Orientation
         buffer[i] = byte_opt_res.value();
     }
 
-    const int16_t x = static_cast<int16_t>(
-        (std::to_integer<int16_t>(buffer[0] & std::byte{0xFF})) |
-        (std::to_integer<int16_t>(buffer[1] << 8)));
-    const int16_t y = static_cast<int16_t>(
-        (std::to_integer<int16_t>(buffer[2] & std::byte{0xFF})) |
-        (std::to_integer<int16_t>(buffer[3] << 8)));
-    const int16_t z = static_cast<int16_t>(
-        (std::to_integer<int16_t>(buffer[4] & std::byte{0xFF})) |
-        (std::to_integer<int16_t>(buffer[5] << 8)));
+    const auto w = std::to_integer<int16_t>(buffer[0]) | (std::to_integer<int16_t>(buffer[1]) << 8);
+    const auto x = std::to_integer<int16_t>(buffer[2]) | (std::to_integer<int16_t>(buffer[3]) << 8);
+    const auto y = std::to_integer<int16_t>(buffer[4]) | (std::to_integer<int16_t>(buffer[5]) << 8);
+    const auto z = std::to_integer<int16_t>(buffer[6]) | (std::to_integer<int16_t>(buffer[7]) << 8);
 
-    const state::imu::Orientation orientation{
-        static_cast<double>(x) / 16.0, static_cast<double>(y) / 16.0,
-        static_cast<double>(z) / 16.0};
+    static constexpr auto SCALE = 1.0 / (1 << 14);
 
-    return orientation;
+    const state::imu::Quaternion quaternion{
+        static_cast<double>(x) * SCALE, static_cast<double>(y) * SCALE,
+        static_cast<double>(z) * SCALE, static_cast<double>(w) * SCALE};
+    return quaternion;
 }

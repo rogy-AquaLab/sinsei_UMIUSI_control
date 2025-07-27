@@ -39,11 +39,12 @@ auto suchw::Imu::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
             res.error().c_str());
     }
 
-    auto [orientation, velocity, temperature] = res.value();
+    auto [quaternion, velocity, temperature] = res.value();
 
-    this->set_state("imu/orientation.x", orientation.x);
-    this->set_state("imu/orientation.y", orientation.y);
-    this->set_state("imu/orientation.z", orientation.z);
+    this->set_state("imu/quaternion.x", quaternion.x);
+    this->set_state("imu/quaternion.y", quaternion.y);
+    this->set_state("imu/quaternion.z", quaternion.z);
+    this->set_state("imu/quaternion.w", quaternion.w);
     // this->set_state("imu/velocity.x", velocity.x);
     // this->set_state("imu/velocity.y", velocity.y);
     // this->set_state("imu/velocity.z", velocity.z);

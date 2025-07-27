@@ -4,6 +4,7 @@
 #include <rclcpp_lifecycle/state.hpp>
 #include <string>
 
+#include "geometry_msgs/msg/quaternion.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
@@ -184,14 +185,13 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
         this->state_interface_data.emplace_back(
             "imu/temperature", to_interface_data_ptr(this->state.imu_temperature.value));
         this->state_interface_data.emplace_back(
-            "app_controller/imu/orientation.x",
-            to_interface_data_ptr(this->state.imu_orientation.x));
+            "app_controller/imu/quaternion.x", to_interface_data_ptr(this->state.imu_quaternion.x));
         this->state_interface_data.emplace_back(
-            "app_controller/imu/orientation.y",
-            to_interface_data_ptr(this->state.imu_orientation.y));
+            "app_controller/imu/quaternion.y", to_interface_data_ptr(this->state.imu_quaternion.y));
         this->state_interface_data.emplace_back(
-            "app_controller/imu/orientation.z",
-            to_interface_data_ptr(this->state.imu_orientation.z));
+            "app_controller/imu/quaternion.z", to_interface_data_ptr(this->state.imu_quaternion.z));
+        this->state_interface_data.emplace_back(
+            "app_controller/imu/quaternion.w", to_interface_data_ptr(this->state.imu_quaternion.w));
         this->state_interface_data.emplace_back(
             "app_controller/imu/velocity.x", to_interface_data_ptr(this->state.imu_velocity.x));
         this->state_interface_data.emplace_back(
@@ -227,9 +227,9 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
         this->pub.imu_temperature_publisher =
             this->get_node()->create_publisher<std_msgs::msg::Float64>(
                 state_prefix + "imu_temperature", qos);
-        this->pub.imu_orientation_publisher =
-            this->get_node()->create_publisher<geometry_msgs::msg::Vector3>(
-                state_prefix + "imu_orientation", qos);
+        this->pub.imu_quaternion_publisher =
+            this->get_node()->create_publisher<geometry_msgs::msg::Quaternion>(
+                state_prefix + "imu_quaternion", qos);
         this->pub.imu_velocity_publisher =
             this->get_node()->create_publisher<geometry_msgs::msg::Vector3>(
                 state_prefix + "imu_velocity", qos);
@@ -265,10 +265,11 @@ auto succ::GateController::update(
         std_msgs::msg::Bool().set__data(this->state.water_leaked.value));
     this->pub.imu_temperature_publisher->publish(
         std_msgs::msg::Float64().set__data(this->state.imu_temperature.value));
-    this->pub.imu_orientation_publisher->publish(geometry_msgs::msg::Vector3()
-                                                     .set__x(this->state.imu_orientation.x)
-                                                     .set__y(this->state.imu_orientation.y)
-                                                     .set__z(this->state.imu_orientation.z));
+    this->pub.imu_quaternion_publisher->publish(geometry_msgs::msg::Quaternion()
+                                                    .set__x(this->state.imu_quaternion.x)
+                                                    .set__y(this->state.imu_quaternion.y)
+                                                    .set__z(this->state.imu_quaternion.z)
+                                                    .set__w(this->state.imu_quaternion.w));
     this->pub.imu_velocity_publisher->publish(geometry_msgs::msg::Vector3()
                                                   .set__x(this->state.imu_velocity.x)
                                                   .set__y(this->state.imu_velocity.y)

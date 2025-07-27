@@ -22,27 +22,46 @@ class ImuModel {
 
     static constexpr uint32_t ID{0xA0};
 
-    static constexpr uint32_t CHIP_ID_ADDR{0x00};
-    static constexpr uint32_t OPR_MODE_ADDR{0x3D};
-    static constexpr uint32_t SYS_TRIGGER_ADDR{0x3F};
-    static constexpr uint32_t PWR_MODE_ADDR{0x3E};
+    /* Page id register definition */
     static constexpr uint32_t PAGE_ID_ADDR{0x07};
-    static constexpr uint32_t EULER_H_LSB_ADDR{0x1A};
 
-    static constexpr std::byte OPERATION_MODE_CONFIG{0x00};
-    static constexpr std::byte OPERATION_MODE_NDOF{0x0C};
-    static constexpr std::byte POWER_MODE_NORMAL{0x00};
+    /* PAGE0 REGISTER DEFINITION START*/
+    static constexpr uint32_t CHIP_ID_ADDR{0x00};
 
+    /* Mode registers */
+    static constexpr uint32_t OPR_MODE_ADDR{0x3D};
+    static constexpr uint32_t PWR_MODE_ADDR{0x3E};
+
+    static constexpr uint32_t SYS_TRIGGER_ADDR{0x3F};
+
+    /* Quaternion data registers */
+    static constexpr uint32_t QUATERNION_DATA_W_LSB_ADDR{0x20};
+    static constexpr uint32_t QUATERNION_DATA_W_MSB_ADDR{0x21};
+    static constexpr uint32_t QUATERNION_DATA_X_LSB_ADDR{0x22};
+    static constexpr uint32_t QUATERNION_DATA_X_MSB_ADDR{0x23};
+    static constexpr uint32_t QUATERNION_DATA_Y_LSB_ADDR{0x24};
+    static constexpr uint32_t QUATERNION_DATA_Y_MSB_ADDR{0x25};
+    static constexpr uint32_t QUATERNION_DATA_Z_LSB_ADDR{0x26};
+    static constexpr uint32_t QUATERNION_DATA_Z_MSB_ADDR{0x27};
+
+    /* Temperature data register */
     static constexpr uint32_t TEMP_ADDR{0x34};
 
-    auto read_orientation() -> tl::expected<state::imu::Orientation, std::string>;
+    /** Operation mode settings **/
+    static constexpr std::byte OPERATION_MODE_CONFIG{0x00};
+    static constexpr std::byte OPERATION_MODE_NDOF{0x0C};
+
+    /** BNO055 power settings */
+    static constexpr std::byte POWER_MODE_NORMAL{0x00};
+
+    auto read_quat() -> tl::expected<state::imu::Quaternion, std::string>;
 
   public:
     ImuModel(std::unique_ptr<interface::Gpio> gpio);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_read() -> tl::expected<
                        std::tuple<
-                           sinsei_umiusi_control::state::imu::Orientation,
+                           sinsei_umiusi_control::state::imu::Quaternion,
                            sinsei_umiusi_control::state::imu::Velocity,
                            sinsei_umiusi_control::state::imu::Temperature>,
                        std::string>;

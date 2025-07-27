@@ -2,6 +2,7 @@
 #define SINSEI_UMIUSI_CONTROL_GATE_CONTROLLER_HPP
 
 #include <controller_interface/controller_interface.hpp>
+#include <geometry_msgs/msg/quaternion.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
 #include <rclcpp/publisher.hpp>
 #include <std_msgs/msg/bool.hpp>
@@ -9,6 +10,7 @@
 #include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/int8.hpp>
 
+#include "geometry_msgs/msg/quaternion.hpp"
 #include "sinsei_umiusi_control/cmd/app.hpp"
 #include "sinsei_umiusi_control/cmd/headlights.hpp"
 #include "sinsei_umiusi_control/cmd/indicator_led.hpp"
@@ -48,7 +50,7 @@ class GateController : public controller_interface::ControllerInterface {
         sinsei_umiusi_control::state::main_power::Temperature main_temperature;
         sinsei_umiusi_control::state::main_power::WaterLeaked water_leaked;
         sinsei_umiusi_control::state::imu::Temperature imu_temperature;
-        sinsei_umiusi_control::state::imu::Orientation imu_orientation;
+        sinsei_umiusi_control::state::imu::Quaternion imu_quaternion;
         sinsei_umiusi_control::state::imu::Velocity imu_velocity;
         std::array<sinsei_umiusi_control::state::thruster::Rpm, 4> rpm;
         std::array<sinsei_umiusi_control::state::esc::WaterLeaked, 4> esc_water_leaked;
@@ -77,7 +79,7 @@ class GateController : public controller_interface::ControllerInterface {
         rclcpp::Publisher<std_msgs::msg::Int8>::SharedPtr main_temperature_publisher;
         rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr water_leaked_publisher;
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr imu_temperature_publisher;
-        rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_orientation_publisher;
+        rclcpp::Publisher<geometry_msgs::msg::Quaternion>::SharedPtr imu_quaternion_publisher;
         rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_velocity_publisher;
         std::array<rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr, 4> rpm_publisher;
         std::array<rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr, 4> esc_water_leaked_publisher;
