@@ -1,4 +1,4 @@
-#include "sinsei_umiusi_control/util/linux_can.hpp"
+#include "sinsei_umiusi_control/hardware_model/impl/linux_can.hpp"
 
 #include <linux/can.h>
 #include <linux/can/raw.h>
@@ -12,11 +12,11 @@
 #include <optional>
 #include <rcpputils/tl_expected/expected.hpp>
 
-namespace suc_util = sinsei_umiusi_control::util;
+namespace suchm = sinsei_umiusi_control::hardware_model;
 
 namespace {
 
-auto _close(std::optional<suc_util::FileDescriptor> & sock) -> tl::expected<void, std::string> {
+auto _close(std::optional<suchm::impl::FileDescriptor> & sock) -> tl::expected<void, std::string> {
     if (!sock) {
         return tl::make_unexpected("Socket is not initialized");
     }
@@ -28,7 +28,7 @@ auto _close(std::optional<suc_util::FileDescriptor> & sock) -> tl::expected<void
     return {};
 }
 
-auto _init(std::optional<suc_util::FileDescriptor> & sock, const std::string & ifname)
+auto _init(std::optional<suchm::impl::FileDescriptor> & sock, const std::string & ifname)
     -> tl::expected<void, std::string> {
     // Create a socket
     sock = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
@@ -62,7 +62,7 @@ auto _init(std::optional<suc_util::FileDescriptor> & sock, const std::string & i
     return {};
 }
 
-auto _to_linux_can_frame(suc_util::CanFrame && frame) -> can_frame {
+auto _to_linux_can_frame(suchm::interface::CanFrame && frame) -> can_frame {
     can_frame linux_can_frame{};
     if (frame.is_extended) {
         linux_can_frame.can_id = (frame.id & CAN_EFF_MASK) | CAN_EFF_FLAG;  // Extended frame ID
@@ -76,8 +76,8 @@ auto _to_linux_can_frame(suc_util::CanFrame && frame) -> can_frame {
     return linux_can_frame;
 }
 
-auto _from_linux_can_frame(const can_frame & linux_can_frame) -> suc_util::CanFrame {
-    suc_util::CanFrame frame{};
+auto _from_linux_can_frame(const can_frame & linux_can_frame) -> suchm::interface::CanFrame {
+    suchm::interface::CanFrame frame{};
     frame.is_extended = (linux_can_frame.can_id & CAN_EFF_FLAG) != 0;
     if (frame.is_extended) {
         frame.id = linux_can_frame.can_id & CAN_EFF_MASK;  // Extended frame ID
@@ -93,9 +93,9 @@ auto _from_linux_can_frame(const can_frame & linux_can_frame) -> suc_util::CanFr
 
 }  // namespace
 
-suc_util::LinuxCan::LinuxCan() : sock_tx(std::nullopt), sock_rx(std::nullopt) {}
+suchm::impl::LinuxCan::LinuxCan() : sock_tx(std::nullopt), sock_rx(std::nullopt) {}
 
-auto suc_util::LinuxCan::close() -> tl::expected<void, std::string> {
+auto suchm::impl::LinuxCan::close() -> tl::expected<void, std::string> {
     auto res_tx = _close(this->sock_tx);
     auto res_rx = _close(this->sock_rx);
 
@@ -107,7 +107,7 @@ auto suc_util::LinuxCan::close() -> tl::expected<void, std::string> {
     return {};
 }
 
-auto suc_util::LinuxCan::init(const std::string ifname) -> tl::expected<void, std::string> {
+auto suchm::impl::LinuxCan::init(const std::string ifname) -> tl::expected<void, std::string> {
     auto res_tx = _init(this->sock_tx, ifname);
     auto res_rx = _init(this->sock_rx, ifname);
 
@@ -120,7 +120,7 @@ auto suc_util::LinuxCan::init(const std::string ifname) -> tl::expected<void, st
     return {};
 }
 
-auto suc_util::LinuxCan::send_linux_can_frame(can_frame && frame)
+auto suchm::impl::LinuxCan::send_linux_can_frame(can_frame && frame)
     -> tl::expected<void, std::string> {
     if (!this->sock_tx) {
         return tl::make_unexpected("CAN socket is not initialized");
@@ -146,7 +146,7 @@ auto suc_util::LinuxCan::send_linux_can_frame(can_frame && frame)
     return {};
 }
 
-auto suc_util::LinuxCan::recv_linux_can_frame() -> tl::expected<can_frame, std::string> {
+auto suchm::impl::LinuxCan::recv_linux_can_frame() -> tl::expected<can_frame, std::string> {
     if (!this->sock_rx) {
         return tl::make_unexpected("CAN socket is not initialized");
     }
@@ -187,13 +187,13 @@ auto suc_util::LinuxCan::recv_linux_can_frame() -> tl::expected<can_frame, std::
     return frame;
 }
 
-auto suc_util::LinuxCan::send_frame(suc_util::CanFrame && frame)
+auto suchm::impl::LinuxCan::send_frame(suchm::interface::CanFrame && frame)
     -> tl::expected<void, std::string> {
     auto linux_can_frame = _to_linux_can_frame(std::move(frame));
     return this->send_linux_can_frame(std::move(linux_can_frame));
 }
 
-auto suc_util::LinuxCan::recv_frame() -> tl::expected<CanFrame, std::string> {
+auto suchm::impl::LinuxCan::recv_frame() -> tl::expected<CanFrame, std::string> {
     return this->recv_linux_can_frame().map([](can_frame && linux_can_frame) {
         return _from_linux_can_frame(std::move(linux_can_frame));
     });

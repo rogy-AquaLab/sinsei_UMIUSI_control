@@ -1,24 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
-  <xacro:macro name="can" params="thruster_mode">
+
+  <xacro:macro name="can" params="thruster_mode vesc1_id vesc2_id vesc3_id vesc4_id">
     <ros2_control name="can" type="system">
       <hardware>
         <plugin>sinsei_umiusi_control/hardware/Can</plugin>
         <param name="thruster_mode">${thruster_mode}</param>
+        <param name="vesc1_id">${vesc1_id}</param>
+        <param name="vesc2_id">${vesc2_id}</param>
+        <param name="vesc3_id">${vesc3_id}</param>
+        <param name="vesc4_id">${vesc4_id}</param>
       </hardware>
 
       <xacro:macro name="thruster" params="id">
         <xacro:property name="thruster_name" value="thruster${id}" />
 
         <gpio name="${thruster_name}/servo">
-          <command_interface name="enabled_raw" />
-          <command_interface name="angle_raw" />
+          <command_interface name="enabled" />
+          <command_interface name="angle" />
         </gpio>
 
         <gpio name="${thruster_name}/esc">
-          <command_interface name="enabled_raw" />
-          <command_interface name="duty_cycle_raw" />
-          <state_interface name="rpm_raw" />
+          <command_interface name="enabled" />
+          <command_interface name="duty_cycle" />
+          <state_interface name="rpm" />
+          <state_interface name="water_leaked" />
         </gpio>
       </xacro:macro>
 
@@ -42,4 +48,5 @@
       </gpio>
     </ros2_control>
   </xacro:macro>
+
 </robot>

@@ -2,9 +2,11 @@
 
 #include <memory>
 
-#include "sinsei_umiusi_control/util/pigpio.hpp"
+#include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
+#include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
+namespace suchm = sinsei_umiusi_control::hardware_model;
 namespace suchw = sinsei_umiusi_control::hardware;
 namespace hif = hardware_interface;
 namespace rlc = rclcpp_lifecycle;
@@ -12,18 +14,41 @@ namespace rlc = rclcpp_lifecycle;
 auto suchw::Headlights::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
     this->hif::SystemInterface::on_init(info);
 
-    auto gpio = std::make_unique<sinsei_umiusi_control::util::Pigpio>();
-    auto high_beam_pin = std::make_unique<sinsei_umiusi_control::util::Pigpio>();
-    auto low_beam_pin = std::make_unique<sinsei_umiusi_control::util::Pigpio>();
-    auto ir_pin = std::make_unique<sinsei_umiusi_control::util::Pigpio>();
+    auto gpio = std::make_unique<suchm::impl::Pigpio>();
+    auto high_beam_pin = std::make_unique<suchm::impl::Pigpio>();
+    auto low_beam_pin = std::make_unique<suchm::impl::Pigpio>();
+    auto ir_pin = std::make_unique<suchm::impl::Pigpio>();
 
-    // FIXME: ピン番号はパラメーターなどで設定できるようにする
-    this->model.emplace(
-        std::move(gpio),
-        5,  // Pin number of High Beam
-        6,  // Pin number of Low Beam
-        25  // Pin number of IR
-    );
+    // ピン番号をパラメーターから取得
+    const auto high_beam_pin_num_str = util::find_param(info.hardware_parameters, "high_beam_pin");
+    if (!high_beam_pin_num_str) {
+        RCLCPP_ERROR(
+            this->get_logger(), "Parameter 'high_beam_pin' not found in hardware parameters.");
+        return hif::CallbackReturn::ERROR;
+    }
+    const auto low_beam_pin_num_str = util::find_param(info.hardware_parameters, "low_beam_pin");
+    if (!low_beam_pin_num_str) {
+        RCLCPP_ERROR(
+            this->get_logger(), "Parameter 'low_beam_pin' not found in hardware parameters.");
+        return hif::CallbackReturn::ERROR;
+    }
+    const auto ir_pin_num_str = util::find_param(info.hardware_parameters, "ir_pin");
+    if (!ir_pin_num_str) {
+        RCLCPP_ERROR(this->get_logger(), "Parameter 'ir_pin' not found in hardware parameters.");
+        return hif::CallbackReturn::ERROR;
+    }
+
+    int high_beam_pin_num, low_beam_pin_num, ir_pin_num;
+    try {
+        high_beam_pin_num = std::stoi(high_beam_pin_num_str.value());
+        low_beam_pin_num = std::stoi(low_beam_pin_num_str.value());
+        ir_pin_num = std::stoi(ir_pin_num_str.value());
+    } catch (const std::invalid_argument & e) {
+        RCLCPP_ERROR(this->get_logger(), "Invalid pin number: %s", e.what());
+        return hif::CallbackReturn::ERROR;
+    }
+
+    this->model.emplace(std::move(gpio), high_beam_pin_num, low_beam_pin_num, ir_pin_num);
 
     auto res = this->model->on_init();
     if (!res) {

@@ -1,16 +1,17 @@
-#include "sinsei_umiusi_control/util/pigpio.hpp"
+#include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
 
 #include <pigpio.h>
 #include <pigpiod_if2.h>
 #include <sys/types.h>
 
-namespace suc_util = sinsei_umiusi_control::util;
+namespace suchm = sinsei_umiusi_control::hardware_model;
 
-suc_util::Pigpio::Pigpio() { this->pi = ::pigpio_start(NULL, NULL); }
+suchm::impl::Pigpio::Pigpio() { this->pi = ::pigpio_start(NULL, NULL); }
 
-suc_util::Pigpio::~Pigpio() { ::pigpio_stop(pi); }
+suchm::impl::Pigpio::~Pigpio() { ::pigpio_stop(pi); }
 
-auto suc_util::Pigpio::set_mode_output(std::vector<GpioPin> pins) -> tl::expected<void, GpioError> {
+auto suchm::impl::Pigpio::set_mode_output(std::vector<GpioPin> pins)
+    -> tl::expected<void, GpioError> {
     for (const auto & pin : pins) {
         auto res = ::set_mode(this->pi, pin, PI_OUTPUT);
         if (res == 0) {
@@ -28,7 +29,8 @@ auto suc_util::Pigpio::set_mode_output(std::vector<GpioPin> pins) -> tl::expecte
     return {};
 }
 
-auto suc_util::Pigpio::set_mode_input(std::vector<GpioPin> pins) -> tl::expected<void, GpioError> {
+auto suchm::impl::Pigpio::set_mode_input(std::vector<GpioPin> pins)
+    -> tl::expected<void, GpioError> {
     for (const auto & pin : pins) {
         auto res = ::set_mode(this->pi, pin, PI_INPUT);
         if (res == 0) {
@@ -46,7 +48,8 @@ auto suc_util::Pigpio::set_mode_input(std::vector<GpioPin> pins) -> tl::expected
     return {};
 }
 
-auto suc_util::Pigpio::write_digital(GpioPin pin, bool enabled) -> tl::expected<void, GpioError> {
+auto suchm::impl::Pigpio::write_digital(GpioPin pin, bool enabled)
+    -> tl::expected<void, GpioError> {
     auto res = ::gpio_write(pi, pin, enabled ? 1 : 0);
     if (res == 0) {
         return {};
@@ -63,12 +66,12 @@ auto suc_util::Pigpio::write_digital(GpioPin pin, bool enabled) -> tl::expected<
     }
 }
 
-auto suc_util::Pigpio::write_pwm() -> tl::expected<void, GpioError> {
+auto suchm::impl::Pigpio::write_pwm() -> tl::expected<void, GpioError> {
     // TODO: PWMの処理を実装する
     return tl::unexpected(GpioError::UnknownError);
 }
 
-auto suc_util::Pigpio::i2c_open(uint32_t address) -> tl::expected<void, GpioError> {
+auto suchm::impl::Pigpio::i2c_open(uint32_t address) -> tl::expected<void, GpioError> {
     this->i2c_address = address;
     auto res = ::i2c_open(pi, I2C_BUS, this->i2c_address, 0U);
     if (res >= 0) {
@@ -91,7 +94,7 @@ auto suc_util::Pigpio::i2c_open(uint32_t address) -> tl::expected<void, GpioErro
     }
 }
 
-auto suc_util::Pigpio::i2c_close() -> tl::expected<void, GpioError> {
+auto suchm::impl::Pigpio::i2c_close() -> tl::expected<void, GpioError> {
     if (!this->i2c_handle) {
         return tl::unexpected(GpioError::NoHandle);
     }
@@ -107,7 +110,7 @@ auto suc_util::Pigpio::i2c_close() -> tl::expected<void, GpioError> {
     }
 }
 
-auto suc_util::Pigpio::i2c_write_byte(std::byte value) -> tl::expected<void, GpioError> {
+auto suchm::impl::Pigpio::i2c_write_byte(std::byte value) -> tl::expected<void, GpioError> {
     if (!this->i2c_handle) {
         return tl::unexpected(GpioError::NoHandle);
     }
@@ -127,7 +130,7 @@ auto suc_util::Pigpio::i2c_write_byte(std::byte value) -> tl::expected<void, Gpi
     }
 }
 
-auto suc_util::Pigpio::i2c_read_byte() -> tl::expected<std::byte, GpioError> {
+auto suchm::impl::Pigpio::i2c_read_byte() -> tl::expected<std::byte, GpioError> {
     if (!this->i2c_handle) {
         return tl::unexpected(GpioError::NoHandle);
     }
@@ -145,7 +148,7 @@ auto suc_util::Pigpio::i2c_read_byte() -> tl::expected<std::byte, GpioError> {
     }
 }
 
-auto suc_util::Pigpio::i2c_write_byte_data(uint32_t reg, std::byte value)
+auto suchm::impl::Pigpio::i2c_write_byte_data(uint32_t reg, std::byte value)
     -> tl::expected<void, GpioError> {
     if (!this->i2c_handle) {
         return tl::unexpected(GpioError::NoHandle);
@@ -166,7 +169,7 @@ auto suc_util::Pigpio::i2c_write_byte_data(uint32_t reg, std::byte value)
     }
 }
 
-auto suc_util::Pigpio::i2c_read_byte_data(uint32_t reg) -> tl::expected<std::byte, GpioError> {
+auto suchm::impl::Pigpio::i2c_read_byte_data(uint32_t reg) -> tl::expected<std::byte, GpioError> {
     if (!this->i2c_handle) {
         return tl::unexpected(GpioError::NoHandle);
     }

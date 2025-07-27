@@ -8,7 +8,14 @@
 namespace suc = sinsei_umiusi_control;
 namespace suchm = suc::hardware_model;
 
-suchm::CanModel::CanModel(std::shared_ptr<suc::util::CanInterface> can) : can(std::move(can)) {}
+suchm::CanModel::CanModel(std::shared_ptr<suchm::interface::Can> can, std::array<int, 4> vesc_ids)
+: can(std::move(can)),
+  vesc_models{{
+      can::VescModel(vesc_ids[0]),
+      can::VescModel(vesc_ids[1]),
+      can::VescModel(vesc_ids[2]),
+      can::VescModel(vesc_ids[3]),
+  }} {}
 
 auto suchm::CanModel::on_init() -> tl::expected<void, std::string> {
     auto res = this->can->init("can0");
@@ -30,16 +37,12 @@ auto suchm::CanModel::on_destroy() -> tl::expected<void, std::string> {
 
 auto suchm::CanModel::on_read()
     -> tl::expected<
-        std::tuple<
-            std::array<suc::state::thruster::Rpm, 4>, suc::state::main_power::BatteryCurrent,
+        std::variant<
+            std::pair<size_t, suc::state::thruster::Rpm>,
+            std::pair<size_t, suc::state::esc::WaterLeaked>, suc::state::main_power::BatteryCurrent,
             suc::state::main_power::BatteryVoltage, suc::state::main_power::Temperature,
             suc::state::main_power::WaterLeaked>,
         std::string> {
-    std::array<suc::state::thruster::Rpm, 4> rpm;
-    // suc::state::main_power::BatteryCurrent battery_current;
-    // suc::state::main_power::BatteryVoltage battery_voltage;
-    // suc::state::main_power::Temperature temperature;
-
     auto frame = this->can->recv_frame();
     if (!frame) {
         return tl::make_unexpected("Failed to receive CAN frame: " + frame.error());
@@ -47,42 +50,40 @@ auto suchm::CanModel::on_read()
 
     // フレームを各モデルに渡していく
 
-    auto success = false;
     std::string error_message;
 
     // TODO: この位置に`can::MainPowerModel`の処理を追加する
 
     for (size_t i = 0; i < 4; ++i) {
-        if (success) {
-            // すでに成功したモデルがある場合はfor文ごとスキップ
-            break;
-        }
         auto rpm_res = this->vesc_models[i].get_rpm(frame.value());
         if (!rpm_res) {
             error_message += "    VESC " + std::to_string(i + 1) + ": " + rpm_res.error() + "\n";
             continue;
         }
         auto rpm_opt = rpm_res.value();
-        if (!rpm_opt) {
-            // フレームにRPMの情報が含まれていない場合はスキップ
+        if (rpm_opt) {
+            std::pair<size_t, suc::state::thruster::Rpm> rpm_pair{i, rpm_opt.value()};
+            return rpm_pair;
+        }
+
+        auto water_leaked_res = this->vesc_models[i].get_water_leaked(frame.value());
+        if (!water_leaked_res) {
+            error_message +=
+                "    VESC " + std::to_string(i + 1) + ": " + water_leaked_res.error() + "\n";
             continue;
         }
-        rpm[i] = rpm_opt.value();
-        success = true;
+        auto water_leaked_opt = water_leaked_res.value();
+        if (water_leaked_opt) {
+            std::pair<size_t, suc::state::esc::WaterLeaked> water_leaked_pair{
+                i, water_leaked_opt.value()};
+            return water_leaked_pair;
+        }
     }
 
     // すべてのモデルでフレームを処理できなかった場合はエラー
-    if (!success) {
-        return tl::make_unexpected(
-            "Failed to handle CAN frame \"" + std::to_string(frame.value().id) +
-            "\" in all models: \n" + error_message);
-    }
-
-    // FIXME: 仮の値を返している
-    return std::make_tuple(
-        rpm, suc::state::main_power::BatteryCurrent{0.0},
-        suc::state::main_power::BatteryVoltage{0.0}, suc::state::main_power::Temperature{0},
-        suc::state::main_power::WaterLeaked{false});
+    return tl::make_unexpected(
+        "Failed to handle CAN frame \"" + std::to_string(frame.value().id) +
+        "\" in all models: \n" + error_message);
 }
 
 auto suchm::CanModel::on_write(

@@ -1,7 +1,8 @@
 #include "sinsei_umiusi_control/hardware/can.hpp"
 
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
-#include "sinsei_umiusi_control/util/linux_can.hpp"
+#include "sinsei_umiusi_control/hardware_model/impl/linux_can.hpp"
+#include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
 namespace suchw = sinsei_umiusi_control::hardware;
@@ -26,20 +27,40 @@ suchw::Can::~Can() {
 auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
     this->hif::SystemInterface::on_init(info);
 
-    auto thruster_mode = info.hardware_parameters.find("thruster_mode");
-    if (thruster_mode == info.hardware_parameters.end()) {
+    const auto thruster_mode = util::find_param(info.hardware_parameters, "thruster_mode");
+    if (!thruster_mode) {
         RCLCPP_ERROR(
-            this->get_logger(), "Parameter 'thruster_mode' not found in hardware parameters. ");
+            this->get_logger(), "Parameter 'thruster_mode' not found in hardware parameters.");
         return hif::CallbackReturn::ERROR;
     }
-    auto mode_res = util::get_mode_from_str(thruster_mode->second);
+    const auto mode_res = util::get_mode_from_str(thruster_mode.value());
     if (!mode_res) {
         RCLCPP_ERROR(this->get_logger(), "Invalid thruster mode: %s", mode_res.error().c_str());
         return hif::CallbackReturn::ERROR;
     }
     this->thruster_mode = mode_res.value();
 
-    this->model.emplace(std::make_shared<sinsei_umiusi_control::util::LinuxCan>());
+    std::array<int, 4> vesc_ids;
+    for (size_t i = 0; i < 4; ++i) {
+        auto vesc_id_key = "vesc" + std::to_string(i + 1) + "_id";
+        auto vesc_id_str = util::find_param(info.hardware_parameters, vesc_id_key);
+        if (!vesc_id_str) {
+            RCLCPP_ERROR(
+                this->get_logger(), "Parameter '%s' not found in hardware parameters.",
+                vesc_id_key.c_str());
+            return hif::CallbackReturn::ERROR;
+        }
+        try {
+            vesc_ids[i] = std::stoi(vesc_id_str.value());
+        } catch (const std::invalid_argument & e) {
+            RCLCPP_ERROR(
+                this->get_logger(), "Invalid VESC ID '%s': %s", vesc_id_str.value().c_str(),
+                e.what());
+            return hif::CallbackReturn::ERROR;
+        }
+    }
+
+    this->model.emplace(std::make_shared<hardware_model::impl::LinuxCan>(), vesc_ids);
 
     auto res = this->model->on_init();
     if (!res) {
@@ -69,20 +90,51 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
         return hif::return_type::OK;
     }
 
-    auto [rpm, battery_current, battery_voltage, temperature, water_leaked] = res.value();
-    if (this->thruster_mode == util::ThrusterMode::Can) {
-        for (size_t i = 0; i < 4; ++i) {
-            auto thruster_name = "thruster" + std::to_string(i + 1);
-            this->set_state(thruster_name + "/esc/rpm_raw", util::to_interface_data(rpm[i]));
+    auto variant = res.value();
+
+    switch (variant.index()) {
+        case 0: {  // Rpm
+            auto rpm_pair =
+                std::get<std::pair<size_t, sinsei_umiusi_control::state::thruster::Rpm>>(variant);
+            auto thruster_name = "thruster" + std::to_string(rpm_pair.first + 1);
+            this->set_state(thruster_name + "/esc/rpm", util::to_interface_data(rpm_pair.second));
+            break;
+        }
+        case 1: {  // ESC WaterLeaked
+            auto water_leaked_pair =
+                std::get<std::pair<size_t, sinsei_umiusi_control::state::esc::WaterLeaked>>(
+                    variant);
+            auto thruster_name = "thruster" + std::to_string(water_leaked_pair.first + 1);
+            this->set_state(
+                thruster_name + "/esc/water_leaked",
+                util::to_interface_data(water_leaked_pair.second));
+            break;
+        }
+        case 2: {  // BatteryCurrent
+            auto battery_current =
+                std::get<sinsei_umiusi_control::state::main_power::BatteryCurrent>(variant);
+            this->set_state("main_power/battery_current", util::to_interface_data(battery_current));
+            break;
+        }
+        case 3: {  // BatteryVoltage
+            auto battery_voltage =
+                std::get<sinsei_umiusi_control::state::main_power::BatteryVoltage>(variant);
+            this->set_state("main_power/battery_voltage", util::to_interface_data(battery_voltage));
+            break;
+        }
+        case 4: {  // Temperature
+            auto temperature =
+                std::get<sinsei_umiusi_control::state::main_power::Temperature>(variant);
+            this->set_state("main_power/temperature", util::to_interface_data(temperature));
+            break;
+        }
+        case 5: {  // WaterLeaked
+            auto water_leaked =
+                std::get<sinsei_umiusi_control::state::main_power::WaterLeaked>(variant);
+            this->set_state("main_power/water_leaked", util::to_interface_data(water_leaked));
+            break;
         }
     }
-    // TODO: 実装したらコメントアウトを外す
-    // this->set_state(
-    //     "main_power/battery_current", util::to_interface_data(battery_current));
-    // this->set_state(
-    //     "main_power/battery_voltage", util::to_interface_data(battery_voltage));
-    // this->set_state("main_power/temperature", util::to_interface_data(temperature));
-    // this->set_state("main_power/water_leaked", util::to_interface_data(water_leaked));
 
     return hif::return_type::OK;
 }
@@ -99,10 +151,10 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
     if (is_can) {
         for (size_t i = 0; i < 4; ++i) {
             auto thruster_name = "thruster" + std::to_string(i + 1);
-            auto esc_enabled_raw = this->get_command(thruster_name + "/esc/enabled_raw");
-            auto servo_enabled_raw = this->get_command(thruster_name + "/servo/enabled_raw");
-            auto angle_raw = this->get_command(thruster_name + "/servo/angle_raw");
-            auto duty_cycle_raw = this->get_command(thruster_name + "/esc/duty_cycle_raw");
+            auto esc_enabled_raw = this->get_command(thruster_name + "/esc/enabled");
+            auto servo_enabled_raw = this->get_command(thruster_name + "/servo/enabled");
+            auto angle_raw = this->get_command(thruster_name + "/servo/angle");
+            auto duty_cycle_raw = this->get_command(thruster_name + "/esc/duty_cycle");
 
             thruster_esc_enabled_cmd[i] =
                 util::from_interface_data<sinsei_umiusi_control::cmd::thruster::EscEnabled>(

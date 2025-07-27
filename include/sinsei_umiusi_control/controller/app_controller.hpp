@@ -7,8 +7,10 @@
 
 #include "sinsei_umiusi_control/cmd/app.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
-#include "sinsei_umiusi_control/interface_access_helper.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
+#include "sinsei_umiusi_control/state/thruster.hpp"
+#include "sinsei_umiusi_control/util/interface_accessor.hpp"
+#include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 namespace sinsei_umiusi_control::controller {
 
@@ -22,25 +24,20 @@ class AppController : public controller_interface::ChainableControllerInterface 
     sinsei_umiusi_control::state::imu::Orientation imu_orientation;
     sinsei_umiusi_control::state::imu::Velocity imu_velocity;
 
+    // Command interfaces (out)
     std::array<sinsei_umiusi_control::cmd::thruster::Angle, 4> thruster_angles;
     std::array<sinsei_umiusi_control::cmd::thruster::DutyCycle, 4> thruster_duty_cycles;
 
-    auto compute_outputs() -> void;
+    // State interfaces (in)
+    std::array<sinsei_umiusi_control::state::thruster::Rpm, 4> thruster_rpms;
 
-    static constexpr size_t CMD_SIZE = 8;
-    static constexpr const char * CMD_INTERFACE_NAMES[CMD_SIZE] = {
-        "thruster_controller1/angle", "thruster_controller1/duty_cycle",
-        "thruster_controller2/angle", "thruster_controller2/duty_cycle",
-        "thruster_controller3/angle", "thruster_controller3/duty_cycle",
-        "thruster_controller4/angle", "thruster_controller4/duty_cycle",
-    };
-    static constexpr size_t STATE_SIZE = 6;
-    static constexpr const char * STATE_INTERFACE_NAMES[STATE_SIZE] = {
-        "imu/orientation_raw.x", "imu/orientation_raw.y", "imu/orientation_raw.z",
-        "imu/velocity_raw.x",    "imu/velocity_raw.y",    "imu/velocity_raw.z",
-    };
+    sinsei_umiusi_control::util::ThrusterMode thruster_mode;
 
-    std::unique_ptr<InterfaceAccessHelper<CMD_SIZE, STATE_SIZE>> interface_helper;
+    auto compute_outputs(const rclcpp::Time & time, const rclcpp::Duration & period) -> void;
+
+    sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer command_interface_data;
+    sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer state_interface_data;
+    sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer ref_interface_data;
 
   public:
     AppController() = default;
@@ -51,8 +48,6 @@ class AppController : public controller_interface::ChainableControllerInterface 
         -> controller_interface::InterfaceConfiguration override;
     auto on_init() -> CallbackReturn override;
     auto on_configure(const rclcpp_lifecycle::State & previous_state) -> CallbackReturn override;
-    auto on_activate(const rclcpp_lifecycle::State & previous_state) -> CallbackReturn override;
-    auto on_deactivate(const rclcpp_lifecycle::State & previous_state) -> CallbackReturn override;
     auto on_export_reference_interfaces()
         -> std::vector<hardware_interface::CommandInterface> override;
     auto on_export_state_interfaces() -> std::vector<hardware_interface::StateInterface> override;

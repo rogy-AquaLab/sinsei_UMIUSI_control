@@ -7,7 +7,7 @@ from launch.launch_description_sources import FrontendLaunchDescriptionSource
 from ament_index_python import get_package_share_directory
 
 from controller_manager.hardware_spawner import is_hardware_component_loaded
-from controller_manager.test_utils import check_controllers_running, check_node_running
+from controller_manager.test_utils import check_node_running, check_controllers_running
 
 import pytest
 
@@ -23,7 +23,8 @@ from helper import (
 PACKAGE_NAME = 'sinsei_umiusi_control'
 
 LAUNCH_ARGUMENTS: dict[str, set[str]] = {
-    'thruster_mode': {'can', 'direct'},
+    'thruster_mode': {'can', 'direct'},  # URDFに渡される引数代表
+    'namespace': {'', 'test_ns'},
 }
 
 
@@ -39,8 +40,8 @@ def hardware_components(largs: dict[str, str]) -> set[str]:
     elif largs['thruster_mode'] == 'direct':
         return (
             base
-            | {f'thruster_direct{i}/servo_direct' for i in range(1, 5)}
-            | {f'thruster_direct{i}/esc_direct' for i in range(1, 5)}
+            | {f'thruster_direct{i}/servo' for i in range(1, 5)}
+            | {f'thruster_direct{i}/esc' for i in range(1, 5)}
         )
 
 
@@ -51,10 +52,10 @@ def controllers(largs: dict[str, str]) -> set[str]:
     base = {
         'gate_controller',
         'app_controller',
-        'thruster_controller1',
-        'thruster_controller2',
-        'thruster_controller3',
-        'thruster_controller4',
+        'thruster_controller_lf',
+        'thruster_controller_lb',
+        'thruster_controller_rb',
+        'thruster_controller_rf',
     }
     return base
 
@@ -81,19 +82,22 @@ def generate_launch_description(launch_arguments: dict[str, str]):
 def test_robot_state_publisher_running(helper_node, launch_arguments):
     """Test if the robot state publisher is running."""
     _ = launch_arguments
-    check_node_running(helper_node, 'robot_state_publisher', 2.0)
+    check_node_running(helper_node, 'robot_state_publisher', 0.3)
 
 
 @pytest.mark.launch(fixture=generate_launch_description)
 def test_hardware_loaded(helper_node, launch_arguments):
     """Test if the hardware is loaded."""
     components = hardware_components(launch_arguments)
+    ns = launch_arguments.get('namespace', '')
+    ns_fixed = f'{ns}/' if ns != '' else ''
+
     for component in components:
         assert is_hardware_component_loaded(
             helper_node,
-            'controller_manager',
+            f'{ns_fixed}controller_manager',
             component,
-            3.0,
+            1.3,
         ), f'Hardware component {component} is not loaded.'
 
 
@@ -101,7 +105,8 @@ def test_hardware_loaded(helper_node, launch_arguments):
 def test_controllers_running(helper_node, launch_arguments):
     """Test if the controllers are running."""
     cnames = controllers(launch_arguments)
-    check_controllers_running(helper_node, cnames)
+    ns = launch_arguments.get('namespace', '')
+    check_controllers_running(helper_node, cnames, ns, 'active')
 
 
 @pytest.fixture(

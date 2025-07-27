@@ -18,6 +18,10 @@ PACKAGE_NAME = 'sinsei_umiusi_control'
 # '' means the parameter is not set (default value will be used)
 XACRO_ARGUMENTS: dict[str, set[str]] = {
     'thruster_mode': {'', 'can', 'direct'},
+    'high_beam_pin': {'', '1'},
+    'low_beam_pin': {'', '1'},
+    'ir_pin': {'', '1'},
+    'indicator_led_pin': {'', '1'},
 }
 
 
@@ -32,7 +36,7 @@ def xacro_command(request) -> str:
     xacro_file = os.path.join(
         get_package_share_directory(PACKAGE_NAME),
         'urdf',
-        'sinsei_umiusi_control.urdf.xacro',
+        'main.urdf.xacro',
     )
     cmd = f'{xacro_path} {xacro_file} {params}'
     return cmd
@@ -41,7 +45,7 @@ def xacro_command(request) -> str:
 def test_urdf(xacro_command: str):
     with tempfile.TemporaryFile(suffix='.urdf') as temp_urdf_file:
         xacro_process = subprocess.run(
-            f'{xacro_command} > {temp_urdf_file.name}',
+            f'{xacro_command} -o {temp_urdf_file.name}',
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             shell=True,

@@ -7,14 +7,14 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rcpputils/tl_expected/expected.hpp>
 
+#include "sinsei_umiusi_control/hardware_model/interface/gpio.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
-#include "sinsei_umiusi_control/util/gpio_interface.hpp"
 
 namespace sinsei_umiusi_control::hardware_model {
 
 class ImuModel {
   private:
-    std::unique_ptr<util::GpioInterface> gpio;
+    std::unique_ptr<interface::Gpio> gpio;
 
     // ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.h
 
@@ -38,7 +38,7 @@ class ImuModel {
     auto read_orientation() -> tl::expected<state::imu::Orientation, std::string>;
 
   public:
-    ImuModel(std::unique_ptr<util::GpioInterface> gpio);
+    ImuModel(std::unique_ptr<interface::Gpio> gpio);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_read() -> tl::expected<
                        std::tuple<

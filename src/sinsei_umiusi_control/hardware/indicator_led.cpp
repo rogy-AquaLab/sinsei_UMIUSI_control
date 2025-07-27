@@ -1,6 +1,7 @@
 #include "sinsei_umiusi_control/hardware/indicator_led.hpp"
 
-#include "sinsei_umiusi_control/util/pigpio.hpp"
+#include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
+#include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
 namespace suchw = sinsei_umiusi_control::hardware;
@@ -10,10 +11,22 @@ namespace rlc = rclcpp_lifecycle;
 auto suchw::IndicatorLed::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
     this->hif::SystemInterface::on_init(info);
 
-    auto led_pin = std::make_unique<sinsei_umiusi_control::util::Pigpio>();
+    auto led_pin = std::make_unique<sinsei_umiusi_control::hardware_model::impl::Pigpio>();
 
-    // FIXME: ピン番号はパラメーターなどで設定できるようにする
-    this->model.emplace(std::move(led_pin), 24);
+    // ピン番号をパラメーターから取得
+    const auto led_pin_num_str = util::find_param(info.hardware_parameters, "pin");
+    if (!led_pin_num_str) {
+        RCLCPP_ERROR(this->get_logger(), "Parameter 'pin' not found in hardware parameters.");
+        return hif::CallbackReturn::ERROR;
+    }
+    int led_pin_num;
+    try {
+        led_pin_num = std::stoi(led_pin_num_str.value());
+    } catch (const std::invalid_argument & e) {
+        RCLCPP_ERROR(this->get_logger(), "Invalid pin number: %s", e.what());
+        return hif::CallbackReturn::ERROR;
+    }
+    this->model.emplace(std::move(led_pin), led_pin_num);
 
     auto res = this->model->on_init();
     if (!res) {

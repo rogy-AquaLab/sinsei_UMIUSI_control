@@ -1,6 +1,6 @@
 #include "sinsei_umiusi_control/hardware/imu.hpp"
 
-#include "sinsei_umiusi_control/util/pigpio.hpp"
+#include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
 namespace suchw = sinsei_umiusi_control::hardware;
@@ -10,7 +10,7 @@ namespace rlc = rclcpp_lifecycle;
 auto suchw::Imu::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
     this->hif::SensorInterface::on_init(info);
 
-    this->model.emplace(std::make_unique<sinsei_umiusi_control::util::Pigpio>());
+    this->model.emplace(std::make_unique<sinsei_umiusi_control::hardware_model::impl::Pigpio>());
 
     auto res = this->model->on_init();
     if (!res) {
@@ -41,12 +41,12 @@ auto suchw::Imu::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
 
     auto [orientation, velocity, temperature] = res.value();
 
-    this->set_state("imu/orientation_raw.x", orientation.x);
-    this->set_state("imu/orientation_raw.y", orientation.y);
-    this->set_state("imu/orientation_raw.z", orientation.z);
-    // this->set_state("imu/velocity_raw.x", velocity.x);
-    // this->set_state("imu/velocity_raw.y", velocity.y);
-    // this->set_state("imu/velocity_raw.z", velocity.z);
+    this->set_state("imu/orientation.x", orientation.x);
+    this->set_state("imu/orientation.y", orientation.y);
+    this->set_state("imu/orientation.z", orientation.z);
+    // this->set_state("imu/velocity.x", velocity.x);
+    // this->set_state("imu/velocity.y", velocity.y);
+    // this->set_state("imu/velocity.z", velocity.z);
     this->set_state("imu/temperature", util::to_interface_data(temperature));
 
     return hif::return_type::OK;
