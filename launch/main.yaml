@@ -4,14 +4,15 @@ launch:
       value: "sinsei_umiusi_control"
   - let:
       name: ros2_control_common
-      value: "$(find-pkg-share $(var pkg_name))/launch/include/ros2_control_common.xml"
+      value: "$(find-pkg-share $(var pkg_name))/launch/include/ros2_control_common.py"
 
   - arg:
-      name: launch_args
+      name: args
+      description: "Path to the launch arguments file"
       default: "$(find-pkg-share $(var pkg_name))/params/launch_args.yaml"
 
   - include:
-      file: "$(var launch_args)"
+      file: "$(var args)"
 
   - group:
       - push_ros_namespace:
