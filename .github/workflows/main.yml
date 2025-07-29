@@ -74,7 +74,7 @@ jobs:
         with:
           path: /github/home/.cache/sccache
           key: sccache-${{ runner.os }}-${{ hashFiles('**/*.cpp', '**/*.hpp') }}
-          restore-keys: ccache-${{ runner.os }}-
+          restore-keys: sccache-${{ runner.os }}-
 
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.9
