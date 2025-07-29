@@ -51,23 +51,22 @@ jobs:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
 
     steps:
-      - name: Checkout Install Scripts
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          path: "../../..${{ github.workspace }}"
 
       - name: Install can-utils
         run: sudo apt-get install -y can-utils
 
       - name: Install pigpio
-        run: chmod +x ${{ github.workspace }}/${{ github.event.repository.name }}/.docker/scripts/install-pigpio.sh && sudo ${{ github.workspace }}/${{ github.event.repository.name }}/.docker/scripts/install-pigpio.sh
+        run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
 
-      # - name: Mirror repository into github workspace dir # `hashFiles`が`${{ github.workspace }}`以下のファイルにしか対応していないため
-      #   run: |
-      #     echo "from: /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src"
-      #     echo "to  : ${{ github.workspace }}"
-      #     mkdir -p ${{ github.workspace }}
-      #     cp -r /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src ${{ github.workspace }}/
+      - name: Move repository into github workspace dir # `hashFiles`が`${{ github.workspace }}`以下のファイルにしか対応していないため
+        run: |
+          echo "from: $(pwd)"
+          echo "to  : ${{ github.workspace }}"
+          mkdir -p ${{ github.workspace }}
+          mv ./* ${{ github.workspace }}/
+          ls -laR ${{ github.workspace }}
 
       - name: Fetch cache
         uses: actions/cache@v4
