@@ -16,6 +16,7 @@ on:
 
 env:
   ROS_DISTRO: jazzy # default value, can be overridden by `.env` file
+  SCCACHE_GHA_ENABLED: "true"
 
 jobs:
   parse-env-file:
@@ -61,6 +62,11 @@ jobs:
 
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
+
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
+        with:
+          version: "v0.7.7" # sccache version as apt package
 
       - name: Colcon Build
         uses: ros-tooling/action-ros-ci@v0.4
