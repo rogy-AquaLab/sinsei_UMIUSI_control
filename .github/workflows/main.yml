@@ -54,20 +54,20 @@ jobs:
       - name: Checkout Install Scripts
         uses: actions/checkout@v4
         with:
-          sparse-checkout: .docker/scripts
+          path: "." # place repository into github workspace dir
 
       - name: Install can-utils
         run: sudo apt-get install -y can-utils
 
       - name: Install pigpio
-        run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
+        run: chmod +x ${{ github.workspace }}/.docker/scripts/install-pigpio.sh && sudo ${{ github.workspace }}/.docker/scripts/install-pigpio.sh
 
-      - name: Mirror repository into github workspace dir # `hashFiles`が`${{ github.workspace }}`以下のファイルにしか対応していないため
-        run: |
-          echo "from: /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src"
-          echo "to  : ${{ github.workspace }}"
-          mkdir -p ${{ github.workspace }}
-          cp -r /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src ${{ github.workspace }}/
+      # - name: Mirror repository into github workspace dir # `hashFiles`が`${{ github.workspace }}`以下のファイルにしか対応していないため
+      #   run: |
+      #     echo "from: /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src"
+      #     echo "to  : ${{ github.workspace }}"
+      #     mkdir -p ${{ github.workspace }}
+      #     cp -r /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src ${{ github.workspace }}/
 
       - name: Fetch cache
         uses: actions/cache@v4
