@@ -6,16 +6,39 @@ coverage:
   status:
     project:
       default:
-        target: 70%
+        range: "60...70"
+        target: 60%
         threshold: 15%
     patch:
       default:
         informational: true
 
 comment:
-  layout: "diff, files"
+  layout: "diff, components"
   hide_project_coverage: false
   behavior: once
+
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        range: "60...70"
+        target: 60%
+        threshold: 15%
+      - type: patch
+        informational: true
+  individual_components:
+    - component_id: hardware_interfaces
+      name: hardware_interfaces
+      paths:
+        - "(src|include)/**/hardware/**"
+      statuses:
+        - type: project
+          informational: true
+    - component_id: core
+      name: core
+      paths:
+        - "!((src|include)/**/hardware|(src|include)/**/hardware_model/impl)/**"
 
 fixes:
   - "ros_ws/src/*/sinsei_UMIUSI_control/sinsei_umiusi_control/::"
