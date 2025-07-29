@@ -60,7 +60,7 @@ jobs:
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
 
-      - name: Hash files for cache-id
+      - name: Hash files for cache key
         id: hash-files
         run: echo "hash=${{ hashFiles('**/*.cpp', '**/*.hpp', '**/*.py') }}" >> "$GITHUB_OUTPUT"
 
@@ -68,8 +68,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /github/home/.cache/sccache
-          key: ${{ runner.os }}-sccache-${{ env.ROS_DISTRO }}-${{ steps.hash-files.outputs.hash }}
-          restore-keys: ${{ runner.os }}-sccache-
+          key: ${{ runner.os }}-sccache-ros-${{ env.ROS_DISTRO }}-${{ steps.hash-files.outputs.hash }}
+          restore-keys: ${{ runner.os }}-sccache-ros-${{ env.ROS_DISTRO }}-
 
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.9
@@ -158,16 +158,25 @@ jobs:
     container:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
     steps:
-      - name: Checkout Install Scripts
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          sparse-checkout: .docker/scripts
 
       - name: Install can-utils
         run: sudo apt-get install -y can-utils
 
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
+
+      - name: Hash files for cache key
+        id: hash-files
+        run: echo "hash=${{ hashFiles('**/*.cpp', '**/*.hpp', '**/*.py') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch cache
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/sccache
+          key: ${{ runner.os }}-sccache-ros-${{ env.ROS_DISTRO }}-${{ steps.hash-files.outputs.hash }}
+          restore-keys: ${{ runner.os }}-sccache-ros-${{ env.ROS_DISTRO }}-
 
       - name: Colcon Test
         uses: ros-tooling/action-ros-ci@v0.4
