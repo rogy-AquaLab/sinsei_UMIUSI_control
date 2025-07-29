@@ -8,9 +8,30 @@
 namespace sinsei_umiusi_control::util {
 
 // Convert int64_t to 8-byte array in big-endian order
-inline auto to_bytes_be(int64_t value) -> std::array<std::byte, 8> {
+template <typename Int>
+inline auto to_bytes_be(Int value) -> std::array<std::byte, 8>;
+
+template <>
+inline auto to_bytes_be(int8_t value) -> std::array<std::byte, 8> {
+    return {std::byte(value)};
+}
+
+template <>
+inline auto to_bytes_be(int16_t value) -> std::array<std::byte, 8> {
+    return {std::byte(value >> 8), std::byte(value)};
+}
+
+template <>
+inline auto to_bytes_be(int32_t value) -> std::array<std::byte, 8> {
     return {
         std::byte(value >> 24), std::byte(value >> 16), std::byte(value >> 8), std::byte(value)};
+}
+
+template <>
+inline auto to_bytes_be(int64_t value) -> std::array<std::byte, 8> {
+    return {std::byte(value >> 56), std::byte(value >> 48), std::byte(value >> 40),
+            std::byte(value >> 32), std::byte(value >> 24), std::byte(value >> 16),
+            std::byte(value >> 8),  std::byte(value)};
 }
 
 // Convert 8-byte array in big-endian order to int16_t
