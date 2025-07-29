@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     clangd-18 \
     clang-format-18 \
     clang-tidy-18 \
+    sccache \
     python3-colcon-lcov-result
 
 # Install can-utils
