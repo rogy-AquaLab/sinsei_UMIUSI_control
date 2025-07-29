@@ -21,7 +21,7 @@ static constexpr uint32_t OPR_MODE_ADDR = 0x3D;
 static constexpr uint32_t SYS_TRIGGER_ADDR = 0x3F;
 static constexpr uint32_t PWR_MODE_ADDR = 0x3E;
 static constexpr uint32_t PAGE_ID_ADDR = 0x07;
-static constexpr uint32_t EULER_H_LSB_ADDR = 0x1A;
+static constexpr uint32_t QUATERNION_DATA_W_LSB_ADDR = 0x20;
 static constexpr std::byte OPERATION_MODE_CONFIG{0x00};
 static constexpr std::byte OPERATION_MODE_NDOF{0X0C};
 static constexpr std::byte POWER_MODE_NORMAL{0x00};
@@ -278,9 +278,9 @@ TEST(ImuModelBeginTest, fail_on_set_opr_mode_ndof) {
 
 TEST(ImuModelOnReadTest, all) {
     auto gpio = std::make_unique<mock::Gpio>();
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 8; ++i) {
         // TODO: test with dummy data
-        EXPECT_CALL(*gpio, i2c_read_byte_data(EULER_H_LSB_ADDR + i))
+        EXPECT_CALL(*gpio, i2c_read_byte_data(QUATERNION_DATA_W_LSB_ADDR + i))
             .Times(1)
             .WillOnce(Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{0})));
     }
@@ -294,10 +294,9 @@ TEST(ImuModelOnReadTest, all) {
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
 
-// TODO: クオータニオンのテストに直す
-TEST(ImuModelOnReadTest, fail_on_read_orientation) {
+TEST(ImuModelOnReadTest, fail_on_read_quaternion) {
     auto gpio = std::make_unique<mock::Gpio>();
-    EXPECT_CALL(*gpio, i2c_read_byte_data(EULER_H_LSB_ADDR))
+    EXPECT_CALL(*gpio, i2c_read_byte_data(QUATERNION_DATA_W_LSB_ADDR))
         .Times(1)
         .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::I2cReadFailed)));
 
@@ -308,8 +307,8 @@ TEST(ImuModelOnReadTest, fail_on_read_orientation) {
 
 TEST(ImuModelOnReadTest, fail_on_read_temperature) {
     auto gpio = std::make_unique<mock::Gpio>();
-    for (int i = 0; i < 6; ++i) {
-        EXPECT_CALL(*gpio, i2c_read_byte_data(EULER_H_LSB_ADDR + i))
+    for (int i = 0; i < 8; ++i) {
+        EXPECT_CALL(*gpio, i2c_read_byte_data(QUATERNION_DATA_W_LSB_ADDR + i))
             .Times(1)
             .WillOnce(Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{0})));
     }
