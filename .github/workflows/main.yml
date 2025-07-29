@@ -177,20 +177,6 @@ jobs:
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
 
-      - name: Fetch cache
-        uses: actions/cache@v4
-        env:
-          prefix: ${{ runner.os }}-sccache-ros-${{ env.ROS_DISTRO }}-test
-        with:
-          path: /github/home/.cache/sccache
-          key: ${{ env.prefix }}-${{ needs.parse-env-file.outputs.file-hash }}
-          restore-keys: ${{ env.prefix }}-
-
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.9
-        with:
-          version: "v0.7.7" # sccache version as apt package
-
       - name: Colcon Test
         uses: ros-tooling/action-ros-ci@v0.4
         with:
