@@ -62,6 +62,13 @@ jobs:
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
 
+      - name: Fetch cache
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/sccache
+          key: sccache-${{ runner.os }}-${{ hashFiles('**/*.cpp', '**/*.hpp') }}
+          restore-keys: ccache-${{ runner.os }}-
+
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.9
         with:
