@@ -54,7 +54,7 @@ jobs:
       - name: Checkout Install Scripts
         uses: actions/checkout@v4
         with:
-          path: "." # place repository into github workspace dir
+          path: ${{ github.workspace }}
 
       - name: Install can-utils
         run: sudo apt-get install -y can-utils
