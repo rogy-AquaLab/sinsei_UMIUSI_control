@@ -62,11 +62,18 @@ jobs:
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
 
+      - name: Mirror repository into github workspace dir
+        run: |
+          echo "from: /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/[0-9a-z]*/${{ github.event.repository.name }}"
+          echo "to  : ${{ github.workspace }}"
+          mkdir -p $(dirname ${{ github.workspace }})
+          ln -s /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/[0-9a-z]*/${{ github.event.repository.name }} ${{ github.workspace }}
+
       - name: Fetch cache
         uses: actions/cache@v4
         with:
           path: /github/home/.cache/sccache
-          key: sccache-${{ runner.os }}-${{ hashFiles('/**/*.cpp', '/**/*.hpp') }}
+          key: sccache-${{ runner.os }}-${{ hashFiles('**/*.cpp', '**/*.hpp') }}
           restore-keys: ccache-${{ runner.os }}-
 
       - name: Run sccache-cache
