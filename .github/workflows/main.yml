@@ -16,7 +16,6 @@ on:
 
 env:
   ROS_DISTRO: jazzy # default value, can be overridden by `.env` file
-  SCCACHE_GHA_ENABLED: "true"
 
 jobs:
   parse-env-file:
