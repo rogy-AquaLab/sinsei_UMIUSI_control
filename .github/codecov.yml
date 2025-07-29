@@ -15,26 +15,31 @@ component_management:
         informational: true
   individual_components:
     - component_id: hardware_interfaces
-      name: hardware_interfaces
+      name: Hardware interfaces (ROS2 control)
       paths:
-        - "(src|include)/**/hardware/**"
+        - "**/hardware/*"
+        - "**/hardware/**/*"
       statuses:
         - type: project
           informational: true
     - component_id: hardware_impls
-      name: hardware_impls
+      name: Hardware implementations
       paths:
-        - "(src|include)/**/hardware_model/impl/**"
+        - "**/hardware_model/impl/*"
+        - "**/hardware_model/impl/**/*"
       statuses:
         - type: project
           informational: true
     - component_id: core
-      name: core
+      name: Core logic
       paths:
-        - "!((src|include)/**/hardware|(src|include)/**/hardware_model/impl)/**"
+        - "!**/hardware/*"
+        - "!**/hardware/**/*"
+        - "!**/hardware_model/impl/*"
+        - "!**/hardware_model/impl/**/*"
 
 comment:
-  layout: "diff, components"
+  layout: "files, components"
   hide_project_coverage: false
   behavior: once
 
