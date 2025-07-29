@@ -64,10 +64,10 @@ jobs:
 
       - name: Mirror repository into github workspace dir # `hashFiles`が`${{ github.workspace }}`以下のファイルにしか対応していないため
         run: |
-          echo "from: /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/[0-9a-z]*/${{ github.event.repository.name }}"
+          echo "from: /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src"
           echo "to  : ${{ github.workspace }}"
-          mkdir -p $(dirname ${{ github.workspace }})
-          cp -r /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/[0-9a-z]*/${{ github.event.repository.name }} ${{ github.workspace }}
+          mkdir -p ${{ github.workspace }}
+          cp -r /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src ${{ github.workspace }}/
 
       - name: Fetch cache
         uses: actions/cache@v4
