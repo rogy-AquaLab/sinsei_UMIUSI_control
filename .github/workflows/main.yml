@@ -54,13 +54,13 @@ jobs:
       - name: Checkout Install Scripts
         uses: actions/checkout@v4
         with:
-          path: ${{ github.workspace }}
+          path: "../../..${{ github.workspace }}"
 
       - name: Install can-utils
         run: sudo apt-get install -y can-utils
 
       - name: Install pigpio
-        run: chmod +x ${{ github.workspace }}/.docker/scripts/install-pigpio.sh && sudo ${{ github.workspace }}/.docker/scripts/install-pigpio.sh
+        run: chmod +x ${{ github.workspace }}/${{ github.event.repository.name }}/.docker/scripts/install-pigpio.sh && sudo ${{ github.workspace }}/${{ github.event.repository.name }}/.docker/scripts/install-pigpio.sh
 
       # - name: Mirror repository into github workspace dir # `hashFiles`が`${{ github.workspace }}`以下のファイルにしか対応していないため
       #   run: |
