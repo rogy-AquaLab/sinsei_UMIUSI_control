@@ -60,6 +60,8 @@ jobs:
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
 
+      - run: echo ${{ hashFiles('**/*.cpp', '**/*.hpp') }} # Debug
+
       - name: Move repository into github workspace dir # `hashFiles`が`${{ github.workspace }}`以下のファイルにしか対応していないため
         run: |
           echo "from: $(pwd)"
@@ -73,8 +75,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /github/home/.cache/sccache
-          key: sccache-${{ runner.os }}-${{ hashFiles('**/*.cpp', '**/*.hpp') }}
-          restore-keys: sccache-${{ runner.os }}-
+          key: ${{ runner.os }}-sccache-${{ env.ROS_DISTRO }}-${{ hashFiles('**/*.cpp', '**/*.hpp', '!**/install/*') }}-${{ hashFiles('**/*.py', '**/install/*') }}
+          restore-keys: ${{ runner.os }}-sccache-
 
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.9
