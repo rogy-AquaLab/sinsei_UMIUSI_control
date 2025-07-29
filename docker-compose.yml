@@ -16,7 +16,6 @@ services:
     environment:
       TERM: xterm-color
       DISPLAY:
-      CCACHE_ENABLE:
       ROS_DOMAIN_ID:
       RCUTILS_COLORIZED_OUTPUT:
     restart: always
