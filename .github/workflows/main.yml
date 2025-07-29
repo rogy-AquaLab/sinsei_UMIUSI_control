@@ -66,12 +66,11 @@ jobs:
           echo "to  : ${{ github.workspace }}"
           mkdir -p ${{ github.workspace }}
           mv ./* ${{ github.workspace }}/
-          ls -laR ${{ github.workspace }}
+
+      - run: echo ${{ hashFiles('**/*.cpp', '**/*.hpp') }} # Debug
 
       - name: Fetch cache
         uses: actions/cache@v4
-        env:
-          ACTIONS_STEP_DEBUG: true
         with:
           path: /github/home/.cache/sccache
           key: sccache-${{ runner.os }}-${{ hashFiles('**/*.cpp', '**/*.hpp') }}
