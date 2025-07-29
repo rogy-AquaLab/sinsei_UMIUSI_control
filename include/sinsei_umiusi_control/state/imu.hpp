@@ -5,10 +5,11 @@
 
 namespace sinsei_umiusi_control::state::imu {
 
-struct Orientation {
+struct Quaternion {
     double x;
     double y;
     double z;
+    double w;
 };
 struct Velocity {
     double x;

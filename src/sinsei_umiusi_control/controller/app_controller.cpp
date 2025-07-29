@@ -5,6 +5,7 @@
 #include <rclcpp/logging.hpp>
 #include <string>
 
+#include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
@@ -44,7 +45,7 @@ auto succ::AppController::on_init() -> cif::CallbackReturn {
     this->target_orientation = sinsei_umiusi_control::cmd::app::Orientation{};
     this->target_velocity = sinsei_umiusi_control::cmd::app::Velocity{};
 
-    this->imu_orientation = sinsei_umiusi_control::state::imu::Orientation{};
+    this->imu_quaternion = sinsei_umiusi_control::state::imu::Quaternion{};
     this->imu_velocity = sinsei_umiusi_control::state::imu::Velocity{};
 
     this->thruster_angles.fill(sinsei_umiusi_control::cmd::thruster::Angle{});
@@ -87,11 +88,13 @@ auto succ::AppController::on_configure(const rlc::State & /*previous_state*/)
         }
     }
     this->state_interface_data.emplace_back(
-        "imu/orientation.x", util::to_interface_data_ptr(this->imu_orientation.x));
+        "imu/quaternion.x", util::to_interface_data_ptr(this->imu_quaternion.x));
     this->state_interface_data.emplace_back(
-        "imu/orientation.y", util::to_interface_data_ptr(this->imu_orientation.y));
+        "imu/quaternion.y", util::to_interface_data_ptr(this->imu_quaternion.y));
     this->state_interface_data.emplace_back(
-        "imu/orientation.z", util::to_interface_data_ptr(this->imu_orientation.z));
+        "imu/quaternion.z", util::to_interface_data_ptr(this->imu_quaternion.z));
+    this->state_interface_data.emplace_back(
+        "imu/quaternion.w", util::to_interface_data_ptr(this->imu_quaternion.w));
     this->state_interface_data.emplace_back(
         "imu/velocity.x", util::to_interface_data_ptr(this->imu_velocity.x));
     this->state_interface_data.emplace_back(
