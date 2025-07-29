@@ -62,7 +62,7 @@ jobs:
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
 
-      - name: Mirror repository into github workspace dir
+      - name: Mirror repository into github workspace dir # `hashFiles`が`${{ github.workspace }}`以下のファイルにしか対応していないため
         run: |
           echo "from: /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/[0-9a-z]*/${{ github.event.repository.name }}"
           echo "to  : ${{ github.workspace }}"
