@@ -60,22 +60,15 @@ jobs:
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
 
-      - run: echo ${{ hashFiles('**/*.cpp', '**/*.hpp') }} # Debug
-
-      - name: Move repository into github workspace dir # `hashFiles`が`${{ github.workspace }}`以下のファイルにしか対応していないため
-        run: |
-          echo "from: $(pwd)"
-          echo "to  : ${{ github.workspace }}"
-          mkdir -p ${{ github.workspace }}
-          mv ./* ${{ github.workspace }}/
-
-      - run: echo ${{ hashFiles('**/*.cpp', '**/*.hpp') }} # Debug
+      - name: Hash files for cache-id
+        id: hash-files
+        run: echo "hash=${{ hashFiles('**/*.cpp', '**/*.hpp', '**/*.py') }}" >> "$GITHUB_OUTPUT"
 
       - name: Fetch cache
         uses: actions/cache@v4
         with:
           path: /github/home/.cache/sccache
-          key: ${{ runner.os }}-sccache-${{ env.ROS_DISTRO }}-${{ hashFiles('**/*.cpp', '**/*.hpp', '!**/install/*') }}-${{ hashFiles('**/*.py', '**/install/*') }}
+          key: ${{ runner.os }}-sccache-${{ env.ROS_DISTRO }}-${{ steps.hash-files.outputs.hash }}
           restore-keys: ${{ runner.os }}-sccache-
 
       - name: Run sccache-cache
