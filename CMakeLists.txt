@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.20)
 project(sinsei_umiusi_control)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -12,6 +12,13 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# set sccache
+find_program(SCCACHE_EXE sccache)
+if(SCCACHE_EXE)
+  set(CMAKE_C_COMPILER_LAUNCHER ${SCCACHE_EXE})
+  set(CMAKE_CXX_COMPILER_LAUNCHER ${SCCACHE_EXE})
+endif()
+
 # for clang-tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -20,21 +27,6 @@ find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
 ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
-  include/${PROJECT_NAME}/hardware/can.hpp
-  include/${PROJECT_NAME}/hardware/headlights.hpp
-  include/${PROJECT_NAME}/hardware/imu.hpp
-  include/${PROJECT_NAME}/hardware/indicator_led.hpp
-  include/${PROJECT_NAME}/hardware/thruster_direct/esc_direct.hpp
-  include/${PROJECT_NAME}/hardware/thruster_direct/servo_direct.hpp
-
-  include/${PROJECT_NAME}/hardware_model/can_model.hpp
-  include/${PROJECT_NAME}/hardware_model/headlights_model.hpp
-  include/${PROJECT_NAME}/hardware_model/imu_model.hpp
-  include/${PROJECT_NAME}/hardware_model/indicator_led_model.hpp
-  # include/${PROJECT_NAME}/hardware_model/thruster_direct/esc_direct_model.hpp
-  # include/${PROJECT_NAME}/hardware_model/thruster_direct/servo_direct_model.hpp
-  include/${PROJECT_NAME}/hardware_model/can/vesc_model.hpp
-
   src/${PROJECT_NAME}/hardware/can.cpp
   src/${PROJECT_NAME}/hardware/headlights.cpp
   src/${PROJECT_NAME}/hardware/imu.cpp
@@ -64,9 +56,6 @@ ament_auto_add_library(${PROJECT_NAME}_controller SHARED
   src/${PROJECT_NAME}/controller/app_controller.cpp
   src/${PROJECT_NAME}/controller/thruster_controller.cpp
   src/${PROJECT_NAME}/util/interface_accessor.cpp
-  include/${PROJECT_NAME}/controller/gate_controller.hpp
-  include/${PROJECT_NAME}/controller/app_controller.hpp
-  include/${PROJECT_NAME}/controller/thruster_controller.hpp
 )
 
 pluginlib_export_plugin_description_file(hardware_interface plugin/umiusi_hardware_plugin.xml)

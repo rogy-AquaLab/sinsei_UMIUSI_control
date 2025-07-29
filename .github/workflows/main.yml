@@ -19,8 +19,10 @@ env:
 
 jobs:
   parse-env-file:
-    name: Parse Environment File
+    name: Parse Environment
     runs-on: ubuntu-latest
+    outputs:
+      file-hash: ${{ steps.hash-files.outputs.hash }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,6 +31,10 @@ jobs:
         id: parse-env-file
         shell: bash
         run: source .github/workflows/scripts/parse-env-file.sh $GITHUB_ENV || exit 0
+
+      - name: Hash files for cache key
+        id: hash-files
+        run: echo "hash=${{ hashFiles('**/*.cpp', '**/*.hpp', '**/*.py') }}" >> "$GITHUB_OUTPUT"
 
   python-lint:
     name: Python Lint
@@ -51,7 +57,7 @@ jobs:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
 
     steps:
-      - name: Checkout Install Scripts
+      - name: Checkout install script
         uses: actions/checkout@v4
         with:
           sparse-checkout: .docker/scripts
@@ -61,6 +67,20 @@ jobs:
 
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
+
+      - name: Fetch cache
+        uses: actions/cache@v4
+        env:
+          prefix: ${{ runner.os }}-sccache-ros-${{ env.ROS_DISTRO }}-build
+        with:
+          path: /github/home/.cache/sccache
+          key: ${{ env.prefix }}-${{ needs.parse-env-file.outputs.file-hash }}
+          restore-keys: ${{ env.prefix }}-
+
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
+        with:
+          version: "v0.7.7" # sccache version as apt package
 
       - name: Colcon Build
         uses: ros-tooling/action-ros-ci@v0.4
@@ -90,8 +110,10 @@ jobs:
       SED_ARG_1: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/[0-9a-z]*/${{ github.event.repository.name }}|${{ github.workspace }}|g
       SED_ARG_2: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/build|${{ github.workspace }}/build|g
     steps:
-      - name: Checkout repository
+      - name: Checkout install script
         uses: actions/checkout@v4
+        with:
+          sparse-checkout: .docker/scripts
 
       - name: Install can-utils
         run: sudo apt-get install -y can-utils
@@ -144,7 +166,7 @@ jobs:
     container:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
     steps:
-      - name: Checkout Install Scripts
+      - name: Checkout install script
         uses: actions/checkout@v4
         with:
           sparse-checkout: .docker/scripts
