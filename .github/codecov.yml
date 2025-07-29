@@ -2,11 +2,13 @@ codecov:
   notify:
     wait_for_ci: false
 
+coverage:
+  range: "50...70"
+
 component_management:
   default_rules:
     statuses:
       - type: project
-        range: "60...70"
         target: 60%
         threshold: 15%
       - type: patch
@@ -16,6 +18,13 @@ component_management:
       name: hardware_interfaces
       paths:
         - "(src|include)/**/hardware/**"
+      statuses:
+        - type: project
+          informational: true
+    - component_id: hardware_impls
+      name: hardware_impls
+      paths:
+        - "(src|include)/**/hardware_model/impl/**"
       statuses:
         - type: project
           informational: true
