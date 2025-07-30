@@ -26,7 +26,7 @@ constexpr uint8_t LED_PIN = 24;
 
 class IndicatorLedModelOnWriteTest : public ::testing::TestWithParam<cmd::indicator_led::Enabled> {
 };
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     IndicatorLedModelTest, IndicatorLedModelOnWriteTest,
     ::testing::Values(succmd::indicator_led::Enabled{true}, succmd::indicator_led::Enabled{false}));
 

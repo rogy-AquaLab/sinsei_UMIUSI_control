@@ -29,7 +29,7 @@ constexpr uint8_t IR_PIN = 25;
 
 class HeadlightsModelOnWriteTest
 : public ::testing::TestWithParam<std::tuple<bool, bool, bool, int>> {};
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     HeadlightsModelTest, HeadlightsModelOnWriteTest,
     ::testing::Combine(
         ::testing::Bool(), ::testing::Bool(), ::testing::Bool(), ::testing::Values(0, 1, 2, 3)));
