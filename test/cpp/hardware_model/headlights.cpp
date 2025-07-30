@@ -58,25 +58,25 @@ TEST_P(HeadlightsModelOnWriteTest, all) {
 
     switch (error) {
         case 1:  // High beam error
-            EXPECT_CALL(*gpio, write_digital(HIGH_BEAM_PIN, high_beam_enabled))
+            EXPECT_CALL(*gpio, write_digital(HIGH_BEAM_PIN, std::move(high_beam_enabled)))
                 .Times(1)
                 .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::UnknownError)));
-            EXPECT_CALL(*gpio, write_digital(LOW_BEAM_PIN, low_beam_enabled)).Times(1);
-            EXPECT_CALL(*gpio, write_digital(IR_PIN, ir_enabled)).Times(1);
+            EXPECT_CALL(*gpio, write_digital(LOW_BEAM_PIN, std::move(low_beam_enabled))).Times(1);
+            EXPECT_CALL(*gpio, write_digital(IR_PIN, std::move(ir_enabled))).Times(1);
             break;
         case 2:  // Low beam error
-            EXPECT_CALL(*gpio, write_digital(HIGH_BEAM_PIN, high_beam_enabled)).Times(1);
-            EXPECT_CALL(*gpio, write_digital(LOW_BEAM_PIN, low_beam_enabled))
+            EXPECT_CALL(*gpio, write_digital(HIGH_BEAM_PIN, std::move(high_beam_enabled))).Times(1);
+            EXPECT_CALL(*gpio, write_digital(LOW_BEAM_PIN, std::move(low_beam_enabled)))
                 .Times(1)
                 .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::UnknownError)));
-            EXPECT_CALL(*gpio, write_digital(IR_PIN, ir_enabled)).Times(1);
+            EXPECT_CALL(*gpio, write_digital(IR_PIN, std::move(ir_enabled))).Times(1);
             break;
         case 3:  // IR error
-            EXPECT_CALL(*gpio, write_digital(HIGH_BEAM_PIN, high_beam_enabled)).Times(1);
-            EXPECT_CALL(*gpio, write_digital(IR_PIN, ir_enabled))
+            EXPECT_CALL(*gpio, write_digital(HIGH_BEAM_PIN, std::move(high_beam_enabled))).Times(1);
+            EXPECT_CALL(*gpio, write_digital(IR_PIN, std::move(ir_enabled)))
                 .Times(1)
                 .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::UnknownError)));
-            EXPECT_CALL(*gpio, write_digital(LOW_BEAM_PIN, low_beam_enabled)).Times(1);
+            EXPECT_CALL(*gpio, write_digital(LOW_BEAM_PIN, std::move(low_beam_enabled))).Times(1);
             break;
         case 0:  // No error
         default:
@@ -90,7 +90,7 @@ TEST_P(HeadlightsModelOnWriteTest, all) {
     auto hb = succmd::headlights::HighBeamEnabled{high_beam_enabled};
     auto lb = succmd::headlights::LowBeamEnabled{low_beam_enabled};
     auto ir = succmd::headlights::IrEnabled{ir_enabled};
-    const auto result = headlights_model.on_write(hb, lb, ir);
+    const auto result = headlights_model.on_write(std::move(hb), std::move(lb), std::move(ir));
     if (error == 0) {
         ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     } else {

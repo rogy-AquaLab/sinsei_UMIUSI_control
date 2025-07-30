@@ -45,11 +45,11 @@ TEST_P(IndicatorLedModelOnWriteTest, all) {
     auto enabled = GetParam();
 
     auto gpio = std::make_unique<mock::Gpio>();
-    EXPECT_CALL(*gpio, write_digital(_, enabled.value)).Times(1);
+    EXPECT_CALL(*gpio, write_digital(_, std::move(enabled.value))).Times(1);
 
     auto indicator_led_model = suchm::IndicatorLedModel(std::move(gpio), LED_PIN);
     indicator_led_model.on_init();
-    indicator_led_model.on_write(enabled);
+    indicator_led_model.on_write(std::move(enabled));
 }
 
 }  // namespace sinsei_umiusi_control::test::hardware_model::indicator_led
