@@ -103,8 +103,14 @@ ament_auto_package(
 # ! ref: https://stackoverflow.com/questions/32306648/changing-compiler-with-cmake-creates-infinite-loop
 
 # set clang as the default compiler if available
-find_program(CLANG_EXE clang)
-if(CLANG_EXE)
-  set(CMAKE_C_COMPILER ${CLANG_EXE})
-  set(CMAKE_CXX_COMPILER ${CLANG_EXE}++)
-endif()
+# TODO: gcovまわりのバグが解消できたら有効化
+# find_program(CLANG_EXE clang)
+# if(CLANG_EXE)
+#   set(CMAKE_C_COMPILER ${CLANG_EXE})
+#   set(CMAKE_CXX_COMPILER ${CLANG_EXE}++)
+#   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-ld=lld")
+#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-ld=lld")
+# else()
+  set(CMAKE_C_COMPILER gcc)
+  set(CMAKE_CXX_COMPILER g++)
+# endif()
