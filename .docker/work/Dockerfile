@@ -10,6 +10,7 @@ RUN for file in /tmp/scripts/*.sh; do \
 
 RUN apt-get update && apt-get install -y \
     git \
+    clang \
     clangd-18 \
     clang-format-18 \
     clang-tidy-18 \
