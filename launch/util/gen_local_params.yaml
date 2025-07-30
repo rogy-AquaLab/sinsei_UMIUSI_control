@@ -3,10 +3,5 @@ launch:
       name: pkg_name
       value: "sinsei_umiusi_control"
 
-  - arg:
-      name: gen_local_params
-      description: "Generate parameter files into the current directory"
-      default: "false"
-
   - include:
       file: "$(find-pkg-share $(var pkg_name))/launch/include/gen_local_params.py"
