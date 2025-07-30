@@ -50,7 +50,7 @@ auto suchw::Headlights::on_init(const hif::HardwareInfo & info) -> hif::Callback
 
     this->model.emplace(std::move(gpio), high_beam_pin_num, low_beam_pin_num, ir_pin_num);
 
-    auto res = this->model->on_init();
+    const auto res = this->model->on_init();
     if (!res) {
         RCLCPP_ERROR(
             this->get_logger(), "\n  Failed to initialize Headlights: %s", res.error().c_str());
@@ -69,17 +69,14 @@ auto suchw::Headlights::read(const rclcpp::Time & /*time*/, const rclcpp::Durati
 
 auto suchw::Headlights::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     -> hif::return_type {
-    double high_beam_enabled_raw = get_command("headlights/high_beam_enabled");
-    double low_beam_enabled_raw = get_command("headlights/low_beam_enabled");
-    double ir_enabled_raw = get_command("headlights/ir_enabled");
     auto high_beam_enabled =
         util::from_interface_data<sinsei_umiusi_control::cmd::headlights::HighBeamEnabled>(
-            high_beam_enabled_raw);
+            this->get_command("headlights/high_beam_enabled"));
     auto low_beam_enabled =
         util::from_interface_data<sinsei_umiusi_control::cmd::headlights::LowBeamEnabled>(
-            low_beam_enabled_raw);
+            this->get_command("headlights/low_beam_enabled"));
     auto ir_enabled = util::from_interface_data<sinsei_umiusi_control::cmd::headlights::IrEnabled>(
-        ir_enabled_raw);
+        this->get_command("headlights/ir_enabled"));
 
     if (!this->model) {
         constexpr auto DURATION = 3000;  // ms
@@ -89,7 +86,8 @@ auto suchw::Headlights::write(const rclcpp::Time & /*time*/, const rclcpp::Durat
         return hif::return_type::OK;
     }
 
-    auto res = this->model->on_write(high_beam_enabled, low_beam_enabled, ir_enabled);
+    const auto res = this->model->on_write(
+        std::move(high_beam_enabled), std::move(low_beam_enabled), std::move(ir_enabled));
     if (!res) {
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(

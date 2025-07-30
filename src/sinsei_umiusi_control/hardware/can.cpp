@@ -95,42 +95,38 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
 
     switch (variant.index()) {
         case 0: {  // Rpm
-            auto rpm_pair =
-                std::get<std::pair<size_t, sinsei_umiusi_control::state::thruster::Rpm>>(variant);
-            auto thruster_name = "thruster" + std::to_string(rpm_pair.first + 1);
-            this->set_state(thruster_name + "/esc/rpm", util::to_interface_data(rpm_pair.second));
+            const auto [index, rpm] = std::get<0>(variant);
+            const auto thruster_name = "thruster" + std::to_string(index + 1);
+            this->set_state(thruster_name + "/esc/rpm", util::to_interface_data(rpm));
             break;
         }
         case 1: {  // ESC WaterLeaked
-            auto water_leaked_pair =
-                std::get<std::pair<size_t, sinsei_umiusi_control::state::esc::WaterLeaked>>(
-                    variant);
-            auto thruster_name = "thruster" + std::to_string(water_leaked_pair.first + 1);
+            const auto [index, water_leaked] = std::get<1>(variant);
+            const auto thruster_name = "thruster" + std::to_string(index + 1);
             this->set_state(
-                thruster_name + "/esc/water_leaked",
-                util::to_interface_data(water_leaked_pair.second));
+                thruster_name + "/esc/water_leaked", util::to_interface_data(water_leaked));
             break;
         }
         case 2: {  // BatteryCurrent
-            auto battery_current =
+            const auto battery_current =
                 std::get<sinsei_umiusi_control::state::main_power::BatteryCurrent>(variant);
             this->set_state("main_power/battery_current", util::to_interface_data(battery_current));
             break;
         }
         case 3: {  // BatteryVoltage
-            auto battery_voltage =
+            const auto battery_voltage =
                 std::get<sinsei_umiusi_control::state::main_power::BatteryVoltage>(variant);
             this->set_state("main_power/battery_voltage", util::to_interface_data(battery_voltage));
             break;
         }
         case 4: {  // Temperature
-            auto temperature =
+            const auto temperature =
                 std::get<sinsei_umiusi_control::state::main_power::Temperature>(variant);
             this->set_state("main_power/temperature", util::to_interface_data(temperature));
             break;
         }
         case 5: {  // WaterLeaked
-            auto water_leaked =
+            const auto water_leaked =
                 std::get<sinsei_umiusi_control::state::main_power::WaterLeaked>(variant);
             this->set_state("main_power/water_leaked", util::to_interface_data(water_leaked));
             break;
@@ -149,12 +145,10 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
         return hif::return_type::OK;
     }
 
-    auto _main_power_enabled_raw = this->get_command("main_power/enabled");
-    auto _led_tape_color_raw = this->get_command("led_tape/color");
-
-    auto && main_power_enabled =
-        util::from_interface_data<cmd::main_power::Enabled>(_main_power_enabled_raw);
-    auto && led_tape_color = util::from_interface_data<cmd::led_tape::Color>(_led_tape_color_raw);
+    auto && main_power_enabled = util::from_interface_data<cmd::main_power::Enabled>(
+        this->get_command("main_power/enabled"));
+    auto && led_tape_color =
+        util::from_interface_data<cmd::led_tape::Color>(this->get_command("led_tape/color"));
 
     switch (this->thruster_mode) {
         case util::ThrusterMode::Can: {
@@ -166,22 +160,14 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
             auto && thruster_angle = std::array<cmd::thruster::Angle, 4>{};
 
             for (size_t i = 0; i < 4; ++i) {
-                auto _thruster_esc_enabled_raw =
-                    this->get_command(thruster_name(i) + "/esc/enabled");
-                auto _thruster_servo_enabled_raw =
-                    this->get_command(thruster_name(i) + "/servo/enabled");
-                auto _thruster_duty_cycle_raw =
-                    this->get_command(thruster_name(i) + "/esc/duty_cycle");
-                auto _thruster_angle_raw = this->get_command(thruster_name(i) + "/servo/angle");
-
-                thruster_esc_enabled[i] =
-                    util::from_interface_data<cmd::thruster::EscEnabled>(_thruster_esc_enabled_raw);
+                thruster_esc_enabled[i] = util::from_interface_data<cmd::thruster::EscEnabled>(
+                    this->get_command(thruster_name(i) + "/esc/enabled"));
                 thruster_servo_enabled[i] = util::from_interface_data<cmd::thruster::ServoEnabled>(
-                    _thruster_servo_enabled_raw);
-                thruster_duty_cycle[i] =
-                    util::from_interface_data<cmd::thruster::DutyCycle>(_thruster_duty_cycle_raw);
-                thruster_angle[i] =
-                    util::from_interface_data<cmd::thruster::Angle>(_thruster_angle_raw);
+                    this->get_command(thruster_name(i) + "/servo/enabled"));
+                thruster_duty_cycle[i] = util::from_interface_data<cmd::thruster::DutyCycle>(
+                    this->get_command(thruster_name(i) + "/esc/duty_cycle"));
+                thruster_angle[i] = util::from_interface_data<cmd::thruster::Angle>(
+                    this->get_command(thruster_name(i) + "/servo/angle"));
             }
 
             const auto res = this->model->on_write(

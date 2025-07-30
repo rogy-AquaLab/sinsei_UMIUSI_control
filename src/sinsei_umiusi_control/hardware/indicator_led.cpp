@@ -28,7 +28,7 @@ auto suchw::IndicatorLed::on_init(const hif::HardwareInfo & info) -> hif::Callba
     }
     this->model.emplace(std::move(led_pin), led_pin_num);
 
-    auto res = this->model->on_init();
+    const auto res = this->model->on_init();
     if (!res) {
         RCLCPP_ERROR(
             this->get_logger(), "\n  Failed to initialize Indicator LED: %s", res.error().c_str());
@@ -47,9 +47,8 @@ auto suchw::IndicatorLed::read(const rclcpp::Time & /*time*/, const rclcpp::Dura
 
 auto suchw::IndicatorLed::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     -> hif::return_type {
-    double enabled_raw = get_command("indicator_led/enabled");
-    auto enabled =
-        util::from_interface_data<sinsei_umiusi_control::cmd::indicator_led::Enabled>(enabled_raw);
+    auto enabled = util::from_interface_data<sinsei_umiusi_control::cmd::indicator_led::Enabled>(
+        this->get_command("indicator_led/enabled"));
     if (!this->model) {
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_WARN_THROTTLE(
@@ -58,7 +57,7 @@ auto suchw::IndicatorLed::write(const rclcpp::Time & /*time*/, const rclcpp::Dur
         return hif::return_type::OK;
     }
 
-    auto res = this->model->on_write(enabled);
+    const auto res = this->model->on_write(std::move(enabled));
     if (!res) {
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(
