@@ -8,8 +8,6 @@
 
 namespace sinsei_umiusi_control::hardware_model::interface {
 
-using GpioPin = uint8_t;
-
 enum class GpioError {
     NotPermitted,
     BadGpio,
@@ -27,7 +25,7 @@ enum class GpioError {
     UnknownError,
 };
 
-inline auto gpio_error_to_string(GpioError error) -> std::string {
+inline auto gpio_error_to_string(const GpioError & error) -> std::string {
     switch (error) {
         case GpioError::NotPermitted:
             return "Not permitted";
@@ -62,21 +60,25 @@ inline auto gpio_error_to_string(GpioError error) -> std::string {
 
 class Gpio {
   public:
+    using Pin = uint32_t;   // GPIO pin number
+    using Addr = uint32_t;  // I2C address / register address
+    using Error = GpioError;
+
     Gpio() = default;
     virtual ~Gpio() = default;
 
-    virtual auto set_mode_output(std::vector<GpioPin> pins) -> tl::expected<void, GpioError> = 0;
-    virtual auto set_mode_input(std::vector<GpioPin> pins) -> tl::expected<void, GpioError> = 0;
-    virtual auto write_digital(GpioPin pin, bool enabled) -> tl::expected<void, GpioError> = 0;
-    virtual auto write_pwm() -> tl::expected<void, GpioError> = 0;
+    virtual auto set_mode_output(const std::vector<Pin> & pins) -> tl::expected<void, Error> = 0;
+    virtual auto set_mode_input(const std::vector<Pin> & pins) -> tl::expected<void, Error> = 0;
+    virtual auto write_digital(const Pin & pin, bool && enabled) -> tl::expected<void, Error> = 0;
+    virtual auto write_pwm() -> tl::expected<void, Error> = 0;
 
-    virtual auto i2c_open(uint32_t address) -> tl::expected<void, GpioError> = 0;
-    virtual auto i2c_close() -> tl::expected<void, GpioError> = 0;
-    virtual auto i2c_write_byte(std::byte value) -> tl::expected<void, GpioError> = 0;
-    virtual auto i2c_read_byte() -> tl::expected<std::byte, GpioError> = 0;
-    virtual auto i2c_write_byte_data(uint32_t reg, std::byte value)
-        -> tl::expected<void, GpioError> = 0;
-    virtual auto i2c_read_byte_data(uint32_t reg) -> tl::expected<std::byte, GpioError> = 0;
+    virtual auto i2c_open(const Addr & address) -> tl::expected<void, Error> = 0;
+    virtual auto i2c_close() -> tl::expected<void, Error> = 0;
+    virtual auto i2c_write_byte(std::byte && value) -> tl::expected<void, Error> = 0;
+    virtual auto i2c_read_byte() const -> tl::expected<std::byte, Error> = 0;
+    virtual auto i2c_write_byte_data(const Addr & reg, std::byte && value)
+        -> tl::expected<void, Error> = 0;
+    virtual auto i2c_read_byte_data(const Addr & reg) const -> tl::expected<std::byte, Error> = 0;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::interface

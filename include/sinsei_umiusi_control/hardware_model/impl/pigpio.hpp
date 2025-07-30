@@ -12,8 +12,9 @@ namespace sinsei_umiusi_control::hardware_model::impl {
 
 class Pigpio : public interface::Gpio {
   private:
-    using GpioPin = interface::GpioPin;
-    using GpioError = interface::GpioError;
+    using Pin = interface::Gpio::Pin;
+    using Addr = interface::Gpio::Addr;
+    using Error = interface::Gpio::Error;
 
     int pi;
 
@@ -26,18 +27,18 @@ class Pigpio : public interface::Gpio {
     Pigpio();
     ~Pigpio();
 
-    auto set_mode_output(std::vector<GpioPin> pins) -> tl::expected<void, GpioError> override;
-    auto set_mode_input(std::vector<GpioPin> pins) -> tl::expected<void, GpioError> override;
-    auto write_digital(GpioPin pin, bool enabled) -> tl::expected<void, GpioError> override;
-    auto write_pwm() -> tl::expected<void, GpioError> override;
+    auto set_mode_output(const std::vector<Pin> & pins) -> tl::expected<void, Error> override;
+    auto set_mode_input(const std::vector<Pin> & pins) -> tl::expected<void, Error> override;
+    auto write_digital(const Pin & pin, bool && enabled) -> tl::expected<void, Error> override;
+    auto write_pwm() -> tl::expected<void, Error> override;
 
-    auto i2c_open(uint32_t address) -> tl::expected<void, GpioError> override;
-    auto i2c_close() -> tl::expected<void, GpioError> override;
-    auto i2c_write_byte(std::byte value) -> tl::expected<void, GpioError> override;
-    auto i2c_read_byte() -> tl::expected<std::byte, GpioError> override;
-    auto i2c_write_byte_data(uint32_t reg, std::byte value)
-        -> tl::expected<void, GpioError> override;
-    auto i2c_read_byte_data(uint32_t reg) -> tl::expected<std::byte, GpioError> override;
+    auto i2c_open(const Addr & address) -> tl::expected<void, Error> override;
+    auto i2c_close() -> tl::expected<void, Error> override;
+    auto i2c_write_byte(std::byte && value) -> tl::expected<void, Error> override;
+    auto i2c_read_byte() const -> tl::expected<std::byte, Error> override;
+    auto i2c_write_byte_data(const Addr & reg, std::byte && value)
+        -> tl::expected<void, Error> override;
+    auto i2c_read_byte_data(const Addr & reg) const -> tl::expected<std::byte, Error> override;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::impl
