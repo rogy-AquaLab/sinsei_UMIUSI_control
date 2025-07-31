@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 project(sinsei_umiusi_control)
 
-include(FetchContent)
+# find dependencies
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
 
 # default compiler flags
 add_compile_options(
@@ -37,17 +39,11 @@ if(NOT PIGPIO_LIBRARY)
   message(FATAL_ERROR "pigpiod_if2 library not found. Please install pigpio.")
 endif()
 
-# fetch Eigen3 (v3.4.0) from gitlab
-FetchContent_Declare(
-  Eigen3
-  GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-  GIT_TAG 3.4.0
-)
-FetchContent_MakeAvailable(Eigen3)
-
-# find dependencies
-find_package(ament_cmake_auto REQUIRED)
-ament_auto_find_build_dependencies()
+# search for Eigen3
+find_package(Eigen3)
+if(NOT Eigen3_FOUND)
+  message(FATAL_ERROR "Eigen3 not found. Please install Eigen3.")
+endif()
 
 ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   src/${PROJECT_NAME}/hardware/can.cpp
@@ -78,8 +74,9 @@ ament_auto_add_library(${PROJECT_NAME}_controller SHARED
   src/${PROJECT_NAME}/controller/thruster_controller.cpp
   src/${PROJECT_NAME}/util/interface_accessor.cpp
 )
-target_link_libraries(${PROJECT_NAME}_controller
-  Eigen3::Eigen
+target_include_directories(${PROJECT_NAME}_controller
+  PRIVATE
+    ${Eigen3_INCLUDE_DIRS}
 )
 
 pluginlib_export_plugin_description_file(hardware_interface plugin/umiusi_hardware_plugin.xml)
@@ -87,6 +84,9 @@ pluginlib_export_plugin_description_file(controller_interface plugin/umiusi_cont
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  set(AMENT_LINT_AUTO_EXCLUDE
+    "_deps"
+  )
   ament_lint_auto_find_test_dependencies()
 
   ament_add_pytest_test(pytest test/python)
