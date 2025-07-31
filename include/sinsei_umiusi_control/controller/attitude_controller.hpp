@@ -15,7 +15,7 @@
 namespace sinsei_umiusi_control::controller {
 
 class AttitudeController : public controller_interface::ChainableControllerInterface {
-  private:
+  public:
     struct Input {
         struct Command {  // Command interfaces (in)
             cmd::attitude::Orientation target_orientation;
@@ -41,6 +41,7 @@ class AttitudeController : public controller_interface::ChainableControllerInter
         State state;
     };
 
+  private:
     Input input;
     Output output;
 
