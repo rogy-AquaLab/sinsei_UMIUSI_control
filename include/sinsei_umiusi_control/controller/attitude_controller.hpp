@@ -17,27 +17,27 @@ namespace sinsei_umiusi_control::controller {
 class AttitudeController : public controller_interface::ChainableControllerInterface {
   private:
     // Command interfaces (in)
-    sinsei_umiusi_control::cmd::attitude::Orientation target_orientation;
-    sinsei_umiusi_control::cmd::attitude::Velocity target_velocity;
+    cmd::attitude::Orientation target_orientation;
+    cmd::attitude::Velocity target_velocity;
 
     // State interfaces (out)
-    sinsei_umiusi_control::state::imu::Quaternion imu_quaternion;
-    sinsei_umiusi_control::state::imu::Velocity imu_velocity;
+    state::imu::Quaternion imu_quaternion;
+    state::imu::Velocity imu_velocity;
 
     // Command interfaces (out)
-    std::array<sinsei_umiusi_control::cmd::thruster::Angle, 4> thruster_angles;
-    std::array<sinsei_umiusi_control::cmd::thruster::DutyCycle, 4> thruster_duty_cycles;
+    std::array<cmd::thruster::Angle, 4> thruster_angles;
+    std::array<cmd::thruster::DutyCycle, 4> thruster_duty_cycles;
 
     // State interfaces (in)
-    std::array<sinsei_umiusi_control::state::thruster::Rpm, 4> thruster_rpms;
+    std::array<state::thruster::Rpm, 4> thruster_rpms;
 
-    sinsei_umiusi_control::util::ThrusterMode thruster_mode;
+    util::ThrusterMode thruster_mode;
 
     auto compute_outputs(const rclcpp::Time & time, const rclcpp::Duration & period) -> void;
 
-    sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer command_interface_data;
-    sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer state_interface_data;
-    sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer ref_interface_data;
+    util::interface_accessor::InterfaceDataContainer command_interface_data;
+    util::interface_accessor::InterfaceDataContainer state_interface_data;
+    util::interface_accessor::InterfaceDataContainer ref_interface_data;
 
   public:
     AttitudeController() = default;
