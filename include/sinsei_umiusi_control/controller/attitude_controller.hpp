@@ -1,11 +1,11 @@
-#ifndef SINSEI_UMIUSI_CONTROL_APP_CONTROLLER_HPP
-#define SINSEI_UMIUSI_CONTROL_APP_CONTROLLER_HPP
+#ifndef SINSEI_UMIUSI_CONTROL_ATTITUDE_CONTROLLER_HPP
+#define SINSEI_UMIUSI_CONTROL_ATTITUDE_CONTROLLER_HPP
 
 #include <controller_interface/chainable_controller_interface.hpp>
 #include <hardware_interface/hardware_interface/handle.hpp>
 #include <vector>
 
-#include "sinsei_umiusi_control/cmd/app.hpp"
+#include "sinsei_umiusi_control/cmd/attitude.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
@@ -14,11 +14,11 @@
 
 namespace sinsei_umiusi_control::controller {
 
-class AppController : public controller_interface::ChainableControllerInterface {
+class AttitudeController : public controller_interface::ChainableControllerInterface {
   private:
     // Command interfaces (in)
-    sinsei_umiusi_control::cmd::app::Orientation target_orientation;
-    sinsei_umiusi_control::cmd::app::Velocity target_velocity;
+    sinsei_umiusi_control::cmd::attitude::Orientation target_orientation;
+    sinsei_umiusi_control::cmd::attitude::Velocity target_velocity;
 
     // State interfaces (out)
     sinsei_umiusi_control::state::imu::Quaternion imu_quaternion;
@@ -40,7 +40,7 @@ class AppController : public controller_interface::ChainableControllerInterface 
     sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer ref_interface_data;
 
   public:
-    AppController() = default;
+    AttitudeController() = default;
 
     auto command_interface_configuration() const
         -> controller_interface::InterfaceConfiguration override;
@@ -60,4 +60,4 @@ class AppController : public controller_interface::ChainableControllerInterface 
 };
 }  // namespace sinsei_umiusi_control::controller
 
-#endif  // SINSEI_UMIUSI_CONTROL_APP_CONTROLLER_HPP
+#endif  // SINSEI_UMIUSI_CONTROL_ATTITUDE_CONTROLLER_HPP
