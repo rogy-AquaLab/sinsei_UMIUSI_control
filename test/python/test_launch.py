@@ -51,7 +51,7 @@ def controllers(largs: dict[str, str]) -> set[str]:
 
     base = {
         'gate_controller',
-        'app_controller',
+        'attitude_controller',
         'thruster_controller_lf',
         'thruster_controller_lb',
         'thruster_controller_rb',

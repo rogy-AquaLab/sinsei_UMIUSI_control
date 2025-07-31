@@ -75,22 +75,22 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
         this->command_interface_data.emplace_back(
             "led_tape/color", to_interface_data_ptr(this->cmd.led_tape_color_ref));
         this->command_interface_data.emplace_back(
-            "app_controller/target_orientation.x",
+            "attitude_controller/target_orientation.x",
             to_interface_data_ptr(this->cmd.target_orientation_ref.x));
         this->command_interface_data.emplace_back(
-            "app_controller/target_orientation.y",
+            "attitude_controller/target_orientation.y",
             to_interface_data_ptr(this->cmd.target_orientation_ref.y));
         this->command_interface_data.emplace_back(
-            "app_controller/target_orientation.z",
+            "attitude_controller/target_orientation.z",
             to_interface_data_ptr(this->cmd.target_orientation_ref.z));
         this->command_interface_data.emplace_back(
-            "app_controller/target_velocity.x",
+            "attitude_controller/target_velocity.x",
             to_interface_data_ptr(this->cmd.target_velocity_ref.x));
         this->command_interface_data.emplace_back(
-            "app_controller/target_velocity.y",
+            "attitude_controller/target_velocity.y",
             to_interface_data_ptr(this->cmd.target_velocity_ref.y));
         this->command_interface_data.emplace_back(
-            "app_controller/target_velocity.z",
+            "attitude_controller/target_velocity.z",
             to_interface_data_ptr(this->cmd.target_velocity_ref.z));
         for (size_t i = 0; i < 4; ++i) {
             auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
@@ -185,22 +185,29 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
         this->state_interface_data.emplace_back(
             "imu/temperature", to_interface_data_ptr(this->state.imu_temperature.value));
         this->state_interface_data.emplace_back(
-            "app_controller/imu/quaternion.x", to_interface_data_ptr(this->state.imu_quaternion.x));
+            "attitude_controller/imu/quaternion.x",
+            to_interface_data_ptr(this->state.imu_quaternion.x));
         this->state_interface_data.emplace_back(
-            "app_controller/imu/quaternion.y", to_interface_data_ptr(this->state.imu_quaternion.y));
+            "attitude_controller/imu/quaternion.y",
+            to_interface_data_ptr(this->state.imu_quaternion.y));
         this->state_interface_data.emplace_back(
-            "app_controller/imu/quaternion.z", to_interface_data_ptr(this->state.imu_quaternion.z));
+            "attitude_controller/imu/quaternion.z",
+            to_interface_data_ptr(this->state.imu_quaternion.z));
         this->state_interface_data.emplace_back(
-            "app_controller/imu/quaternion.w", to_interface_data_ptr(this->state.imu_quaternion.w));
+            "attitude_controller/imu/quaternion.w",
+            to_interface_data_ptr(this->state.imu_quaternion.w));
         this->state_interface_data.emplace_back(
-            "app_controller/imu/velocity.x", to_interface_data_ptr(this->state.imu_velocity.x));
+            "attitude_controller/imu/velocity.x",
+            to_interface_data_ptr(this->state.imu_velocity.x));
         this->state_interface_data.emplace_back(
-            "app_controller/imu/velocity.y", to_interface_data_ptr(this->state.imu_velocity.y));
+            "attitude_controller/imu/velocity.y",
+            to_interface_data_ptr(this->state.imu_velocity.y));
         this->state_interface_data.emplace_back(
-            "app_controller/imu/velocity.z", to_interface_data_ptr(this->state.imu_velocity.z));
+            "attitude_controller/imu/velocity.z",
+            to_interface_data_ptr(this->state.imu_velocity.z));
         if (this->thruster_mode == util::ThrusterMode::Can) {
             for (size_t i = 0; i < 4; ++i) {
-                const auto prefix = "app_controller/thruster_controller" +
+                const auto prefix = "attitude_controller/thruster_controller" +
                                     std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
 
                 this->state_interface_data.emplace_back(

@@ -9,12 +9,12 @@
     </description>
   </class>
   <class
-    name="sinsei_umiusi_control/controller/AppController"
-    type="sinsei_umiusi_control::controller::AppController"
+    name="sinsei_umiusi_control/controller/AttitudeController"
+    type="sinsei_umiusi_control::controller::AttitudeController"
     base_class_type="controller_interface::ChainableControllerInterface"
   >
     <description>
-      App controller
+      Attitude controller
     </description>
   </class>
   <class

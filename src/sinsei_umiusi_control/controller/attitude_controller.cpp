@@ -1,10 +1,9 @@
-#include "sinsei_umiusi_control/controller/app_controller.hpp"
-
 #include <controller_interface/controller_interface_base.hpp>
 #include <cstddef>
 #include <rclcpp/logging.hpp>
 #include <string>
 
+#include "sinsei_umiusi_control/controller/attitude_controller.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
@@ -15,7 +14,8 @@ namespace rlc = rclcpp_lifecycle;
 namespace hif = hardware_interface;
 namespace cif = controller_interface;
 
-auto succ::AppController::command_interface_configuration() const -> cif::InterfaceConfiguration {
+auto succ::AttitudeController::command_interface_configuration() const
+    -> cif::InterfaceConfiguration {
     auto cmd_names = std::vector<std::string>{};
     for (const auto & [name, _] : this->command_interface_data) {
         cmd_names.push_back(name);
@@ -27,7 +27,8 @@ auto succ::AppController::command_interface_configuration() const -> cif::Interf
     };
 }
 
-auto succ::AppController::state_interface_configuration() const -> cif::InterfaceConfiguration {
+auto succ::AttitudeController::state_interface_configuration() const
+    -> cif::InterfaceConfiguration {
     auto state_names = std::vector<std::string>{};
     for (const auto & [name, _] : this->state_interface_data) {
         state_names.push_back(name);
@@ -39,7 +40,7 @@ auto succ::AppController::state_interface_configuration() const -> cif::Interfac
     };
 }
 
-auto succ::AppController::on_init() -> cif::CallbackReturn {
+auto succ::AttitudeController::on_init() -> cif::CallbackReturn {
     this->get_node()->declare_parameter("thruster_mode", "unknown");
 
     this->target_orientation = sinsei_umiusi_control::cmd::app::Orientation{};
@@ -56,7 +57,7 @@ auto succ::AppController::on_init() -> cif::CallbackReturn {
     return cif::CallbackReturn::SUCCESS;
 }
 
-auto succ::AppController::on_configure(const rlc::State & /*previous_state*/)
+auto succ::AttitudeController::on_configure(const rlc::State & /*previous_state*/)
     -> cif::CallbackReturn {
     const auto mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
     const auto mode_res = util::get_mode_from_str(mode_str);
@@ -118,7 +119,8 @@ auto succ::AppController::on_configure(const rlc::State & /*previous_state*/)
     return cif::CallbackReturn::SUCCESS;
 }
 
-auto succ::AppController::on_export_reference_interfaces() -> std::vector<hif::CommandInterface> {
+auto succ::AttitudeController::on_export_reference_interfaces()
+    -> std::vector<hif::CommandInterface> {
     // To avoid bug in ros2 control. `reference_interfaces_` is actually not used.
     this->reference_interfaces_.resize(this->ref_interface_data.size());
 
@@ -129,7 +131,7 @@ auto succ::AppController::on_export_reference_interfaces() -> std::vector<hif::C
     return interfaces;
 }
 
-auto succ::AppController::on_export_state_interfaces() -> std::vector<hif::StateInterface> {
+auto succ::AttitudeController::on_export_state_interfaces() -> std::vector<hif::StateInterface> {
     auto interfaces = std::vector<hif::StateInterface>{};
     for (auto & [name, data] : this->state_interface_data) {
         interfaces.emplace_back(hif::StateInterface(this->get_node()->get_name(), name, data));
@@ -137,14 +139,14 @@ auto succ::AppController::on_export_state_interfaces() -> std::vector<hif::State
     return interfaces;
 }
 
-auto succ::AppController::on_set_chained_mode(bool /*chained_mode*/) -> bool { return true; };
+auto succ::AttitudeController::on_set_chained_mode(bool /*chained_mode*/) -> bool { return true; };
 
-auto succ::AppController::update_reference_from_subscribers(
+auto succ::AttitudeController::update_reference_from_subscribers(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> cif::return_type {
     return cif::return_type::OK;
 }
 
-auto succ::AppController::update_and_write_commands(
+auto succ::AttitudeController::update_and_write_commands(
     const rclcpp::Time & time, const rclcpp::Duration & period) -> cif::return_type {
     // 状態を取得
     auto res = util::interface_accessor::get_states_from_loaned_interfaces(
@@ -172,7 +174,7 @@ auto succ::AppController::update_and_write_commands(
     return cif::return_type::OK;
 }
 
-auto succ::AppController::compute_outputs(
+auto succ::AttitudeController::compute_outputs(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> void {
     // TODO: PID制御などの処理はここに記述する
     // 現在はダミー
@@ -184,5 +186,5 @@ auto succ::AppController::compute_outputs(
 
 #include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(
-    sinsei_umiusi_control::controller::AppController,
+    sinsei_umiusi_control::controller::AttitudeController,
     controller_interface::ChainableControllerInterface)

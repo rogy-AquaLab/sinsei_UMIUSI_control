@@ -8,9 +8,9 @@
       type: sinsei_umiusi_control/controller/GateController
       update_rate: 50 # Hz
 
-  app_controller:
+  attitude_controller:
     ros__parameters:
-      type: sinsei_umiusi_control/controller/AppController
+      type: sinsei_umiusi_control/controller/AttitudeController
       update_rate: 50 # Hz
 
   thruster_controller_lf: # Left Front Thruster
