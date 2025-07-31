@@ -3,10 +3,12 @@
 
 #include <controller_interface/chainable_controller_interface.hpp>
 #include <hardware_interface/hardware_interface/handle.hpp>
+#include <memory>
 #include <vector>
 
 #include "sinsei_umiusi_control/cmd/attitude.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
+#include "sinsei_umiusi_control/controller/attitude_controller/controller_logic.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
@@ -24,6 +26,7 @@ class AttitudeController : public controller_interface::ChainableControllerInter
         struct State {  // State interfaces (out)
             state::imu::Quaternion imu_quaternion;
             state::imu::Velocity imu_velocity;
+            std::array<state::thruster::Rpm, 4> thruster_rpms;
         };
         Command cmd;
         State state;
@@ -34,20 +37,20 @@ class AttitudeController : public controller_interface::ChainableControllerInter
             std::array<cmd::thruster::Angle, 4> thruster_angles;
             std::array<cmd::thruster::DutyCycle, 4> thruster_duty_cycles;
         };
-        struct State {  // State interfaces (in)
-            std::array<state::thruster::Rpm, 4> thruster_rpms;
-        };
         Command cmd;
-        State state;
     };
+
+    using Logic = attitude_controller::LogicInterface<Input, Output>;
 
   private:
     Input input;
     Output output;
 
-    util::ThrusterMode thruster_mode;
+    std::unique_ptr<Logic> logic;
 
-    auto compute_outputs(const rclcpp::Time & time, const rclcpp::Duration & period) -> void;
+    attitude_controller::ControlMode control_mode;
+
+    util::ThrusterMode thruster_mode;
 
     util::interface_accessor::InterfaceDataContainer command_interface_data;
     util::interface_accessor::InterfaceDataContainer state_interface_data;

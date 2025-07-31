@@ -12,6 +12,7 @@
     ros__parameters:
       type: sinsei_umiusi_control/controller/AttitudeController
       update_rate: 50 # Hz
+      control_mode: "ff" # Control mode (ff: feedforward / fb: feedback)
 
   thruster_controller_lf: # Left Front Thruster
     ros__parameters:
