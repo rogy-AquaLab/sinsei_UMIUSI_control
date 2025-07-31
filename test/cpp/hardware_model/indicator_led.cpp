@@ -26,7 +26,7 @@ constexpr uint8_t LED_PIN = 24;
 
 class IndicatorLedModelOnWriteTest : public ::testing::TestWithParam<cmd::indicator_led::Enabled> {
 };
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     IndicatorLedModelTest, IndicatorLedModelOnWriteTest,
     ::testing::Values(succmd::indicator_led::Enabled{true}, succmd::indicator_led::Enabled{false}));
 
@@ -45,11 +45,11 @@ TEST_P(IndicatorLedModelOnWriteTest, all) {
     auto enabled = GetParam();
 
     auto gpio = std::make_unique<mock::Gpio>();
-    EXPECT_CALL(*gpio, write_digital(_, enabled.value)).Times(1);
+    EXPECT_CALL(*gpio, write_digital(_, std::move(enabled.value))).Times(1);
 
     auto indicator_led_model = suchm::IndicatorLedModel(std::move(gpio), LED_PIN);
     indicator_led_model.on_init();
-    indicator_led_model.on_write(enabled);
+    indicator_led_model.on_write(std::move(enabled));
 }
 
 }  // namespace sinsei_umiusi_control::test::hardware_model::indicator_led

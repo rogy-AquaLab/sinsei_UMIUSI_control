@@ -4,7 +4,6 @@
 #include <array>
 #include <memory>
 #include <rcpputils/tl_expected/expected.hpp>
-#include <utility>
 #include <variant>
 
 #include "sinsei_umiusi_control/cmd/led_tape.hpp"
@@ -28,9 +27,9 @@ class CanModel {
 
   private:
     using WriteCommand = std::variant<
-        cmd::main_power::Enabled, std::pair<ThrusterId, EscEnabled>,
-        std::pair<ThrusterId, ServoEnabled>, std::pair<ThrusterId, EscDutyCycle>,
-        std::pair<ThrusterId, ServoAngle>, cmd::led_tape::Color>;
+        cmd::main_power::Enabled, std::tuple<ThrusterId, EscEnabled>,
+        std::tuple<ThrusterId, ServoEnabled>, std::tuple<ThrusterId, EscDutyCycle>,
+        std::tuple<ThrusterId, ServoAngle>, cmd::led_tape::Color>;
 
     std::shared_ptr<interface::Can> can;
 
@@ -48,23 +47,28 @@ class CanModel {
 
     // Update the internal state and select a command to write.
     auto update_and_generate_command(
-        bool is_can_mode, cmd::main_power::Enabled main_power_enabled,
-        std::array<cmd::thruster::EscEnabled, 4> thruster_esc_enabled,
-        std::array<cmd::thruster::ServoEnabled, 4> thruster_servo_enabled,
-        std::array<cmd::thruster::DutyCycle, 4> thruster_duty_cycle,
-        std::array<cmd::thruster::Angle, 4> thruster_angle,
-        cmd::led_tape::Color led_tape_color) -> WriteCommand;
+        cmd::main_power::Enabled && main_power_enabled,
+        std::array<cmd::thruster::EscEnabled, 4> && thruster_esc_enabled,
+        std::array<cmd::thruster::ServoEnabled, 4> && thruster_servo_enabled,
+        std::array<cmd::thruster::DutyCycle, 4> && thruster_duty_cycle,
+        std::array<cmd::thruster::Angle, 4> && thruster_angle,
+        cmd::led_tape::Color && led_tape_color) -> WriteCommand;
+
+    auto update_and_generate_command(
+        cmd::main_power::Enabled && main_power_enabled,
+        cmd::led_tape::Color && led_tape_color) -> WriteCommand;
 
   public:
     CanModel(std::shared_ptr<interface::Can> can, std::array<int, 4> vesc_ids);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_destroy() -> tl::expected<void, std::string>;
-    auto on_read()
+    auto on_read() const
         -> tl::expected<
             std::variant<
-                std::pair<size_t, state::thruster::Rpm>, std::pair<size_t, state::esc::WaterLeaked>,
-                state::main_power::BatteryCurrent, state::main_power::BatteryVoltage,
-                state::main_power::Temperature, state::main_power::WaterLeaked>,
+                std::tuple<size_t, state::thruster::Rpm>,
+                std::tuple<size_t, state::esc::WaterLeaked>, state::main_power::BatteryCurrent,
+                state::main_power::BatteryVoltage, state::main_power::Temperature,
+                state::main_power::WaterLeaked>,
             std::string>;
     auto on_write(
         cmd::main_power::Enabled && main_power_enabled,

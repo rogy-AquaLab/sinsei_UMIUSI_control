@@ -13,20 +13,20 @@ namespace sinsei_umiusi_control::hardware_model {
 class HeadlightsModel {
   private:
     std::unique_ptr<interface::Gpio> gpio;
-    interface::GpioPin high_beam_pin;
-    interface::GpioPin low_beam_pin;
-    interface::GpioPin ir_pin;
+    interface::Gpio::Pin high_beam_pin;
+    interface::Gpio::Pin low_beam_pin;
+    interface::Gpio::Pin ir_pin;
 
   public:
     HeadlightsModel(
-        std::unique_ptr<interface::Gpio> gpio, interface::GpioPin high_beam_pin,
-        interface::GpioPin low_beam_pin, interface::GpioPin ir_pin);
+        std::unique_ptr<interface::Gpio> gpio, interface::Gpio::Pin high_beam_pin,
+        interface::Gpio::Pin low_beam_pin, interface::Gpio::Pin ir_pin);
     auto on_init() -> tl::expected<void, std::string>;
-    auto on_read() -> tl::expected<void, std::string>;
+    auto on_read() const -> tl::expected<void, std::string>;
     auto on_write(
-        sinsei_umiusi_control::cmd::headlights::HighBeamEnabled & high_beam_enabled,
-        sinsei_umiusi_control::cmd::headlights::LowBeamEnabled & low_beam_enabled,
-        sinsei_umiusi_control::cmd::headlights::IrEnabled & ir_enabled)
+        sinsei_umiusi_control::cmd::headlights::HighBeamEnabled && high_beam_enabled,
+        sinsei_umiusi_control::cmd::headlights::LowBeamEnabled && low_beam_enabled,
+        sinsei_umiusi_control::cmd::headlights::IrEnabled && ir_enabled)
         -> tl::expected<void, std::string>;
 };
 

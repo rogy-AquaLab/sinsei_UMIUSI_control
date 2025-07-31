@@ -37,13 +37,14 @@ TEST(ImuModelBeginTest, success) {
         .Times(AtLeast(1))
         .WillRepeatedly(
             Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID})));
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG))
+    EXPECT_CALL(
+        *gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{std::byte{OPERATION_MODE_CONFIG}}))
         .Times(1)
         .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
         .Times(1)
         .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
-    EXPECT_CALL(*gpio, i2c_write_byte_data(PWR_MODE_ADDR, POWER_MODE_NORMAL))
+    EXPECT_CALL(*gpio, i2c_write_byte_data(PWR_MODE_ADDR, std::byte{POWER_MODE_NORMAL}))
         .Times(1)
         .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(PAGE_ID_ADDR, std::byte{0x0}))
@@ -52,7 +53,7 @@ TEST(ImuModelBeginTest, success) {
     EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x0}))
         .Times(1)
         .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_NDOF))
+    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_NDOF}))
         .Times(1)
         .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
 
@@ -113,7 +114,7 @@ TEST(ImuModelBeginTest, fail_on_set_opr_mode_config) {
         .Times(AtLeast(1))
         .WillRepeatedly(
             Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID})));
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG))
+    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
         .Times(1)
         .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::I2cWriteFailed)));
 
@@ -132,7 +133,7 @@ TEST(ImuModelBeginTest, fail_on_trigger_reset) {
         .Times(AtLeast(1))
         .WillRepeatedly(
             Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID})));
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG))
+    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
         .Times(1)
         .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
@@ -171,13 +172,13 @@ TEST(ImuModelBeginTest, fail_on_set_power_mode_normal) {
         .Times(AtLeast(1))
         .WillRepeatedly(
             Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID})));
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG))
+    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
         .Times(1)
         .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
         .Times(1)
         .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
-    EXPECT_CALL(*gpio, i2c_write_byte_data(PWR_MODE_ADDR, POWER_MODE_NORMAL))
+    EXPECT_CALL(*gpio, i2c_write_byte_data(PWR_MODE_ADDR, std::byte{POWER_MODE_NORMAL}))
         .Times(1)
         .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::I2cWriteFailed)));
 
@@ -196,7 +197,7 @@ TEST(ImuModelBeginTest, fail_on_set_page_id) {
         .Times(AtLeast(1))
         .WillRepeatedly(
             Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID})));
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG))
+    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
         .Times(1)
         .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
@@ -224,7 +225,7 @@ TEST(ImuModelBeginTest, fail_on_clear_sys_trigger) {
         .Times(AtLeast(1))
         .WillRepeatedly(
             Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID})));
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG))
+    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
         .Times(1)
         .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
@@ -255,7 +256,7 @@ TEST(ImuModelBeginTest, fail_on_set_opr_mode_ndof) {
         .Times(AtLeast(1))
         .WillRepeatedly(
             Return(tl::expected<std::byte, suchm::interface::GpioError>(std::byte{ID})));
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, OPERATION_MODE_CONFIG))
+    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
         .Times(1)
         .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
     EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))

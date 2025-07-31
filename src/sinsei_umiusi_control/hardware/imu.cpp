@@ -31,7 +31,7 @@ auto suchw::Imu::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
         return hif::return_type::OK;
     }
 
-    auto res = this->model->on_read();
+    const auto res = this->model->on_read();
     if (!res) {
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(
@@ -39,7 +39,7 @@ auto suchw::Imu::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
             res.error().c_str());
     }
 
-    auto [quaternion, velocity, temperature] = res.value();
+    const auto [quaternion, velocity, temperature] = res.value();
 
     this->set_state("imu/quaternion.x", quaternion.x);
     this->set_state("imu/quaternion.y", quaternion.y);

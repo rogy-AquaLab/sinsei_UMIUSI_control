@@ -8,7 +8,7 @@ namespace sinsei_umiusi_control::util {
 enum class EnumCastError { InvalidValue };
 
 template <typename Int, typename Enum>
-constexpr auto enum_cast(Int) -> tl::expected<Enum, EnumCastError> {
+constexpr auto enum_cast(const Int &) -> tl::expected<Enum, EnumCastError> {
     static_assert(false, "`enum_cast` is not implemented for these types");
 }
 

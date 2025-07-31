@@ -97,13 +97,13 @@ class VescModel {
     static constexpr double ADC3_SCALE = 1000;
     static constexpr double PPM_SCALE = 1000;
 
-    auto make_frame(VescSimpleCommandID command_id, const interface::CanFrame::Data & data)
+    auto make_frame(VescSimpleCommandID && command_id, interface::CanFrame::Data && data) const
         -> interface::CanFrame;
 
-    auto make_servo_frame(double value)
+    auto make_servo_frame(double && value) const
         -> tl::expected<interface::CanFrame, std::string>;  // lispBMにより実装。0 ~ 1.0
 
-    auto id_matches(const interface::CanFrame & frame) -> bool;
+    auto id_matches(const interface::CanFrame & frame) const -> bool;
 
     static auto get_cmd_id(const interface::CanFrame & frame)
         -> tl::expected<VescStatusCommandID, std::string>;
@@ -111,14 +111,15 @@ class VescModel {
   public:
     VescModel(Id id);
 
-    auto make_duty_frame(double duty) -> tl::expected<interface::CanFrame, std::string>;
-    auto make_rpm_frame(int8_t rpm) -> tl::expected<interface::CanFrame, std::string>;
-    auto make_servo_angle_frame(double deg) -> tl::expected<interface::CanFrame, std::string>;
+    auto make_duty_frame(double && duty) const -> tl::expected<interface::CanFrame, std::string>;
+    auto make_rpm_frame(int8_t && rpm) const -> tl::expected<interface::CanFrame, std::string>;
+    auto make_servo_angle_frame(double && deg) const
+        -> tl::expected<interface::CanFrame, std::string>;
 
-    auto get_rpm(const interface::CanFrame & frame)
+    auto get_rpm(const interface::CanFrame & frame) const
         -> tl::expected<std::optional<sinsei_umiusi_control::state::thruster::Rpm>, std::string>;
 
-    auto get_water_leaked(const interface::CanFrame & frame)
+    auto get_water_leaked(const interface::CanFrame & frame) const
         -> tl::expected<std::optional<sinsei_umiusi_control::state::esc::WaterLeaked>, std::string>;
 };
 
@@ -127,7 +128,7 @@ class VescModel {
 namespace sinsei_umiusi_control::util {
 
 template <>
-constexpr auto enum_cast(hardware_model::interface::CanFrame::Id value)
+constexpr auto enum_cast(const hardware_model::interface::CanFrame::Id & value)
     -> tl::expected<
         sinsei_umiusi_control::hardware_model::can::VescStatusCommandID, EnumCastError> {
     using sinsei_umiusi_control::hardware_model::can::VescStatusCommandID;

@@ -1,10 +1,17 @@
 cmake_minimum_required(VERSION 3.20)
 project(sinsei_umiusi_control)
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
+# default compiler flags
+add_compile_options(
+  -Wall
+  -Wextra
+  -Wpedantic
 
+  $<$<CONFIG:Release>:-O3>
+  $<$<CONFIG:Debug>:-O0>
+)
+
+# C/C++ version required by ROS2 jazzy
 # require C99
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -47,6 +54,9 @@ ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
 )
 
 find_library(PIGPIO_LIBRARY pigpiod_if2)
+if(NOT PIGPIO_LIBRARY)
+  message(FATAL_ERROR "pigpiod_if2 library not found. Please install pigpio.")
+endif()
 target_link_libraries(${PROJECT_NAME}_hardware
   ${PIGPIO_LIBRARY}
 )
@@ -88,3 +98,19 @@ ament_auto_package(
   params
   launch
 )
+
+# ! 以下、後ろの方に書かないと無限ループに陥るので注意
+# ! ref: https://stackoverflow.com/questions/32306648/changing-compiler-with-cmake-creates-infinite-loop
+
+# set clang as the default compiler if available
+# TODO: gcovまわりのバグが解消できたら有効化
+# find_program(CLANG_EXE clang)
+# if(CLANG_EXE)
+#   set(CMAKE_C_COMPILER ${CLANG_EXE})
+#   set(CMAKE_CXX_COMPILER ${CLANG_EXE}++)
+#   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-ld=lld")
+#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-ld=lld")
+# else()
+  set(CMAKE_C_COMPILER gcc)
+  set(CMAKE_CXX_COMPILER g++)
+# endif()
