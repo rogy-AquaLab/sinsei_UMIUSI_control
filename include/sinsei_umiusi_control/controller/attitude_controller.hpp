@@ -5,7 +5,7 @@
 #include <hardware_interface/hardware_interface/handle.hpp>
 #include <vector>
 
-#include "sinsei_umiusi_control/cmd/app.hpp"
+#include "sinsei_umiusi_control/cmd/attitude.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
@@ -17,8 +17,8 @@ namespace sinsei_umiusi_control::controller {
 class AttitudeController : public controller_interface::ChainableControllerInterface {
   private:
     // Command interfaces (in)
-    sinsei_umiusi_control::cmd::app::Orientation target_orientation;
-    sinsei_umiusi_control::cmd::app::Velocity target_velocity;
+    sinsei_umiusi_control::cmd::attitude::Orientation target_orientation;
+    sinsei_umiusi_control::cmd::attitude::Velocity target_velocity;
 
     // State interfaces (out)
     sinsei_umiusi_control::state::imu::Quaternion imu_quaternion;

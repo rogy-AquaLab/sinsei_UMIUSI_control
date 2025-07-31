@@ -1,9 +1,10 @@
+#include "sinsei_umiusi_control/controller/attitude_controller.hpp"
+
 #include <controller_interface/controller_interface_base.hpp>
 #include <cstddef>
 #include <rclcpp/logging.hpp>
 #include <string>
 
-#include "sinsei_umiusi_control/controller/attitude_controller.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
@@ -43,8 +44,8 @@ auto succ::AttitudeController::state_interface_configuration() const
 auto succ::AttitudeController::on_init() -> cif::CallbackReturn {
     this->get_node()->declare_parameter("thruster_mode", "unknown");
 
-    this->target_orientation = sinsei_umiusi_control::cmd::app::Orientation{};
-    this->target_velocity = sinsei_umiusi_control::cmd::app::Velocity{};
+    this->target_orientation = sinsei_umiusi_control::cmd::attitude::Orientation{};
+    this->target_velocity = sinsei_umiusi_control::cmd::attitude::Velocity{};
 
     this->imu_quaternion = sinsei_umiusi_control::state::imu::Quaternion{};
     this->imu_velocity = sinsei_umiusi_control::state::imu::Velocity{};

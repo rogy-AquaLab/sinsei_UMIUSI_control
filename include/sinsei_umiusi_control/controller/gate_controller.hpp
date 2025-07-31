@@ -11,7 +11,7 @@
 #include <std_msgs/msg/int8.hpp>
 
 #include "geometry_msgs/msg/quaternion.hpp"
-#include "sinsei_umiusi_control/cmd/app.hpp"
+#include "sinsei_umiusi_control/cmd/attitude.hpp"
 #include "sinsei_umiusi_control/cmd/headlights.hpp"
 #include "sinsei_umiusi_control/cmd/indicator_led.hpp"
 #include "sinsei_umiusi_control/cmd/led_tape.hpp"
@@ -38,8 +38,8 @@ class GateController : public controller_interface::ControllerInterface {
         sinsei_umiusi_control::cmd::thruster::ServoEnabled servo_enabled_ref;
         sinsei_umiusi_control::cmd::thruster::EscEnabled esc_enabled_ref;
         sinsei_umiusi_control::cmd::led_tape::Color led_tape_color_ref;
-        sinsei_umiusi_control::cmd::app::Orientation target_orientation_ref;
-        sinsei_umiusi_control::cmd::app::Velocity target_velocity_ref;
+        sinsei_umiusi_control::cmd::attitude::Orientation target_orientation_ref;
+        sinsei_umiusi_control::cmd::attitude::Velocity target_velocity_ref;
     };
     Command cmd;
 
