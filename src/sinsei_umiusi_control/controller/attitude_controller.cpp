@@ -44,16 +44,16 @@ auto succ::AttitudeController::state_interface_configuration() const
 auto succ::AttitudeController::on_init() -> cif::CallbackReturn {
     this->get_node()->declare_parameter("thruster_mode", "unknown");
 
-    this->target_orientation = sinsei_umiusi_control::cmd::attitude::Orientation{};
-    this->target_velocity = sinsei_umiusi_control::cmd::attitude::Velocity{};
+    this->input.cmd.target_orientation = sinsei_umiusi_control::cmd::attitude::Orientation{};
+    this->input.cmd.target_velocity = sinsei_umiusi_control::cmd::attitude::Velocity{};
 
-    this->imu_quaternion = sinsei_umiusi_control::state::imu::Quaternion{};
-    this->imu_velocity = sinsei_umiusi_control::state::imu::Velocity{};
+    this->input.state.imu_quaternion = sinsei_umiusi_control::state::imu::Quaternion{};
+    this->input.state.imu_velocity = sinsei_umiusi_control::state::imu::Velocity{};
 
-    this->thruster_angles.fill(sinsei_umiusi_control::cmd::thruster::Angle{});
-    this->thruster_duty_cycles.fill(sinsei_umiusi_control::cmd::thruster::DutyCycle{});
+    this->output.cmd.thruster_angles.fill(sinsei_umiusi_control::cmd::thruster::Angle{});
+    this->output.cmd.thruster_duty_cycles.fill(sinsei_umiusi_control::cmd::thruster::DutyCycle{});
 
-    this->thruster_rpms.fill(sinsei_umiusi_control::state::thruster::Rpm{});
+    this->output.state.thruster_rpms.fill(sinsei_umiusi_control::state::thruster::Rpm{});
 
     return cif::CallbackReturn::SUCCESS;
 }
@@ -75,9 +75,10 @@ auto succ::AttitudeController::on_configure(const rlc::State & /*previous_state*
     for (size_t i = 0; i < 4; ++i) {
         const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
         this->command_interface_data.emplace_back(
-            prefix + "angle", util::to_interface_data_ptr(this->thruster_angles[i]));
+            prefix + "angle", util::to_interface_data_ptr(this->output.cmd.thruster_angles[i]));
         this->command_interface_data.emplace_back(
-            prefix + "duty_cycle", util::to_interface_data_ptr(this->thruster_duty_cycles[i]));
+            prefix + "duty_cycle",
+            util::to_interface_data_ptr(this->output.cmd.thruster_duty_cycles[i]));
     }
 
     if (this->thruster_mode == util::ThrusterMode::Can) {
@@ -86,36 +87,37 @@ auto succ::AttitudeController::on_configure(const rlc::State & /*previous_state*
             const auto prefix =
                 "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
             this->state_interface_data.emplace_back(
-                prefix + "esc/rpm", util::to_interface_data_ptr(this->thruster_rpms[i]));
+                prefix + "esc/rpm",
+                util::to_interface_data_ptr(this->output.state.thruster_rpms[i]));
         }
     }
     this->state_interface_data.emplace_back(
-        "imu/quaternion.x", util::to_interface_data_ptr(this->imu_quaternion.x));
+        "imu/quaternion.x", util::to_interface_data_ptr(this->input.state.imu_quaternion.x));
     this->state_interface_data.emplace_back(
-        "imu/quaternion.y", util::to_interface_data_ptr(this->imu_quaternion.y));
+        "imu/quaternion.y", util::to_interface_data_ptr(this->input.state.imu_quaternion.y));
     this->state_interface_data.emplace_back(
-        "imu/quaternion.z", util::to_interface_data_ptr(this->imu_quaternion.z));
+        "imu/quaternion.z", util::to_interface_data_ptr(this->input.state.imu_quaternion.z));
     this->state_interface_data.emplace_back(
-        "imu/quaternion.w", util::to_interface_data_ptr(this->imu_quaternion.w));
+        "imu/quaternion.w", util::to_interface_data_ptr(this->input.state.imu_quaternion.w));
     this->state_interface_data.emplace_back(
-        "imu/velocity.x", util::to_interface_data_ptr(this->imu_velocity.x));
+        "imu/velocity.x", util::to_interface_data_ptr(this->input.state.imu_velocity.x));
     this->state_interface_data.emplace_back(
-        "imu/velocity.y", util::to_interface_data_ptr(this->imu_velocity.y));
+        "imu/velocity.y", util::to_interface_data_ptr(this->input.state.imu_velocity.y));
     this->state_interface_data.emplace_back(
-        "imu/velocity.z", util::to_interface_data_ptr(this->imu_velocity.z));
+        "imu/velocity.z", util::to_interface_data_ptr(this->input.state.imu_velocity.z));
 
     this->ref_interface_data.emplace_back(
-        "target_orientation.x", util::to_interface_data_ptr(this->target_orientation.x));
+        "target_orientation.x", util::to_interface_data_ptr(this->input.cmd.target_orientation.x));
     this->ref_interface_data.emplace_back(
-        "target_orientation.y", util::to_interface_data_ptr(this->target_orientation.y));
+        "target_orientation.y", util::to_interface_data_ptr(this->input.cmd.target_orientation.y));
     this->ref_interface_data.emplace_back(
-        "target_orientation.z", util::to_interface_data_ptr(this->target_orientation.z));
+        "target_orientation.z", util::to_interface_data_ptr(this->input.cmd.target_orientation.z));
     this->ref_interface_data.emplace_back(
-        "target_velocity.x", util::to_interface_data_ptr(this->target_velocity.x));
+        "target_velocity.x", util::to_interface_data_ptr(this->input.cmd.target_velocity.x));
     this->ref_interface_data.emplace_back(
-        "target_velocity.y", util::to_interface_data_ptr(this->target_velocity.y));
+        "target_velocity.y", util::to_interface_data_ptr(this->input.cmd.target_velocity.y));
     this->ref_interface_data.emplace_back(
-        "target_velocity.z", util::to_interface_data_ptr(this->target_velocity.z));
+        "target_velocity.z", util::to_interface_data_ptr(this->input.cmd.target_velocity.z));
 
     return cif::CallbackReturn::SUCCESS;
 }
@@ -180,8 +182,8 @@ auto succ::AttitudeController::compute_outputs(
     // TODO: PID制御などの処理はここに記述する
     // 現在はダミー
     for (size_t i = 0; i < 4; ++i) {
-        this->thruster_angles[i].value = 0.0;
-        this->thruster_duty_cycles[i].value = 0.0;
+        this->output.cmd.thruster_angles[i].value = 0.0;
+        this->output.cmd.thruster_duty_cycles[i].value = 0.0;
     }
 }
 

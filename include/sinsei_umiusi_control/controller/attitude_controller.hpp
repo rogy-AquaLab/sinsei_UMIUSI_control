@@ -16,20 +16,33 @@ namespace sinsei_umiusi_control::controller {
 
 class AttitudeController : public controller_interface::ChainableControllerInterface {
   private:
-    // Command interfaces (in)
-    cmd::attitude::Orientation target_orientation;
-    cmd::attitude::Velocity target_velocity;
+    struct Input {
+        struct Command {  // Command interfaces (in)
+            cmd::attitude::Orientation target_orientation;
+            cmd::attitude::Velocity target_velocity;
+        };
+        struct State {  // State interfaces (out)
+            state::imu::Quaternion imu_quaternion;
+            state::imu::Velocity imu_velocity;
+        };
+        Command cmd;
+        State state;
+    };
 
-    // State interfaces (out)
-    state::imu::Quaternion imu_quaternion;
-    state::imu::Velocity imu_velocity;
+    struct Output {
+        struct Command {  // Command interfaces (out)
+            std::array<cmd::thruster::Angle, 4> thruster_angles;
+            std::array<cmd::thruster::DutyCycle, 4> thruster_duty_cycles;
+        };
+        struct State {  // State interfaces (in)
+            std::array<state::thruster::Rpm, 4> thruster_rpms;
+        };
+        Command cmd;
+        State state;
+    };
 
-    // Command interfaces (out)
-    std::array<cmd::thruster::Angle, 4> thruster_angles;
-    std::array<cmd::thruster::DutyCycle, 4> thruster_duty_cycles;
-
-    // State interfaces (in)
-    std::array<state::thruster::Rpm, 4> thruster_rpms;
+    Input input;
+    Output output;
 
     util::ThrusterMode thruster_mode;
 
