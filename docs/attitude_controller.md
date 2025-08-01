@@ -49,7 +49,7 @@ Y := \begin{bmatrix}
 \end{cases}
 ```
 
-このとき以下の行列$A$によって$U$から$Y = AU$を得る。
+このとき以下の行列 $A$ によって $U$ から $Y = AU$ を得る。
 
 ```math
 A = \begin{bmatrix}
