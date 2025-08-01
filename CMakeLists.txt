@@ -84,9 +84,6 @@ pluginlib_export_plugin_description_file(controller_interface plugin/umiusi_cont
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
-  set(AMENT_LINT_AUTO_EXCLUDE
-    "_deps"
-  )
   ament_lint_auto_find_test_dependencies()
 
   ament_add_pytest_test(pytest test/python)
