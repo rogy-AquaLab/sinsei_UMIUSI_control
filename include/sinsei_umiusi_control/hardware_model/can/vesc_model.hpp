@@ -41,10 +41,8 @@ enum class VescStatusCommandID : uint32_t {
 enum class VescAdcChannel : uint8_t { ADC1, ADC2, ADC3 };
 
 class VescModel {
+  public:
     using Id = uint8_t;
-
-  private:
-    Id id;
 
     static constexpr double BLDC_POLES = 14.0;
 
@@ -96,6 +94,9 @@ class VescModel {
     static constexpr double ADC2_SCALE = 1000;
     static constexpr double ADC3_SCALE = 1000;
     static constexpr double PPM_SCALE = 1000;
+
+  private:
+    Id id;
 
     auto make_frame(VescSimpleCommandID && command_id, interface::CanFrame::Data && data) const
         -> interface::CanFrame;
