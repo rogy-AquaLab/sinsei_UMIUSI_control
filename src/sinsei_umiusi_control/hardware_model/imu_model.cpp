@@ -156,7 +156,7 @@ auto ImuModel::read_quat() -> tl::expected<state::imu::Quaternion, std::string> 
     const auto y = std::to_integer<int16_t>(buffer[4]) | (std::to_integer<int16_t>(buffer[5]) << 8);
     const auto z = std::to_integer<int16_t>(buffer[6]) | (std::to_integer<int16_t>(buffer[7]) << 8);
 
-    static constexpr auto SCALE = 1.0 / (1 << 14);
+    constexpr auto SCALE = 1.0 / (1 << 14);
 
     const state::imu::Quaternion quaternion{
         static_cast<double>(x) * SCALE, static_cast<double>(y) * SCALE,

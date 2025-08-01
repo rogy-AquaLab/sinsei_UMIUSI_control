@@ -11,14 +11,16 @@
 namespace sinsei_umiusi_control::hardware_model::impl {
 
 class Pigpio : public interface::Gpio {
-  private:
+  public:
     using Pin = interface::Gpio::Pin;
     using Addr = interface::Gpio::Addr;
     using Error = interface::Gpio::Error;
 
+    static constexpr uint32_t I2C_BUS = 1;
+
+  private:
     int pi;
 
-    static constexpr uint32_t I2C_BUS = 1;
     std::optional<uint32_t> i2c_handle = std::nullopt;
     uint32_t i2c_address;
 
