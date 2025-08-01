@@ -121,6 +121,8 @@ auto ImuModel::on_read()
         return tl::unexpected<std::string>(
             "Failed to read quaternion data from BNO055: " + quaternion_res.error());
     }
+
+    // FIXME: dummy
     const state::imu::Velocity velocity{0.0, 0.0, 0.0};
 
     const auto temp_raw_res =
