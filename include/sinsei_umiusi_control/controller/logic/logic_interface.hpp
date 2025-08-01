@@ -1,10 +1,10 @@
-#ifndef SINSEI_UMIUSI_CONTROL_ATTITUDE_CONTROLLER_CONTROLLER_LOGIC_HPP
-#define SINSEI_UMIUSI_CONTROL_ATTITUDE_CONTROLLER_CONTROLLER_LOGIC_HPP
+#ifndef SINSEI_UMIUSI_CONTROL_CONTROLLER_LOGIC_LOGIC_INTERFACE_HPP
+#define SINSEI_UMIUSI_CONTROL_CONTROLLER_LOGIC_LOGIC_INTERFACE_HPP
 
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 
-namespace sinsei_umiusi_control::controller::attitude_controller {
+namespace sinsei_umiusi_control::controller::logic {
 
 enum class ControlMode {
     FeedForward,
@@ -44,6 +44,6 @@ class LogicInterface {
     virtual auto update(double time, double duration, const Input & input) -> Output = 0;
 };
 
-}  // namespace sinsei_umiusi_control::controller::attitude_controller
+}  // namespace sinsei_umiusi_control::controller::logic
 
-#endif  // SINSEI_UMIUSI_CONTROL_ATTITUDE_CONTROLLER_CONTROLLER_LOGIC_HPP
+#endif  // SINSEI_UMIUSI_CONTROL_CONTROLLER_LOGIC_LOGIC_INTERFACE_HPP

@@ -8,7 +8,7 @@
 
 #include "sinsei_umiusi_control/cmd/attitude.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
-#include "sinsei_umiusi_control/controller/attitude_controller/controller_logic.hpp"
+#include "sinsei_umiusi_control/controller/logic/logic_interface.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
@@ -40,15 +40,13 @@ class AttitudeController : public controller_interface::ChainableControllerInter
         Command cmd;
     };
 
-    using Logic = attitude_controller::LogicInterface<Input, Output>;
+    using Logic = logic::LogicInterface<Input, Output>;
 
   private:
     Input input;
     Output output;
 
     std::unique_ptr<Logic> logic;
-
-    attitude_controller::ControlMode control_mode;
 
     util::ThrusterMode thruster_mode;
 
