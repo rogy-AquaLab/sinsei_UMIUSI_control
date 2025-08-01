@@ -70,8 +70,8 @@ A = \begin{bmatrix}
 \begin{cases}
     \phi_i = \text{atan}(f_{i\text{v}} / f_{i\text{h}}) \\
     f_i = \begin{cases}
-                \frac{\sqrt{f_{i\text{h}}^2 + f_{i\text{v}}^2}}{\text{max}(\sqrt{f_{j\text{h}}^2 + f_{j\text{v}}^2})} &\text{if} \quad f_{i\text{h}} \geq 0 \\
-                -\frac{\sqrt{f_{i\text{h}}^2 + f_{i\text{v}}^2}}{\text{max}(\sqrt{f_{j\text{h}}^2 + f_{j\text{v}}^2})} &\text{if} \quad f_{i\text{h}} < 0
+                \frac{\sqrt{f_{i\text{h}}^2 + f_{i\text{v}}^2}}{\text{max}\left(\sqrt{f_{j\text{h}}^2 + f_{j\text{v}}^2}\right)} &\text{if} \quad f_{i\text{h}} \geq 0 \\
+                -\frac{\sqrt{f_{i\text{h}}^2 + f_{i\text{v}}^2}}{\text{max}\left(\sqrt{f_{j\text{h}}^2 + f_{j\text{v}}^2}\right)} &\text{if} \quad f_{i\text{h}} < 0
           \end{cases}
 \end{cases}
 ```
