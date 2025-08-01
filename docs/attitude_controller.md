@@ -21,7 +21,7 @@
     - `thruster_rb/*`(スラスタ右後): $\phi_3, f_3$
     - `thruster_rf/*`(スラスタ右前): $\phi_4, f_4$
 
-$$
+```math
 U := \begin{bmatrix}
         \Phi^\text{ref}_x \\
         \Phi^\text{ref}_y \\
@@ -47,11 +47,11 @@ Y := \begin{bmatrix}
                 -\frac{\sqrt{f_{i\text{h}}^2 + f_{i\text{v}}^2}}{\text{max}(\sqrt{f_{j\text{h}}^2 + f_{j\text{v}}^2})} &\text{if} \quad f_{i\text{h}} < 0
           \end{cases}
 \end{cases}
-$$
+```
 
 このとき以下の行列$A$によって$U$から$Y = AU$を得る。
 
-$$
+```math
 A = \begin{bmatrix}
         0  & 0  & 1 & -\sqrt{2} & \sqrt{2}  & 0 \\
         1  & -1 & 0 & 0         & 0         & 1 \\
@@ -62,11 +62,11 @@ A = \begin{bmatrix}
         0  & 0  & 1 & \sqrt{2}  & \sqrt{2}  & 0 \\
         -1 & -1 & 0 & 0         & 0         & 0
     \end{bmatrix}
-$$
+```
 
 まとめると、
 
-$$
+```math
 \begin{cases}
     \phi_i = \text{atan}(f_{i\text{v}} / f_{i\text{h}}) \\
     f_i = \begin{cases}
@@ -74,8 +74,9 @@ $$
                 -\frac{\sqrt{f_{i\text{h}}^2 + f_{i\text{v}}^2}}{\text{max}(\sqrt{f_{j\text{h}}^2 + f_{j\text{v}}^2})} &\text{if} \quad f_{i\text{h}} < 0
           \end{cases}
 \end{cases}
-$$
-$$
+```
+
+```math
 \begin{bmatrix}
     f_{1\text{h}} \\
     f_{1\text{v}} \\
@@ -105,4 +106,4 @@ $$
     V^\text{ref}_y    \\
     V^\text{ref}_z
 \end{bmatrix}
-$$
+```
