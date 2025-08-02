@@ -4,7 +4,7 @@ codecov:
 
 coverage:
   range: "50...70"
-  sttaus:
+  status:
     project:
       default:
         informational: true
