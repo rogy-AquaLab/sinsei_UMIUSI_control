@@ -21,6 +21,7 @@ TEST(GpioInterfaceTest, gpio_error_to_string) {
     EXPECT_NE(suchm::interface::gpio_error_to_string(GpioError::BadFlags), unknown_msg);
     EXPECT_NE(suchm::interface::gpio_error_to_string(GpioError::BadHandle), unknown_msg);
     EXPECT_NE(suchm::interface::gpio_error_to_string(GpioError::BadParameter), unknown_msg);
+    EXPECT_NE(suchm::interface::gpio_error_to_string(GpioError::BadPulsewidth), unknown_msg);
     EXPECT_NE(suchm::interface::gpio_error_to_string(GpioError::NoHandle), unknown_msg);
     EXPECT_NE(suchm::interface::gpio_error_to_string(GpioError::I2cNotOpen), unknown_msg);
     EXPECT_NE(suchm::interface::gpio_error_to_string(GpioError::I2cBadBus), unknown_msg);
