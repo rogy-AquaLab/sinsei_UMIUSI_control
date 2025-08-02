@@ -97,7 +97,7 @@ auto can::VescModel::get_rpm(const interface::CanFrame & frame) const
 
     auto && scaled_erpm = util::to_int32_be(frame.data);
     auto && erpm = static_cast<double>(scaled_erpm) / ERPM_SCALE;
-    static constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
+    constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
     // ERPMを極対数で割ってRPMに変換
     return state::thruster::Rpm{erpm / BLDC_POLE_PAIR};
 }

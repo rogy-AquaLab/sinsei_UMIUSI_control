@@ -61,7 +61,6 @@ TEST(CanModelTest, CanModelOnReadTest) {
 
     auto can = std::make_shared<Can>();
 
-    // TODO: parameterlize
     EXPECT_CALL(*can, recv_frame())
         .Times(1)
         .WillOnce(Return(tl::expected<suchm::interface::CanFrame, std::string>{
@@ -80,7 +79,7 @@ TEST(CanModelTest, CanModelCanModeOnWriteTest) {
         .Times(/*1*/ 0)
         .WillOnce(Return(tl::expected<void, std::string>{}));
 
-    // TODO: parameterlize
+    // FIXME: 内部状態が変化するので、何回か`on_write`を呼び出してテストする必要がある。(実装が終わったら修正)
     auto can_model = suchm::CanModel(can, VESC_IDS);
     auto result = can_model.on_write(
         succmd::main_power::Enabled{false},
@@ -104,6 +103,11 @@ TEST(CanModelTest, CanModelCanModeOnWriteTest) {
 }
 
 TEST(CanModelTest, CanModelDirectModeOnWriteTest) {
+    constexpr bool DUMMY_MAIN_POWER_ENABLED = true;
+    constexpr uint8_t DUMMY_LED_TAPE_COLOR_R = 255;
+    constexpr uint8_t DUMMY_LED_TAPE_COLOR_G = 0;
+    constexpr uint8_t DUMMY_LED_TAPE_COLOR_B = 0;
+
     auto can = std::make_shared<Can>();
 
     // FIXME: 実装が終わっていないので、`send_frame`の呼び出しがない
@@ -111,10 +115,13 @@ TEST(CanModelTest, CanModelDirectModeOnWriteTest) {
         .Times(/*1*/ 0)
         .WillOnce(Return(tl::expected<void, std::string>{}));
 
-    // TODO: parameterlize
     auto can_model = suchm::CanModel(can, VESC_IDS);
-    auto result =
-        can_model.on_write(succmd::main_power::Enabled{true}, succmd::led_tape::Color{255, 0, 0});
+    auto result = can_model.on_write(
+        succmd::main_power::Enabled{DUMMY_MAIN_POWER_ENABLED}, succmd::led_tape::Color{
+                                                                   DUMMY_LED_TAPE_COLOR_R,
+                                                                   DUMMY_LED_TAPE_COLOR_G,
+                                                                   DUMMY_LED_TAPE_COLOR_B,
+                                                               });
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
 

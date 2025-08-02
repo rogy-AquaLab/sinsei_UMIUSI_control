@@ -11,12 +11,9 @@
 
 namespace sinsei_umiusi_control::hardware_model {
 
+// ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.h
 class ImuModel {
-  private:
-    std::unique_ptr<interface::Gpio> gpio;
-
-    // ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.h
-
+  public:
     static constexpr interface::Gpio::Addr ADDRESS{0x28};
 
     static constexpr interface::Gpio::Addr ID{0xA0};
@@ -52,6 +49,9 @@ class ImuModel {
 
     /** BNO055 power settings */
     static constexpr std::byte POWER_MODE_NORMAL{0x00};
+
+  private:
+    std::unique_ptr<interface::Gpio> gpio;
 
     auto read_quat() -> tl::expected<state::imu::Quaternion, std::string>;
 
