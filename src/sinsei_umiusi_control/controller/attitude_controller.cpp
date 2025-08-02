@@ -220,15 +220,6 @@ auto AttitudeController::update_and_write_commands(
         this->output = this->logic->init(time.seconds(), this->input, this->output);
     }
 
-    RCLCPP_INFO(  // FIXME: Debug用。消す。
-        this->get_node()->get_logger(), "\nangle: [%f, %f, %f, %f]\nduty : [%f, %f, %f, %f]\n",
-        this->output.cmd.thruster_angles[0].value, this->output.cmd.thruster_angles[1].value,
-        this->output.cmd.thruster_angles[2].value, this->output.cmd.thruster_angles[3].value,
-        this->output.cmd.thruster_duty_cycles[0].value,
-        this->output.cmd.thruster_duty_cycles[1].value,
-        this->output.cmd.thruster_duty_cycles[2].value,
-        this->output.cmd.thruster_duty_cycles[3].value);
-
     // コマンドを送信
     res = util::interface_accessor::set_commands_to_loaned_interfaces(
         this->command_interfaces_, this->command_interface_data);
