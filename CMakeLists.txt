@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
 project(sinsei_umiusi_control)
 
+# find dependencies
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
+
 # default compiler flags
 add_compile_options(
   -Wall
@@ -29,9 +33,17 @@ endif()
 # for clang-tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# find dependencies
-find_package(ament_cmake_auto REQUIRED)
-ament_auto_find_build_dependencies()
+# serach for pigpio library
+find_library(PIGPIO_LIBRARY pigpiod_if2)
+if(NOT PIGPIO_LIBRARY)
+  message(FATAL_ERROR "pigpiod_if2 library not found. Please install pigpio.")
+endif()
+
+# search for Eigen3
+find_package(Eigen3)
+if(NOT Eigen3_FOUND)
+  message(FATAL_ERROR "Eigen3 not found. Please install Eigen3.")
+endif()
 
 ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   src/${PROJECT_NAME}/hardware/can.cpp
@@ -52,11 +64,6 @@ ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   src/${PROJECT_NAME}/hardware_model/impl/pigpio.cpp
   src/${PROJECT_NAME}/hardware_model/impl/linux_can.cpp
 )
-
-find_library(PIGPIO_LIBRARY pigpiod_if2)
-if(NOT PIGPIO_LIBRARY)
-  message(FATAL_ERROR "pigpiod_if2 library not found. Please install pigpio.")
-endif()
 target_link_libraries(${PROJECT_NAME}_hardware
   ${PIGPIO_LIBRARY}
 )
@@ -66,6 +73,10 @@ ament_auto_add_library(${PROJECT_NAME}_controller SHARED
   src/${PROJECT_NAME}/controller/attitude_controller.cpp
   src/${PROJECT_NAME}/controller/thruster_controller.cpp
   src/${PROJECT_NAME}/util/interface_accessor.cpp
+)
+target_include_directories(${PROJECT_NAME}_controller
+  PRIVATE
+    ${Eigen3_INCLUDE_DIRS}
 )
 
 pluginlib_export_plugin_description_file(hardware_interface plugin/umiusi_hardware_plugin.xml)

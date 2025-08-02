@@ -4,6 +4,13 @@ codecov:
 
 coverage:
   range: "50...70"
+  sttaus:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
 
 component_management:
   default_rules:

@@ -1,83 +1,101 @@
 #include "sinsei_umiusi_control/controller/attitude_controller.hpp"
 
 #include <controller_interface/controller_interface_base.hpp>
-#include <cstddef>
 #include <rclcpp/logging.hpp>
 #include <string>
 
-#include "sinsei_umiusi_control/state/imu.hpp"
+#include "sinsei_umiusi_control/controller/logic/attitude/feed_forward.hpp"
+#include "sinsei_umiusi_control/controller/logic/logic_interface.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
-namespace succ = sinsei_umiusi_control::controller;
-namespace suc_util = sinsei_umiusi_control::util;
-namespace rlc = rclcpp_lifecycle;
-namespace hif = hardware_interface;
-namespace cif = controller_interface;
+using namespace sinsei_umiusi_control::controller;
 
-auto succ::AttitudeController::command_interface_configuration() const
-    -> cif::InterfaceConfiguration {
+auto AttitudeController::command_interface_configuration() const
+    -> controller_interface::InterfaceConfiguration {
     auto cmd_names = std::vector<std::string>{};
     for (const auto & [name, _] : this->command_interface_data) {
         cmd_names.push_back(name);
     }
 
-    return cif::InterfaceConfiguration{
-        cif::interface_configuration_type::INDIVIDUAL,
+    return controller_interface::InterfaceConfiguration{
+        controller_interface::interface_configuration_type::INDIVIDUAL,
         cmd_names,
     };
 }
 
-auto succ::AttitudeController::state_interface_configuration() const
-    -> cif::InterfaceConfiguration {
+auto AttitudeController::state_interface_configuration() const
+    -> controller_interface::InterfaceConfiguration {
     auto state_names = std::vector<std::string>{};
     for (const auto & [name, _] : this->state_interface_data) {
         state_names.push_back(name);
     }
 
-    return cif::InterfaceConfiguration{
-        cif::interface_configuration_type::INDIVIDUAL,
+    return controller_interface::InterfaceConfiguration{
+        controller_interface::interface_configuration_type::INDIVIDUAL,
         state_names,
     };
 }
 
-auto succ::AttitudeController::on_init() -> cif::CallbackReturn {
+auto AttitudeController::on_init() -> controller_interface::CallbackReturn {
     this->get_node()->declare_parameter("thruster_mode", "unknown");
+    this->get_node()->declare_parameter("control_mode", "ff");
 
-    this->target_orientation = sinsei_umiusi_control::cmd::attitude::Orientation{};
-    this->target_velocity = sinsei_umiusi_control::cmd::attitude::Velocity{};
+    this->input = AttitudeController::Input{};
+    this->output = AttitudeController::Output{};
 
-    this->imu_quaternion = sinsei_umiusi_control::state::imu::Quaternion{};
-    this->imu_velocity = sinsei_umiusi_control::state::imu::Velocity{};
-
-    this->thruster_angles.fill(sinsei_umiusi_control::cmd::thruster::Angle{});
-    this->thruster_duty_cycles.fill(sinsei_umiusi_control::cmd::thruster::DutyCycle{});
-
-    this->thruster_rpms.fill(sinsei_umiusi_control::state::thruster::Rpm{});
-
-    return cif::CallbackReturn::SUCCESS;
+    return controller_interface::CallbackReturn::SUCCESS;
 }
 
-auto succ::AttitudeController::on_configure(const rlc::State & /*previous_state*/)
-    -> cif::CallbackReturn {
-    const auto mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
-    const auto mode_res = util::get_mode_from_str(mode_str);
-    if (!mode_res) {
-        RCLCPP_ERROR(this->get_node()->get_logger(), "Invalid thruster mode: %s", mode_str.c_str());
-        return cif::CallbackReturn::ERROR;
+auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous_state*/)
+    -> controller_interface::CallbackReturn {
+    // スラスタモードを取得
+    const auto thruster_mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
+    const auto thruster_mode_res = util::get_mode_from_str(thruster_mode_str);
+    if (!thruster_mode_res) {
+        RCLCPP_ERROR(
+            this->get_node()->get_logger(), "Invalid thruster mode: %s", thruster_mode_str.c_str());
+        return controller_interface::CallbackReturn::ERROR;
     }
-    this->thruster_mode = mode_res.value();
+    this->thruster_mode = thruster_mode_res.value();
+    RCLCPP_INFO(this->get_node()->get_logger(), "Thruster mode: %s", thruster_mode_str.c_str());
 
-    RCLCPP_INFO(this->get_node()->get_logger(), "Thruster MODE: %s", mode_str.c_str());
+    // コントロールモードを取得
+    const auto control_mode_str = this->get_node()->get_parameter("control_mode").as_string();
+    const auto control_mode_res = logic::get_mode_from_str(control_mode_str);
+    if (!control_mode_res) {
+        RCLCPP_ERROR(
+            this->get_node()->get_logger(), "Invalid control mode: %s", control_mode_str.c_str());
+        return controller_interface::CallbackReturn::ERROR;
+    }
+    switch (control_mode_res.value()) {
+        case logic::ControlMode::FeedForward: {
+            this->logic = std::make_unique<logic::attitude::FeedForward>();
+            break;
+        }
+        case logic::ControlMode::FeedBack: {
+            // TODO: Implement feedback logic
+            RCLCPP_ERROR(
+                this->get_node()->get_logger(), "Feedback control mode is not implemented yet");
+            return controller_interface::CallbackReturn::ERROR;
+            break;
+        }
+        default: {
+            return controller_interface::CallbackReturn::ERROR;  // unreachable
+        }
+    }
+    RCLCPP_INFO(this->get_node()->get_logger(), "Control mode: %s", control_mode_str.c_str());
 
+    // Command / State Interfaceの設定
     constexpr std::string_view THRUSTER_SUFFIX[4] = {"_lf", "_lb", "_rb", "_rf"};
 
     for (size_t i = 0; i < 4; ++i) {
         const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
         this->command_interface_data.emplace_back(
-            prefix + "angle", util::to_interface_data_ptr(this->thruster_angles[i]));
+            prefix + "angle", util::to_interface_data_ptr(this->output.cmd.thruster_angles[i]));
         this->command_interface_data.emplace_back(
-            prefix + "duty_cycle", util::to_interface_data_ptr(this->thruster_duty_cycles[i]));
+            prefix + "duty_cycle",
+            util::to_interface_data_ptr(this->output.cmd.thruster_duty_cycles[i]));
     }
 
     if (this->thruster_mode == util::ThrusterMode::Can) {
@@ -86,69 +104,75 @@ auto succ::AttitudeController::on_configure(const rlc::State & /*previous_state*
             const auto prefix =
                 "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
             this->state_interface_data.emplace_back(
-                prefix + "esc/rpm", util::to_interface_data_ptr(this->thruster_rpms[i]));
+                prefix + "esc/rpm",
+                util::to_interface_data_ptr(this->input.state.thruster_rpms[i]));
         }
     }
     this->state_interface_data.emplace_back(
-        "imu/quaternion.x", util::to_interface_data_ptr(this->imu_quaternion.x));
+        "imu/quaternion.x", util::to_interface_data_ptr(this->input.state.imu_quaternion.x));
     this->state_interface_data.emplace_back(
-        "imu/quaternion.y", util::to_interface_data_ptr(this->imu_quaternion.y));
+        "imu/quaternion.y", util::to_interface_data_ptr(this->input.state.imu_quaternion.y));
     this->state_interface_data.emplace_back(
-        "imu/quaternion.z", util::to_interface_data_ptr(this->imu_quaternion.z));
+        "imu/quaternion.z", util::to_interface_data_ptr(this->input.state.imu_quaternion.z));
     this->state_interface_data.emplace_back(
-        "imu/quaternion.w", util::to_interface_data_ptr(this->imu_quaternion.w));
+        "imu/quaternion.w", util::to_interface_data_ptr(this->input.state.imu_quaternion.w));
     this->state_interface_data.emplace_back(
-        "imu/velocity.x", util::to_interface_data_ptr(this->imu_velocity.x));
+        "imu/velocity.x", util::to_interface_data_ptr(this->input.state.imu_velocity.x));
     this->state_interface_data.emplace_back(
-        "imu/velocity.y", util::to_interface_data_ptr(this->imu_velocity.y));
+        "imu/velocity.y", util::to_interface_data_ptr(this->input.state.imu_velocity.y));
     this->state_interface_data.emplace_back(
-        "imu/velocity.z", util::to_interface_data_ptr(this->imu_velocity.z));
+        "imu/velocity.z", util::to_interface_data_ptr(this->input.state.imu_velocity.z));
 
     this->ref_interface_data.emplace_back(
-        "target_orientation.x", util::to_interface_data_ptr(this->target_orientation.x));
+        "target_orientation.x", util::to_interface_data_ptr(this->input.cmd.target_orientation.x));
     this->ref_interface_data.emplace_back(
-        "target_orientation.y", util::to_interface_data_ptr(this->target_orientation.y));
+        "target_orientation.y", util::to_interface_data_ptr(this->input.cmd.target_orientation.y));
     this->ref_interface_data.emplace_back(
-        "target_orientation.z", util::to_interface_data_ptr(this->target_orientation.z));
+        "target_orientation.z", util::to_interface_data_ptr(this->input.cmd.target_orientation.z));
     this->ref_interface_data.emplace_back(
-        "target_velocity.x", util::to_interface_data_ptr(this->target_velocity.x));
+        "target_velocity.x", util::to_interface_data_ptr(this->input.cmd.target_velocity.x));
     this->ref_interface_data.emplace_back(
-        "target_velocity.y", util::to_interface_data_ptr(this->target_velocity.y));
+        "target_velocity.y", util::to_interface_data_ptr(this->input.cmd.target_velocity.y));
     this->ref_interface_data.emplace_back(
-        "target_velocity.z", util::to_interface_data_ptr(this->target_velocity.z));
+        "target_velocity.z", util::to_interface_data_ptr(this->input.cmd.target_velocity.z));
 
-    return cif::CallbackReturn::SUCCESS;
+    return controller_interface::CallbackReturn::SUCCESS;
 }
 
-auto succ::AttitudeController::on_export_reference_interfaces()
-    -> std::vector<hif::CommandInterface> {
+auto AttitudeController::on_export_reference_interfaces()
+    -> std::vector<hardware_interface::CommandInterface> {
     // To avoid bug in ros2 control. `reference_interfaces_` is actually not used.
     this->reference_interfaces_.resize(this->ref_interface_data.size());
 
-    auto interfaces = std::vector<hif::CommandInterface>{};
+    auto interfaces = std::vector<hardware_interface::CommandInterface>{};
     for (auto & [name, data] : this->ref_interface_data) {
-        interfaces.emplace_back(hif::CommandInterface(this->get_node()->get_name(), name, data));
+        interfaces.emplace_back(
+            hardware_interface::CommandInterface(this->get_node()->get_name(), name, data));
     }
     return interfaces;
 }
 
-auto succ::AttitudeController::on_export_state_interfaces() -> std::vector<hif::StateInterface> {
-    auto interfaces = std::vector<hif::StateInterface>{};
+auto AttitudeController::on_export_state_interfaces()
+    -> std::vector<hardware_interface::StateInterface> {
+    auto interfaces = std::vector<hardware_interface::StateInterface>{};
     for (auto & [name, data] : this->state_interface_data) {
-        interfaces.emplace_back(hif::StateInterface(this->get_node()->get_name(), name, data));
+        interfaces.emplace_back(
+            hardware_interface::StateInterface(this->get_node()->get_name(), name, data));
     }
     return interfaces;
 }
 
-auto succ::AttitudeController::on_set_chained_mode(bool /*chained_mode*/) -> bool { return true; };
+auto AttitudeController::on_set_chained_mode(bool /*chained_mode*/) -> bool { return true; };
 
-auto succ::AttitudeController::update_reference_from_subscribers(
-    const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> cif::return_type {
-    return cif::return_type::OK;
+auto AttitudeController::update_reference_from_subscribers(
+    const rclcpp::Time & /*time*/,
+    const rclcpp::Duration & /*period*/) -> controller_interface::return_type {
+    return controller_interface::return_type::OK;
 }
 
-auto succ::AttitudeController::update_and_write_commands(
-    const rclcpp::Time & time, const rclcpp::Duration & period) -> cif::return_type {
+auto AttitudeController::update_and_write_commands(
+    const rclcpp::Time & time,
+    const rclcpp::Duration & period) -> controller_interface::return_type {
     // 状態を取得
     auto res = util::interface_accessor::get_states_from_loaned_interfaces(
         this->state_interfaces_, this->state_interface_data);
@@ -159,8 +183,42 @@ auto succ::AttitudeController::update_and_write_commands(
             "Failed to get value of state interfaces");
     }
 
-    // 姿勢制御の関数を呼び出す
-    this->compute_outputs(time, period);
+    // コントロールモード(フィードフォワード/フィードバック)を取得
+    const auto control_mode_str = this->get_node()->get_parameter("control_mode").as_string();
+    const auto control_mode_res = logic::get_mode_from_str(control_mode_str);
+    if (!control_mode_res) {
+        RCLCPP_ERROR(
+            this->get_node()->get_logger(), "Invalid control mode: %s", control_mode_str.c_str());
+    }
+    const auto mode_changed = this->logic->control_mode() != control_mode_res.value();
+
+    if (!mode_changed) {
+        // 姿勢制御の関数を呼び出す
+        this->output = this->logic->update(time.seconds(), period.seconds(), this->input);
+    } else {
+        RCLCPP_INFO(
+            this->get_node()->get_logger(), "Control mode changed: %s -> %s",
+            logic::control_mode_to_str(this->logic->control_mode()).c_str(),
+            logic::control_mode_to_str(control_mode_res.value()).c_str());
+
+        // モードが変わった場合はロジックを変更して初期化
+        switch (control_mode_res.value()) {
+            case logic::ControlMode::FeedForward: {
+                this->logic = std::make_unique<logic::attitude::FeedForward>();
+                break;
+            }
+            case logic::ControlMode::FeedBack: {
+                // TODO: Implement feedback logic
+                RCLCPP_ERROR(
+                    this->get_node()->get_logger(), "Feedback control mode is not implemented yet");
+                return controller_interface::return_type::ERROR;
+            }
+            default: {
+                return controller_interface::return_type::ERROR;  // unreachable
+            }
+        }
+        this->output = this->logic->init(time.seconds(), this->input, this->output);
+    }
 
     // コマンドを送信
     res = util::interface_accessor::set_commands_to_loaned_interfaces(
@@ -172,17 +230,7 @@ auto succ::AttitudeController::update_and_write_commands(
             "Failed to set value for command interfaces");
     }
 
-    return cif::return_type::OK;
-}
-
-auto succ::AttitudeController::compute_outputs(
-    const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> void {
-    // TODO: PID制御などの処理はここに記述する
-    // 現在はダミー
-    for (size_t i = 0; i < 4; ++i) {
-        this->thruster_angles[i].value = 0.0;
-        this->thruster_duty_cycles[i].value = 0.0;
-    }
+    return controller_interface::return_type::OK;
 }
 
 #include <pluginlib/class_list_macros.hpp>
