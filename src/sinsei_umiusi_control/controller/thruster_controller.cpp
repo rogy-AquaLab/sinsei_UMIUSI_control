@@ -10,39 +10,35 @@
 #include "sinsei_umiusi_control/util/serialization.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
-namespace succ = sinsei_umiusi_control::controller;
-namespace suc_util = sinsei_umiusi_control::util;
-namespace rlc = rclcpp_lifecycle;
-namespace hif = hardware_interface;
-namespace cif = controller_interface;
+using namespace sinsei_umiusi_control::controller;
 
-auto succ::ThrusterController::command_interface_configuration() const
-    -> cif::InterfaceConfiguration {
+auto ThrusterController::command_interface_configuration() const
+    -> controller_interface::InterfaceConfiguration {
     auto cmd_names = std::vector<std::string>{};
     for (const auto & [name, _] : this->command_interface_data) {
         cmd_names.push_back(name);
     }
 
-    return cif::InterfaceConfiguration{
-        cif::interface_configuration_type::INDIVIDUAL,
+    return controller_interface::InterfaceConfiguration{
+        controller_interface::interface_configuration_type::INDIVIDUAL,
         cmd_names,
     };
 }
 
-auto succ::ThrusterController::state_interface_configuration() const
-    -> cif::InterfaceConfiguration {
+auto ThrusterController::state_interface_configuration() const
+    -> controller_interface::InterfaceConfiguration {
     auto state_names = std::vector<std::string>{};
     for (const auto & [name, _] : this->state_interface_data) {
         state_names.push_back(name);
     }
 
-    return cif::InterfaceConfiguration{
-        cif::interface_configuration_type::INDIVIDUAL,
+    return controller_interface::InterfaceConfiguration{
+        controller_interface::interface_configuration_type::INDIVIDUAL,
         state_names,
     };
 }
 
-auto succ::ThrusterController::on_init() -> cif::CallbackReturn {
+auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
     using rcl_interfaces::msg::ParameterDescriptor;
 
     this->get_node()->declare_parameter(
@@ -75,16 +71,16 @@ auto succ::ThrusterController::on_init() -> cif::CallbackReturn {
     this->input = Input{};
     this->output = Output{};
 
-    return cif::CallbackReturn::SUCCESS;
+    return controller_interface::CallbackReturn::SUCCESS;
 }
 
-auto succ::ThrusterController::on_configure(const rlc::State & /*pervious_state*/)
-    -> cif::CallbackReturn {
+auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious_state*/)
+    -> controller_interface::CallbackReturn {
     const auto mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
     const auto mode_res = util::get_mode_from_str(mode_str);
     if (!mode_res) {
         RCLCPP_ERROR(this->get_node()->get_logger(), "%s", mode_str.c_str());
-        return cif::CallbackReturn::ERROR;
+        return controller_interface::CallbackReturn::ERROR;
     }
     this->mode = mode_res.value();
 
@@ -93,7 +89,7 @@ auto succ::ThrusterController::on_configure(const rlc::State & /*pervious_state*
         RCLCPP_ERROR(
             this->get_node()->get_logger(), "Invalid thruster ID: %ld (must be between 1 and 4)",
             id);
-        return cif::CallbackReturn::ERROR;
+        return controller_interface::CallbackReturn::ERROR;
     }
     this->id = static_cast<uint8_t>(id);
 
@@ -101,7 +97,7 @@ auto succ::ThrusterController::on_configure(const rlc::State & /*pervious_state*
     const auto direction_res = logic::thruster::get_direction_from_str(direction_str);
     if (!direction_res) {
         RCLCPP_ERROR(this->get_node()->get_logger(), "%s", direction_str.c_str());
-        return cif::CallbackReturn::ERROR;
+        return controller_interface::CallbackReturn::ERROR;
     }
     this->direction = direction_res.value();
 
@@ -110,7 +106,7 @@ auto succ::ThrusterController::on_configure(const rlc::State & /*pervious_state*
         RCLCPP_ERROR(
             this->get_node()->get_logger(),
             "Invalid max duty cycle: %f (must be between 0.0 and 1.0)", max_duty);
-        return cif::CallbackReturn::ERROR;
+        return controller_interface::CallbackReturn::ERROR;
     }
     this->max_duty = max_duty;
 
@@ -141,41 +137,45 @@ auto succ::ThrusterController::on_configure(const rlc::State & /*pervious_state*
     this->ref_interface_data.emplace_back(
         "duty_cycle", util::to_interface_data_ptr(this->input.cmd.duty_cycle));
 
-    return cif::CallbackReturn::SUCCESS;
+    return controller_interface::CallbackReturn::SUCCESS;
 }
 
-auto succ::ThrusterController::on_export_reference_interfaces()
-    -> std::vector<hif::CommandInterface> {
+auto ThrusterController::on_export_reference_interfaces()
+    -> std::vector<hardware_interface::CommandInterface> {
     // To avoid bug in ros2 control. `reference_interfaces_` is actually not used.
     this->reference_interfaces_.resize(this->ref_interface_data.size());
 
-    auto interfaces = std::vector<hif::CommandInterface>{};
+    auto interfaces = std::vector<hardware_interface::CommandInterface>{};
     for (auto & [name, data] : this->ref_interface_data) {
-        interfaces.emplace_back(hif::CommandInterface(this->get_node()->get_name(), name, data));
+        interfaces.emplace_back(
+            hardware_interface::CommandInterface(this->get_node()->get_name(), name, data));
     }
     return interfaces;
 }
 
-auto succ::ThrusterController::on_export_state_interfaces() -> std::vector<hif::StateInterface> {
-    auto interfaces = std::vector<hif::StateInterface>{};
+auto ThrusterController::on_export_state_interfaces()
+    -> std::vector<hardware_interface::StateInterface> {
+    auto interfaces = std::vector<hardware_interface::StateInterface>{};
     for (auto & [name, data] : this->state_interface_data) {
         // Thruster ID を隠蔽する (e.g. thruster1/rpm -> thruster/rpm)
         constexpr auto OFFSET = std::size("thrusterN") - 1;  // 末尾のnull文字を除くため、-1
-        interfaces.emplace_back(hif::StateInterface(
+        interfaces.emplace_back(hardware_interface::StateInterface(
             this->get_node()->get_name(), "thruster" + name.substr(OFFSET), data));
     }
     return interfaces;
 }
 
-auto succ::ThrusterController::on_set_chained_mode(bool /*chained_mode*/) -> bool { return true; }
+auto ThrusterController::on_set_chained_mode(bool /*chained_mode*/) -> bool { return true; }
 
-auto succ::ThrusterController::update_reference_from_subscribers(
-    const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> cif::return_type {
-    return cif::return_type::OK;
+auto ThrusterController::update_reference_from_subscribers(
+    const rclcpp::Time & /*time*/,
+    const rclcpp::Duration & /*period*/) -> controller_interface::return_type {
+    return controller_interface::return_type::OK;
 }
 
-auto succ::ThrusterController::update_and_write_commands(
-    const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) -> cif::return_type {
+auto ThrusterController::update_and_write_commands(
+    const rclcpp::Time & /*time*/,
+    const rclcpp::Duration & /*period*/) -> controller_interface::return_type {
     // パラメータを取得
     const auto direction_str = this->get_node()->get_parameter("direction").as_string();
     const auto direction_res = logic::thruster::get_direction_from_str(direction_str);
@@ -222,7 +222,7 @@ auto succ::ThrusterController::update_and_write_commands(
             this->get_node()->get_logger(), *this->get_node()->get_clock(), DURATION,
             "Failed to set value of command interfaces");
     }
-    return cif::return_type::OK;
+    return controller_interface::return_type::OK;
 }
 
 #include <pluginlib/class_list_macros.hpp>
