@@ -1,6 +1,5 @@
 #include "sinsei_umiusi_control/controller/thruster_controller.hpp"
 
-#include <algorithm>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/parameter_value.hpp>
 
@@ -201,9 +200,8 @@ auto ThrusterController::update_and_write_commands(
     this->output.cmd.esc_enabled = this->input.cmd.esc_enabled;
     this->output.cmd.angle = this->input.cmd.angle;
     const auto sgn = this->direction == logic::thruster::Direction::RightHanded ? 1.0 : -1.0;
-    const auto clamped =
-        std::clamp(this->input.cmd.duty_cycle.value, -this->max_duty, this->max_duty);
-    this->output.cmd.duty_cycle.value = sgn * clamped;
+    const auto resized = this->max_duty * this->input.cmd.duty_cycle.value;
+    this->output.cmd.duty_cycle.value = sgn * resized;
 
     // コマンドを送信
     res = util::interface_accessor::set_commands_to_loaned_interfaces(
