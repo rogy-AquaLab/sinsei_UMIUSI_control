@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
-#include "sinsei_umiusi_control/controller/logic/thruster/direction.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
@@ -53,8 +52,8 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     util::ThrusterMode mode;
     // Thruster hardware component ID (1~4)
     uint8_t id;
-    // Thruster direction (right-handed or left-handed)
-    logic::thruster::Direction direction;
+    // Thruster direction (true for forward, false for reverse)
+    bool forward;
     // Maximum duty cycle (0.0 to 1.0)
     double max_duty;
 

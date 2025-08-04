@@ -6,7 +6,6 @@
 #include "rcl_interfaces/msg/floating_point_range.hpp"
 #include "rcl_interfaces/msg/integer_range.hpp"
 #include "rcl_interfaces/msg/parameter_descriptor.hpp"
-#include "sinsei_umiusi_control/controller/logic/thruster/direction.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
@@ -60,12 +59,10 @@ auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
             .set__integer_range({IntegerRange{}.set__from_value(1).set__to_value(4)})
             .set__read_only(true));
     this->get_node()->declare_parameter(
-        "direction", "rh",
+        "forward", true,
         ParameterDescriptor{}
-            .set__description(
-                "Direction of the thruster (rh: right-handed / lh: left-handed) while z-axis is up")
-            .set__type(rclcpp::PARAMETER_STRING)
-            .set__additional_constraints("Must be one of `rh` or `lh`"));
+            .set__description("Thruster direction (true for forward, false for reverse)")
+            .set__type(rclcpp::PARAMETER_BOOL));
     this->get_node()->declare_parameter(
         "max_duty", 0.0,
         ParameterDescriptor{}
@@ -94,13 +91,7 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                                         ->get_parameter("id")
                                         .as_int());  // パラメータで範囲に制約を設けているので安全
 
-    const auto direction_str = this->get_node()->get_parameter("direction").as_string();
-    const auto direction_res = logic::thruster::get_direction_from_str(direction_str);
-    if (!direction_res) {
-        RCLCPP_ERROR(this->get_node()->get_logger(), "%s", direction_str.c_str());
-        return controller_interface::CallbackReturn::ERROR;
-    }
-    this->direction = direction_res.value();
+    this->forward = this->get_node()->get_parameter("forward").as_bool();
 
     this->max_duty = this->get_node()
                          ->get_parameter("max_duty")
@@ -173,13 +164,7 @@ auto ThrusterController::update_and_write_commands(
     const rclcpp::Time & /*time*/,
     const rclcpp::Duration & /*period*/) -> controller_interface::return_type {
     // パラメータを取得
-    const auto direction_str = this->get_node()->get_parameter("direction").as_string();
-    const auto direction_res = logic::thruster::get_direction_from_str(direction_str);
-    if (direction_res) {
-        this->direction = direction_res.value();
-    } else {
-        RCLCPP_ERROR(this->get_node()->get_logger(), "%s", direction_str.c_str());
-    }
+    this->forward = this->get_node()->get_parameter("forward").as_bool();
 
     this->max_duty = this->get_node()
                          ->get_parameter("max_duty")
@@ -199,7 +184,7 @@ auto ThrusterController::update_and_write_commands(
     this->output.cmd.servo_enabled = this->input.cmd.servo_enabled;
     this->output.cmd.esc_enabled = this->input.cmd.esc_enabled;
     this->output.cmd.angle = this->input.cmd.angle;
-    const auto sgn = this->direction == logic::thruster::Direction::RightHanded ? 1.0 : -1.0;
+    const auto sgn = this->forward ? 1.0 : -1.0;
     const auto resized = this->max_duty * this->input.cmd.duty_cycle.value;
     this->output.cmd.duty_cycle.value = sgn * resized;
 
