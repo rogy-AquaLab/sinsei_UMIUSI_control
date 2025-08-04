@@ -91,14 +91,9 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
     }
     this->mode = mode_res.value();
 
-    const auto id = this->get_node()->get_parameter("id").as_int();
-    if (id < 1 || id > 4) {
-        RCLCPP_ERROR(
-            this->get_node()->get_logger(), "Invalid thruster ID: %ld (must be between 1 and 4)",
-            id);
-        return controller_interface::CallbackReturn::ERROR;
-    }
-    this->id = static_cast<uint8_t>(id);
+    this->id = static_cast<uint8_t>(this->get_node()
+                                        ->get_parameter("id")
+                                        .as_int());  // パラメータで範囲に制約を設けているので安全
 
     const auto direction_str = this->get_node()->get_parameter("direction").as_string();
     const auto direction_res = logic::thruster::get_direction_from_str(direction_str);
@@ -108,14 +103,9 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
     }
     this->direction = direction_res.value();
 
-    const auto max_duty = this->get_node()->get_parameter("max_duty").as_double();
-    if (max_duty < 0.0 || max_duty > 1.0) {
-        RCLCPP_ERROR(
-            this->get_node()->get_logger(),
-            "Invalid max duty cycle: %f (must be between 0.0 and 1.0)", max_duty);
-        return controller_interface::CallbackReturn::ERROR;
-    }
-    this->max_duty = max_duty;
+    this->max_duty = this->get_node()
+                         ->get_parameter("max_duty")
+                         .as_double();  // パラメータで範囲に制約を設けているので安全
 
     const auto prefix = this->mode == util::ThrusterMode::Can
                             ? "thruster" + std::to_string(this->id) + "/"
@@ -192,14 +182,9 @@ auto ThrusterController::update_and_write_commands(
         RCLCPP_ERROR(this->get_node()->get_logger(), "%s", direction_str.c_str());
     }
 
-    const auto max_duty = this->get_node()->get_parameter("max_duty").as_double();
-    if (max_duty >= 0.0 && max_duty <= 1.0) {
-        this->max_duty = max_duty;
-    } else {
-        RCLCPP_ERROR(
-            this->get_node()->get_logger(),
-            "Invalid max duty cycle: %f (must be between 0.0 and 1.0)", max_duty);
-    }
+    this->max_duty = this->get_node()
+                         ->get_parameter("max_duty")
+                         .as_double();  // パラメータで範囲に制約を設けているので安全
 
     // 状態を取得
     auto res = util::interface_accessor::get_states_from_loaned_interfaces(
