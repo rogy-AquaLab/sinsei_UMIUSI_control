@@ -4,6 +4,8 @@
 #include <rclcpp/logging.hpp>
 #include <rclcpp/parameter_value.hpp>
 
+#include "rcl_interfaces/msg/floating_point_range.hpp"
+#include "rcl_interfaces/msg/integer_range.hpp"
 #include "rcl_interfaces/msg/parameter_descriptor.hpp"
 #include "sinsei_umiusi_control/controller/logic/thruster/direction.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
@@ -39,6 +41,8 @@ auto ThrusterController::state_interface_configuration() const
 }
 
 auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
+    using rcl_interfaces::msg::FloatingPointRange;
+    using rcl_interfaces::msg::IntegerRange;
     using rcl_interfaces::msg::ParameterDescriptor;
 
     this->get_node()->declare_parameter(
@@ -54,6 +58,7 @@ auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
             .set__description(
                 "ID of the thruster hardware component (`N` for `thrusterN` in the URDF)")
             .set__type(rclcpp::PARAMETER_INTEGER)
+            .set__integer_range({IntegerRange{}.set__from_value(1).set__to_value(4)})
             .set__read_only(true));
     this->get_node()->declare_parameter(
         "direction", "rh",
@@ -66,7 +71,9 @@ auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
         "max_duty", 0.0,
         ParameterDescriptor{}
             .set__description("Maximum duty cycle (0.0 to 1.0)")
-            .set__type(rclcpp::PARAMETER_DOUBLE));
+            .set__type(rclcpp::PARAMETER_DOUBLE)
+            .set__floating_point_range(
+                {FloatingPointRange{}.set__from_value(0.0).set__to_value(1.0)}));
 
     this->input = Input{};
     this->output = Output{};
