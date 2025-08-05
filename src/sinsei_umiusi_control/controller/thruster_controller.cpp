@@ -59,7 +59,7 @@ auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
             .set__integer_range({IntegerRange{}.set__from_value(1).set__to_value(4)})
             .set__read_only(true));
     this->get_node()->declare_parameter(
-        "forward", true,
+        "is_forward", true,
         ParameterDescriptor{}
             .set__description("Thruster direction (true for forward, false for reverse)")
             .set__type(rclcpp::PARAMETER_BOOL));
@@ -91,7 +91,7 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                                         ->get_parameter("id")
                                         .as_int());  // パラメータで範囲に制約を設けているので安全
 
-    this->forward = this->get_node()->get_parameter("forward").as_bool();
+    this->is_forward = this->get_node()->get_parameter("is_forward").as_bool();
 
     this->max_duty = this->get_node()
                          ->get_parameter("max_duty")
@@ -164,7 +164,7 @@ auto ThrusterController::update_and_write_commands(
     const rclcpp::Time & /*time*/,
     const rclcpp::Duration & /*period*/) -> controller_interface::return_type {
     // パラメータを取得
-    this->forward = this->get_node()->get_parameter("forward").as_bool();
+    this->is_forward = this->get_node()->get_parameter("is_forward").as_bool();
 
     this->max_duty = this->get_node()
                          ->get_parameter("max_duty")
@@ -184,7 +184,7 @@ auto ThrusterController::update_and_write_commands(
     this->output.cmd.servo_enabled = this->input.cmd.servo_enabled;
     this->output.cmd.esc_enabled = this->input.cmd.esc_enabled;
     this->output.cmd.angle = this->input.cmd.angle;
-    const auto sgn = this->forward ? 1.0 : -1.0;
+    const auto sgn = this->is_forward ? 1.0 : -1.0;
     const auto resized = this->max_duty * this->input.cmd.duty_cycle.value;
     this->output.cmd.duty_cycle.value = sgn * resized;
 
