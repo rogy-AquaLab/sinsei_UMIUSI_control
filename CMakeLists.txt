@@ -82,6 +82,13 @@ target_include_directories(${PROJECT_NAME}_controller
 pluginlib_export_plugin_description_file(hardware_interface plugin/umiusi_hardware_plugin.xml)
 pluginlib_export_plugin_description_file(controller_interface plugin/umiusi_controller_plugin.xml)
 
+ament_python_install_package(${PROJECT_NAME})
+
+install(PROGRAMS
+  scripts/camera.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
