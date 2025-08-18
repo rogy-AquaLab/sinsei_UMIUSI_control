@@ -174,16 +174,16 @@ auto ThrusterController::on_export_state_interfaces()
             this->get_node()->get_name(), "thruster" + name.substr(OFFSET), data));
     }
     interfaces.emplace_back(hardware_interface::StateInterface(
-        this->get_node()->get_name(), "thruster/esc_enabled",
+        this->get_node()->get_name(), "esc_enabled",
         util::to_interface_data_ptr(this->output.state.esc_enabled)));
     interfaces.emplace_back(hardware_interface::StateInterface(
-        this->get_node()->get_name(), "thruster/servo_enabled",
+        this->get_node()->get_name(), "servo_enabled",
         util::to_interface_data_ptr(this->output.state.servo_enabled)));
     interfaces.emplace_back(hardware_interface::StateInterface(
-        this->get_node()->get_name(), "thruster/duty_cycle",
+        this->get_node()->get_name(), "duty_cycle",
         util::to_interface_data_ptr(this->output.state.duty_cycle)));
     interfaces.emplace_back(hardware_interface::StateInterface(
-        this->get_node()->get_name(), "thruster/angle",
+        this->get_node()->get_name(), "angle",
         util::to_interface_data_ptr(this->output.state.angle)));
 
     return interfaces;

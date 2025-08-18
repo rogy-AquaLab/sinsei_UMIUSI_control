@@ -206,8 +206,7 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
             "attitude_controller/imu/velocity.z",
             to_interface_data_ptr(this->state.imu_velocity.z));
         for (size_t i = 0; i < 4; ++i) {
-            const auto prefix =
-                "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
+            const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
 
             this->state_interface_data.emplace_back(
                 prefix + "esc_enabled", to_interface_data_ptr(this->state.esc_enabled[i].value));
