@@ -3,16 +3,16 @@
 
 namespace sinsei_umiusi_control::cmd::thruster {
 
-struct ServoEnabled {
-    bool value;
-};
 struct EscEnabled {
     bool value;
 };
-struct Angle {
-    double value;
+struct ServoEnabled {
+    bool value;
 };
 struct DutyCycle {
+    double value;
+};
+struct Angle {
     double value;
 };
 

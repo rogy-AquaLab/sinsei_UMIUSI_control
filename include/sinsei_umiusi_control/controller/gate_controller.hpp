@@ -35,15 +35,18 @@ class GateController : public controller_interface::ControllerInterface {
         sinsei_umiusi_control::cmd::headlights::HighBeamEnabled high_beam_enabled_ref;
         sinsei_umiusi_control::cmd::headlights::LowBeamEnabled low_beam_enabled_ref;
         sinsei_umiusi_control::cmd::headlights::IrEnabled ir_enabled_ref;
+
+        // TODO: スラスタごとに分ける
         sinsei_umiusi_control::cmd::thruster::ServoEnabled servo_enabled_ref;
         sinsei_umiusi_control::cmd::thruster::EscEnabled esc_enabled_ref;
+
         sinsei_umiusi_control::cmd::led_tape::Color led_tape_color_ref;
         sinsei_umiusi_control::cmd::attitude::Orientation target_orientation_ref;
         sinsei_umiusi_control::cmd::attitude::Velocity target_velocity_ref;
     };
     Command cmd;
 
-    // State interfaces (out)
+    // State interfaces (in)
     struct State {
         sinsei_umiusi_control::state::main_power::BatteryCurrent battery_current;
         sinsei_umiusi_control::state::main_power::BatteryVoltage battery_voltage;
@@ -53,6 +56,10 @@ class GateController : public controller_interface::ControllerInterface {
         sinsei_umiusi_control::state::imu::Quaternion imu_quaternion;
         sinsei_umiusi_control::state::imu::Velocity imu_velocity;
         std::array<sinsei_umiusi_control::state::thruster::Rpm, 4> rpm;
+        std::array<sinsei_umiusi_control::state::thruster::EscEnabled, 4> esc_enabled;
+        std::array<sinsei_umiusi_control::state::thruster::ServoEnabled, 4> servo_enabled;
+        std::array<sinsei_umiusi_control::state::thruster::DutyCycle, 4> thruster_duty_cycles;
+        std::array<sinsei_umiusi_control::state::thruster::Angle, 4> thruster_angles;
         std::array<sinsei_umiusi_control::state::esc::WaterLeaked, 4> esc_water_leaked;
     };
     State state;
@@ -82,6 +89,10 @@ class GateController : public controller_interface::ControllerInterface {
         rclcpp::Publisher<geometry_msgs::msg::Quaternion>::SharedPtr imu_quaternion_publisher;
         rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_velocity_publisher;
         std::array<rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr, 4> rpm_publisher;
+        std::array<rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr, 4> esc_enabled_publisher;
+        std::array<rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr, 4> servo_enabled_publisher;
+        std::array<rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr, 4> duty_cycles_publisher;
+        std::array<rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr, 4> angle_publisher;
         std::array<rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr, 4> esc_water_leaked_publisher;
     };
     Publishers pub;

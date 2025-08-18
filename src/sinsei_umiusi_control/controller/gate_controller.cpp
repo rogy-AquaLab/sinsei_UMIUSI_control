@@ -93,7 +93,7 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
             "attitude_controller/target_velocity.z",
             to_interface_data_ptr(this->cmd.target_velocity_ref.z));
         for (size_t i = 0; i < 4; ++i) {
-            auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
+            const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
 
             this->command_interface_data.emplace_back(
                 prefix + "servo_enabled", to_interface_data_ptr(this->cmd.servo_enabled_ref));
@@ -205,6 +205,21 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
         this->state_interface_data.emplace_back(
             "attitude_controller/imu/velocity.z",
             to_interface_data_ptr(this->state.imu_velocity.z));
+        for (size_t i = 0; i < 4; ++i) {
+            const auto prefix =
+                "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
+
+            this->state_interface_data.emplace_back(
+                prefix + "esc_enabled", to_interface_data_ptr(this->state.esc_enabled[i].value));
+            this->state_interface_data.emplace_back(
+                prefix + "servo_enabled",
+                to_interface_data_ptr(this->state.servo_enabled[i].value));
+            this->state_interface_data.emplace_back(
+                prefix + "duty_cycle",
+                to_interface_data_ptr(this->state.thruster_duty_cycles[i].value));
+            this->state_interface_data.emplace_back(
+                prefix + "angle", to_interface_data_ptr(this->state.thruster_angles[i].value));
+        }
         if (this->thruster_mode == util::ThrusterMode::Can) {
             for (size_t i = 0; i < 4; ++i) {
                 const auto prefix = "attitude_controller/thruster_controller" +
@@ -245,6 +260,20 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
 
             this->pub.rpm_publisher[i] = this->get_node()->create_publisher<std_msgs::msg::Float64>(
                 state_prefix + "thruster_rpm" + std::string(THRUSTER_SUFFIX[i]), qos);
+
+            this->pub.esc_enabled_publisher[i] =
+                this->get_node()->create_publisher<std_msgs::msg::Bool>(
+                    state_prefix + "thruster_esc_enabled" + std::string(THRUSTER_SUFFIX[i]), qos);
+            this->pub.servo_enabled_publisher[i] =
+                this->get_node()->create_publisher<std_msgs::msg::Bool>(
+                    state_prefix + "thruster_servo_enabled" + std::string(THRUSTER_SUFFIX[i]), qos);
+            this->pub.duty_cycles_publisher[i] =
+                this->get_node()->create_publisher<std_msgs::msg::Float64>(
+                    state_prefix + "thruster_duty_cycle" + std::string(THRUSTER_SUFFIX[i]), qos);
+            this->pub.angle_publisher[i] =
+                this->get_node()->create_publisher<std_msgs::msg::Float64>(
+                    state_prefix + "thruster_angle" + std::string(THRUSTER_SUFFIX[i]), qos);
+
             this->pub.esc_water_leaked_publisher[i] =
                 this->get_node()->create_publisher<std_msgs::msg::Bool>(
                     state_prefix + "esc" + std::to_string(i + 1) + "_water_leaked", qos);
@@ -284,6 +313,14 @@ auto succ::GateController::update(
     for (size_t i = 0; i < 4; ++i) {
         this->pub.rpm_publisher[i]->publish(
             std_msgs::msg::Float64().set__data(this->state.rpm[i].value));
+        this->pub.esc_enabled_publisher[i]->publish(
+            std_msgs::msg::Bool().set__data(this->state.esc_enabled[i].value));
+        this->pub.servo_enabled_publisher[i]->publish(
+            std_msgs::msg::Bool().set__data(this->state.servo_enabled[i].value));
+        this->pub.duty_cycles_publisher[i]->publish(
+            std_msgs::msg::Float64().set__data(this->state.thruster_duty_cycles[i].value));
+        this->pub.angle_publisher[i]->publish(
+            std_msgs::msg::Float64().set__data(this->state.thruster_angles[i].value));
         this->pub.esc_water_leaked_publisher[i]->publish(
             std_msgs::msg::Bool().set__data(this->state.esc_water_leaked[i].value));
     }
