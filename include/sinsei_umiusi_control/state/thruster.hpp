@@ -6,6 +6,18 @@ namespace sinsei_umiusi_control::state::thruster {
 struct Rpm {
     double value;
 };
+struct EscEnabled {
+    bool value;
+};
+struct ServoEnabled {
+    bool value;
+};
+struct DutyCycle {
+    double value;
+};
+struct Angle {
+    double value;
+};
 
 }  // namespace sinsei_umiusi_control::state::thruster
 
