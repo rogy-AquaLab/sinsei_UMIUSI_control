@@ -58,7 +58,8 @@ class FeedForward : public AttitudeController::Logic {
 
         auto output = AttitudeController::Output{};
         constexpr auto ATAN_OR_ZERO = [](const double & x, const double & y) -> double {
-            return (x == 0.0 && y == 0.0) ? 0.0 : std::atan(y / x);
+            constexpr auto pi = boost::math::constants::pi<double>();
+            return (x == 0.0 && y == 0.0) ? 0.0 : std::atan(y / x) * 180.0 / pi;
         };
         output.cmd.thruster_angles = {
             sinsei_umiusi_control::cmd::thruster::Angle{ATAN_OR_ZERO(y[0], y[1])},
