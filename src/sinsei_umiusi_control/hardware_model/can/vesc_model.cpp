@@ -51,12 +51,12 @@ auto can::VescModel::make_servo_frame(double && value) const
 
 auto can::VescModel::make_servo_angle_frame(double && deg) const
     -> tl::expected<interface::CanFrame, std::string> {
-    // 0.0 ~ 180.0度の角度を0.0 ~ 1.0に変換
-    if (deg < 0.0 || deg > 180.0) {
+    // -90.0 ~ 90.0度の角度を0.0 ~ 1.0に変換
+    if (deg < -90.0 || deg > 90.0) {
         return tl::make_unexpected(
-            "Servo angle must be between 0.0 and 180.0 degrees (deg: " + std::to_string(deg) + ")");
+            "Servo angle must be between -90.0 ~ 90.0 degrees (deg: " + std::to_string(deg) + ")");
     }
-    return this->make_servo_frame(std::move(deg) / 180.0);
+    return this->make_servo_frame((std::move(deg) + 90.0) / 180.0);
 }
 
 auto can::VescModel::id_matches(const interface::CanFrame & frame) const -> bool {
