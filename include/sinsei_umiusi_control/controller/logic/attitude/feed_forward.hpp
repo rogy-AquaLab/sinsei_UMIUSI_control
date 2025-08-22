@@ -53,6 +53,9 @@ class FeedForward : public AttitudeController::Logic {
         };
         const auto y = a * u;
 
+        // 最大値を求めるためのベクトル (コントローラの最大値が1.0なので。)
+        const auto maxs = a * Eigen::Vector<double, 6>{1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+
         auto output = AttitudeController::Output{};
         constexpr auto ATAN_OR_ZERO = [](const double & x, const double & y) -> double {
             return (x == 0.0 && y == 0.0) ? 0.0 : std::atan(y / x);
@@ -84,7 +87,7 @@ class FeedForward : public AttitudeController::Logic {
                                 const double & max_abs) -> double {
             return max_abs == 0.0 ? 0.0 : (sgn * abs / max_abs);
         };
-        const auto max_duty = *std::max_element(duty_abss.begin(), duty_abss.end());
+        const auto max_duty = MGN(maxs[0], maxs[1]);
         output.cmd.thruster_duty_cycles = {
             sinsei_umiusi_control::cmd::thruster::DutyCycle{
                 NRM(duty_sgns[0], duty_abss[0], max_duty)},
