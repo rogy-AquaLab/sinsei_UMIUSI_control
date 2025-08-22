@@ -66,7 +66,7 @@ TEST(VescModelTest, VescModelMakeServoAngleFrameValidTest) {
                    0xFF) << 8 |
                       DUMMY_ID);
     EXPECT_EQ(frame.len, 4);
-    EXPECT_EQ(sucutil::to_int32_be(frame.data), 5000);  // 90 / 180 * 10000
+    EXPECT_EQ(sucutil::to_int32_be(frame.data), 10000);  // (90 + 90) / 180 * 10000
 }
 
 TEST(VescModelTest, VescModelMakeServoAngleFrameInvalidTest) {
