@@ -53,9 +53,6 @@ class FeedForward : public AttitudeController::Logic {
         };
         const auto y = a * u;
 
-        // 最大値を求めるためのベクトル (コントローラの最大値が1.0なので。)
-        const auto maxs = a * Eigen::Vector<double, 6>{1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
-
         auto output = AttitudeController::Output{};
         constexpr auto ATAN_OR_ZERO = [](const double & x, const double & y) -> double {
             constexpr auto pi = boost::math::constants::pi<double>();
@@ -88,16 +85,18 @@ class FeedForward : public AttitudeController::Logic {
                                 const double & max_abs) -> double {
             return max_abs == 0.0 ? 0.0 : (sgn * abs / max_abs);
         };
-        const auto max_duty = MGN(maxs[0], maxs[1]);
+
+        // √2 == (a * 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 の第一成分と第二成分の二乗和の平方根)
+        constexpr auto MAX_DUTY = boost::math::constants::root_two<double>();
         output.cmd.thruster_duty_cycles = {
             sinsei_umiusi_control::cmd::thruster::DutyCycle{
-                NRM(duty_sgns[0], duty_abss[0], max_duty)},
+                NRM(duty_sgns[0], duty_abss[0], MAX_DUTY)},
             sinsei_umiusi_control::cmd::thruster::DutyCycle{
-                NRM(duty_sgns[1], duty_abss[1], max_duty)},
+                NRM(duty_sgns[1], duty_abss[1], MAX_DUTY)},
             sinsei_umiusi_control::cmd::thruster::DutyCycle{
-                NRM(duty_sgns[2], duty_abss[2], max_duty)},
+                NRM(duty_sgns[2], duty_abss[2], MAX_DUTY)},
             sinsei_umiusi_control::cmd::thruster::DutyCycle{
-                NRM(duty_sgns[3], duty_abss[3], max_duty)},
+                NRM(duty_sgns[3], duty_abss[3], MAX_DUTY)},
         };
 
         return output;
