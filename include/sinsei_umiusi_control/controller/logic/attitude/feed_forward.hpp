@@ -55,7 +55,8 @@ class FeedForward : public AttitudeController::Logic {
 
         auto output = AttitudeController::Output{};
         constexpr auto ATAN_OR_ZERO = [](const double & x, const double & y) -> double {
-            return (x == 0.0 && y == 0.0) ? 0.0 : std::atan(y / x);
+            constexpr auto pi = boost::math::constants::pi<double>();
+            return (x == 0.0 && y == 0.0) ? 0.0 : std::atan(y / x) * 180.0 / pi;
         };
         output.cmd.thruster_angles = {
             sinsei_umiusi_control::cmd::thruster::Angle{ATAN_OR_ZERO(y[0], y[1])},
@@ -84,16 +85,18 @@ class FeedForward : public AttitudeController::Logic {
                                 const double & max_abs) -> double {
             return max_abs == 0.0 ? 0.0 : (sgn * abs / max_abs);
         };
-        const auto max_duty = *std::max_element(duty_abss.begin(), duty_abss.end());
+
+        // √2 == (a * 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 の第一成分と第二成分の二乗和の平方根)
+        constexpr auto MAX_DUTY = boost::math::constants::root_two<double>();
         output.cmd.thruster_duty_cycles = {
             sinsei_umiusi_control::cmd::thruster::DutyCycle{
-                NRM(duty_sgns[0], duty_abss[0], max_duty)},
+                NRM(duty_sgns[0], duty_abss[0], MAX_DUTY)},
             sinsei_umiusi_control::cmd::thruster::DutyCycle{
-                NRM(duty_sgns[1], duty_abss[1], max_duty)},
+                NRM(duty_sgns[1], duty_abss[1], MAX_DUTY)},
             sinsei_umiusi_control::cmd::thruster::DutyCycle{
-                NRM(duty_sgns[2], duty_abss[2], max_duty)},
+                NRM(duty_sgns[2], duty_abss[2], MAX_DUTY)},
             sinsei_umiusi_control::cmd::thruster::DutyCycle{
-                NRM(duty_sgns[3], duty_abss[3], max_duty)},
+                NRM(duty_sgns[3], duty_abss[3], MAX_DUTY)},
         };
 
         return output;
