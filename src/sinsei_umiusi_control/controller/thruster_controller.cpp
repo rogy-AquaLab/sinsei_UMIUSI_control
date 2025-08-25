@@ -128,23 +128,23 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
     {
         const auto prefix = "cmd/direct/" + this->get_name() + "/";
         const auto qos = rclcpp::SystemDefaultsQoS();
-        this->input.sub.esc_enabled = this->get_node()->create_subscription<std_msgs::msg::Bool>(
-            prefix + "esc_enabled", qos, [this](const std_msgs::msg::Bool::SharedPtr msg) {
-                this->output.state.esc_enabled.value = msg->data;
+        this->input.sub.esc_enabled = this->get_node()->create_subscription<msg::Enabled>(
+            prefix + "esc_enabled", qos, [this](const msg::Enabled::SharedPtr msg) {
+                this->output.state.esc_enabled.value = msg->value;
             });
-        this->input.sub.servo_enabled = this->get_node()->create_subscription<std_msgs::msg::Bool>(
-            prefix + "servo_enabled", qos, [this](const std_msgs::msg::Bool::SharedPtr msg) {
-                this->output.state.servo_enabled.value = msg->data;
+        this->input.sub.servo_enabled = this->get_node()->create_subscription<msg::Enabled>(
+            prefix + "servo_enabled", qos, [this](const msg::Enabled::SharedPtr msg) {
+                this->output.state.servo_enabled.value = msg->value;
             });
-        this->input.sub.duty_cycle = this->get_node()->create_subscription<std_msgs::msg::Float64>(
-            prefix + "duty_cycle", qos, [this](const std_msgs::msg::Float64::SharedPtr msg) {
+        this->input.sub.duty_cycle = this->get_node()->create_subscription<msg::DutyCycle>(
+            prefix + "duty_cycle", qos, [this](const msg::DutyCycle::SharedPtr msg) {
                 const auto sgn = this->is_forward ? 1.0 : -1.0;
-                const auto resized = this->max_duty * msg->data;
+                const auto resized = this->max_duty * msg->value;
                 this->output.state.duty_cycle.value = sgn * resized;
             });
-        this->input.sub.angle = this->get_node()->create_subscription<std_msgs::msg::Float64>(
-            prefix + "angle", qos, [this](const std_msgs::msg::Float64::SharedPtr msg) {
-                this->output.state.angle.value = msg->data;
+        this->input.sub.angle = this->get_node()->create_subscription<msg::Angle>(
+            prefix + "angle", qos, [this](const msg::Angle::SharedPtr msg) {
+                this->output.state.angle.value = msg->value;
             });
     }
 
