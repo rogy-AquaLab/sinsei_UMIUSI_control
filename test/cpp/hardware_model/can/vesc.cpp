@@ -117,8 +117,18 @@ TEST(VescModelTest, VescModelGetRpmInvalidFrameLengthTest) {
         {},
         true};
     auto result = vesc_model.get_rpm(frame);
-    ASSERT_TRUE(result);           // Should not fail,
-    ASSERT_FALSE(result.value());  // but return no value
+    ASSERT_FALSE(result);
+}
+
+TEST(VescModelTest, VescModelGetRpmInvalidCmdIdTest) {
+    auto vesc_model = suchm::can::VescModel{DUMMY_ID};
+    const auto frame = suchm::interface::CanFrame{
+        0xFF << 8 | DUMMY_ID,  // Invalid command ID
+        8,
+        {},
+        true};
+    auto result = vesc_model.get_rpm(frame);
+    ASSERT_FALSE(result);
 }
 
 TEST(VescModelTest, VescModelUnmatchedCommandIdTest) {
@@ -190,8 +200,18 @@ TEST(VescModelTest, VescModelGetWaterLeakedInvalidFrameLengthTest) {
         {},
         true};
     auto result = vesc_model.get_water_leaked(frame);
-    ASSERT_TRUE(result);           // Should not fail,
-    ASSERT_FALSE(result.value());  // but return no value
+    ASSERT_FALSE(result);
+}
+
+TEST(VescModelTest, VescModelGetWaterLeakedInvalidCmdIdTest) {
+    auto vesc_model = suchm::can::VescModel{DUMMY_ID};
+    const auto frame = suchm::interface::CanFrame{
+        0xFF << 8 | DUMMY_ID,  // Invalid command ID
+        8,
+        {},
+        true};
+    auto result = vesc_model.get_water_leaked(frame);
+    ASSERT_FALSE(result);
 }
 
 TEST(VescModelTest, VescModelGetWaterLeakedUnmatchedCommandIdTest) {

@@ -106,7 +106,8 @@ class VescModel {
 
     auto id_matches(const interface::CanFrame & frame) const -> bool;
 
-    static auto get_cmd_id(const interface::CanFrame & frame) -> std::optional<VescStatusCommandID>;
+    static auto get_cmd_id(const interface::CanFrame & frame)
+        -> tl::expected<VescStatusCommandID, std::string>;
 
   public:
     VescModel(Id id);
