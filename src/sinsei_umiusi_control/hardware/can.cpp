@@ -61,7 +61,37 @@ auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
         }
     }
 
-    this->model.emplace(std::make_shared<hardware_model::impl::LinuxCan>(), vesc_ids);
+    // Thrusterすべてに信号を`period_led_tape_per_thrusters`回送るごとにLEDテープの信号を1回送る
+    const auto period_led_tape_per_thrusters_str =
+        util::find_param(info.hardware_parameters, "period_led_tape_per_thrusters");
+    if (!period_led_tape_per_thrusters_str) {
+        RCLCPP_ERROR(
+            this->get_logger(),
+            "Parameter 'period_led_tape_per_thrusters' not found in hardware parameters.");
+        return hif::CallbackReturn::ERROR;
+    }
+    size_t period_led_tape_per_thrusters = 0;
+    try {
+        period_led_tape_per_thrusters =
+            static_cast<size_t>(std::stoi(period_led_tape_per_thrusters_str.value()));
+    } catch (const std::invalid_argument & e) {
+        RCLCPP_ERROR(
+            this->get_logger(), "Invalid value for `period_led_tape_per_thrusters` (%s): %s",
+            period_led_tape_per_thrusters_str.value().c_str(), e.what());
+        return hif::CallbackReturn::ERROR;
+    }
+    // `period_led_tape_per_thrusters`が1以下のとき、特定のコマンドがLEDテープのコマンドに邪魔されて送れなくなってしまう。
+    if (period_led_tape_per_thrusters <= 1) {
+        RCLCPP_ERROR(
+            this->get_logger(),
+            "Invalid value for `period_led_tape_per_thrusters` (%zu): must be greater than 1",
+            period_led_tape_per_thrusters);
+        return hif::CallbackReturn::ERROR;
+    }
+
+    this->model.emplace(
+        std::make_shared<hardware_model::impl::LinuxCan>(), vesc_ids,
+        period_led_tape_per_thrusters);
 
     auto res = this->model->on_init();
     if (!res) {

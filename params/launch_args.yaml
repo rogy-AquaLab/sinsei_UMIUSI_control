@@ -37,6 +37,10 @@ launch:
       description: "GPIO pin number for indicator LED"
       name: indicator_led_pin
       default: "24"
+  - arg:
+      description: "LED tape's operation period per thrusters' operation period"
+      name: period_led_tape_per_thrusters
+      default: "10"
 
   # Environment dependent parameters
   - arg:

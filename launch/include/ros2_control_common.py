@@ -39,6 +39,8 @@ def generate_launch_description():
                 LaunchConfiguration('ir_pin'),
                 ' indicator_led_pin:=',
                 LaunchConfiguration('indicator_led_pin'),
+                ' period_led_tape_per_thrusters:=',
+                LaunchConfiguration('period_led_tape_per_thrusters'),
             ],
         ),
         value_type=str,

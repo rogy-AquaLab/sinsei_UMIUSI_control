@@ -24,15 +24,22 @@ auto CanModel::update_and_generate_command(
         return this->last_main_power_enabled;
     }
 
-    constexpr auto PERIOD_CYCLE_LED_TAPE = CanModel::PERIOD_LED_TAPE_PER_THRUSTERS * 16;
+    constexpr auto THRUSTERS_NUM = 4;        // 1 ~ 4
+    constexpr auto THRUSTER_PACKET_NUM = 4;  // esc_enabled, servo_enabled, duty_cycle, angle
+    constexpr auto THRUSTERS_TOTAL_PACKET_NUM = THRUSTERS_NUM * THRUSTER_PACKET_NUM;  // 16
 
-    // `PERIOD_CYCLE_LED_TAPE`回に1回はLEDテープのコマンドを送信するため、スラスターのコマンドは扱わない
-    const auto led = (this->loop_times % PERIOD_CYCLE_LED_TAPE) == 0;
+    const auto period_led_tape_per_loop =
+        this->period_led_tape_per_thrusters * THRUSTERS_TOTAL_PACKET_NUM;
+
+    // `period_led_tape_per_loop`回に1回LEDテープのコマンドを送信する。
+    // LEDテープのコマンドを送信しない場合はスラスターのコマンドを順番に送信する。
+    const auto led = (this->loop_times % period_led_tape_per_loop) == 0;
     if (!led) {
-        const auto thruster_index = this->loop_times % 4;
+        const auto thruster_index = this->loop_times % THRUSTERS_NUM;
         const auto thruster_id = thruster_index + 1;
 
-        const auto packet_type = (this->loop_times % 16) / 4;
+        const auto packet_type =
+            (this->loop_times % THRUSTERS_TOTAL_PACKET_NUM) / THRUSTER_PACKET_NUM;
         switch (packet_type) {
             case 0: {  // esc_enabled
                 return std::forward_as_tuple(thruster_id, thruster_esc_enabled[thruster_index]);
@@ -68,7 +75,9 @@ auto CanModel::update_and_generate_command(
     return led_tape_color;  // led_tape/color
 }
 
-CanModel::CanModel(std::shared_ptr<interface::Can> can, std::array<int, 4> vesc_ids)
+CanModel::CanModel(
+    std::shared_ptr<interface::Can> can, std::array<int, 4> vesc_ids,
+    size_t period_led_tape_per_thrusters)
 : can(can),
   vesc_models{{
       can::VescModel(vesc_ids[0]),
@@ -76,7 +85,8 @@ CanModel::CanModel(std::shared_ptr<interface::Can> can, std::array<int, 4> vesc_
       can::VescModel(vesc_ids[2]),
       can::VescModel(vesc_ids[3]),
   }},
-  last_main_power_enabled{false} {}
+  last_main_power_enabled{false},
+  period_led_tape_per_thrusters{period_led_tape_per_thrusters} {}
 
 auto CanModel::on_init() -> tl::expected<void, std::string> {
     const auto res = this->can->init("can0");
