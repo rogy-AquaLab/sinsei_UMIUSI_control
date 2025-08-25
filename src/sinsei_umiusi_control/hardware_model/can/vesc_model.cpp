@@ -1,5 +1,7 @@
 #include "sinsei_umiusi_control/hardware_model/can/vesc_model.hpp"
 
+#include <optional>
+
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
 #include "sinsei_umiusi_control/util/byte.hpp"
 
@@ -65,18 +67,15 @@ auto can::VescModel::id_matches(const interface::CanFrame & frame) const -> bool
 }
 
 auto can::VescModel::get_cmd_id(const interface::CanFrame & frame)
-    -> tl::expected<VescStatusCommandID, std::string> {
+    -> std::optional<VescStatusCommandID> {
     if (frame.len != 8) {
-        return tl::make_unexpected(
-            "Received CAN frame with invalid length (expected: 8, received: " +
-            std::to_string(frame.len) + ")");
+        return std::nullopt;
     }
 
     const auto cmd_id = (frame.id >> 8) & 0xFF;
-    return util::enum_cast<interface::CanFrame::Id, VescStatusCommandID>(cmd_id).map_error(
-        [&cmd_id](const auto &) {
-            return "Received CAN frame with unknown command ID: " + std::to_string(cmd_id);
-        });
+    return util::enum_cast<interface::CanFrame::Id, VescStatusCommandID>(cmd_id)
+        .map([](const auto & v) { return std::make_optional(v); })
+        .value_or(std::nullopt);
 }
 
 auto can::VescModel::get_rpm(const interface::CanFrame & frame) const
@@ -86,11 +85,7 @@ auto can::VescModel::get_rpm(const interface::CanFrame & frame) const
     }
 
     const auto cmd_id = this->get_cmd_id(frame);
-    if (!cmd_id) {
-        return tl::make_unexpected("Failed to get command ID: " + cmd_id.error());
-    }
-
-    if (cmd_id.value() != VescStatusCommandID::CAN_PACKET_STATUS) {
+    if (!cmd_id || cmd_id.value() != VescStatusCommandID::CAN_PACKET_STATUS) {
         // このフレームはERPMの情報を含んでいない
         return std::nullopt;
     }
@@ -109,11 +104,7 @@ auto can::VescModel::get_water_leaked(const interface::CanFrame & frame) const
     }
 
     const auto cmd_id = this->get_cmd_id(frame);
-    if (!cmd_id) {
-        return tl::make_unexpected("Failed to get command ID: " + cmd_id.error());
-    }
-
-    if (cmd_id.value() != VescStatusCommandID::CAN_PACKET_STATUS_6) {
+    if (!cmd_id || cmd_id.value() != VescStatusCommandID::CAN_PACKET_STATUS_6) {
         // このフレームはADC1の情報を含んでいない
         return std::nullopt;
     }
