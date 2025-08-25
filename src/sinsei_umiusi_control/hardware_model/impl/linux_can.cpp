@@ -190,11 +190,18 @@ auto suchm::impl::LinuxCan::recv_linux_can_frame() -> tl::expected<can_frame, st
 auto suchm::impl::LinuxCan::send_frame(suchm::interface::CanFrame && frame)
     -> tl::expected<void, std::string> {
     auto linux_can_frame = _to_linux_can_frame(std::move(frame));
-    return this->send_linux_can_frame(std::move(linux_can_frame));
+    return this->send_linux_can_frame(std::move(linux_can_frame))
+        .and_then([this, &linux_can_frame]() {
+            this->id_last_sent = linux_can_frame.can_id;
+            return tl::expected<void, std::string>{};
+        });
 }
 
-auto suchm::impl::LinuxCan::recv_frame() -> tl::expected<CanFrame, std::string> {
-    return this->recv_linux_can_frame().map([](can_frame && linux_can_frame) {
-        return _from_linux_can_frame(std::move(linux_can_frame));
+auto suchm::impl::LinuxCan::recv_frame() -> tl::expected<std::optional<CanFrame>, std::string> {
+    return this->recv_linux_can_frame().map([this](can_frame && linux_can_frame) {
+        const auto frame = _from_linux_can_frame(std::move(linux_can_frame));
+        return std::optional<CanFrame>{
+            // 直前に送信したフレームと同じIDなら無視する
+            (frame.id == this->id_last_sent) ? std::nullopt : std::make_optional(frame)};
     });
 }

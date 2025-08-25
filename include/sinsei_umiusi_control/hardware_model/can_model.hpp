@@ -3,6 +3,7 @@
 
 #include <array>
 #include <memory>
+#include <optional>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <variant>
 
@@ -64,11 +65,11 @@ class CanModel {
     auto on_destroy() -> tl::expected<void, std::string>;
     auto on_read() const
         -> tl::expected<
-            std::variant<
+            std::optional<std::variant<
                 std::tuple<size_t, state::thruster::Rpm>,
                 std::tuple<size_t, state::esc::WaterLeaked>, state::main_power::BatteryCurrent,
                 state::main_power::BatteryVoltage, state::main_power::Temperature,
-                state::main_power::WaterLeaked>,
+                state::main_power::WaterLeaked>>,
             std::string>;
     auto on_write(
         cmd::main_power::Enabled && main_power_enabled,

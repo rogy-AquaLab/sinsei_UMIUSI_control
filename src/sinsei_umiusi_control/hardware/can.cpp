@@ -90,8 +90,11 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
             res.error().c_str());
         return hif::return_type::OK;
     }
-
-    auto variant = res.value();
+    auto variant_opt = res.value();
+    if (!variant_opt) {
+        return hif::return_type::OK;
+    }
+    auto & variant = variant_opt.value();
 
     switch (variant.index()) {
         case 0: {  // Rpm

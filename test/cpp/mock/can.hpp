@@ -4,6 +4,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <optional>
 #include <rcpputils/tl_expected/expected.hpp>
 
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
@@ -18,8 +19,9 @@ class Can : public sinsei_umiusi_control::hardware_model::interface::Can {
         send_frame, tl::expected<void, std::string>(
                         sinsei_umiusi_control::hardware_model::interface::CanFrame && frame));
     MOCK_METHOD0(
-        recv_frame,
-        tl::expected<sinsei_umiusi_control::hardware_model::interface::CanFrame, std::string>());
+        recv_frame, tl::expected<
+                        std::optional<sinsei_umiusi_control::hardware_model::interface::CanFrame>,
+                        std::string>());
 };
 
 }  // namespace sinsei_umiusi_control::test::mock

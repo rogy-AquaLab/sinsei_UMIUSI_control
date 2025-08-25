@@ -1,5 +1,6 @@
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 
+#include <optional>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 #include <tuple>
@@ -98,14 +99,18 @@ auto CanModel::on_destroy() -> tl::expected<void, std::string> {
 
 auto CanModel::on_read() const
     -> tl::expected<
-        std::variant<
+        std::optional<std::variant<
             std::tuple<size_t, state::thruster::Rpm>, std::tuple<size_t, state::esc::WaterLeaked>,
             state::main_power::BatteryCurrent, state::main_power::BatteryVoltage,
-            state::main_power::Temperature, state::main_power::WaterLeaked>,
+            state::main_power::Temperature, state::main_power::WaterLeaked>>,
         std::string> {
-    const auto frame = this->can->recv_frame();
+    const auto frame_res = this->can->recv_frame();
+    if (!frame_res) {
+        return tl::make_unexpected("Failed to receive CAN frame: " + frame_res.error());
+    }
+    const auto & frame = frame_res.value();
     if (!frame) {
-        return tl::make_unexpected("Failed to receive CAN frame: " + frame.error());
+        return std::nullopt;
     }
 
     // フレームを各モデルに渡していく
