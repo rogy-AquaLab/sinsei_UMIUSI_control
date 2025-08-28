@@ -45,6 +45,25 @@ if(NOT Eigen3_FOUND)
   message(FATAL_ERROR "Eigen3 not found. Please install Eigen3.")
 endif()
 
+# 本来は`msg`や`srv`専用にパッケージを分けるべきだが、リポジトリを跨ぎたくないためここに置いている。
+rosidl_generate_interfaces(${PROJECT_NAME}_msgs
+  "msg/Angle.msg"
+  "msg/Color.msg"
+  "msg/Current.msg"
+  "msg/DutyCycle.msg"
+  "msg/Enabled.msg"
+  "msg/Orientation.msg"
+  "msg/Quaternion.msg"
+  "msg/Rpm.msg"
+  "msg/Temprature.msg"
+  "msg/Velocity.msg"
+  "msg/Voltage.msg"
+  "msg/WaterLeaked.msg"
+  LIBRARY_NAME ${PROJECT_NAME}_msgs
+)
+ament_export_dependencies(rosidl_default_runtime)
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME}_msgs rosidl_typesupport_cpp)
+
 ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   src/${PROJECT_NAME}/hardware/can.cpp
   src/${PROJECT_NAME}/hardware/headlights.cpp
@@ -73,6 +92,9 @@ ament_auto_add_library(${PROJECT_NAME}_controller SHARED
   src/${PROJECT_NAME}/controller/attitude_controller.cpp
   src/${PROJECT_NAME}/controller/thruster_controller.cpp
   src/${PROJECT_NAME}/util/interface_accessor.cpp
+)
+target_link_libraries(${PROJECT_NAME}_controller
+  ${cpp_typesupport_target}
 )
 target_include_directories(${PROJECT_NAME}_controller
   PRIVATE

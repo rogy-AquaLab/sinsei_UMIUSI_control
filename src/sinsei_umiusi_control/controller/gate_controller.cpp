@@ -4,7 +4,12 @@
 #include <rclcpp_lifecycle/state.hpp>
 #include <string>
 
-#include "geometry_msgs/msg/quaternion.hpp"
+#include "sinsei_umiusi_control/msg/current.hpp"
+#include "sinsei_umiusi_control/msg/duty_cycle.hpp"
+#include "sinsei_umiusi_control/msg/enabled.hpp"
+#include "sinsei_umiusi_control/msg/orientation.hpp"
+#include "sinsei_umiusi_control/msg/temprature.hpp"
+#include "sinsei_umiusi_control/msg/water_leaked.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
@@ -105,71 +110,59 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
         const auto cmd_prefix = std::string("cmd/");
         const auto qos = rclcpp::SystemDefaultsQoS();
         this->sub.indicator_led_enabled_subscriber =
-            this->get_node()->create_subscription<std_msgs::msg::Bool>(
+            this->get_node()->create_subscription<msg::Enabled>(
                 cmd_prefix + "indicator_led_enabled", qos,
-                [this](const std_msgs::msg::Bool::SharedPtr input) {
-                    this->cmd.indicator_led_enabled_ref.value = input->data;
+                [this](const msg::Enabled::SharedPtr input) {
+                    this->cmd.indicator_led_enabled_ref.value = input->value;
                 });
         this->sub.main_power_enabled_subscriber =
-            this->get_node()->create_subscription<std_msgs::msg::Bool>(
+            this->get_node()->create_subscription<msg::Enabled>(
                 cmd_prefix + "main_power_enabled", qos,
-                [this](const std_msgs::msg::Bool::SharedPtr input) {
-                    this->cmd.main_power_enabled_ref.value = input->data;
+                [this](const msg::Enabled::SharedPtr input) {
+                    this->cmd.main_power_enabled_ref.value = input->value;
                 });
-        this->sub.led_tape_color_subscriber =
-            this->get_node()->create_subscription<std_msgs::msg::ColorRGBA>(
-                cmd_prefix + "led_tape_color", qos,
-                [this](const std_msgs::msg::ColorRGBA::SharedPtr input) {
-                    // alphaは無視
-                    this->cmd.led_tape_color_ref.red = static_cast<uint8_t>(input->r);
-                    this->cmd.led_tape_color_ref.green = static_cast<uint8_t>(input->g);
-                    this->cmd.led_tape_color_ref.blue = static_cast<uint8_t>(input->b);
-                });
+        this->sub.led_tape_color_subscriber = this->get_node()->create_subscription<msg::Color>(
+            cmd_prefix + "led_tape_color", qos, [this](const msg::Color::SharedPtr input) {
+                // alphaは無視
+                this->cmd.led_tape_color_ref.red = static_cast<uint8_t>(input->r);
+                this->cmd.led_tape_color_ref.green = static_cast<uint8_t>(input->g);
+                this->cmd.led_tape_color_ref.blue = static_cast<uint8_t>(input->b);
+            });
         this->sub.high_beam_enabled_subscriber =
-            this->get_node()->create_subscription<std_msgs::msg::Bool>(
-                cmd_prefix + "high_beam_enabled", qos,
-                [this](const std_msgs::msg::Bool::SharedPtr input) {
-                    this->cmd.high_beam_enabled_ref.value = input->data;
+            this->get_node()->create_subscription<msg::Enabled>(
+                cmd_prefix + "high_beam_enabled", qos, [this](const msg::Enabled::SharedPtr input) {
+                    this->cmd.high_beam_enabled_ref.value = input->value;
                 });
-        this->sub.low_beam_enabled_subscriber =
-            this->get_node()->create_subscription<std_msgs::msg::Bool>(
-                cmd_prefix + "low_beam_enabled", qos,
-                [this](const std_msgs::msg::Bool::SharedPtr input) {
-                    this->cmd.low_beam_enabled_ref.value = input->data;
-                });
-        this->sub.ir_enabled_subscriber =
-            this->get_node()->create_subscription<std_msgs::msg::Bool>(
-                cmd_prefix + "ir_enabled", qos, [this](const std_msgs::msg::Bool::SharedPtr input) {
-                    this->cmd.ir_enabled_ref.value = input->data;
-                });
-        this->sub.servo_enabled_subscriber =
-            this->get_node()->create_subscription<std_msgs::msg::Bool>(
-                cmd_prefix + "servo_enabled", qos,
-                [this](const std_msgs::msg::Bool::SharedPtr input) {
-                    this->cmd.servo_enabled_ref.value = input->data;
-                });
-        this->sub.esc_enabled_subscriber =
-            this->get_node()->create_subscription<std_msgs::msg::Bool>(
-                cmd_prefix + "esc_enabled", qos,
-                [this](const std_msgs::msg::Bool::SharedPtr input) {
-                    this->cmd.esc_enabled_ref.value = input->data;
-                });
+        this->sub.low_beam_enabled_subscriber = this->get_node()->create_subscription<msg::Enabled>(
+            cmd_prefix + "low_beam_enabled", qos, [this](const msg::Enabled::SharedPtr input) {
+                this->cmd.low_beam_enabled_ref.value = input->value;
+            });
+        this->sub.ir_enabled_subscriber = this->get_node()->create_subscription<msg::Enabled>(
+            cmd_prefix + "ir_enabled", qos, [this](const msg::Enabled::SharedPtr input) {
+                this->cmd.ir_enabled_ref.value = input->value;
+            });
+        this->sub.servo_enabled_subscriber = this->get_node()->create_subscription<msg::Enabled>(
+            cmd_prefix + "servo_enabled", qos, [this](const msg::Enabled::SharedPtr input) {
+                this->cmd.servo_enabled_ref.value = input->value;
+            });
+        this->sub.esc_enabled_subscriber = this->get_node()->create_subscription<msg::Enabled>(
+            cmd_prefix + "esc_enabled", qos, [this](const msg::Enabled::SharedPtr input) {
+                this->cmd.esc_enabled_ref.value = input->value;
+            });
         this->sub.target_orientation_subscriber =
-            this->get_node()->create_subscription<geometry_msgs::msg::Vector3>(
+            this->get_node()->create_subscription<msg::Orientation>(
                 cmd_prefix + "target_orientation", qos,
-                [this](const geometry_msgs::msg::Vector3::SharedPtr input) {
+                [this](const msg::Orientation::SharedPtr input) {
                     this->cmd.target_orientation_ref.x = input->x;
                     this->cmd.target_orientation_ref.y = input->y;
                     this->cmd.target_orientation_ref.z = input->z;
                 });
-        this->sub.target_velocity_subscriber =
-            this->get_node()->create_subscription<geometry_msgs::msg::Vector3>(
-                cmd_prefix + "target_velocity", qos,
-                [this](const geometry_msgs::msg::Vector3::SharedPtr input) {
-                    this->cmd.target_velocity_ref.x = input->x;
-                    this->cmd.target_velocity_ref.y = input->y;
-                    this->cmd.target_velocity_ref.z = input->z;
-                });
+        this->sub.target_velocity_subscriber = this->get_node()->create_subscription<msg::Velocity>(
+            cmd_prefix + "target_velocity", qos, [this](const msg::Velocity::SharedPtr input) {
+                this->cmd.target_velocity_ref.x = input->x;
+                this->cmd.target_velocity_ref.y = input->y;
+                this->cmd.target_velocity_ref.z = input->z;
+            });
     }
     {  // State interface
         using util::to_interface_data_ptr;
@@ -235,46 +228,36 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
         const auto state_prefix = std::string("state/");
         const auto qos = rclcpp::SystemDefaultsQoS();
         this->pub.battery_current_publisher =
-            this->get_node()->create_publisher<std_msgs::msg::Float64>(
-                state_prefix + "battery_current", qos);
+            this->get_node()->create_publisher<msg::Current>(state_prefix + "battery_current", qos);
         this->pub.battery_voltage_publisher =
-            this->get_node()->create_publisher<std_msgs::msg::Float64>(
-                state_prefix + "battery_voltage", qos);
-        this->pub.main_temperature_publisher =
-            this->get_node()->create_publisher<std_msgs::msg::Int8>(
-                state_prefix + "main_temperature", qos);
-        this->pub.water_leaked_publisher = this->get_node()->create_publisher<std_msgs::msg::Bool>(
+            this->get_node()->create_publisher<msg::Voltage>(state_prefix + "battery_voltage", qos);
+        this->pub.main_temperature_publisher = this->get_node()->create_publisher<msg::Temprature>(
+            state_prefix + "main_temperature", qos);
+        this->pub.water_leaked_publisher = this->get_node()->create_publisher<msg::WaterLeaked>(
             state_prefix + "water_leaked", qos);
-        this->pub.imu_temperature_publisher =
-            this->get_node()->create_publisher<std_msgs::msg::Float64>(
-                state_prefix + "imu_temperature", qos);
-        this->pub.imu_quaternion_publisher =
-            this->get_node()->create_publisher<geometry_msgs::msg::Quaternion>(
-                state_prefix + "imu_quaternion", qos);
+        this->pub.imu_temperature_publisher = this->get_node()->create_publisher<msg::Temprature>(
+            state_prefix + "imu_temperature", qos);
+        this->pub.imu_quaternion_publisher = this->get_node()->create_publisher<msg::Quaternion>(
+            state_prefix + "imu_quaternion", qos);
         this->pub.imu_velocity_publisher =
-            this->get_node()->create_publisher<geometry_msgs::msg::Vector3>(
-                state_prefix + "imu_velocity", qos);
+            this->get_node()->create_publisher<msg::Velocity>(state_prefix + "imu_velocity", qos);
         for (size_t i = 0; i < 4; ++i) {
             using util::to_interface_data_ptr;
 
-            this->pub.rpm_publisher[i] = this->get_node()->create_publisher<std_msgs::msg::Float64>(
+            this->pub.rpm_publisher[i] = this->get_node()->create_publisher<msg::Rpm>(
                 state_prefix + "thruster_rpm" + std::string(THRUSTER_SUFFIX[i]), qos);
 
-            this->pub.esc_enabled_publisher[i] =
-                this->get_node()->create_publisher<std_msgs::msg::Bool>(
-                    state_prefix + "thruster_esc_enabled" + std::string(THRUSTER_SUFFIX[i]), qos);
-            this->pub.servo_enabled_publisher[i] =
-                this->get_node()->create_publisher<std_msgs::msg::Bool>(
-                    state_prefix + "thruster_servo_enabled" + std::string(THRUSTER_SUFFIX[i]), qos);
-            this->pub.duty_cycles_publisher[i] =
-                this->get_node()->create_publisher<std_msgs::msg::Float64>(
-                    state_prefix + "thruster_duty_cycle" + std::string(THRUSTER_SUFFIX[i]), qos);
-            this->pub.angle_publisher[i] =
-                this->get_node()->create_publisher<std_msgs::msg::Float64>(
-                    state_prefix + "thruster_angle" + std::string(THRUSTER_SUFFIX[i]), qos);
+            this->pub.esc_enabled_publisher[i] = this->get_node()->create_publisher<msg::Enabled>(
+                state_prefix + "thruster_esc_enabled" + std::string(THRUSTER_SUFFIX[i]), qos);
+            this->pub.servo_enabled_publisher[i] = this->get_node()->create_publisher<msg::Enabled>(
+                state_prefix + "thruster_servo_enabled" + std::string(THRUSTER_SUFFIX[i]), qos);
+            this->pub.duty_cycles_publisher[i] = this->get_node()->create_publisher<msg::DutyCycle>(
+                state_prefix + "thruster_duty_cycle" + std::string(THRUSTER_SUFFIX[i]), qos);
+            this->pub.angle_publisher[i] = this->get_node()->create_publisher<msg::Angle>(
+                state_prefix + "thruster_angle" + std::string(THRUSTER_SUFFIX[i]), qos);
 
             this->pub.esc_water_leaked_publisher[i] =
-                this->get_node()->create_publisher<std_msgs::msg::Bool>(
+                this->get_node()->create_publisher<msg::WaterLeaked>(
                     state_prefix + "esc" + std::to_string(i + 1) + "_water_leaked", qos);
         }
     }
@@ -291,37 +274,36 @@ auto succ::GateController::update(
 
     // 状態をトピックに出力
     this->pub.battery_current_publisher->publish(
-        std_msgs::msg::Float64().set__data(this->state.battery_current.value));
+        msg::Current().set__value(this->state.battery_current.value));
     this->pub.battery_voltage_publisher->publish(
-        std_msgs::msg::Float64().set__data(this->state.battery_voltage.value));
+        msg::Voltage().set__value(this->state.battery_voltage.value));
     this->pub.main_temperature_publisher->publish(
-        std_msgs::msg::Int8().set__data(this->state.main_temperature.value));
+        msg::Temprature().set__value(this->state.main_temperature.value));
     this->pub.water_leaked_publisher->publish(
-        std_msgs::msg::Bool().set__data(this->state.water_leaked.value));
+        msg::WaterLeaked().set__value(this->state.water_leaked.value));
     this->pub.imu_temperature_publisher->publish(
-        std_msgs::msg::Float64().set__data(this->state.imu_temperature.value));
-    this->pub.imu_quaternion_publisher->publish(geometry_msgs::msg::Quaternion()
+        msg::Temprature().set__value(this->state.imu_temperature.value));
+    this->pub.imu_quaternion_publisher->publish(msg::Quaternion()
                                                     .set__x(this->state.imu_quaternion.x)
                                                     .set__y(this->state.imu_quaternion.y)
                                                     .set__z(this->state.imu_quaternion.z)
                                                     .set__w(this->state.imu_quaternion.w));
-    this->pub.imu_velocity_publisher->publish(geometry_msgs::msg::Vector3()
+    this->pub.imu_velocity_publisher->publish(msg::Velocity()
                                                   .set__x(this->state.imu_velocity.x)
                                                   .set__y(this->state.imu_velocity.y)
                                                   .set__z(this->state.imu_velocity.z));
     for (size_t i = 0; i < 4; ++i) {
-        this->pub.rpm_publisher[i]->publish(
-            std_msgs::msg::Float64().set__data(this->state.rpm[i].value));
+        this->pub.rpm_publisher[i]->publish(msg::Rpm().set__value(this->state.rpm[i].value));
         this->pub.esc_enabled_publisher[i]->publish(
-            std_msgs::msg::Bool().set__data(this->state.esc_enabled[i].value));
+            msg::Enabled().set__value(this->state.esc_enabled[i].value));
         this->pub.servo_enabled_publisher[i]->publish(
-            std_msgs::msg::Bool().set__data(this->state.servo_enabled[i].value));
+            msg::Enabled().set__value(this->state.servo_enabled[i].value));
         this->pub.duty_cycles_publisher[i]->publish(
-            std_msgs::msg::Float64().set__data(this->state.thruster_duty_cycles[i].value));
+            msg::DutyCycle().set__value(this->state.thruster_duty_cycles[i].value));
         this->pub.angle_publisher[i]->publish(
-            std_msgs::msg::Float64().set__data(this->state.thruster_angles[i].value));
+            msg::Angle().set__value(this->state.thruster_angles[i].value));
         this->pub.esc_water_leaked_publisher[i]->publish(
-            std_msgs::msg::Bool().set__data(this->state.esc_water_leaked[i].value));
+            msg::WaterLeaked().set__value(this->state.esc_water_leaked[i].value));
     }
 
     // コマンドを送信

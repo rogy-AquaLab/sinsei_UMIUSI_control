@@ -5,18 +5,25 @@
 #include <geometry_msgs/msg/quaternion.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
 #include <rclcpp/publisher.hpp>
-#include <std_msgs/msg/bool.hpp>
-#include <std_msgs/msg/color_rgba.hpp>
-#include <std_msgs/msg/float64.hpp>
-#include <std_msgs/msg/int8.hpp>
 
-#include "geometry_msgs/msg/quaternion.hpp"
 #include "sinsei_umiusi_control/cmd/attitude.hpp"
 #include "sinsei_umiusi_control/cmd/headlights.hpp"
 #include "sinsei_umiusi_control/cmd/indicator_led.hpp"
 #include "sinsei_umiusi_control/cmd/led_tape.hpp"
 #include "sinsei_umiusi_control/cmd/main_power.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
+#include "sinsei_umiusi_control/msg/angle.hpp"
+#include "sinsei_umiusi_control/msg/color.hpp"
+#include "sinsei_umiusi_control/msg/current.hpp"
+#include "sinsei_umiusi_control/msg/duty_cycle.hpp"
+#include "sinsei_umiusi_control/msg/enabled.hpp"
+#include "sinsei_umiusi_control/msg/orientation.hpp"
+#include "sinsei_umiusi_control/msg/quaternion.hpp"
+#include "sinsei_umiusi_control/msg/rpm.hpp"
+#include "sinsei_umiusi_control/msg/temprature.hpp"
+#include "sinsei_umiusi_control/msg/velocity.hpp"
+#include "sinsei_umiusi_control/msg/voltage.hpp"
+#include "sinsei_umiusi_control/msg/water_leaked.hpp"
 #include "sinsei_umiusi_control/state/esc.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/state/main_power.hpp"
@@ -66,34 +73,34 @@ class GateController : public controller_interface::ControllerInterface {
 
     // Subscribers for commands
     struct Subscribers {
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr indicator_led_enabled_subscriber;
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr main_power_enabled_subscriber;
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr high_beam_enabled_subscriber;
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr low_beam_enabled_subscriber;
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr ir_enabled_subscriber;
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr servo_enabled_subscriber;
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr esc_enabled_subscriber;
-        rclcpp::Subscription<std_msgs::msg::ColorRGBA>::SharedPtr led_tape_color_subscriber;
-        rclcpp::Subscription<geometry_msgs::msg::Vector3>::SharedPtr target_orientation_subscriber;
-        rclcpp::Subscription<geometry_msgs::msg::Vector3>::SharedPtr target_velocity_subscriber;
+        rclcpp::Subscription<msg::Enabled>::SharedPtr indicator_led_enabled_subscriber;
+        rclcpp::Subscription<msg::Enabled>::SharedPtr main_power_enabled_subscriber;
+        rclcpp::Subscription<msg::Enabled>::SharedPtr high_beam_enabled_subscriber;
+        rclcpp::Subscription<msg::Enabled>::SharedPtr low_beam_enabled_subscriber;
+        rclcpp::Subscription<msg::Enabled>::SharedPtr ir_enabled_subscriber;
+        rclcpp::Subscription<msg::Enabled>::SharedPtr servo_enabled_subscriber;
+        rclcpp::Subscription<msg::Enabled>::SharedPtr esc_enabled_subscriber;
+        rclcpp::Subscription<msg::Color>::SharedPtr led_tape_color_subscriber;
+        rclcpp::Subscription<msg::Orientation>::SharedPtr target_orientation_subscriber;
+        rclcpp::Subscription<msg::Velocity>::SharedPtr target_velocity_subscriber;
     };
     Subscribers sub;
 
     // Publishers for states
     struct Publishers {
-        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr battery_current_publisher;
-        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr battery_voltage_publisher;
-        rclcpp::Publisher<std_msgs::msg::Int8>::SharedPtr main_temperature_publisher;
-        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr water_leaked_publisher;
-        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr imu_temperature_publisher;
-        rclcpp::Publisher<geometry_msgs::msg::Quaternion>::SharedPtr imu_quaternion_publisher;
-        rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr imu_velocity_publisher;
-        std::array<rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr, 4> rpm_publisher;
-        std::array<rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr, 4> esc_enabled_publisher;
-        std::array<rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr, 4> servo_enabled_publisher;
-        std::array<rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr, 4> duty_cycles_publisher;
-        std::array<rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr, 4> angle_publisher;
-        std::array<rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr, 4> esc_water_leaked_publisher;
+        rclcpp::Publisher<msg::Current>::SharedPtr battery_current_publisher;
+        rclcpp::Publisher<msg::Voltage>::SharedPtr battery_voltage_publisher;
+        rclcpp::Publisher<msg::Temprature>::SharedPtr main_temperature_publisher;
+        rclcpp::Publisher<msg::WaterLeaked>::SharedPtr water_leaked_publisher;
+        rclcpp::Publisher<msg::Temprature>::SharedPtr imu_temperature_publisher;
+        rclcpp::Publisher<msg::Quaternion>::SharedPtr imu_quaternion_publisher;
+        rclcpp::Publisher<msg::Velocity>::SharedPtr imu_velocity_publisher;
+        std::array<rclcpp::Publisher<msg::Rpm>::SharedPtr, 4> rpm_publisher;
+        std::array<rclcpp::Publisher<msg::Enabled>::SharedPtr, 4> esc_enabled_publisher;
+        std::array<rclcpp::Publisher<msg::Enabled>::SharedPtr, 4> servo_enabled_publisher;
+        std::array<rclcpp::Publisher<msg::DutyCycle>::SharedPtr, 4> duty_cycles_publisher;
+        std::array<rclcpp::Publisher<msg::Angle>::SharedPtr, 4> angle_publisher;
+        std::array<rclcpp::Publisher<msg::WaterLeaked>::SharedPtr, 4> esc_water_leaked_publisher;
     };
     Publishers pub;
 
