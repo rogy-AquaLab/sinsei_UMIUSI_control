@@ -15,8 +15,7 @@ class LinuxCan : public interface::Can {
   private:
     using CanFrame = interface::CanFrame;
 
-    std::optional<FileDescriptor> sock_tx;
-    std::optional<FileDescriptor> sock_rx;
+    std::optional<FileDescriptor> sock;
 
     auto send_linux_can_frame(can_frame && frame) -> tl::expected<void, std::string>;
     auto recv_linux_can_frame() -> tl::expected<can_frame, std::string>;
