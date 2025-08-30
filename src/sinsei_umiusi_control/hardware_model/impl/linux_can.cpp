@@ -74,7 +74,7 @@ auto suchm::impl::LinuxCan::init(const std::string ifname) -> tl::expected<void,
     std::strncpy(ifr.ifr_name, ifname.c_str(), IFNAMSIZ - 1);
     auto res = ::ioctl(this->sock.value(), SIOCGIFINDEX, &ifr);
     if (res < 0) {
-        _close(this->sock);  // Reset the socket descriptor on error
+        this->close();  // Reset the socket descriptor on error
         return tl::make_unexpected(
             "Failed to get interface index: " + std::string(strerror(errno)));
     }
@@ -87,7 +87,7 @@ auto suchm::impl::LinuxCan::init(const std::string ifname) -> tl::expected<void,
     // Bind the socket to the CAN interface
     res = ::bind(this->sock.value(), reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
     if (res < 0) {
-        _close(this->sock);  // Reset the socket descriptor on error
+        this->close();  // Reset the socket descriptor on error
         return tl::make_unexpected("Failed to bind CAN socket: " + std::string(strerror(errno)));
     }
 
