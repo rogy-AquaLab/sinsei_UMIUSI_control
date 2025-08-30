@@ -23,10 +23,12 @@ RUN apt-get install -y can-utils
 # Install pigpio
 RUN /tmp/scripts/install-pigpio.sh
 
+# Install editorconfig-checker
+RUN /tmp/scripts/install-ec.sh
+
 RUN rm -rf /var/lib/apt/lists/*
 
-# Remove temporary scripts
-RUN rm -rf /tmp/scripts
+RUN rm -rf /tmp/*
 
 RUN echo "%ubuntu ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/ubuntu
 
