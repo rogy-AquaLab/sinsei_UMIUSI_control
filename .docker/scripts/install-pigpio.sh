@@ -7,5 +7,4 @@ unzip -qq master.zip && \
 cd pigpio-master && \
 sed -i 's,ldconfig,,' Makefile && \
 make && \
-sudo make install && \
-rm -rf /tmp/*
+sudo make install
