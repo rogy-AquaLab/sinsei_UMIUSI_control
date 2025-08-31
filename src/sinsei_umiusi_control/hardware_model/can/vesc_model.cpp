@@ -122,7 +122,7 @@ auto can::VescModel::get_packet_status(const interface::CanFrame & frame) const
             auto && scaled_temp_fet = util::to_int16_be(frame.data);
             auto && scaled_temp_motor = util::to_int16_be(frame.data, 2);
             auto && scaled_current_in = util::to_int16_be(frame.data, 4);
-            auto && scaled_pid_pos = util::to_int32_be(frame.data, 4);
+            auto && scaled_pid_pos = util::to_int16_be(frame.data, 6);
             if (!scaled_temp_fet || !scaled_temp_motor || !scaled_current_in || !scaled_pid_pos) {
                 return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_4");
             }
