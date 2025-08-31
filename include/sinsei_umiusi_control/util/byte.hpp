@@ -4,6 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 namespace sinsei_umiusi_control::util {
 
@@ -35,19 +36,32 @@ inline auto to_bytes_be(int64_t value) -> std::array<std::byte, 8> {
 }
 
 // Convert 8-byte array in big-endian order to int16_t
-inline auto to_int16_be(std::array<std::byte, 8> bytes) -> int16_t {
+inline auto to_int16_be(std::array<std::byte, 8> bytes, size_t offset = 0)
+    -> std::optional<int16_t> {
+    if (offset + 2 > bytes.size()) {
+        return std::nullopt;
+    }
     return static_cast<int16_t>(
-        (std::to_integer<int16_t>(bytes[0]) << 8) | std::to_integer<int16_t>(bytes[1]));
+        (std::to_integer<int16_t>(bytes[0 + offset]) << 8) |
+        std::to_integer<int16_t>(bytes[1 + offset]));
 }
 
 // Convert 8-byte array in big-endian order to int32_t
-inline auto to_int32_be(std::array<std::byte, 8> bytes) -> int32_t {
+inline auto to_int32_be(std::array<std::byte, 8> bytes, size_t offset = 0)
+    -> std::optional<int32_t> {
+    if (offset + 4 > bytes.size()) {
+        return std::nullopt;
+    }
     return (std::to_integer<int32_t>(bytes[0]) << 24) | (std::to_integer<int32_t>(bytes[1]) << 16) |
            (std::to_integer<int32_t>(bytes[2]) << 8) | std::to_integer<int32_t>(bytes[3]);
 }
 
 // Convert 8-byte array in big-endian order to int64_t
-inline auto to_int64_be(std::array<std::byte, 8> bytes) -> int64_t {
+inline auto to_int64_be(std::array<std::byte, 8> bytes, size_t offset = 0)
+    -> std::optional<int64_t> {
+    if (offset + 8 > bytes.size()) {
+        return std::nullopt;
+    }
     return (std::to_integer<int64_t>(bytes[0]) << 56) | (std::to_integer<int64_t>(bytes[1]) << 48) |
            (std::to_integer<int64_t>(bytes[2]) << 40) | (std::to_integer<int64_t>(bytes[3]) << 32) |
            (std::to_integer<int64_t>(bytes[4]) << 24) | (std::to_integer<int64_t>(bytes[5]) << 16) |

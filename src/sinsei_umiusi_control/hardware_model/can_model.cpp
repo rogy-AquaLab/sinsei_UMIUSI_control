@@ -125,25 +125,36 @@ auto CanModel::on_read() const
     // TODO: この位置に`can::MainPowerModel`の処理を追加する
 
     for (size_t i = 0; i < 4; ++i) {
-        const auto rpm_res = this->vesc_models[i].get_rpm(frame.value());
-        if (!rpm_res) {
-            error_message += "    VESC " + std::to_string(i + 1) + ": " + rpm_res.error() + "\n";
+        const auto packet_status_res = this->vesc_models[i].get_packet_status(frame.value());
+        if (!packet_status_res) {
+            error_message +=
+                "    VESC " + std::to_string(i + 1) + ": " + packet_status_res.error() + "\n";
             continue;
-        }
-        const auto & rpm_opt = rpm_res.value();
-        if (rpm_opt) {
-            return std::make_tuple(i, rpm_opt.value());
         }
 
-        const auto water_leaked_res = this->vesc_models[i].get_water_leaked(frame.value());
-        if (!water_leaked_res) {
-            error_message +=
-                "    VESC " + std::to_string(i + 1) + ": " + water_leaked_res.error() + "\n";
+        const auto & packet_status_opt = packet_status_res.value();
+        if (!packet_status_opt) {
+            // `Can::VescModel`では処理できないためスキップ
             continue;
         }
-        const auto & water_leaked_opt = water_leaked_res.value();
-        if (water_leaked_opt) {
-            return std::make_tuple(i, water_leaked_opt.value());
+
+        switch (packet_status_opt.value().index()) {
+            case 0: {  // PacketStatus
+                const auto & status = std::get<0>(packet_status_opt.value());
+                constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
+                // ERPMを極対数で割ってRPMに変換
+                return std::make_tuple(i, state::thruster::Rpm{status.erpm / BLDC_POLE_PAIR});
+            }
+            case 5: {  // PacketStatus6
+                const auto & status = std::get<5>(packet_status_opt.value());
+                // 浸水センサーはADC1に接続されている
+                const auto water_leaked = status.adc1 < WATER_LEAKED_VOLTAGE_THRESHOLD;
+                return std::make_tuple(i, state::esc::WaterLeaked{water_leaked});
+            }
+            default: {
+                // 他のパケットは無視
+                break;
+            }
         }
     }
 
