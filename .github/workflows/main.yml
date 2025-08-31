@@ -49,6 +49,17 @@ jobs:
       - name: Ruff Format
         run: ruff format --check --diff
 
+  editorconfig-check:
+    name: EditorConfig Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # 最近のバージョンのタグがないためコミットIDを指定
+      - uses: editorconfig-checker/action-editorconfig-checker@48920075d6a466d902d683b648b6365703e49293
+
+      - name: EditorConfig Check
+        run: editorconfig-checker
+
   colcon-build:
     name: Colcon Build
     needs: parse-env-file
