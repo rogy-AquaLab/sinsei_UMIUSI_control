@@ -45,6 +45,13 @@ class CanModel {
     // スラスタのコマンドが何周するごとにLEDテープのコマンドを1回送信するか
     const size_t period_led_tape_per_thrusters;
 
+    // 使用するBLDCの極数
+    static constexpr double BLDC_POLES = 14.0;
+
+    // 浸水センサーの閾値（浸水とみなす最小電圧）
+    // FIXME: 仮の値
+    static constexpr double WATER_LEAKED_VOLTAGE_THRESHOLD = 2.0;
+
     // Update the internal state and select a command to write.
     auto update_and_generate_command(
         cmd::main_power::Enabled && main_power_enabled,
