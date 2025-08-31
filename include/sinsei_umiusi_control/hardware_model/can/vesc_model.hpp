@@ -8,9 +8,6 @@
 #include <variant>
 
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
-#include "sinsei_umiusi_control/state/esc.hpp"
-#include "sinsei_umiusi_control/state/thruster.hpp"
-#include "sinsei_umiusi_control/util/enum_cast.hpp"
 
 // ref: https://github.com/vedderb/bldc/blob/822d270/documentation/comm_can.md
 // ref: https://github.com/rogy-AquaLab/sinsei-UMIUSI/blob/fa11563/ESP32_CAN/lib/vesc_can_esp32/vesc_can_esp32.hpp
@@ -30,16 +27,9 @@ enum class VescSimpleCommandID : uint32_t {
     CAN_PACKET_SET_SERVO = 69,
 };
 
-enum class VescStatusCommandID : uint32_t {
-    CAN_PACKET_STATUS = 9,
-    CAN_PACKET_STATUS_2 = 14,
-    CAN_PACKET_STATUS_3 = 15,
-    CAN_PACKET_STATUS_4 = 16,
-    CAN_PACKET_STATUS_5 = 27,
-    CAN_PACKET_STATUS_6 = 58,
-};
-
 struct PacketStatus {
+    static constexpr uint32_t ID = 9;
+
     double erpm;
     double current;
     double duty;
@@ -50,6 +40,8 @@ struct PacketStatus {
 };
 
 struct PacketStatus2 {
+    static constexpr uint32_t ID = 14;
+
     double amp_hour;
     double amp_hour_charge;
 
@@ -58,6 +50,8 @@ struct PacketStatus2 {
 };
 
 struct PacketStatus3 {
+    static constexpr uint32_t ID = 15;
+
     double watt_hour;
     double watt_hour_charge;
 
@@ -66,6 +60,8 @@ struct PacketStatus3 {
 };
 
 struct PacketStatus4 {
+    static constexpr uint32_t ID = 16;
+
     double temp_fet;
     double temp_motor;
     double current_in;
@@ -78,6 +74,8 @@ struct PacketStatus4 {
 };
 
 struct PacketStatus5 {
+    static constexpr uint32_t ID = 27;
+
     double tacometer;
     double volts_in;
 
@@ -86,6 +84,8 @@ struct PacketStatus5 {
 };
 
 struct PacketStatus6 {
+    static constexpr uint32_t ID = 58;
+
     double adc1;
     double adc2;
     double adc3;
@@ -131,9 +131,6 @@ class VescModel {
 
     auto id_matches(const interface::CanFrame & frame) const -> bool;
 
-    static auto get_cmd_id(const interface::CanFrame & frame)
-        -> tl::expected<VescStatusCommandID, std::string>;
-
   public:
     VescModel(Id id);
 
@@ -150,34 +147,5 @@ class VescModel {
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::can
-
-namespace sinsei_umiusi_control::util {
-
-template <>
-constexpr auto enum_cast(const hardware_model::interface::CanFrame::Id & value)
-    -> tl::expected<
-        sinsei_umiusi_control::hardware_model::can::VescStatusCommandID, EnumCastError> {
-    using sinsei_umiusi_control::hardware_model::can::VescStatusCommandID;
-    using sinsei_umiusi_control::hardware_model::interface::CanFrame;
-
-    switch (value) {
-        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS):
-            return VescStatusCommandID::CAN_PACKET_STATUS;
-        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS_2):
-            return VescStatusCommandID::CAN_PACKET_STATUS_2;
-        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS_3):
-            return VescStatusCommandID::CAN_PACKET_STATUS_3;
-        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS_4):
-            return VescStatusCommandID::CAN_PACKET_STATUS_4;
-        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS_5):
-            return VescStatusCommandID::CAN_PACKET_STATUS_5;
-        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS_6):
-            return VescStatusCommandID::CAN_PACKET_STATUS_6;
-        default:
-            return tl::make_unexpected(EnumCastError::InvalidValue);
-    }
-}
-
-}  // namespace sinsei_umiusi_control::util
 
 #endif  // SINSEI_UMIUSI_CONTROL_hardware_model_CAN_VESC_MODEL_HPP

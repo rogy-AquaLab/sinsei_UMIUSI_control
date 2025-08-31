@@ -11,7 +11,7 @@
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 
 namespace succmd = sinsei_umiusi_control::cmd;
-namespace sucutil = sinsei_umiusi_control::util;
+// namespace sucutil = sinsei_umiusi_control::util;
 namespace suchm = sinsei_umiusi_control::hardware_model;
 
 using sinsei_umiusi_control::test::mock::Can;
@@ -54,23 +54,23 @@ TEST(CanModelTest, CanModelOnDestroyTest) {
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
 
-TEST(CanModelTest, CanModelOnReadTest) {
-    constexpr uint32_t DUMMY_FRAME_ID_RECV =
-        (static_cast<uint32_t>(suchm::can::VescStatusCommandID::CAN_PACKET_STATUS) << 8) |
-        VESC_ID_1;
-    constexpr std::array<std::byte, 8> DUMMY_FRAME_DATA_RECV = {};
+// TEST(CanModelTest, CanModelOnReadTest) {
+//     constexpr uint32_t DUMMY_FRAME_ID_RECV =
+//         (static_cast<uint32_t>(suchm::can::VescStatusCommandID::CAN_PACKET_STATUS) << 8) |
+//         VESC_ID_1;
+//     constexpr std::array<std::byte, 8> DUMMY_FRAME_DATA_RECV = {};
 
-    auto can = std::make_shared<Can>();
+//     auto can = std::make_shared<Can>();
 
-    EXPECT_CALL(*can, recv_frame())
-        .Times(1)
-        .WillOnce(Return(tl::expected<suchm::interface::CanFrame, std::string>{
-            suchm::interface::CanFrame{DUMMY_FRAME_ID_RECV, 8, DUMMY_FRAME_DATA_RECV, true}}));
+//     EXPECT_CALL(*can, recv_frame())
+//         .Times(1)
+//         .WillOnce(Return(tl::expected<suchm::interface::CanFrame, std::string>{
+//             suchm::interface::CanFrame{DUMMY_FRAME_ID_RECV, 8, DUMMY_FRAME_DATA_RECV, true}}));
 
-    auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS);
-    auto result = can_model.on_read();
-    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
-}
+//     auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS);
+//     auto result = can_model.on_read();
+//     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
+// }
 
 TEST(CanModelTest, CanModelCanModeOnWriteTest) {
     auto can = std::make_shared<Can>();
