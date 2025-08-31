@@ -76,10 +76,10 @@ struct PacketStatus4 {
 struct PacketStatus5 {
     static constexpr uint32_t ID = 27;
 
-    double tacometer;
+    double tachometer;
     double volts_in;
 
-    static constexpr double TACOMETER_SCALE = 6;
+    static constexpr double TACHOMETER_SCALE = 6;
     static constexpr double VOLTS_IN_SCALE = 10;
 };
 

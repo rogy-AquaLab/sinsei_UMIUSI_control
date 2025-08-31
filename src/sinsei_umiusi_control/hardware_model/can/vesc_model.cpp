@@ -134,13 +134,13 @@ auto can::VescModel::get_packet_status(const interface::CanFrame & frame) const
             };
         }
         case PacketStatus5::ID: {
-            auto && scaled_tacometer = util::to_int32_be(frame.data);
+            auto && scaled_tachometer = util::to_int32_be(frame.data);
             auto && scaled_volts_in = util::to_int16_be(frame.data, 4);
-            if (!scaled_tacometer || !scaled_volts_in) {
+            if (!scaled_tachometer || !scaled_volts_in) {
                 return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_5");
             }
             return PacketStatus5{
-                static_cast<double>(scaled_tacometer.value()) / PacketStatus5::TACOMETER_SCALE,
+                static_cast<double>(scaled_tachometer.value()) / PacketStatus5::TACHOMETER_SCALE,
                 static_cast<double>(scaled_volts_in.value()) / PacketStatus5::VOLTS_IN_SCALE,
             };
         }
