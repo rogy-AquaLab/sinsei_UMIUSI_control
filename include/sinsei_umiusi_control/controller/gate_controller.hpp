@@ -5,6 +5,7 @@
 #include <geometry_msgs/msg/quaternion.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
 #include <rclcpp/publisher.hpp>
+#include <rclcpp/subscription.hpp>
 
 #include "sinsei_umiusi_control/cmd/attitude.hpp"
 #include "sinsei_umiusi_control/cmd/headlights.hpp"
@@ -12,18 +13,16 @@
 #include "sinsei_umiusi_control/cmd/led_tape.hpp"
 #include "sinsei_umiusi_control/cmd/main_power.hpp"
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
-#include "sinsei_umiusi_control/msg/angle.hpp"
-#include "sinsei_umiusi_control/msg/color.hpp"
-#include "sinsei_umiusi_control/msg/current.hpp"
-#include "sinsei_umiusi_control/msg/duty_cycle.hpp"
-#include "sinsei_umiusi_control/msg/enabled.hpp"
-#include "sinsei_umiusi_control/msg/orientation.hpp"
-#include "sinsei_umiusi_control/msg/quaternion.hpp"
-#include "sinsei_umiusi_control/msg/rpm.hpp"
-#include "sinsei_umiusi_control/msg/temperature.hpp"
-#include "sinsei_umiusi_control/msg/velocity.hpp"
-#include "sinsei_umiusi_control/msg/voltage.hpp"
-#include "sinsei_umiusi_control/msg/water_leaked.hpp"
+#include "sinsei_umiusi_control/msg/esc_state.hpp"
+#include "sinsei_umiusi_control/msg/headlights_output.hpp"
+#include "sinsei_umiusi_control/msg/imu_state.hpp"
+#include "sinsei_umiusi_control/msg/indicator_led_output.hpp"
+#include "sinsei_umiusi_control/msg/led_tape_output.hpp"
+#include "sinsei_umiusi_control/msg/main_power_output.hpp"
+#include "sinsei_umiusi_control/msg/main_power_state.hpp"
+#include "sinsei_umiusi_control/msg/target.hpp"
+#include "sinsei_umiusi_control/msg/thruster_enabled_all.hpp"
+#include "sinsei_umiusi_control/msg/thruster_state_all.hpp"
 #include "sinsei_umiusi_control/state/esc.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/state/main_power.hpp"
@@ -43,9 +42,9 @@ class GateController : public controller_interface::ControllerInterface {
         sinsei_umiusi_control::cmd::headlights::LowBeamEnabled low_beam_enabled_ref;
         sinsei_umiusi_control::cmd::headlights::IrEnabled ir_enabled_ref;
 
-        // TODO: スラスタごとに分ける
-        sinsei_umiusi_control::cmd::thruster::ServoEnabled servo_enabled_ref;
-        sinsei_umiusi_control::cmd::thruster::EscEnabled esc_enabled_ref;
+        std::array<sinsei_umiusi_control::cmd::thruster::EscEnabled, 4> thruster_esc_enabled_ref;
+        std::array<sinsei_umiusi_control::cmd::thruster::ServoEnabled, 4>
+            thruster_servo_enabled_ref;
 
         sinsei_umiusi_control::cmd::led_tape::Color led_tape_color_ref;
         sinsei_umiusi_control::cmd::attitude::Orientation target_orientation_ref;
@@ -55,16 +54,16 @@ class GateController : public controller_interface::ControllerInterface {
 
     // State interfaces (in)
     struct State {
-        sinsei_umiusi_control::state::main_power::BatteryCurrent battery_current;
-        sinsei_umiusi_control::state::main_power::BatteryVoltage battery_voltage;
+        sinsei_umiusi_control::state::main_power::BatteryVoltage main_power_battery_voltage;
+        sinsei_umiusi_control::state::main_power::BatteryCurrent main_power_battery_current;
         sinsei_umiusi_control::state::main_power::Temperature main_temperature;
         sinsei_umiusi_control::state::main_power::WaterLeaked water_leaked;
         sinsei_umiusi_control::state::imu::Temperature imu_temperature;
         sinsei_umiusi_control::state::imu::Quaternion imu_quaternion;
         sinsei_umiusi_control::state::imu::Velocity imu_velocity;
-        std::array<sinsei_umiusi_control::state::thruster::Rpm, 4> rpm;
-        std::array<sinsei_umiusi_control::state::thruster::EscEnabled, 4> esc_enabled;
-        std::array<sinsei_umiusi_control::state::thruster::ServoEnabled, 4> servo_enabled;
+        std::array<sinsei_umiusi_control::state::thruster::Rpm, 4> thruster_rpm;
+        std::array<sinsei_umiusi_control::state::thruster::EscEnabled, 4> thruster_esc_enabled;
+        std::array<sinsei_umiusi_control::state::thruster::ServoEnabled, 4> thruster_servo_enabled;
         std::array<sinsei_umiusi_control::state::thruster::DutyCycle, 4> thruster_duty_cycles;
         std::array<sinsei_umiusi_control::state::thruster::Angle, 4> thruster_angles;
         std::array<sinsei_umiusi_control::state::esc::WaterLeaked, 4> esc_water_leaked;
@@ -73,34 +72,21 @@ class GateController : public controller_interface::ControllerInterface {
 
     // Subscribers for commands
     struct Subscribers {
-        rclcpp::Subscription<msg::Enabled>::SharedPtr indicator_led_enabled_subscriber;
-        rclcpp::Subscription<msg::Enabled>::SharedPtr main_power_enabled_subscriber;
-        rclcpp::Subscription<msg::Enabled>::SharedPtr high_beam_enabled_subscriber;
-        rclcpp::Subscription<msg::Enabled>::SharedPtr low_beam_enabled_subscriber;
-        rclcpp::Subscription<msg::Enabled>::SharedPtr ir_enabled_subscriber;
-        rclcpp::Subscription<msg::Enabled>::SharedPtr servo_enabled_subscriber;
-        rclcpp::Subscription<msg::Enabled>::SharedPtr esc_enabled_subscriber;
-        rclcpp::Subscription<msg::Color>::SharedPtr led_tape_color_subscriber;
-        rclcpp::Subscription<msg::Orientation>::SharedPtr target_orientation_subscriber;
-        rclcpp::Subscription<msg::Velocity>::SharedPtr target_velocity_subscriber;
+        rclcpp::Subscription<msg::IndicatorLedOutput>::SharedPtr indicator_led_output_subscriber;
+        rclcpp::Subscription<msg::MainPowerOutput>::SharedPtr main_power_output_subscriber;
+        rclcpp::Subscription<msg::HeadlightsOutput>::SharedPtr headlights_output_subscriber;
+        rclcpp::Subscription<msg::ThrusterEnabledAll>::SharedPtr thruster_enabled_all_subscriber;
+        rclcpp::Subscription<msg::LedTapeOutput>::SharedPtr led_tape_output_subscriber;
+        rclcpp::Subscription<msg::Target>::SharedPtr target_subscriber;
     };
     Subscribers sub;
 
     // Publishers for states
     struct Publishers {
-        rclcpp::Publisher<msg::Current>::SharedPtr battery_current_publisher;
-        rclcpp::Publisher<msg::Voltage>::SharedPtr battery_voltage_publisher;
-        rclcpp::Publisher<msg::Temperature>::SharedPtr main_temperature_publisher;
-        rclcpp::Publisher<msg::WaterLeaked>::SharedPtr water_leaked_publisher;
-        rclcpp::Publisher<msg::Temperature>::SharedPtr imu_temperature_publisher;
-        rclcpp::Publisher<msg::Quaternion>::SharedPtr imu_quaternion_publisher;
-        rclcpp::Publisher<msg::Velocity>::SharedPtr imu_velocity_publisher;
-        std::array<rclcpp::Publisher<msg::Rpm>::SharedPtr, 4> rpm_publisher;
-        std::array<rclcpp::Publisher<msg::Enabled>::SharedPtr, 4> esc_enabled_publisher;
-        std::array<rclcpp::Publisher<msg::Enabled>::SharedPtr, 4> servo_enabled_publisher;
-        std::array<rclcpp::Publisher<msg::DutyCycle>::SharedPtr, 4> duty_cycles_publisher;
-        std::array<rclcpp::Publisher<msg::Angle>::SharedPtr, 4> angle_publisher;
-        std::array<rclcpp::Publisher<msg::WaterLeaked>::SharedPtr, 4> esc_water_leaked_publisher;
+        rclcpp::Publisher<msg::MainPowerState>::SharedPtr main_power_state_publisher;
+        rclcpp::Publisher<msg::ImuState>::SharedPtr imu_state_publisher;
+        rclcpp::Publisher<msg::ThrusterStateAll>::SharedPtr thruster_state_all_publisher;
+        std::array<rclcpp::Publisher<msg::EscState>::SharedPtr, 4> esc_state_publishers;
     };
     Publishers pub;
 

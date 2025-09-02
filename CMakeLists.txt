@@ -47,19 +47,27 @@ endif()
 
 # 本来は`msg`や`srv`専用にパッケージを分けるべきだが、リポジトリを跨ぎたくないためここに置いている。
 rosidl_generate_interfaces(${PROJECT_NAME}_msgs
-  "msg/Angle.msg"
-  "msg/Color.msg"
-  "msg/Current.msg"
-  "msg/DutyCycle.msg"
-  "msg/Enabled.msg"
-  "msg/Orientation.msg"
-  "msg/Quaternion.msg"
-  "msg/Rpm.msg"
-  "msg/Temperature.msg"
-  "msg/Velocity.msg"
-  "msg/Voltage.msg"
-  "msg/WaterLeaked.msg"
-  LIBRARY_NAME ${PROJECT_NAME}
+  "msg/EscState.msg"
+  "msg/HeadlightsOutput.msg"
+  "msg/ImuState.msg"
+  "msg/IndicatorLedOutput.msg"
+  "msg/LedTapeOutput.msg"
+  "msg/MainPowerOutput.msg"
+  "msg/MainPowerState.msg"
+  "msg/Target.msg"
+  "msg/ThrusterEnabled.msg"
+  "msg/ThrusterEnabledAll.msg"
+  "msg/ThrusterOutput.msg"
+  "msg/ThrusterOutputAll.msg"
+  "msg/ThrusterState.msg"
+  "msg/ThrusterStateAll.msg"
+
+  DEPENDENCIES
+    std_msgs
+    geometry_msgs
+
+  LIBRARY_NAME
+    ${PROJECT_NAME}
 )
 ament_export_dependencies(rosidl_default_runtime)
 rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME}_msgs rosidl_typesupport_cpp)
