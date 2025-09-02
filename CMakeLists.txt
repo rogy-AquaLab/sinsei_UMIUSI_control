@@ -55,7 +55,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}_msgs
   "msg/Orientation.msg"
   "msg/Quaternion.msg"
   "msg/Rpm.msg"
-  "msg/Temprature.msg"
+  "msg/Temperature.msg"
   "msg/Velocity.msg"
   "msg/Voltage.msg"
   "msg/WaterLeaked.msg"

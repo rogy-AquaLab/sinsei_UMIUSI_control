@@ -4,12 +4,6 @@
 #include <rclcpp_lifecycle/state.hpp>
 #include <string>
 
-#include "sinsei_umiusi_control/msg/current.hpp"
-#include "sinsei_umiusi_control/msg/duty_cycle.hpp"
-#include "sinsei_umiusi_control/msg/enabled.hpp"
-#include "sinsei_umiusi_control/msg/orientation.hpp"
-#include "sinsei_umiusi_control/msg/temprature.hpp"
-#include "sinsei_umiusi_control/msg/water_leaked.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
@@ -231,11 +225,11 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
             this->get_node()->create_publisher<msg::Current>(state_prefix + "battery_current", qos);
         this->pub.battery_voltage_publisher =
             this->get_node()->create_publisher<msg::Voltage>(state_prefix + "battery_voltage", qos);
-        this->pub.main_temperature_publisher = this->get_node()->create_publisher<msg::Temprature>(
+        this->pub.main_temperature_publisher = this->get_node()->create_publisher<msg::Temperature>(
             state_prefix + "main_temperature", qos);
         this->pub.water_leaked_publisher = this->get_node()->create_publisher<msg::WaterLeaked>(
             state_prefix + "water_leaked", qos);
-        this->pub.imu_temperature_publisher = this->get_node()->create_publisher<msg::Temprature>(
+        this->pub.imu_temperature_publisher = this->get_node()->create_publisher<msg::Temperature>(
             state_prefix + "imu_temperature", qos);
         this->pub.imu_quaternion_publisher = this->get_node()->create_publisher<msg::Quaternion>(
             state_prefix + "imu_quaternion", qos);
@@ -278,11 +272,11 @@ auto succ::GateController::update(
     this->pub.battery_voltage_publisher->publish(
         msg::Voltage().set__value(this->state.battery_voltage.value));
     this->pub.main_temperature_publisher->publish(
-        msg::Temprature().set__value(this->state.main_temperature.value));
+        msg::Temperature().set__value(this->state.main_temperature.value));
     this->pub.water_leaked_publisher->publish(
         msg::WaterLeaked().set__value(this->state.water_leaked.value));
     this->pub.imu_temperature_publisher->publish(
-        msg::Temprature().set__value(this->state.imu_temperature.value));
+        msg::Temperature().set__value(this->state.imu_temperature.value));
     this->pub.imu_quaternion_publisher->publish(msg::Quaternion()
                                                     .set__x(this->state.imu_quaternion.x)
                                                     .set__y(this->state.imu_quaternion.y)

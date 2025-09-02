@@ -20,7 +20,7 @@
 #include "sinsei_umiusi_control/msg/orientation.hpp"
 #include "sinsei_umiusi_control/msg/quaternion.hpp"
 #include "sinsei_umiusi_control/msg/rpm.hpp"
-#include "sinsei_umiusi_control/msg/temprature.hpp"
+#include "sinsei_umiusi_control/msg/temperature.hpp"
 #include "sinsei_umiusi_control/msg/velocity.hpp"
 #include "sinsei_umiusi_control/msg/voltage.hpp"
 #include "sinsei_umiusi_control/msg/water_leaked.hpp"
@@ -90,9 +90,9 @@ class GateController : public controller_interface::ControllerInterface {
     struct Publishers {
         rclcpp::Publisher<msg::Current>::SharedPtr battery_current_publisher;
         rclcpp::Publisher<msg::Voltage>::SharedPtr battery_voltage_publisher;
-        rclcpp::Publisher<msg::Temprature>::SharedPtr main_temperature_publisher;
+        rclcpp::Publisher<msg::Temperature>::SharedPtr main_temperature_publisher;
         rclcpp::Publisher<msg::WaterLeaked>::SharedPtr water_leaked_publisher;
-        rclcpp::Publisher<msg::Temprature>::SharedPtr imu_temperature_publisher;
+        rclcpp::Publisher<msg::Temperature>::SharedPtr imu_temperature_publisher;
         rclcpp::Publisher<msg::Quaternion>::SharedPtr imu_quaternion_publisher;
         rclcpp::Publisher<msg::Velocity>::SharedPtr imu_velocity_publisher;
         std::array<rclcpp::Publisher<msg::Rpm>::SharedPtr, 4> rpm_publisher;
