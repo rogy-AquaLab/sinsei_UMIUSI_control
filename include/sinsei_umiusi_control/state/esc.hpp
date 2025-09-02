@@ -3,6 +3,9 @@
 
 namespace sinsei_umiusi_control::state::esc {
 
+struct Voltage {
+    double value;
+};
 struct WaterLeaked {
     bool value;
 };

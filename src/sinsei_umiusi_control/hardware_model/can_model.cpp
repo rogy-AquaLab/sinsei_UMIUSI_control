@@ -5,6 +5,7 @@
 #include <tuple>
 
 #include "sinsei_umiusi_control/cmd/main_power.hpp"
+#include "sinsei_umiusi_control/state/esc.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 
 using namespace sinsei_umiusi_control::hardware_model;
@@ -24,15 +25,22 @@ auto CanModel::update_and_generate_command(
         return this->last_main_power_enabled;
     }
 
-    constexpr auto PERIOD_CYCLE_LED_TAPE = CanModel::PERIOD_LED_TAPE_PER_THRUSTERS * 16;
+    constexpr auto THRUSTERS_NUM = 4;        // 1 ~ 4
+    constexpr auto THRUSTER_PACKET_NUM = 4;  // esc_enabled, servo_enabled, duty_cycle, angle
+    constexpr auto THRUSTERS_TOTAL_PACKET_NUM = THRUSTERS_NUM * THRUSTER_PACKET_NUM;  // 16
 
-    // `PERIOD_CYCLE_LED_TAPE`回に1回はLEDテープのコマンドを送信するため、スラスターのコマンドは扱わない
-    const auto led = (this->loop_times % PERIOD_CYCLE_LED_TAPE) == 0;
+    const auto period_led_tape_per_loop =
+        this->period_led_tape_per_thrusters * THRUSTERS_TOTAL_PACKET_NUM;
+
+    // `period_led_tape_per_loop`回に1回LEDテープのコマンドを送信する。
+    // LEDテープのコマンドを送信しない場合はスラスターのコマンドを順番に送信する。
+    const auto led = (this->loop_times % period_led_tape_per_loop) == 0;
     if (!led) {
-        const auto thruster_index = this->loop_times % 4;
+        const auto thruster_index = this->loop_times % THRUSTERS_NUM;
         const auto thruster_id = thruster_index + 1;
 
-        const auto packet_type = (this->loop_times % 16) / 4;
+        const auto packet_type =
+            (this->loop_times % THRUSTERS_TOTAL_PACKET_NUM) / THRUSTER_PACKET_NUM;
         switch (packet_type) {
             case 0: {  // esc_enabled
                 return std::forward_as_tuple(thruster_id, thruster_esc_enabled[thruster_index]);
@@ -68,7 +76,9 @@ auto CanModel::update_and_generate_command(
     return led_tape_color;  // led_tape/color
 }
 
-CanModel::CanModel(std::shared_ptr<interface::Can> can, std::array<int, 4> vesc_ids)
+CanModel::CanModel(
+    std::shared_ptr<interface::Can> can, std::array<int, 4> vesc_ids,
+    size_t period_led_tape_per_thrusters)
 : can(can),
   vesc_models{{
       can::VescModel(vesc_ids[0]),
@@ -76,7 +86,8 @@ CanModel::CanModel(std::shared_ptr<interface::Can> can, std::array<int, 4> vesc_
       can::VescModel(vesc_ids[2]),
       can::VescModel(vesc_ids[3]),
   }},
-  last_main_power_enabled{false} {}
+  last_main_power_enabled{false},
+  period_led_tape_per_thrusters{period_led_tape_per_thrusters} {}
 
 auto CanModel::on_init() -> tl::expected<void, std::string> {
     const auto res = this->can->init("can0");
@@ -99,9 +110,10 @@ auto CanModel::on_destroy() -> tl::expected<void, std::string> {
 auto CanModel::on_read() const
     -> tl::expected<
         std::variant<
-            std::tuple<size_t, state::thruster::Rpm>, std::tuple<size_t, state::esc::WaterLeaked>,
-            state::main_power::BatteryCurrent, state::main_power::BatteryVoltage,
-            state::main_power::Temperature, state::main_power::WaterLeaked>,
+            std::tuple<size_t, state::thruster::Rpm>, std::tuple<size_t, state::esc::Voltage>,
+            std::tuple<size_t, state::esc::WaterLeaked>, state::main_power::BatteryCurrent,
+            state::main_power::BatteryVoltage, state::main_power::Temperature,
+            state::main_power::WaterLeaked>,
         std::string> {
     const auto frame = this->can->recv_frame();
     if (!frame) {
@@ -115,25 +127,41 @@ auto CanModel::on_read() const
     // TODO: この位置に`can::MainPowerModel`の処理を追加する
 
     for (size_t i = 0; i < 4; ++i) {
-        const auto rpm_res = this->vesc_models[i].get_rpm(frame.value());
-        if (!rpm_res) {
-            error_message += "    VESC " + std::to_string(i + 1) + ": " + rpm_res.error() + "\n";
+        const auto packet_status_res = this->vesc_models[i].get_packet_status(frame.value());
+        if (!packet_status_res) {
+            error_message +=
+                "    VESC " + std::to_string(i + 1) + ": " + packet_status_res.error() + "\n";
             continue;
-        }
-        const auto & rpm_opt = rpm_res.value();
-        if (rpm_opt) {
-            return std::make_tuple(i, rpm_opt.value());
         }
 
-        const auto water_leaked_res = this->vesc_models[i].get_water_leaked(frame.value());
-        if (!water_leaked_res) {
-            error_message +=
-                "    VESC " + std::to_string(i + 1) + ": " + water_leaked_res.error() + "\n";
+        const auto & packet_status_opt = packet_status_res.value();
+        if (!packet_status_opt) {
+            // `Can::VescModel`では処理できないためスキップ
             continue;
         }
-        const auto & water_leaked_opt = water_leaked_res.value();
-        if (water_leaked_opt) {
-            return std::make_tuple(i, water_leaked_opt.value());
+
+        switch (packet_status_opt.value().index()) {
+            case 0: {  // PacketStatus
+                const auto & status = std::get<0>(packet_status_opt.value());
+                constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
+                // ERPMを極対数で割ってRPMに変換
+                return std::make_tuple(i, state::thruster::Rpm{status.erpm / BLDC_POLE_PAIR});
+            }
+            case 4: {  // PacketStatus5
+                const auto & status = std::get<4>(packet_status_opt.value());
+                const auto volts_in = status.volts_in;
+                return std::make_tuple(i, state::esc::Voltage{volts_in});
+            }
+            case 5: {  // PacketStatus6
+                const auto & status = std::get<5>(packet_status_opt.value());
+                // 浸水センサーはADC1に接続されている
+                const auto water_leaked = status.adc1 < WATER_LEAKED_VOLTAGE_THRESHOLD;
+                return std::make_tuple(i, state::esc::WaterLeaked{water_leaked});
+            }
+            default: {
+                // 他のパケットは無視
+                break;
+            }
         }
     }
 

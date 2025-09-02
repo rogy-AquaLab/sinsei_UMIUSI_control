@@ -1,5 +1,7 @@
 #include "sinsei_umiusi_control/hardware_model/can/vesc_model.hpp"
 
+#include <rcpputils/tl_expected/expected.hpp>
+
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
 #include "sinsei_umiusi_control/util/byte.hpp"
 
@@ -64,8 +66,12 @@ auto can::VescModel::id_matches(const interface::CanFrame & frame) const -> bool
     return vesc_id == this->id;
 }
 
-auto can::VescModel::get_cmd_id(const interface::CanFrame & frame)
-    -> tl::expected<VescStatusCommandID, std::string> {
+auto can::VescModel::get_packet_status(const interface::CanFrame & frame) const
+    -> tl::expected<std::optional<VescModel::AnyPacketStatus>, std::string> {
+    if (!this->id_matches(frame)) {
+        return std::nullopt;
+    }
+
     if (frame.len != 8) {
         return tl::make_unexpected(
             "Received CAN frame with invalid length (expected: 8, received: " +
@@ -73,53 +79,88 @@ auto can::VescModel::get_cmd_id(const interface::CanFrame & frame)
     }
 
     const auto cmd_id = (frame.id >> 8) & 0xFF;
-    return util::enum_cast<interface::CanFrame::Id, VescStatusCommandID>(cmd_id).map_error(
-        [&cmd_id](const auto &) {
-            return "Received CAN frame with unknown command ID: " + std::to_string(cmd_id);
-        });
-}
 
-auto can::VescModel::get_rpm(const interface::CanFrame & frame) const
-    -> tl::expected<std::optional<state::thruster::Rpm>, std::string> {
-    if (!this->id_matches(frame)) {
-        return std::nullopt;
+    switch (cmd_id) {
+        case PacketStatus::ID: {
+            auto && scaled_erpm = util::to_int32_be(frame.data);
+            auto && scaled_current = util::to_int16_be<4>(frame.data);
+            auto && scaled_duty = util::to_int16_be<6>(frame.data);
+            if (!scaled_erpm || !scaled_current || !scaled_duty) {
+                return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS");
+            }
+            return PacketStatus{
+                static_cast<double>(scaled_erpm.value()) / PacketStatus::ERPM_SCALE,
+                static_cast<double>(scaled_current.value()) / PacketStatus::CURRENT_SCALE,
+                static_cast<double>(scaled_duty.value()) / PacketStatus::DUTY_SCALE,
+            };
+        }
+        case PacketStatus2::ID: {
+            auto && scaled_amp_hour = util::to_int32_be(frame.data);
+            auto && scaled_amp_hour_charge = util::to_int32_be<4>(frame.data);
+            if (!scaled_amp_hour || !scaled_amp_hour_charge) {
+                return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_2");
+            }
+            return PacketStatus2{
+                static_cast<double>(scaled_amp_hour.value()) / PacketStatus2::AMP_HOUR_SCALE,
+                static_cast<double>(scaled_amp_hour_charge.value()) /
+                    PacketStatus2::AMP_HOUR_CHARGE_SCALE,
+            };
+        }
+        case PacketStatus3::ID: {
+            auto && scaled_watt_hour = util::to_int32_be(frame.data);
+            auto && scaled_watt_hour_charge = util::to_int32_be<4>(frame.data);
+            if (!scaled_watt_hour || !scaled_watt_hour_charge) {
+                return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_3");
+            }
+            return PacketStatus3{
+                static_cast<double>(scaled_watt_hour.value()) / PacketStatus3::WATT_HOUR_SCALE,
+                static_cast<double>(scaled_watt_hour_charge.value()) /
+                    PacketStatus3::WATT_HOUR_CHARGE_SCALE,
+            };
+        }
+        case PacketStatus4::ID: {
+            auto && scaled_temp_fet = util::to_int16_be(frame.data);
+            auto && scaled_temp_motor = util::to_int16_be<2>(frame.data);
+            auto && scaled_current_in = util::to_int16_be<4>(frame.data);
+            auto && scaled_pid_pos = util::to_int16_be<6>(frame.data);
+            if (!scaled_temp_fet || !scaled_temp_motor || !scaled_current_in || !scaled_pid_pos) {
+                return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_4");
+            }
+            return PacketStatus4{
+                static_cast<double>(scaled_temp_fet.value()) / PacketStatus4::TEMP_FET_SCALE,
+                static_cast<double>(scaled_temp_motor.value()) / PacketStatus4::TEMP_MOTOR_SCALE,
+                static_cast<double>(scaled_current_in.value()) / PacketStatus4::CURRENT_IN_SCALE,
+                static_cast<double>(scaled_pid_pos.value()) / PacketStatus4::PID_POS_SCALE,
+            };
+        }
+        case PacketStatus5::ID: {
+            auto && scaled_tachometer = util::to_int32_be(frame.data);
+            auto && scaled_volts_in = util::to_int16_be<4>(frame.data);
+            if (!scaled_tachometer || !scaled_volts_in) {
+                return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_5");
+            }
+            return PacketStatus5{
+                static_cast<double>(scaled_tachometer.value()) / PacketStatus5::TACHOMETER_SCALE,
+                static_cast<double>(scaled_volts_in.value()) / PacketStatus5::VOLTS_IN_SCALE,
+            };
+        }
+        case PacketStatus6::ID: {
+            auto && scaled_adc1 = util::to_int16_be(frame.data);
+            auto && scaled_adc2 = util::to_int16_be<2>(frame.data);
+            auto && scaled_adc3 = util::to_int16_be<4>(frame.data);
+            auto && scaled_ppm = util::to_int16_be<6>(frame.data);
+            if (!scaled_adc1 || !scaled_adc2 || !scaled_adc3 || !scaled_ppm) {
+                return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_6");
+            }
+            return PacketStatus6{
+                static_cast<double>(scaled_adc1.value()) / PacketStatus6::ADC1_SCALE,
+                static_cast<double>(scaled_adc2.value()) / PacketStatus6::ADC2_SCALE,
+                static_cast<double>(scaled_adc3.value()) / PacketStatus6::ADC3_SCALE,
+                static_cast<double>(scaled_ppm.value()) / PacketStatus6::PPM_SCALE,
+            };
+        }
+        default:
+            return tl::make_unexpected(
+                "Received CAN frame with unknown command ID: " + std::to_string(cmd_id));
     }
-
-    const auto cmd_id = this->get_cmd_id(frame);
-    if (!cmd_id) {
-        return tl::make_unexpected("Failed to get command ID: " + cmd_id.error());
-    }
-
-    if (cmd_id.value() != VescStatusCommandID::CAN_PACKET_STATUS) {
-        // このフレームはERPMの情報を含んでいない
-        return std::nullopt;
-    }
-
-    auto && scaled_erpm = util::to_int32_be(frame.data);
-    auto && erpm = static_cast<double>(scaled_erpm) / ERPM_SCALE;
-    constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
-    // ERPMを極対数で割ってRPMに変換
-    return state::thruster::Rpm{erpm / BLDC_POLE_PAIR};
-}
-
-auto can::VescModel::get_water_leaked(const interface::CanFrame & frame) const
-    -> tl::expected<std::optional<state::esc::WaterLeaked>, std::string> {
-    if (!this->id_matches(frame)) {
-        return std::nullopt;
-    }
-
-    const auto cmd_id = this->get_cmd_id(frame);
-    if (!cmd_id) {
-        return tl::make_unexpected("Failed to get command ID: " + cmd_id.error());
-    }
-
-    if (cmd_id.value() != VescStatusCommandID::CAN_PACKET_STATUS_6) {
-        // このフレームはADC1の情報を含んでいない
-        return std::nullopt;
-    }
-
-    auto && scaled_adc1 = util::to_int16_be(frame.data);
-    auto && adc1_voltage = static_cast<double>(scaled_adc1) / ADC1_SCALE;
-    auto && water_leaked = adc1_voltage > WATER_LEAKED_VOLTAGE_THRESHOLD;
-    return state::esc::WaterLeaked{water_leaked};
 }

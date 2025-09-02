@@ -61,7 +61,37 @@ auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
         }
     }
 
-    this->model.emplace(std::make_shared<hardware_model::impl::LinuxCan>(), vesc_ids);
+    // Thrusterすべてに信号を`period_led_tape_per_thrusters`回送るごとにLEDテープの信号を1回送る
+    const auto period_led_tape_per_thrusters_str =
+        util::find_param(info.hardware_parameters, "period_led_tape_per_thrusters");
+    if (!period_led_tape_per_thrusters_str) {
+        RCLCPP_ERROR(
+            this->get_logger(),
+            "Parameter 'period_led_tape_per_thrusters' not found in hardware parameters.");
+        return hif::CallbackReturn::ERROR;
+    }
+    size_t period_led_tape_per_thrusters = 0;
+    try {
+        period_led_tape_per_thrusters =
+            static_cast<size_t>(std::stoi(period_led_tape_per_thrusters_str.value()));
+    } catch (const std::invalid_argument & e) {
+        RCLCPP_ERROR(
+            this->get_logger(), "Invalid value for `period_led_tape_per_thrusters` (%s): %s",
+            period_led_tape_per_thrusters_str.value().c_str(), e.what());
+        return hif::CallbackReturn::ERROR;
+    }
+    // `period_led_tape_per_thrusters`が1以下のとき、特定のコマンドがLEDテープのコマンドに邪魔されて送れなくなってしまう。
+    if (period_led_tape_per_thrusters <= 1) {
+        RCLCPP_ERROR(
+            this->get_logger(),
+            "Invalid value for `period_led_tape_per_thrusters` (%zu): must be greater than 1",
+            period_led_tape_per_thrusters);
+        return hif::CallbackReturn::ERROR;
+    }
+
+    this->model.emplace(
+        std::make_shared<hardware_model::impl::LinuxCan>(), vesc_ids,
+        period_led_tape_per_thrusters);
 
     auto res = this->model->on_init();
     if (!res) {
@@ -100,32 +130,38 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
             this->set_state(thruster_name + "/esc/rpm", util::to_interface_data(rpm));
             break;
         }
-        case 1: {  // ESC WaterLeaked
+        case 1: {  // ESC Voltage
+            const auto [index, voltage] = std::get<1>(variant);
+            const auto thruster_name = "thruster" + std::to_string(index + 1);
+            this->set_state(thruster_name + "/esc/voltage", util::to_interface_data(voltage));
+            break;
+        }
+        case 2: {  // ESC WaterLeaked
             const auto [index, water_leaked] = std::get<1>(variant);
             const auto thruster_name = "thruster" + std::to_string(index + 1);
             this->set_state(
                 thruster_name + "/esc/water_leaked", util::to_interface_data(water_leaked));
             break;
         }
-        case 2: {  // BatteryCurrent
+        case 3: {  // BatteryCurrent
             const auto battery_current =
                 std::get<sinsei_umiusi_control::state::main_power::BatteryCurrent>(variant);
             this->set_state("main_power/battery_current", util::to_interface_data(battery_current));
             break;
         }
-        case 3: {  // BatteryVoltage
+        case 4: {  // BatteryVoltage
             const auto battery_voltage =
                 std::get<sinsei_umiusi_control::state::main_power::BatteryVoltage>(variant);
             this->set_state("main_power/battery_voltage", util::to_interface_data(battery_voltage));
             break;
         }
-        case 4: {  // Temperature
+        case 5: {  // Temperature
             const auto temperature =
                 std::get<sinsei_umiusi_control::state::main_power::Temperature>(variant);
             this->set_state("main_power/temperature", util::to_interface_data(temperature));
             break;
         }
-        case 5: {  // WaterLeaked
+        case 6: {  // WaterLeaked
             const auto water_leaked =
                 std::get<sinsei_umiusi_control::state::main_power::WaterLeaked>(variant);
             this->set_state("main_power/water_leaked", util::to_interface_data(water_leaked));

@@ -10,6 +10,7 @@
   <xacro:arg name="vesc2_id" default="'unknown'" />
   <xacro:arg name="vesc3_id" default="'unknown'" />
   <xacro:arg name="vesc4_id" default="'unknown'" />
+  <xacro:arg name="period_led_tape_per_thrusters" default="'unknown'" />
 
   <xacro:include filename="sinsei_umiusi_control.urdf.xacro" />
 
@@ -25,6 +26,7 @@
     vesc2_id="$(arg vesc2_id)"
     vesc3_id="$(arg vesc3_id)"
     vesc4_id="$(arg vesc4_id)"
+    period_led_tape_per_thrusters="$(arg period_led_tape_per_thrusters)"
     mock="false"
   />
 
