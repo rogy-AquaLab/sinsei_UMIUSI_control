@@ -124,9 +124,9 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
         this->sub.led_tape_color_subscriber = this->get_node()->create_subscription<msg::Color>(
             cmd_prefix + "led_tape_color", qos, [this](const msg::Color::SharedPtr input) {
                 // alphaは無視
-                this->cmd.led_tape_color_ref.red = static_cast<uint8_t>(input->r);
-                this->cmd.led_tape_color_ref.green = static_cast<uint8_t>(input->g);
-                this->cmd.led_tape_color_ref.blue = static_cast<uint8_t>(input->b);
+                this->cmd.led_tape_color_ref.red = input->r;
+                this->cmd.led_tape_color_ref.green = input->g;
+                this->cmd.led_tape_color_ref.blue = input->b;
             });
         this->sub.high_beam_enabled_subscriber =
             this->get_node()->create_subscription<msg::Enabled>(
