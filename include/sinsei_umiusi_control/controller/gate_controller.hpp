@@ -33,62 +33,71 @@
 namespace sinsei_umiusi_control::controller {
 
 class GateController : public controller_interface::ControllerInterface {
+  public:
+    struct Input {
+        // State interfaces (in)
+        struct State {
+            sinsei_umiusi_control::state::main_power::BatteryVoltage main_power_battery_voltage;
+            sinsei_umiusi_control::state::main_power::BatteryCurrent main_power_battery_current;
+            sinsei_umiusi_control::state::main_power::Temperature main_temperature;
+            sinsei_umiusi_control::state::main_power::WaterLeaked water_leaked;
+            sinsei_umiusi_control::state::imu::Temperature imu_temperature;
+            sinsei_umiusi_control::state::imu::Quaternion imu_quaternion;
+            sinsei_umiusi_control::state::imu::Velocity imu_velocity;
+            std::array<sinsei_umiusi_control::state::thruster::Rpm, 4> thruster_rpm;
+            std::array<sinsei_umiusi_control::state::thruster::EscEnabled, 4> thruster_esc_enabled;
+            std::array<sinsei_umiusi_control::state::thruster::ServoEnabled, 4>
+                thruster_servo_enabled;
+            std::array<sinsei_umiusi_control::state::thruster::DutyCycle, 4> thruster_duty_cycles;
+            std::array<sinsei_umiusi_control::state::thruster::Angle, 4> thruster_angles;
+            std::array<sinsei_umiusi_control::state::esc::WaterLeaked, 4> esc_water_leaked;
+        };
+        // Subscribers for commands
+        struct Subscribers {
+            rclcpp::Subscription<msg::IndicatorLedOutput>::SharedPtr
+                indicator_led_output_subscriber;
+            rclcpp::Subscription<msg::MainPowerOutput>::SharedPtr main_power_output_subscriber;
+            rclcpp::Subscription<msg::HeadlightsOutput>::SharedPtr headlights_output_subscriber;
+            rclcpp::Subscription<msg::ThrusterEnabledAll>::SharedPtr
+                thruster_enabled_all_subscriber;
+            rclcpp::Subscription<msg::LedTapeOutput>::SharedPtr led_tape_output_subscriber;
+            rclcpp::Subscription<msg::Target>::SharedPtr target_subscriber;
+        };
+        State state;
+        Subscribers sub;
+    };
+    struct Output {
+        // Command interfaces (out)
+        struct Command {
+            sinsei_umiusi_control::cmd::indicator_led::Enabled indicator_led_enabled_ref;
+            sinsei_umiusi_control::cmd::main_power::Enabled main_power_enabled_ref;
+            sinsei_umiusi_control::cmd::headlights::HighBeamEnabled high_beam_enabled_ref;
+            sinsei_umiusi_control::cmd::headlights::LowBeamEnabled low_beam_enabled_ref;
+            sinsei_umiusi_control::cmd::headlights::IrEnabled ir_enabled_ref;
+
+            std::array<sinsei_umiusi_control::cmd::thruster::EscEnabled, 4>
+                thruster_esc_enabled_ref;
+            std::array<sinsei_umiusi_control::cmd::thruster::ServoEnabled, 4>
+                thruster_servo_enabled_ref;
+
+            sinsei_umiusi_control::cmd::led_tape::Color led_tape_color_ref;
+            sinsei_umiusi_control::cmd::attitude::Orientation target_orientation_ref;
+            sinsei_umiusi_control::cmd::attitude::Velocity target_velocity_ref;
+        };
+        // Publishers for states
+        struct Publishers {
+            rclcpp::Publisher<msg::MainPowerState>::SharedPtr main_power_state_publisher;
+            rclcpp::Publisher<msg::ImuState>::SharedPtr imu_state_publisher;
+            rclcpp::Publisher<msg::ThrusterStateAll>::SharedPtr thruster_state_all_publisher;
+            std::array<rclcpp::Publisher<msg::EscState>::SharedPtr, 4> esc_state_publishers;
+        };
+        Command cmd;
+        Publishers pub;
+    };
+
   private:
-    // Command interfaces (out)
-    struct Command {
-        sinsei_umiusi_control::cmd::indicator_led::Enabled indicator_led_enabled_ref;
-        sinsei_umiusi_control::cmd::main_power::Enabled main_power_enabled_ref;
-        sinsei_umiusi_control::cmd::headlights::HighBeamEnabled high_beam_enabled_ref;
-        sinsei_umiusi_control::cmd::headlights::LowBeamEnabled low_beam_enabled_ref;
-        sinsei_umiusi_control::cmd::headlights::IrEnabled ir_enabled_ref;
-
-        std::array<sinsei_umiusi_control::cmd::thruster::EscEnabled, 4> thruster_esc_enabled_ref;
-        std::array<sinsei_umiusi_control::cmd::thruster::ServoEnabled, 4>
-            thruster_servo_enabled_ref;
-
-        sinsei_umiusi_control::cmd::led_tape::Color led_tape_color_ref;
-        sinsei_umiusi_control::cmd::attitude::Orientation target_orientation_ref;
-        sinsei_umiusi_control::cmd::attitude::Velocity target_velocity_ref;
-    };
-    Command cmd;
-
-    // State interfaces (in)
-    struct State {
-        sinsei_umiusi_control::state::main_power::BatteryVoltage main_power_battery_voltage;
-        sinsei_umiusi_control::state::main_power::BatteryCurrent main_power_battery_current;
-        sinsei_umiusi_control::state::main_power::Temperature main_temperature;
-        sinsei_umiusi_control::state::main_power::WaterLeaked water_leaked;
-        sinsei_umiusi_control::state::imu::Temperature imu_temperature;
-        sinsei_umiusi_control::state::imu::Quaternion imu_quaternion;
-        sinsei_umiusi_control::state::imu::Velocity imu_velocity;
-        std::array<sinsei_umiusi_control::state::thruster::Rpm, 4> thruster_rpm;
-        std::array<sinsei_umiusi_control::state::thruster::EscEnabled, 4> thruster_esc_enabled;
-        std::array<sinsei_umiusi_control::state::thruster::ServoEnabled, 4> thruster_servo_enabled;
-        std::array<sinsei_umiusi_control::state::thruster::DutyCycle, 4> thruster_duty_cycles;
-        std::array<sinsei_umiusi_control::state::thruster::Angle, 4> thruster_angles;
-        std::array<sinsei_umiusi_control::state::esc::WaterLeaked, 4> esc_water_leaked;
-    };
-    State state;
-
-    // Subscribers for commands
-    struct Subscribers {
-        rclcpp::Subscription<msg::IndicatorLedOutput>::SharedPtr indicator_led_output_subscriber;
-        rclcpp::Subscription<msg::MainPowerOutput>::SharedPtr main_power_output_subscriber;
-        rclcpp::Subscription<msg::HeadlightsOutput>::SharedPtr headlights_output_subscriber;
-        rclcpp::Subscription<msg::ThrusterEnabledAll>::SharedPtr thruster_enabled_all_subscriber;
-        rclcpp::Subscription<msg::LedTapeOutput>::SharedPtr led_tape_output_subscriber;
-        rclcpp::Subscription<msg::Target>::SharedPtr target_subscriber;
-    };
-    Subscribers sub;
-
-    // Publishers for states
-    struct Publishers {
-        rclcpp::Publisher<msg::MainPowerState>::SharedPtr main_power_state_publisher;
-        rclcpp::Publisher<msg::ImuState>::SharedPtr imu_state_publisher;
-        rclcpp::Publisher<msg::ThrusterStateAll>::SharedPtr thruster_state_all_publisher;
-        std::array<rclcpp::Publisher<msg::EscState>::SharedPtr, 4> esc_state_publishers;
-    };
-    Publishers pub;
+    Input input;
+    Output output;
 
     sinsei_umiusi_control::util::ThrusterMode thruster_mode;
 
