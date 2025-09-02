@@ -5,6 +5,7 @@
 #include <tuple>
 
 #include "sinsei_umiusi_control/cmd/main_power.hpp"
+#include "sinsei_umiusi_control/state/esc.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 
 using namespace sinsei_umiusi_control::hardware_model;
@@ -109,9 +110,10 @@ auto CanModel::on_destroy() -> tl::expected<void, std::string> {
 auto CanModel::on_read() const
     -> tl::expected<
         std::variant<
-            std::tuple<size_t, state::thruster::Rpm>, std::tuple<size_t, state::esc::WaterLeaked>,
-            state::main_power::BatteryCurrent, state::main_power::BatteryVoltage,
-            state::main_power::Temperature, state::main_power::WaterLeaked>,
+            std::tuple<size_t, state::thruster::Rpm>, std::tuple<size_t, state::esc::Voltage>,
+            std::tuple<size_t, state::esc::WaterLeaked>, state::main_power::BatteryCurrent,
+            state::main_power::BatteryVoltage, state::main_power::Temperature,
+            state::main_power::WaterLeaked>,
         std::string> {
     const auto frame = this->can->recv_frame();
     if (!frame) {
@@ -144,6 +146,11 @@ auto CanModel::on_read() const
                 constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
                 // ERPMを極対数で割ってRPMに変換
                 return std::make_tuple(i, state::thruster::Rpm{status.erpm / BLDC_POLE_PAIR});
+            }
+            case 4: {  // PacketStatus5
+                const auto & status = std::get<4>(packet_status_opt.value());
+                const auto volts_in = status.volts_in;
+                return std::make_tuple(i, state::esc::Voltage{volts_in});
             }
             case 5: {  // PacketStatus6
                 const auto & status = std::get<5>(packet_status_opt.value());

@@ -74,7 +74,7 @@ class CanModel {
     auto on_read() const
         -> tl::expected<
             std::variant<
-                std::tuple<size_t, state::thruster::Rpm>,
+                std::tuple<size_t, state::thruster::Rpm>, std::tuple<size_t, state::esc::Voltage>,
                 std::tuple<size_t, state::esc::WaterLeaked>, state::main_power::BatteryCurrent,
                 state::main_power::BatteryVoltage, state::main_power::Temperature,
                 state::main_power::WaterLeaked>,

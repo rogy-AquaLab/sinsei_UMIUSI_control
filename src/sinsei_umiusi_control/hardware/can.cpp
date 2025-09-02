@@ -130,32 +130,38 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
             this->set_state(thruster_name + "/esc/rpm", util::to_interface_data(rpm));
             break;
         }
-        case 1: {  // ESC WaterLeaked
+        case 1: {  // ESC Voltage
+            const auto [index, voltage] = std::get<1>(variant);
+            const auto thruster_name = "thruster" + std::to_string(index + 1);
+            this->set_state(thruster_name + "/esc/voltage", util::to_interface_data(voltage));
+            break;
+        }
+        case 2: {  // ESC WaterLeaked
             const auto [index, water_leaked] = std::get<1>(variant);
             const auto thruster_name = "thruster" + std::to_string(index + 1);
             this->set_state(
                 thruster_name + "/esc/water_leaked", util::to_interface_data(water_leaked));
             break;
         }
-        case 2: {  // BatteryCurrent
+        case 3: {  // BatteryCurrent
             const auto battery_current =
                 std::get<sinsei_umiusi_control::state::main_power::BatteryCurrent>(variant);
             this->set_state("main_power/battery_current", util::to_interface_data(battery_current));
             break;
         }
-        case 3: {  // BatteryVoltage
+        case 4: {  // BatteryVoltage
             const auto battery_voltage =
                 std::get<sinsei_umiusi_control::state::main_power::BatteryVoltage>(variant);
             this->set_state("main_power/battery_voltage", util::to_interface_data(battery_voltage));
             break;
         }
-        case 4: {  // Temperature
+        case 5: {  // Temperature
             const auto temperature =
                 std::get<sinsei_umiusi_control::state::main_power::Temperature>(variant);
             this->set_state("main_power/temperature", util::to_interface_data(temperature));
             break;
         }
-        case 5: {  // WaterLeaked
+        case 6: {  // WaterLeaked
             const auto water_leaked =
                 std::get<sinsei_umiusi_control::state::main_power::WaterLeaked>(variant);
             this->set_state("main_power/water_leaked", util::to_interface_data(water_leaked));
