@@ -8,52 +8,50 @@
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
-namespace succ = sinsei_umiusi_control::controller;
-namespace suc_util = sinsei_umiusi_control::util;
-namespace rlc = rclcpp_lifecycle;
-namespace hif = hardware_interface;
-namespace cif = controller_interface;
+using namespace sinsei_umiusi_control::controller;
 
-auto succ::GateController::command_interface_configuration() const -> cif::InterfaceConfiguration {
+auto GateController::command_interface_configuration() const
+    -> controller_interface::InterfaceConfiguration {
     auto cmd_names = std::vector<std::string>{};
     for (const auto & [name, _] : this->command_interface_data) {
         cmd_names.push_back(name);
     }
 
-    return cif::InterfaceConfiguration{
-        cif::interface_configuration_type::INDIVIDUAL,
+    return controller_interface::InterfaceConfiguration{
+        controller_interface::interface_configuration_type::INDIVIDUAL,
         cmd_names,
     };
 }
 
-auto succ::GateController::state_interface_configuration() const -> cif::InterfaceConfiguration {
+auto GateController::state_interface_configuration() const
+    -> controller_interface::InterfaceConfiguration {
     auto state_names = std::vector<std::string>{};
     for (const auto & [name, _] : this->state_interface_data) {
         state_names.push_back(name);
     }
 
-    return cif::InterfaceConfiguration{
-        cif::interface_configuration_type::INDIVIDUAL,
+    return controller_interface::InterfaceConfiguration{
+        controller_interface::interface_configuration_type::INDIVIDUAL,
         state_names,
     };
 }
 
-auto succ::GateController::on_init() -> cif::CallbackReturn {
+auto GateController::on_init() -> controller_interface::CallbackReturn {
     this->get_node()->declare_parameter("thruster_mode", "unknown");
 
-    this->cmd = succ::GateController::Command{};
-    this->state = succ::GateController::State{};
+    this->cmd = GateController::Command{};
+    this->state = GateController::State{};
 
-    return cif::CallbackReturn::SUCCESS;
+    return controller_interface::CallbackReturn::SUCCESS;
 }
 
-auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
-    -> cif::CallbackReturn {
+auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_state*/)
+    -> controller_interface::CallbackReturn {
     const auto mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
     const auto mode_res = util::get_mode_from_str(mode_str);
     if (!mode_res) {
         RCLCPP_ERROR(this->get_node()->get_logger(), "Invalid thruster mode: %s", mode_str.c_str());
-        return cif::CallbackReturn::ERROR;
+        return controller_interface::CallbackReturn::ERROR;
     }
     this->thruster_mode = mode_res.value();
 
@@ -242,12 +240,12 @@ auto succ::GateController::on_configure(const rlc::State & /*previous_state*/)
         }
     }
 
-    return cif::CallbackReturn::SUCCESS;
+    return controller_interface::CallbackReturn::SUCCESS;
 }
 
-auto succ::GateController::update(
+auto GateController::update(
     const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/
-    ) -> cif::return_type {
+    ) -> controller_interface::return_type {
     // 状態を取得
     util::interface_accessor::get_states_from_loaned_interfaces(
         this->state_interfaces_, this->state_interface_data);
@@ -328,7 +326,7 @@ auto succ::GateController::update(
     util::interface_accessor::set_commands_to_loaned_interfaces(
         this->command_interfaces_, this->command_interface_data);
 
-    return cif::return_type::OK;
+    return controller_interface::return_type::OK;
 }
 
 #include <pluginlib/class_list_macros.hpp>
