@@ -59,7 +59,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}_msgs
   "msg/Velocity.msg"
   "msg/Voltage.msg"
   "msg/WaterLeaked.msg"
-  LIBRARY_NAME ${PROJECT_NAME}_msgs
+  LIBRARY_NAME ${PROJECT_NAME}
 )
 ament_export_dependencies(rosidl_default_runtime)
 rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME}_msgs rosidl_typesupport_cpp)
