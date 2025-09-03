@@ -57,10 +57,10 @@ class CanModel {
     // Update the internal state and select a command to write.
     auto update_and_generate_command(
         cmd::main_power::Enabled && main_power_enabled,
-        std::array<cmd::thruster::esc::Enabled, 4> && thruster_esc_enabled,
-        std::array<cmd::thruster::esc::DutyCycle, 4> && thruster_duty_cycle,
-        std::array<cmd::thruster::servo::Enabled, 4> && thruster_servo_enabled,
-        std::array<cmd::thruster::servo::Angle, 4> && thruster_angle,
+        std::array<cmd::thruster::esc::Enabled, 4> && esc_enabled_flags,
+        std::array<cmd::thruster::esc::DutyCycle, 4> && esc_duty_cycles,
+        std::array<cmd::thruster::servo::Enabled, 4> && servo_enabled_flags,
+        std::array<cmd::thruster::servo::Angle, 4> && servo_angles,
         cmd::led_tape::Color && led_tape_color) -> WriteCommand;
 
     auto update_and_generate_command(
@@ -84,10 +84,10 @@ class CanModel {
             std::string>;
     auto on_write(
         cmd::main_power::Enabled && main_power_enabled,
-        std::array<cmd::thruster::esc::Enabled, 4> && thruster_esc_enabled,
-        std::array<cmd::thruster::esc::DutyCycle, 4> && thruster_duty_cycle,
-        std::array<cmd::thruster::servo::Enabled, 4> && thruster_servo_enabled,
-        std::array<cmd::thruster::servo::Angle, 4> && thruster_angle,
+        std::array<cmd::thruster::esc::Enabled, 4> && esc_enabled_flags,
+        std::array<cmd::thruster::esc::DutyCycle, 4> && esc_duty_cycles,
+        std::array<cmd::thruster::servo::Enabled, 4> && servo_enabled_flags,
+        std::array<cmd::thruster::servo::Angle, 4> && servo_angles,
         cmd::led_tape::Color && led_tape_color) -> tl::expected<void, std::string>;
 
     auto on_write(cmd::main_power::Enabled main_power_enabled, cmd::led_tape::Color led_tape_color)

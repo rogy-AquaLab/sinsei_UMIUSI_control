@@ -8,10 +8,10 @@ using namespace sinsei_umiusi_control::hardware_model;
 
 auto CanModel::update_and_generate_command(
     cmd::main_power::Enabled && main_power_enabled,
-    std::array<cmd::thruster::esc::Enabled, 4> && thruster_esc_enabled,
-    std::array<cmd::thruster::esc::DutyCycle, 4> && thruster_duty_cycle,
-    std::array<cmd::thruster::servo::Enabled, 4> && thruster_servo_enabled,
-    std::array<cmd::thruster::servo::Angle, 4> && thruster_angle,
+    std::array<cmd::thruster::esc::Enabled, 4> && esc_enabled_flags,
+    std::array<cmd::thruster::esc::DutyCycle, 4> && esc_duty_cycles,
+    std::array<cmd::thruster::servo::Enabled, 4> && servo_enabled_flags,
+    std::array<cmd::thruster::servo::Angle, 4> && servo_angles,
     cmd::led_tape::Color && led_tape_color) -> WriteCommand {
     this->loop_times++;
 
@@ -39,16 +39,16 @@ auto CanModel::update_and_generate_command(
             (this->loop_times % THRUSTERS_TOTAL_PACKET_NUM) / THRUSTER_PACKET_NUM;
         switch (packet_type) {
             case 0: {  // esc_enabled
-                return std::forward_as_tuple(thruster_id, thruster_esc_enabled[thruster_index]);
+                return std::forward_as_tuple(thruster_id, esc_enabled_flags[thruster_index]);
             }
-            case 1: {  // servo_enabled
-                return std::forward_as_tuple(thruster_id, thruster_servo_enabled[thruster_index]);
+            case 1: {  // esc_duty_cycle
+                return std::forward_as_tuple(thruster_id, esc_duty_cycles[thruster_index]);
             }
-            case 2: {  // esc_duty_cycle
-                return std::forward_as_tuple(thruster_id, thruster_duty_cycle[thruster_index]);
+            case 2: {  // servo_enabled
+                return std::forward_as_tuple(thruster_id, servo_enabled_flags[thruster_index]);
             }
-            case 3: {  // angle
-                return std::forward_as_tuple(thruster_id, thruster_angle[thruster_index]);
+            case 3: {  // servo_angle
+                return std::forward_as_tuple(thruster_id, servo_angles[thruster_index]);
             }
             default: {
                 break;  // unreachable
@@ -170,17 +170,17 @@ auto CanModel::on_read() const
 
 auto CanModel::on_write(
     cmd::main_power::Enabled && main_power_enabled,
-    std::array<cmd::thruster::esc::Enabled, 4> && thruster_esc_enabled,
-    std::array<cmd::thruster::esc::DutyCycle, 4> && thruster_duty_cycle,
-    std::array<cmd::thruster::servo::Enabled, 4> && thruster_servo_enabled,
-    std::array<cmd::thruster::servo::Angle, 4> && thruster_angle,
+    std::array<cmd::thruster::esc::Enabled, 4> && esc_enabled_flags,
+    std::array<cmd::thruster::esc::DutyCycle, 4> && esc_duty_cycles,
+    std::array<cmd::thruster::servo::Enabled, 4> && servo_enabled_flags,
+    std::array<cmd::thruster::servo::Angle, 4> && servo_angles,
     cmd::led_tape::Color && led_tape_color) -> tl::expected<void, std::string> {
     auto command = this->update_and_generate_command(
         std::forward<decltype(main_power_enabled)>(main_power_enabled),
-        std::forward<decltype(thruster_esc_enabled)>(thruster_esc_enabled),
-        std::forward<decltype(thruster_duty_cycle)>(thruster_duty_cycle),
-        std::forward<decltype(thruster_servo_enabled)>(thruster_servo_enabled),
-        std::forward<decltype(thruster_angle)>(thruster_angle),
+        std::forward<decltype(esc_enabled_flags)>(esc_enabled_flags),
+        std::forward<decltype(esc_duty_cycles)>(esc_duty_cycles),
+        std::forward<decltype(servo_enabled_flags)>(servo_enabled_flags),
+        std::forward<decltype(servo_angles)>(servo_angles),
         std::forward<decltype(led_tape_color)>(led_tape_color));
 
     auto frame = interface::CanFrame{};
