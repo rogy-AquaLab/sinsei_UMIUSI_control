@@ -3,6 +3,7 @@
 #include <hardware_interface/handle.hpp>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/parameter_value.hpp>
+#include <rclcpp/qos.hpp>
 
 #include "rcl_interfaces/msg/floating_point_range.hpp"
 #include "rcl_interfaces/msg/integer_range.hpp"
@@ -126,26 +127,49 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
         "angle", util::to_interface_data_ptr(this->input.cmd.angle));
 
     {
-        const auto prefix = "cmd/direct/" + this->get_name() + "/";
+        const auto prefix = std::string("cmd/direct/thruster_controller/");
+        const auto thruster_pos = this->get_name().substr(std::size("thruster_controller_") - 1);
         const auto qos = rclcpp::SystemDefaultsQoS();
-        this->input.sub.esc_enabled = this->get_node()->create_subscription<std_msgs::msg::Bool>(
-            prefix + "esc_enabled", qos, [this](const std_msgs::msg::Bool::SharedPtr msg) {
-                this->output.state.esc_enabled.value = msg->data;
-            });
-        this->input.sub.servo_enabled = this->get_node()->create_subscription<std_msgs::msg::Bool>(
-            prefix + "servo_enabled", qos, [this](const std_msgs::msg::Bool::SharedPtr msg) {
-                this->output.state.servo_enabled.value = msg->data;
-            });
-        this->input.sub.duty_cycle = this->get_node()->create_subscription<std_msgs::msg::Float64>(
-            prefix + "duty_cycle", qos, [this](const std_msgs::msg::Float64::SharedPtr msg) {
-                const auto sgn = this->is_forward ? 1.0 : -1.0;
-                const auto resized = this->max_duty * msg->data;
-                this->output.state.duty_cycle.value = sgn * resized;
-            });
-        this->input.sub.angle = this->get_node()->create_subscription<std_msgs::msg::Float64>(
-            prefix + "angle", qos, [this](const std_msgs::msg::Float64::SharedPtr msg) {
-                this->output.state.angle.value = msg->data;
-            });
+        this->input.sub.thruster_output =
+            this->get_node()->create_subscription<msg::ThrusterOutput>(
+                prefix + "output_" + thruster_pos, qos,
+                [this](const msg::ThrusterOutput::SharedPtr msg) {
+                    this->output.state.esc_enabled.value = msg->enabled.esc;
+                    this->output.state.servo_enabled.value = msg->enabled.servo;
+                    this->output.state.duty_cycle.value = msg->duty_cycle;
+                    this->output.state.angle.value = msg->angle;
+                });
+        this->input.sub.thruster_output_all =
+            this->get_node()->create_subscription<msg::ThrusterOutputAll>(
+                prefix + "output_all", qos,
+                [this, thruster_pos](const msg::ThrusterOutputAll::SharedPtr msg) {
+                    if (this->input.sub.thruster_output &&
+                        this->input.sub.thruster_output->get_publisher_count() > 0) {
+                        // `thruster_output_(lf|lb|rb|rf)` が使える場合は `thruster_output_all` は使わない
+                        return;
+                    }
+                    if (thruster_pos == "lf") {
+                        this->output.state.esc_enabled.value = msg->lf.enabled.esc;
+                        this->output.state.servo_enabled.value = msg->lf.enabled.servo;
+                        this->output.state.duty_cycle.value = msg->lf.duty_cycle;
+                        this->output.state.angle.value = msg->lf.angle;
+                    } else if (thruster_pos == "lb") {
+                        this->output.state.esc_enabled.value = msg->lb.enabled.esc;
+                        this->output.state.servo_enabled.value = msg->lb.enabled.servo;
+                        this->output.state.duty_cycle.value = msg->lb.duty_cycle;
+                        this->output.state.angle.value = msg->lb.angle;
+                    } else if (thruster_pos == "rf") {
+                        this->output.state.esc_enabled.value = msg->rf.enabled.esc;
+                        this->output.state.servo_enabled.value = msg->rf.enabled.servo;
+                        this->output.state.duty_cycle.value = msg->rf.duty_cycle;
+                        this->output.state.angle.value = msg->rf.angle;
+                    } else if (thruster_pos == "rb") {
+                        this->output.state.esc_enabled.value = msg->rb.enabled.esc;
+                        this->output.state.servo_enabled.value = msg->rb.enabled.servo;
+                        this->output.state.duty_cycle.value = msg->rb.duty_cycle;
+                        this->output.state.angle.value = msg->rb.angle;
+                    }
+                });
     }
 
     return controller_interface::CallbackReturn::SUCCESS;
@@ -218,18 +242,15 @@ auto ThrusterController::update_and_write_commands(
     }
 
     // TODO: logicクラスを実装する
-    if (this->input.sub.esc_enabled->get_publisher_count() == 0) {
+    const auto has_no_thruster_publishers =
+        (this->input.sub.thruster_output->get_publisher_count() == 0) &&
+        (this->input.sub.thruster_output_all->get_publisher_count() == 0);
+    if (has_no_thruster_publishers) {
         this->output.state.esc_enabled.value = this->input.cmd.esc_enabled.value;
-    }
-    if (this->input.sub.servo_enabled->get_publisher_count() == 0) {
         this->output.state.servo_enabled.value = this->input.cmd.servo_enabled.value;
-    }
-    if (this->input.sub.duty_cycle->get_publisher_count() == 0) {
         const auto sgn = this->is_forward ? 1.0 : -1.0;
         const auto resized = this->max_duty * this->input.cmd.duty_cycle.value;
         this->output.state.duty_cycle.value = sgn * resized;
-    }
-    if (this->input.sub.angle->get_publisher_count() == 0) {
         this->output.state.angle.value = this->input.cmd.angle.value;
     }
 

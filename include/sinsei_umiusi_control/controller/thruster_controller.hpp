@@ -7,11 +7,11 @@
 #include <vector>
 
 #include "sinsei_umiusi_control/cmd/thruster.hpp"
+#include "sinsei_umiusi_control/msg/thruster_output.hpp"
+#include "sinsei_umiusi_control/msg/thruster_output_all.hpp"
 #include "sinsei_umiusi_control/state/thruster.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
-#include "std_msgs/msg/bool.hpp"
-#include "std_msgs/msg/float64.hpp"
 
 namespace sinsei_umiusi_control::controller {
 
@@ -31,10 +31,8 @@ class ThrusterController : public controller_interface::ChainableControllerInter
         };
         // Subscribers for command inputs
         struct Subscriber {
-            rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr esc_enabled;
-            rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr servo_enabled;
-            rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr duty_cycle;
-            rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr angle;
+            rclcpp::Subscription<msg::ThrusterOutput>::SharedPtr thruster_output;
+            rclcpp::Subscription<msg::ThrusterOutputAll>::SharedPtr thruster_output_all;
         };
         Command cmd;
         State state;
