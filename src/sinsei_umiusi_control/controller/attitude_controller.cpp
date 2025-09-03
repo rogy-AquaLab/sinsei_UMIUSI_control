@@ -1,6 +1,7 @@
 #include "sinsei_umiusi_control/controller/attitude_controller.hpp"
 
 #include <controller_interface/controller_interface_base.hpp>
+#include <cstddef>
 #include <rclcpp/logging.hpp>
 #include <string>
 
@@ -14,7 +15,7 @@ using namespace sinsei_umiusi_control::controller;
 auto AttitudeController::command_interface_configuration() const
     -> controller_interface::InterfaceConfiguration {
     auto cmd_names = std::vector<std::string>{};
-    for (const auto & [name, _] : this->command_interface_data) {
+    for (const auto & [name, _data, _size] : this->command_interface_data) {
         cmd_names.push_back(name);
     }
 
@@ -27,7 +28,7 @@ auto AttitudeController::command_interface_configuration() const
 auto AttitudeController::state_interface_configuration() const
     -> controller_interface::InterfaceConfiguration {
     auto state_names = std::vector<std::string>{};
-    for (const auto & [name, _] : this->state_interface_data) {
+    for (const auto & [name, _data, _size] : this->state_interface_data) {
         state_names.push_back(name);
     }
 
@@ -91,11 +92,13 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
 
     for (size_t i = 0; i < 4; ++i) {
         const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
-        this->command_interface_data.emplace_back(
+        this->command_interface_data.push_back(std::make_tuple(
             prefix + "esc/duty_cycle",
-            util::to_interface_data_ptr(this->output.cmd.esc_duty_cycles[i]));
-        this->command_interface_data.emplace_back(
-            prefix + "servo/angle", util::to_interface_data_ptr(this->output.cmd.servo_angles[i]));
+            util::to_interface_data_ptr(this->output.cmd.esc_duty_cycles[i]),
+            sizeof(this->output.cmd.esc_duty_cycles[i])));
+        this->command_interface_data.push_back(std::make_tuple(
+            prefix + "servo/angle", util::to_interface_data_ptr(this->output.cmd.servo_angles[i]),
+            sizeof(this->output.cmd.servo_angles[i])));
     }
 
     if (this->thruster_mode == util::ThrusterMode::Can) {
@@ -103,37 +106,51 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
         for (size_t i = 0; i < 4; ++i) {
             const auto prefix =
                 "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
-            this->state_interface_data.emplace_back(
-                prefix + "esc/rpm", util::to_interface_data_ptr(this->input.state.esc_rpms[i]));
+            this->state_interface_data.push_back(std::make_tuple(
+                prefix + "esc/rpm", util::to_interface_data_ptr(this->input.state.esc_rpms[i]),
+                sizeof(this->input.state.esc_rpms[i])));
         }
     }
-    this->state_interface_data.emplace_back(
-        "imu/quaternion.x", util::to_interface_data_ptr(this->input.state.imu_quaternion.x));
-    this->state_interface_data.emplace_back(
-        "imu/quaternion.y", util::to_interface_data_ptr(this->input.state.imu_quaternion.y));
-    this->state_interface_data.emplace_back(
-        "imu/quaternion.z", util::to_interface_data_ptr(this->input.state.imu_quaternion.z));
-    this->state_interface_data.emplace_back(
-        "imu/quaternion.w", util::to_interface_data_ptr(this->input.state.imu_quaternion.w));
-    this->state_interface_data.emplace_back(
-        "imu/velocity.x", util::to_interface_data_ptr(this->input.state.imu_velocity.x));
-    this->state_interface_data.emplace_back(
-        "imu/velocity.y", util::to_interface_data_ptr(this->input.state.imu_velocity.y));
-    this->state_interface_data.emplace_back(
-        "imu/velocity.z", util::to_interface_data_ptr(this->input.state.imu_velocity.z));
+    this->state_interface_data.push_back(std::make_tuple(
+        "imu/quaternion.x", util::to_interface_data_ptr(this->input.state.imu_quaternion.x),
+        sizeof(this->input.state.imu_quaternion.x)));
+    this->state_interface_data.push_back(std::make_tuple(
+        "imu/quaternion.y", util::to_interface_data_ptr(this->input.state.imu_quaternion.y),
+        sizeof(this->input.state.imu_quaternion.y)));
+    this->state_interface_data.push_back(std::make_tuple(
+        "imu/quaternion.z", util::to_interface_data_ptr(this->input.state.imu_quaternion.z),
+        sizeof(this->input.state.imu_quaternion.z)));
+    this->state_interface_data.push_back(std::make_tuple(
+        "imu/quaternion.w", util::to_interface_data_ptr(this->input.state.imu_quaternion.w),
+        sizeof(this->input.state.imu_quaternion.w)));
+    this->state_interface_data.push_back(std::make_tuple(
+        "imu/velocity.x", util::to_interface_data_ptr(this->input.state.imu_velocity.x),
+        sizeof(this->input.state.imu_velocity.x)));
+    this->state_interface_data.push_back(std::make_tuple(
+        "imu/velocity.y", util::to_interface_data_ptr(this->input.state.imu_velocity.y),
+        sizeof(this->input.state.imu_velocity.y)));
+    this->state_interface_data.push_back(std::make_tuple(
+        "imu/velocity.z", util::to_interface_data_ptr(this->input.state.imu_velocity.z),
+        sizeof(this->input.state.imu_velocity.z)));
 
-    this->ref_interface_data.emplace_back(
-        "target_orientation.x", util::to_interface_data_ptr(this->input.cmd.target_orientation.x));
-    this->ref_interface_data.emplace_back(
-        "target_orientation.y", util::to_interface_data_ptr(this->input.cmd.target_orientation.y));
-    this->ref_interface_data.emplace_back(
-        "target_orientation.z", util::to_interface_data_ptr(this->input.cmd.target_orientation.z));
-    this->ref_interface_data.emplace_back(
-        "target_velocity.x", util::to_interface_data_ptr(this->input.cmd.target_velocity.x));
-    this->ref_interface_data.emplace_back(
-        "target_velocity.y", util::to_interface_data_ptr(this->input.cmd.target_velocity.y));
-    this->ref_interface_data.emplace_back(
-        "target_velocity.z", util::to_interface_data_ptr(this->input.cmd.target_velocity.z));
+    this->ref_interface_data.push_back(std::make_tuple(
+        "target_orientation.x", util::to_interface_data_ptr(this->input.cmd.target_orientation.x),
+        sizeof(this->input.cmd.target_orientation.x)));
+    this->ref_interface_data.push_back(std::make_tuple(
+        "target_orientation.y", util::to_interface_data_ptr(this->input.cmd.target_orientation.y),
+        sizeof(this->input.cmd.target_orientation.y)));
+    this->ref_interface_data.push_back(std::make_tuple(
+        "target_orientation.z", util::to_interface_data_ptr(this->input.cmd.target_orientation.z),
+        sizeof(this->input.cmd.target_orientation.z)));
+    this->ref_interface_data.push_back(std::make_tuple(
+        "target_velocity.x", util::to_interface_data_ptr(this->input.cmd.target_velocity.x),
+        sizeof(this->input.cmd.target_velocity.x)));
+    this->ref_interface_data.push_back(std::make_tuple(
+        "target_velocity.y", util::to_interface_data_ptr(this->input.cmd.target_velocity.y),
+        sizeof(this->input.cmd.target_velocity.y)));
+    this->ref_interface_data.push_back(std::make_tuple(
+        "target_velocity.z", util::to_interface_data_ptr(this->input.cmd.target_velocity.z),
+        sizeof(this->input.cmd.target_velocity.z)));
 
     return controller_interface::CallbackReturn::SUCCESS;
 }
@@ -144,7 +161,7 @@ auto AttitudeController::on_export_reference_interfaces()
     this->reference_interfaces_.resize(this->ref_interface_data.size());
 
     auto interfaces = std::vector<hardware_interface::CommandInterface>{};
-    for (auto & [name, data] : this->ref_interface_data) {
+    for (auto & [name, data, _] : this->ref_interface_data) {
         interfaces.emplace_back(
             hardware_interface::CommandInterface(this->get_node()->get_name(), name, data));
     }
@@ -154,7 +171,7 @@ auto AttitudeController::on_export_reference_interfaces()
 auto AttitudeController::on_export_state_interfaces()
     -> std::vector<hardware_interface::StateInterface> {
     auto interfaces = std::vector<hardware_interface::StateInterface>{};
-    for (auto & [name, data] : this->state_interface_data) {
+    for (auto & [name, data, _] : this->state_interface_data) {
         interfaces.emplace_back(
             hardware_interface::StateInterface(this->get_node()->get_name(), name, data));
     }

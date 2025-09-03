@@ -13,7 +13,7 @@ using namespace sinsei_umiusi_control::controller;
 auto GateController::command_interface_configuration() const
     -> controller_interface::InterfaceConfiguration {
     auto cmd_names = std::vector<std::string>{};
-    for (const auto & [name, _] : this->command_interface_data) {
+    for (const auto & [name, _data, _size] : this->command_interface_data) {
         cmd_names.push_back(name);
     }
 
@@ -26,7 +26,7 @@ auto GateController::command_interface_configuration() const
 auto GateController::state_interface_configuration() const
     -> controller_interface::InterfaceConfiguration {
     auto state_names = std::vector<std::string>{};
-    for (const auto & [name, _] : this->state_interface_data) {
+    for (const auto & [name, _data, _size] : this->state_interface_data) {
         state_names.push_back(name);
     }
 
@@ -63,51 +63,67 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
 
         this->state_interface_data.emplace_back(
             "main_power/battery_voltage",
-            to_interface_data_ptr(this->input.state.main_power_battery_voltage));
+            to_interface_data_ptr(this->input.state.main_power_battery_voltage),
+            sizeof(this->input.state.main_power_battery_voltage));
         this->state_interface_data.emplace_back(
             "main_power/battery_current",
-            to_interface_data_ptr(this->input.state.main_power_battery_current));
+            to_interface_data_ptr(this->input.state.main_power_battery_current),
+            sizeof(this->input.state.main_power_battery_current));
         this->state_interface_data.emplace_back(
-            "main_power/temperature", to_interface_data_ptr(this->input.state.main_temperature));
+            "main_power/temperature", to_interface_data_ptr(this->input.state.main_temperature),
+            sizeof(this->input.state.main_temperature));
         this->state_interface_data.emplace_back(
-            "main_power/water_leaked", to_interface_data_ptr(this->input.state.water_leaked));
+            "main_power/water_leaked", to_interface_data_ptr(this->input.state.water_leaked),
+            sizeof(this->input.state.water_leaked));
         this->state_interface_data.emplace_back(
-            "imu/temperature", to_interface_data_ptr(this->input.state.imu_temperature));
+            "imu/temperature", to_interface_data_ptr(this->input.state.imu_temperature),
+            sizeof(this->input.state.imu_temperature));
         this->state_interface_data.emplace_back(
             "attitude_controller/imu/quaternion.x",
-            to_interface_data_ptr(this->input.state.imu_quaternion.x));
+            to_interface_data_ptr(this->input.state.imu_quaternion.x),
+            sizeof(this->input.state.imu_quaternion.x));
         this->state_interface_data.emplace_back(
             "attitude_controller/imu/quaternion.y",
-            to_interface_data_ptr(this->input.state.imu_quaternion.y));
+            to_interface_data_ptr(this->input.state.imu_quaternion.y),
+            sizeof(this->input.state.imu_quaternion.y));
         this->state_interface_data.emplace_back(
             "attitude_controller/imu/quaternion.z",
-            to_interface_data_ptr(this->input.state.imu_quaternion.z));
+            to_interface_data_ptr(this->input.state.imu_quaternion.z),
+            sizeof(this->input.state.imu_quaternion.z));
         this->state_interface_data.emplace_back(
             "attitude_controller/imu/quaternion.w",
-            to_interface_data_ptr(this->input.state.imu_quaternion.w));
+            to_interface_data_ptr(this->input.state.imu_quaternion.w),
+            sizeof(this->input.state.imu_quaternion.w));
         this->state_interface_data.emplace_back(
             "attitude_controller/imu/velocity.x",
-            to_interface_data_ptr(this->input.state.imu_velocity.x));
+            to_interface_data_ptr(this->input.state.imu_velocity.x),
+            sizeof(this->input.state.imu_velocity.x));
         this->state_interface_data.emplace_back(
             "attitude_controller/imu/velocity.y",
-            to_interface_data_ptr(this->input.state.imu_velocity.y));
+            to_interface_data_ptr(this->input.state.imu_velocity.y),
+            sizeof(this->input.state.imu_velocity.y));
         this->state_interface_data.emplace_back(
             "attitude_controller/imu/velocity.z",
-            to_interface_data_ptr(this->input.state.imu_velocity.z));
+            to_interface_data_ptr(this->input.state.imu_velocity.z),
+            sizeof(this->input.state.imu_velocity.z));
         for (size_t i = 0; i < 4; ++i) {
             const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
 
             this->state_interface_data.emplace_back(
                 prefix + "esc/enabled",
-                to_interface_data_ptr(this->input.state.esc_enabled_flags[i]));
+                to_interface_data_ptr(this->input.state.esc_enabled_flags[i]),
+                sizeof(this->input.state.esc_enabled_flags[i]));
             this->state_interface_data.emplace_back(
                 prefix + "esc/duty_cycle",
-                to_interface_data_ptr(this->input.state.esc_duty_cycles[i]));
+                to_interface_data_ptr(this->input.state.esc_duty_cycles[i]),
+                sizeof(this->input.state.esc_duty_cycles[i]));
             this->state_interface_data.emplace_back(
                 prefix + "servo/enabled",
-                to_interface_data_ptr(this->input.state.servo_enabled_flags[i]));
+                to_interface_data_ptr(this->input.state.servo_enabled_flags[i]),
+                sizeof(this->input.state.servo_enabled_flags[i]));
             this->state_interface_data.emplace_back(
-                prefix + "servo/angle", to_interface_data_ptr(this->input.state.servo_angles[i]));
+                prefix + "servo/angle", to_interface_data_ptr(this->input.state.servo_angles[i]),
+                sizeof(this->input.state.servo_angles[i]));
         }
         if (this->thruster_mode == util::ThrusterMode::Can) {
             for (size_t i = 0; i < 4; ++i) {
@@ -116,13 +132,16 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
 
                 this->state_interface_data.emplace_back(
                     prefix + "esc/rpm", to_interface_data_ptr(this->input.state.esc_rpms[i]));
+                    prefix + "esc/rpm", to_interface_data_ptr(this->input.state.esc_rpms[i]),
+                    sizeof(this->input.state.esc_rpms[i]));
 
                 this->state_interface_data.emplace_back(
                     "thruster" + std::to_string(i + 1) + "/esc/voltage",
                     to_interface_data_ptr(this->input.state.esc_voltages[i]));
                 this->state_interface_data.emplace_back(
                     "thruster" + std::to_string(i + 1) + "/esc/water_leaked",
-                    to_interface_data_ptr(this->input.state.esc_water_leaked_flags[i]));
+                    to_interface_data_ptr(this->input.state.esc_water_leaked_flags[i]),
+                    sizeof(this->input.state.esc_water_leaked_flags[i]));
             }
         }
 
@@ -187,47 +206,62 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
         // Command interface (out)
         using util::to_interface_data_ptr;
 
-        this->command_interface_data.emplace_back(
+        this->command_interface_data.push_back(std::make_tuple(
             "indicator_led/enabled",
-            to_interface_data_ptr(this->output.cmd.indicator_led_enabled_ref));
-        this->command_interface_data.emplace_back(
-            "main_power/enabled", to_interface_data_ptr(this->output.cmd.main_power_enabled_ref));
-        this->command_interface_data.emplace_back(
+            to_interface_data_ptr(this->output.cmd.indicator_led_enabled_ref),
+            sizeof(this->output.cmd.indicator_led_enabled_ref)));
+        this->command_interface_data.push_back(std::make_tuple(
+            "main_power/enabled", to_interface_data_ptr(this->output.cmd.main_power_enabled_ref),
+            sizeof(this->output.cmd.main_power_enabled_ref)));
+        this->command_interface_data.push_back(std::make_tuple(
             "headlights/high_beam_enabled",
-            to_interface_data_ptr(this->output.cmd.high_beam_enabled_ref));
-        this->command_interface_data.emplace_back(
+            to_interface_data_ptr(this->output.cmd.high_beam_enabled_ref),
+            sizeof(this->output.cmd.high_beam_enabled_ref)));
+        this->command_interface_data.push_back(std::make_tuple(
             "headlights/low_beam_enabled",
-            to_interface_data_ptr(this->output.cmd.low_beam_enabled_ref));
-        this->command_interface_data.emplace_back(
-            "headlights/ir_enabled", to_interface_data_ptr(this->output.cmd.ir_enabled_ref));
-        this->command_interface_data.emplace_back(
-            "led_tape/color", to_interface_data_ptr(this->output.cmd.led_tape_color_ref));
-        this->command_interface_data.emplace_back(
+            to_interface_data_ptr(this->output.cmd.low_beam_enabled_ref),
+            sizeof(this->output.cmd.low_beam_enabled_ref)));
+        this->command_interface_data.push_back(std::make_tuple(
+            "headlights/ir_enabled", to_interface_data_ptr(this->output.cmd.ir_enabled_ref),
+            sizeof(this->output.cmd.ir_enabled_ref)));
+        this->command_interface_data.push_back(std::make_tuple(
+            "led_tape/color", to_interface_data_ptr(this->output.cmd.led_tape_color_ref),
+            sizeof(this->output.cmd.led_tape_color_ref)));
+        this->command_interface_data.push_back(std::make_tuple(
             "attitude_controller/target_orientation.x",
-            to_interface_data_ptr(this->output.cmd.target_orientation_ref.x));
-        this->command_interface_data.emplace_back(
+            to_interface_data_ptr(this->output.cmd.target_orientation_ref.x),
+            sizeof(this->output.cmd.target_orientation_ref.x)));
+        this->command_interface_data.push_back(std::make_tuple(
             "attitude_controller/target_orientation.y",
-            to_interface_data_ptr(this->output.cmd.target_orientation_ref.y));
-        this->command_interface_data.emplace_back(
+            to_interface_data_ptr(this->output.cmd.target_orientation_ref.y),
+            sizeof(this->output.cmd.target_orientation_ref.y)));
+        this->command_interface_data.push_back(std::make_tuple(
             "attitude_controller/target_orientation.z",
-            to_interface_data_ptr(this->output.cmd.target_orientation_ref.z));
-        this->command_interface_data.emplace_back(
+            to_interface_data_ptr(this->output.cmd.target_orientation_ref.z),
+            sizeof(this->output.cmd.target_orientation_ref.z)));
+        this->command_interface_data.push_back(std::make_tuple(
             "attitude_controller/target_velocity.x",
-            to_interface_data_ptr(this->output.cmd.target_velocity_ref.x));
-        this->command_interface_data.emplace_back(
+            to_interface_data_ptr(this->output.cmd.target_velocity_ref.x),
+            sizeof(this->output.cmd.target_velocity_ref.x)));
+        this->command_interface_data.push_back(std::make_tuple(
             "attitude_controller/target_velocity.y",
-            to_interface_data_ptr(this->output.cmd.target_velocity_ref.y));
-        this->command_interface_data.emplace_back(
+            to_interface_data_ptr(this->output.cmd.target_velocity_ref.y),
+            sizeof(this->output.cmd.target_velocity_ref.y)));
+        this->command_interface_data.push_back(std::make_tuple(
             "attitude_controller/target_velocity.z",
-            to_interface_data_ptr(this->output.cmd.target_velocity_ref.z));
+            to_interface_data_ptr(this->output.cmd.target_velocity_ref.z),
+            sizeof(this->output.cmd.target_velocity_ref.z)));
         for (size_t i = 0; i < 4; ++i) {
             const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
 
-            this->command_interface_data.emplace_back(
-                prefix + "esc/enabled", to_interface_data_ptr(this->output.cmd.esc_enabled_ref[i]));
-            this->command_interface_data.emplace_back(
+            this->command_interface_data.push_back(std::make_tuple(
+                prefix + "esc/enabled",
+                to_interface_data_ptr(this->output.cmd.esc_enabled_ref[i]),
+                sizeof(this->output.cmd.esc_enabled_ref[i])));
+            this->command_interface_data.push_back(std::make_tuple(
                 prefix + "servo/enabled",
-                to_interface_data_ptr(this->output.cmd.servo_enabled_ref[i]));
+                to_interface_data_ptr(this->output.cmd.servo_enabled_ref[i]),
+                sizeof(this->output.cmd.servo_enabled_ref[i])));
         }
 
         // Publishers

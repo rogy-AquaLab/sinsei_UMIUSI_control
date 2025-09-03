@@ -4,6 +4,7 @@
 #include <rclcpp/logging.hpp>
 #include <rclcpp/parameter_value.hpp>
 #include <rclcpp/qos.hpp>
+#include <tuple>
 
 #include "rcl_interfaces/msg/floating_point_range.hpp"
 #include "rcl_interfaces/msg/integer_range.hpp"
@@ -17,7 +18,7 @@ using namespace sinsei_umiusi_control::controller;
 auto ThrusterController::command_interface_configuration() const
     -> controller_interface::InterfaceConfiguration {
     auto cmd_names = std::vector<std::string>{};
-    for (const auto & [name, _] : this->command_interface_data) {
+    for (const auto & [name, _data, _size] : this->command_interface_data) {
         cmd_names.push_back(name);
     }
 
@@ -30,7 +31,7 @@ auto ThrusterController::command_interface_configuration() const
 auto ThrusterController::state_interface_configuration() const
     -> controller_interface::InterfaceConfiguration {
     auto state_names = std::vector<std::string>{};
-    for (const auto & [name, _] : this->state_interface_data) {
+    for (const auto & [name, _data, _size] : this->state_interface_data) {
         state_names.push_back(name);
     }
 
@@ -103,28 +104,37 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                             ? "thruster" + std::to_string(this->id) + "/"
                             : "thruster_direct" + std::to_string(this->id) + "/";
 
-    this->command_interface_data.emplace_back(
-        prefix + "esc/enabled", util::to_interface_data_ptr(this->output.cmd.esc_enabled));
-    this->command_interface_data.emplace_back(
-        prefix + "esc/duty_cycle", util::to_interface_data_ptr(this->output.cmd.esc_duty_cycle));
-    this->command_interface_data.emplace_back(
-        prefix + "servo/enabled", util::to_interface_data_ptr(this->output.cmd.servo_enabled));
-    this->command_interface_data.emplace_back(
-        prefix + "servo/angle", util::to_interface_data_ptr(this->output.cmd.servo_angle));
+    this->command_interface_data.push_back(std::make_tuple(
+        prefix + "esc/enabled", util::to_interface_data_ptr(this->output.cmd.esc_enabled),
+        sizeof(this->output.cmd.esc_enabled)));
+    this->command_interface_data.push_back(std::make_tuple(
+        prefix + "esc/duty_cycle", util::to_interface_data_ptr(this->output.cmd.esc_duty_cycle),
+        sizeof(this->output.cmd.esc_duty_cycle)));
+    this->command_interface_data.push_back(std::make_tuple(
+        prefix + "servo/enabled", util::to_interface_data_ptr(this->output.cmd.servo_enabled),
+        sizeof(this->output.cmd.servo_enabled)));
+    this->command_interface_data.push_back(std::make_tuple(
+        prefix + "servo/angle", util::to_interface_data_ptr(this->output.cmd.servo_angle),
+        sizeof(this->output.cmd.servo_angle)));
 
     if (this->mode == util::ThrusterMode::Can) {
-        this->state_interface_data.emplace_back(
-            prefix + "esc/rpm", util::to_interface_data_ptr(this->input.state.esc_rpm));
+        this->state_interface_data.push_back(std::make_tuple(
+            prefix + "esc/rpm", util::to_interface_data_ptr(this->input.state.esc_rpm),
+            sizeof(this->input.state.esc_rpm)));
     }
 
-    this->ref_interface_data.emplace_back(
-        "esc/enabled", util::to_interface_data_ptr(this->input.cmd.esc_enabled));
-    this->ref_interface_data.emplace_back(
-        "esc/duty_cycle", util::to_interface_data_ptr(this->input.cmd.esc_duty_cycle));
-    this->ref_interface_data.emplace_back(
-        "servo/enabled", util::to_interface_data_ptr(this->input.cmd.servo_enabled));
-    this->ref_interface_data.emplace_back(
-        "servo/angle", util::to_interface_data_ptr(this->input.cmd.servo_angle));
+    this->ref_interface_data.push_back(std::make_tuple(
+        "esc/enabled", util::to_interface_data_ptr(this->input.cmd.esc_enabled),
+        sizeof(this->input.cmd.esc_enabled)));
+    this->ref_interface_data.push_back(std::make_tuple(
+        "esc/duty_cycle", util::to_interface_data_ptr(this->input.cmd.esc_duty_cycle),
+        sizeof(this->input.cmd.esc_duty_cycle)));
+    this->ref_interface_data.push_back(std::make_tuple(
+        "servo/enabled", util::to_interface_data_ptr(this->input.cmd.servo_enabled),
+        sizeof(this->input.cmd.servo_enabled)));
+    this->ref_interface_data.push_back(std::make_tuple(
+        "servo/angle", util::to_interface_data_ptr(this->input.cmd.servo_angle),
+        sizeof(this->input.cmd.servo_angle)));
 
     {
         const auto prefix = std::string("cmd/direct/thruster_controller/");
@@ -181,7 +191,7 @@ auto ThrusterController::on_export_reference_interfaces()
     this->reference_interfaces_.resize(this->ref_interface_data.size());
 
     auto interfaces = std::vector<hardware_interface::CommandInterface>{};
-    for (auto & [name, data] : this->ref_interface_data) {
+    for (auto & [name, data, _] : this->ref_interface_data) {
         interfaces.emplace_back(
             hardware_interface::CommandInterface(this->get_node()->get_name(), name, data));
     }
@@ -191,7 +201,7 @@ auto ThrusterController::on_export_reference_interfaces()
 auto ThrusterController::on_export_state_interfaces()
     -> std::vector<hardware_interface::StateInterface> {
     auto interfaces = std::vector<hardware_interface::StateInterface>{};
-    for (auto & [name, data] : this->state_interface_data) {
+    for (auto & [name, data, _] : this->state_interface_data) {
         // Thruster ID を隠蔽する (e.g. thruster1/rpm -> thruster/rpm)
         constexpr auto OFFSET = std::size("thrusterN") - 1;  // 末尾のnull文字を除くため、-1
         interfaces.emplace_back(hardware_interface::StateInterface(
