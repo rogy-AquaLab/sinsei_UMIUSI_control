@@ -92,10 +92,10 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
     for (size_t i = 0; i < 4; ++i) {
         const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
         this->command_interface_data.emplace_back(
-            prefix + "duty_cycle",
-            util::to_interface_data_ptr(this->output.cmd.thruster_duty_cycles[i]));
+            prefix + "esc/duty_cycle",
+            util::to_interface_data_ptr(this->output.cmd.esc_duty_cycles[i]));
         this->command_interface_data.emplace_back(
-            prefix + "angle", util::to_interface_data_ptr(this->output.cmd.thruster_angles[i]));
+            prefix + "servo/angle", util::to_interface_data_ptr(this->output.cmd.servo_angles[i]));
     }
 
     if (this->thruster_mode == util::ThrusterMode::Can) {
@@ -104,8 +104,7 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
             const auto prefix =
                 "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
             this->state_interface_data.emplace_back(
-                prefix + "esc/rpm",
-                util::to_interface_data_ptr(this->input.state.thruster_rpms[i]));
+                prefix + "esc/rpm", util::to_interface_data_ptr(this->input.state.esc_rpms[i]));
         }
     }
     this->state_interface_data.emplace_back(

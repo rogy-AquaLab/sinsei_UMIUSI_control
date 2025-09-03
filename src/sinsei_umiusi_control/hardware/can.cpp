@@ -1,7 +1,6 @@
 #include "sinsei_umiusi_control/hardware/can.hpp"
 
 #include "sinsei_umiusi_control/cmd/main_power.hpp"
-#include "sinsei_umiusi_control/cmd/thruster.hpp"
 #include "sinsei_umiusi_control/hardware_model/impl/linux_can.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
@@ -190,25 +189,26 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
         case util::ThrusterMode::Can: {
             auto thruster_name = [](size_t i) { return "thruster" + std::to_string(i + 1); };
 
-            auto && thruster_esc_enabled = std::array<cmd::thruster::EscEnabled, 4>{};
-            auto && thruster_servo_enabled = std::array<cmd::thruster::ServoEnabled, 4>{};
-            auto && thruster_duty_cycle = std::array<cmd::thruster::DutyCycle, 4>{};
-            auto && thruster_angle = std::array<cmd::thruster::Angle, 4>{};
+            auto && thruster_esc_enabled = std::array<cmd::thruster::esc::Enabled, 4>{};
+            auto && thruster_duty_cycle = std::array<cmd::thruster::esc::DutyCycle, 4>{};
+            auto && thruster_servo_enabled = std::array<cmd::thruster::servo::Enabled, 4>{};
+            auto && thruster_angle = std::array<cmd::thruster::servo::Angle, 4>{};
 
             for (size_t i = 0; i < 4; ++i) {
-                thruster_esc_enabled[i] = util::from_interface_data<cmd::thruster::EscEnabled>(
+                thruster_esc_enabled[i] = util::from_interface_data<cmd::thruster::esc::Enabled>(
                     this->get_command(thruster_name(i) + "/esc/enabled"));
-                thruster_servo_enabled[i] = util::from_interface_data<cmd::thruster::ServoEnabled>(
-                    this->get_command(thruster_name(i) + "/servo/enabled"));
-                thruster_duty_cycle[i] = util::from_interface_data<cmd::thruster::DutyCycle>(
+                thruster_duty_cycle[i] = util::from_interface_data<cmd::thruster::esc::DutyCycle>(
                     this->get_command(thruster_name(i) + "/esc/duty_cycle"));
-                thruster_angle[i] = util::from_interface_data<cmd::thruster::Angle>(
+                thruster_servo_enabled[i] =
+                    util::from_interface_data<cmd::thruster::servo::Enabled>(
+                        this->get_command(thruster_name(i) + "/servo/enabled"));
+                thruster_angle[i] = util::from_interface_data<cmd::thruster::servo::Angle>(
                     this->get_command(thruster_name(i) + "/servo/angle"));
             }
 
             const auto res = this->model->on_write(
                 std::move(main_power_enabled), std::move(thruster_esc_enabled),
-                std::move(thruster_servo_enabled), std::move(thruster_duty_cycle),
+                std::move(thruster_duty_cycle), std::move(thruster_servo_enabled),
                 std::move(thruster_angle), std::move(led_tape_color));
             if (!res) {
                 constexpr auto DURATION = 3000;  // ms

@@ -6,10 +6,12 @@
 #include <rclcpp/subscription.hpp>
 #include <vector>
 
-#include "sinsei_umiusi_control/cmd/thruster.hpp"
+#include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
+#include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
 #include "sinsei_umiusi_control/msg/thruster_output.hpp"
 #include "sinsei_umiusi_control/msg/thruster_output_all.hpp"
-#include "sinsei_umiusi_control/state/thruster.hpp"
+#include "sinsei_umiusi_control/state/thruster/esc.hpp"
+#include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
@@ -20,14 +22,14 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     struct Input {
         // Command interfaces (in)
         struct Command {
-            cmd::thruster::EscEnabled esc_enabled;
-            cmd::thruster::ServoEnabled servo_enabled;
-            cmd::thruster::DutyCycle duty_cycle;
-            cmd::thruster::Angle angle;
+            cmd::thruster::esc::Enabled esc_enabled;
+            cmd::thruster::esc::DutyCycle esc_duty_cycle;
+            cmd::thruster::servo::Enabled servo_enabled;
+            cmd::thruster::servo::Angle servo_angle;
         };
         // State interfaces (in)
         struct State {
-            state::thruster::Rpm rpm;
+            state::thruster::esc::Rpm esc_rpm;
         };
         // Subscribers for command inputs
         struct Subscriber {
@@ -41,17 +43,17 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     struct Output {
         // Command interfaces (out)
         struct Command {
-            cmd::thruster::EscEnabled esc_enabled;
-            cmd::thruster::ServoEnabled servo_enabled;
-            cmd::thruster::DutyCycle duty_cycle;
-            cmd::thruster::Angle angle;
+            cmd::thruster::esc::Enabled esc_enabled;
+            cmd::thruster::esc::DutyCycle esc_duty_cycle;
+            cmd::thruster::servo::Enabled servo_enabled;
+            cmd::thruster::servo::Angle servo_angle;
         };
         // State interfaces (out)
         struct State {
-            state::thruster::EscEnabled esc_enabled;
-            state::thruster::ServoEnabled servo_enabled;
-            state::thruster::DutyCycle duty_cycle;
-            state::thruster::Angle angle;
+            state::thruster::esc::Enabled esc_enabled;
+            state::thruster::esc::DutyCycle esc_duty_cycle;
+            state::thruster::servo::Enabled servo_enabled;
+            state::thruster::servo::Angle servo_angle;
         };
         Command cmd;
         State state;

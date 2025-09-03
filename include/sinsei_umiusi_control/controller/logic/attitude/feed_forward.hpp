@@ -58,11 +58,11 @@ class FeedForward : public AttitudeController::Logic {
             constexpr auto pi = boost::math::constants::pi<double>();
             return (x == 0.0 && y == 0.0) ? 0.0 : std::atan(y / x) * 180.0 / pi;
         };
-        output.cmd.thruster_angles = {
-            sinsei_umiusi_control::cmd::thruster::Angle{ATAN_OR_ZERO(y[0], y[1])},
-            sinsei_umiusi_control::cmd::thruster::Angle{ATAN_OR_ZERO(y[2], y[3])},
-            sinsei_umiusi_control::cmd::thruster::Angle{ATAN_OR_ZERO(y[4], y[5])},
-            sinsei_umiusi_control::cmd::thruster::Angle{ATAN_OR_ZERO(y[6], y[7])},
+        output.cmd.servo_angles = {
+            sinsei_umiusi_control::cmd::thruster::servo::Angle{ATAN_OR_ZERO(y[0], y[1])},
+            sinsei_umiusi_control::cmd::thruster::servo::Angle{ATAN_OR_ZERO(y[2], y[3])},
+            sinsei_umiusi_control::cmd::thruster::servo::Angle{ATAN_OR_ZERO(y[4], y[5])},
+            sinsei_umiusi_control::cmd::thruster::servo::Angle{ATAN_OR_ZERO(y[6], y[7])},
         };
         // Magnitude
         constexpr auto MGN = [](const double & x, const double & y) -> double {
@@ -88,14 +88,14 @@ class FeedForward : public AttitudeController::Logic {
 
         // √2 == (a * 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 の第一成分と第二成分の二乗和の平方根)
         constexpr auto MAX_DUTY = boost::math::constants::root_two<double>();
-        output.cmd.thruster_duty_cycles = {
-            sinsei_umiusi_control::cmd::thruster::DutyCycle{
+        output.cmd.esc_duty_cycles = {
+            sinsei_umiusi_control::cmd::thruster::esc::DutyCycle{
                 NRM(duty_sgns[0], duty_abss[0], MAX_DUTY)},
-            sinsei_umiusi_control::cmd::thruster::DutyCycle{
+            sinsei_umiusi_control::cmd::thruster::esc::DutyCycle{
                 NRM(duty_sgns[1], duty_abss[1], MAX_DUTY)},
-            sinsei_umiusi_control::cmd::thruster::DutyCycle{
+            sinsei_umiusi_control::cmd::thruster::esc::DutyCycle{
                 NRM(duty_sgns[2], duty_abss[2], MAX_DUTY)},
-            sinsei_umiusi_control::cmd::thruster::DutyCycle{
+            sinsei_umiusi_control::cmd::thruster::esc::DutyCycle{
                 NRM(duty_sgns[3], duty_abss[3], MAX_DUTY)},
         };
 

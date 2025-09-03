@@ -4,18 +4,14 @@
 #include <string>
 #include <tuple>
 
-#include "sinsei_umiusi_control/cmd/main_power.hpp"
-#include "sinsei_umiusi_control/state/esc.hpp"
-#include "sinsei_umiusi_control/state/thruster.hpp"
-
 using namespace sinsei_umiusi_control::hardware_model;
 
 auto CanModel::update_and_generate_command(
     cmd::main_power::Enabled && main_power_enabled,
-    std::array<cmd::thruster::EscEnabled, 4> && thruster_esc_enabled,
-    std::array<cmd::thruster::ServoEnabled, 4> && thruster_servo_enabled,
-    std::array<cmd::thruster::DutyCycle, 4> && thruster_duty_cycle,
-    std::array<cmd::thruster::Angle, 4> && thruster_angle,
+    std::array<cmd::thruster::esc::Enabled, 4> && thruster_esc_enabled,
+    std::array<cmd::thruster::esc::DutyCycle, 4> && thruster_duty_cycle,
+    std::array<cmd::thruster::servo::Enabled, 4> && thruster_servo_enabled,
+    std::array<cmd::thruster::servo::Angle, 4> && thruster_angle,
     cmd::led_tape::Color && led_tape_color) -> WriteCommand {
     this->loop_times++;
 
@@ -110,10 +106,11 @@ auto CanModel::on_destroy() -> tl::expected<void, std::string> {
 auto CanModel::on_read() const
     -> tl::expected<
         std::variant<
-            std::tuple<size_t, state::thruster::Rpm>, std::tuple<size_t, state::esc::Voltage>,
-            std::tuple<size_t, state::esc::WaterLeaked>, state::main_power::BatteryCurrent,
-            state::main_power::BatteryVoltage, state::main_power::Temperature,
-            state::main_power::WaterLeaked>,
+            std::tuple<size_t, state::thruster::esc::Rpm>,
+            std::tuple<size_t, state::thruster::esc::Voltage>,
+            std::tuple<size_t, state::thruster::esc::WaterLeaked>,
+            state::main_power::BatteryCurrent, state::main_power::BatteryVoltage,
+            state::main_power::Temperature, state::main_power::WaterLeaked>,
         std::string> {
     const auto frame = this->can->recv_frame();
     if (!frame) {
@@ -145,18 +142,18 @@ auto CanModel::on_read() const
                 const auto & status = std::get<0>(packet_status_opt.value());
                 constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
                 // ERPMを極対数で割ってRPMに変換
-                return std::make_tuple(i, state::thruster::Rpm{status.erpm / BLDC_POLE_PAIR});
+                return std::make_tuple(i, state::thruster::esc::Rpm{status.erpm / BLDC_POLE_PAIR});
             }
             case 4: {  // PacketStatus5
                 const auto & status = std::get<4>(packet_status_opt.value());
                 const auto volts_in = status.volts_in;
-                return std::make_tuple(i, state::esc::Voltage{volts_in});
+                return std::make_tuple(i, state::thruster::esc::Voltage{volts_in});
             }
             case 5: {  // PacketStatus6
                 const auto & status = std::get<5>(packet_status_opt.value());
                 // 浸水センサーはADC1に接続されている
                 const auto water_leaked = status.adc1 < WATER_LEAKED_VOLTAGE_THRESHOLD;
-                return std::make_tuple(i, state::esc::WaterLeaked{water_leaked});
+                return std::make_tuple(i, state::thruster::esc::WaterLeaked{water_leaked});
             }
             default: {
                 // 他のパケットは無視
@@ -173,16 +170,16 @@ auto CanModel::on_read() const
 
 auto CanModel::on_write(
     cmd::main_power::Enabled && main_power_enabled,
-    std::array<cmd::thruster::EscEnabled, 4> && thruster_esc_enabled,
-    std::array<cmd::thruster::ServoEnabled, 4> && thruster_servo_enabled,
-    std::array<cmd::thruster::DutyCycle, 4> && thruster_duty_cycle,
-    std::array<cmd::thruster::Angle, 4> && thruster_angle,
+    std::array<cmd::thruster::esc::Enabled, 4> && thruster_esc_enabled,
+    std::array<cmd::thruster::esc::DutyCycle, 4> && thruster_duty_cycle,
+    std::array<cmd::thruster::servo::Enabled, 4> && thruster_servo_enabled,
+    std::array<cmd::thruster::servo::Angle, 4> && thruster_angle,
     cmd::led_tape::Color && led_tape_color) -> tl::expected<void, std::string> {
     auto command = this->update_and_generate_command(
         std::forward<decltype(main_power_enabled)>(main_power_enabled),
         std::forward<decltype(thruster_esc_enabled)>(thruster_esc_enabled),
-        std::forward<decltype(thruster_servo_enabled)>(thruster_servo_enabled),
         std::forward<decltype(thruster_duty_cycle)>(thruster_duty_cycle),
+        std::forward<decltype(thruster_servo_enabled)>(thruster_servo_enabled),
         std::forward<decltype(thruster_angle)>(thruster_angle),
         std::forward<decltype(led_tape_color)>(led_tape_color));
 
@@ -197,7 +194,7 @@ auto CanModel::on_write(
             return tl::make_unexpected("Not implemented for main power enabled command");
         }
 
-        case 1: {  // std::tuple<ThrusterId, EscEnabled>
+        case 1: {  // std::tuple<ThrusterId, esc::Enabled>
             auto & [id, esc_enabled] = std::get<1>(command);
             if (id > vesc_models.size()) {
                 return tl::make_unexpected("Invalid thruster ID: " + std::to_string(id));
