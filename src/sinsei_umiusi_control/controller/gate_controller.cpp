@@ -238,13 +238,6 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
         this->output.pub.thruster_state_all_publisher =
             this->get_node()->create_publisher<msg::ThrusterStateAll>(
                 state_prefix + "thruster_state_all", qos);
-        if (this->thruster_mode == util::ThrusterMode::Can) {
-            for (size_t i = 0; i < 4; ++i) {
-                this->output.pub.esc_state_publishers[i] =
-                    this->get_node()->create_publisher<msg::EscState>(
-                        state_prefix + "esc" + std::to_string(i + 1) + "_state", qos);
-            }
-        }
     }
 
     return controller_interface::CallbackReturn::SUCCESS;
@@ -289,7 +282,10 @@ auto GateController::update(
                                     .set__servo(this->input.state.servo_enabled_flags[0].value))
                             .set__duty_cycle(this->input.state.esc_duty_cycles[0].value)
                             .set__angle(this->input.state.servo_angles[0].value))
-                    .set__rpm(this->input.state.esc_rpms[0].value))
+                    .set__rpm(this->input.state.esc_rpms[0].value)
+                    .set__voltage(this->input.state.main_power_battery_voltage
+                                      .value)  // TODO: ESCの電圧センサを使う
+                    .set__water_leaked(this->input.state.esc_water_leaked_flags[0].value))
             .set__lb(
                 msg::ThrusterState()
                     .set__output(
@@ -300,7 +296,10 @@ auto GateController::update(
                                     .set__servo(this->input.state.servo_enabled_flags[1].value))
                             .set__duty_cycle(this->input.state.esc_duty_cycles[1].value)
                             .set__angle(this->input.state.servo_angles[1].value))
-                    .set__rpm(this->input.state.esc_rpms[1].value))
+                    .set__rpm(this->input.state.esc_rpms[1].value)
+                    .set__voltage(this->input.state.main_power_battery_voltage
+                                      .value)  // TODO: ESCの電圧センサを使う
+                    .set__water_leaked(this->input.state.esc_water_leaked_flags[1].value))
             .set__rb(
                 msg::ThrusterState()
                     .set__output(
@@ -311,7 +310,10 @@ auto GateController::update(
                                     .set__servo(this->input.state.servo_enabled_flags[2].value))
                             .set__duty_cycle(this->input.state.esc_duty_cycles[2].value)
                             .set__angle(this->input.state.servo_angles[2].value))
-                    .set__rpm(this->input.state.esc_rpms[2].value))
+                    .set__rpm(this->input.state.esc_rpms[2].value)
+                    .set__voltage(this->input.state.main_power_battery_voltage
+                                      .value)  // TODO: ESCの電圧センサを使う
+                    .set__water_leaked(this->input.state.esc_water_leaked_flags[2].value))
             .set__rf(
                 msg::ThrusterState()
                     .set__output(
@@ -322,16 +324,10 @@ auto GateController::update(
                                     .set__servo(this->input.state.servo_enabled_flags[3].value))
                             .set__duty_cycle(this->input.state.esc_duty_cycles[3].value)
                             .set__angle(this->input.state.servo_angles[3].value))
-                    .set__rpm(this->input.state.esc_rpms[3].value)));
-    if (this->thruster_mode == util::ThrusterMode::Can) {
-        for (size_t i = 0; i < 4; ++i) {
-            this->output.pub.esc_state_publishers[i]->publish(
-                msg::EscState()
+                    .set__rpm(this->input.state.esc_rpms[3].value)
                     .set__voltage(this->input.state.main_power_battery_voltage
                                       .value)  // TODO: ESCの電圧センサを使う
-                    .set__water_leaked(this->input.state.esc_water_leaked_flags[i].value));
-        }
-    }
+                    .set__water_leaked(this->input.state.esc_water_leaked_flags[3].value)));
 
     // コマンドを送信
     util::interface_accessor::set_commands_to_loaned_interfaces(

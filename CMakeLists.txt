@@ -47,7 +47,6 @@ endif()
 
 # 本来は`msg`や`srv`専用にパッケージを分けるべきだが、リポジトリを跨ぎたくないためここに置いている。
 rosidl_generate_interfaces(${PROJECT_NAME}_msgs
-  "msg/EscState.msg"
   "msg/HeadlightsOutput.msg"
   "msg/ImuState.msg"
   "msg/IndicatorLedOutput.msg"

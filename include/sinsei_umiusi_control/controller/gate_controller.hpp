@@ -14,7 +14,6 @@
 #include "sinsei_umiusi_control/cmd/main_power.hpp"
 #include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
 #include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
-#include "sinsei_umiusi_control/msg/esc_state.hpp"
 #include "sinsei_umiusi_control/msg/headlights_output.hpp"
 #include "sinsei_umiusi_control/msg/imu_state.hpp"
 #include "sinsei_umiusi_control/msg/indicator_led_output.hpp"
@@ -89,7 +88,6 @@ class GateController : public controller_interface::ControllerInterface {
             rclcpp::Publisher<msg::MainPowerState>::SharedPtr main_power_state_publisher;
             rclcpp::Publisher<msg::ImuState>::SharedPtr imu_state_publisher;
             rclcpp::Publisher<msg::ThrusterStateAll>::SharedPtr thruster_state_all_publisher;
-            std::array<rclcpp::Publisher<msg::EscState>::SharedPtr, 4> esc_state_publishers;
         };
         Command cmd;
         Publishers pub;

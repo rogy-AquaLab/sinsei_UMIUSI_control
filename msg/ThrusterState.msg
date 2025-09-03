@@ -3,3 +3,5 @@
 
 ThrusterOutput  output
 float64         rpm
+float64         voltage  # [V]
+bool            water_leaked
