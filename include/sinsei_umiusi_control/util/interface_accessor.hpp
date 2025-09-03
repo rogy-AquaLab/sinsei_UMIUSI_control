@@ -10,7 +10,7 @@
 
 namespace sinsei_umiusi_control::util::interface_accessor {
 
-using InterfaceDataContainer = std::vector<std::pair<std::string, InterfaceData *>>;
+using InterfaceDataContainer = std::vector<std::tuple<std::string, InterfaceData *, uint8_t>>;
 
 auto get_states_from_loaned_interfaces(
     const std::vector<hardware_interface::LoanedStateInterface> & source,
