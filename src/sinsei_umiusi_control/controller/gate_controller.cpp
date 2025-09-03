@@ -131,13 +131,13 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                                     std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
 
                 this->state_interface_data.emplace_back(
-                    prefix + "esc/rpm", to_interface_data_ptr(this->input.state.esc_rpms[i]));
                     prefix + "esc/rpm", to_interface_data_ptr(this->input.state.esc_rpms[i]),
                     sizeof(this->input.state.esc_rpms[i]));
 
                 this->state_interface_data.emplace_back(
                     "thruster" + std::to_string(i + 1) + "/esc/voltage",
-                    to_interface_data_ptr(this->input.state.esc_voltages[i]));
+                    to_interface_data_ptr(this->input.state.esc_voltages[i]),
+                    sizeof(this->input.state.esc_voltages[i]));
                 this->state_interface_data.emplace_back(
                     "thruster" + std::to_string(i + 1) + "/esc/water_leaked",
                     to_interface_data_ptr(this->input.state.esc_water_leaked_flags[i]),
@@ -255,8 +255,7 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
             const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
 
             this->command_interface_data.push_back(std::make_tuple(
-                prefix + "esc/enabled",
-                to_interface_data_ptr(this->output.cmd.esc_enabled_ref[i]),
+                prefix + "esc/enabled", to_interface_data_ptr(this->output.cmd.esc_enabled_ref[i]),
                 sizeof(this->output.cmd.esc_enabled_ref[i])));
             this->command_interface_data.push_back(std::make_tuple(
                 prefix + "servo/enabled",
