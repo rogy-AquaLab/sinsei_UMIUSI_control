@@ -118,6 +118,9 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                     prefix + "esc/rpm", to_interface_data_ptr(this->input.state.esc_rpms[i]));
 
                 this->state_interface_data.emplace_back(
+                    "thruster" + std::to_string(i + 1) + "/esc/voltage",
+                    to_interface_data_ptr(this->input.state.esc_voltages[i]));
+                this->state_interface_data.emplace_back(
                     "thruster" + std::to_string(i + 1) + "/esc/water_leaked",
                     to_interface_data_ptr(this->input.state.esc_water_leaked_flags[i]));
             }
@@ -283,8 +286,7 @@ auto GateController::update(
                             .set__duty_cycle(this->input.state.esc_duty_cycles[0].value)
                             .set__angle(this->input.state.servo_angles[0].value))
                     .set__rpm(this->input.state.esc_rpms[0].value)
-                    .set__voltage(this->input.state.main_power_battery_voltage
-                                      .value)  // TODO: ESCの電圧センサを使う
+                    .set__voltage(this->input.state.esc_voltages[0].value)
                     .set__water_leaked(this->input.state.esc_water_leaked_flags[0].value))
             .set__lb(
                 msg::ThrusterState()
@@ -297,8 +299,7 @@ auto GateController::update(
                             .set__duty_cycle(this->input.state.esc_duty_cycles[1].value)
                             .set__angle(this->input.state.servo_angles[1].value))
                     .set__rpm(this->input.state.esc_rpms[1].value)
-                    .set__voltage(this->input.state.main_power_battery_voltage
-                                      .value)  // TODO: ESCの電圧センサを使う
+                    .set__voltage(this->input.state.esc_voltages[1].value)
                     .set__water_leaked(this->input.state.esc_water_leaked_flags[1].value))
             .set__rb(
                 msg::ThrusterState()
@@ -311,8 +312,7 @@ auto GateController::update(
                             .set__duty_cycle(this->input.state.esc_duty_cycles[2].value)
                             .set__angle(this->input.state.servo_angles[2].value))
                     .set__rpm(this->input.state.esc_rpms[2].value)
-                    .set__voltage(this->input.state.main_power_battery_voltage
-                                      .value)  // TODO: ESCの電圧センサを使う
+                    .set__voltage(this->input.state.esc_voltages[2].value)
                     .set__water_leaked(this->input.state.esc_water_leaked_flags[2].value))
             .set__rf(
                 msg::ThrusterState()
@@ -325,8 +325,7 @@ auto GateController::update(
                             .set__duty_cycle(this->input.state.esc_duty_cycles[3].value)
                             .set__angle(this->input.state.servo_angles[3].value))
                     .set__rpm(this->input.state.esc_rpms[3].value)
-                    .set__voltage(this->input.state.main_power_battery_voltage
-                                      .value)  // TODO: ESCの電圧センサを使う
+                    .set__voltage(this->input.state.esc_voltages[3].value)
                     .set__water_leaked(this->input.state.esc_water_leaked_flags[3].value)));
 
     // コマンドを送信
