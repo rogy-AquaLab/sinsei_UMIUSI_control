@@ -30,6 +30,8 @@ class ThrusterController : public controller_interface::ChainableControllerInter
         // State interfaces (in)
         struct State {
             state::thruster::esc::Rpm esc_rpm;
+            state::thruster::esc::Voltage esc_voltage;
+            state::thruster::esc::WaterLeaked esc_water_leaked;
         };
         // Subscribers for command inputs
         struct Subscriber {
