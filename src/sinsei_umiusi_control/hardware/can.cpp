@@ -136,7 +136,7 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
             break;
         }
         case 2: {  // ESC WaterLeaked
-            const auto [index, water_leaked] = std::get<1>(variant);
+            const auto [index, water_leaked] = std::get<2>(variant);
             const auto thruster_name = "thruster" + std::to_string(index + 1);
             this->set_state(
                 thruster_name + "/esc/water_leaked", util::to_interface_data(water_leaked));
