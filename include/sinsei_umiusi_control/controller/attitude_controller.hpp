@@ -12,7 +12,6 @@
 #include "sinsei_umiusi_control/controller/logic/logic_interface.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
-#include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
 

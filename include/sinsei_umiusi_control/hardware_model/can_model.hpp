@@ -14,7 +14,6 @@
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
 #include "sinsei_umiusi_control/state/main_power.hpp"
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
-#include "sinsei_umiusi_control/state/thruster/servo.hpp"
 
 namespace sinsei_umiusi_control::hardware_model {
 
