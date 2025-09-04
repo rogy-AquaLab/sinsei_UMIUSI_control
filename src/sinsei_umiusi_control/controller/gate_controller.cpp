@@ -127,11 +127,11 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
 
             if (this->thruster_mode == util::ThrusterMode::Can) {
                 this->state_interface_data.emplace_back(
-                    tc_prefix + "esc/voltage",
+                    tc_prefix + "thruster/esc/voltage",
                     to_interface_data_ptr(this->input.state.esc_voltages[i]),
                     sizeof(this->input.state.esc_voltages[i]));
                 this->state_interface_data.emplace_back(
-                    tc_prefix + "esc/water_leaked",
+                    tc_prefix + "thruster/esc/water_leaked",
                     to_interface_data_ptr(this->input.state.esc_water_leaked_flags[i]),
                     sizeof(this->input.state.esc_water_leaked_flags[i]));
 
