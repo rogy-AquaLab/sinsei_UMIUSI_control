@@ -107,40 +107,40 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
             to_interface_data_ptr(this->input.state.imu_velocity.z),
             sizeof(this->input.state.imu_velocity.z));
         for (size_t i = 0; i < 4; ++i) {
-            const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
+            const auto tc_prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
 
             this->state_interface_data.emplace_back(
-                prefix + "esc/enabled",
+                tc_prefix + "esc/enabled",
                 to_interface_data_ptr(this->input.state.esc_enabled_flags[i]),
                 sizeof(this->input.state.esc_enabled_flags[i]));
             this->state_interface_data.emplace_back(
-                prefix + "esc/duty_cycle",
+                tc_prefix + "esc/duty_cycle",
                 to_interface_data_ptr(this->input.state.esc_duty_cycles[i]),
                 sizeof(this->input.state.esc_duty_cycles[i]));
             this->state_interface_data.emplace_back(
-                prefix + "servo/enabled",
+                tc_prefix + "servo/enabled",
                 to_interface_data_ptr(this->input.state.servo_enabled_flags[i]),
                 sizeof(this->input.state.servo_enabled_flags[i]));
             this->state_interface_data.emplace_back(
-                prefix + "servo/angle", to_interface_data_ptr(this->input.state.servo_angles[i]),
+                tc_prefix + "servo/angle", to_interface_data_ptr(this->input.state.servo_angles[i]),
                 sizeof(this->input.state.servo_angles[i]));
-        }
-        if (this->thruster_mode == util::ThrusterMode::Can) {
-            for (size_t i = 0; i < 4; ++i) {
-                const auto prefix = "attitude_controller/thruster_controller" +
-                                    std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
 
+            if (this->thruster_mode == util::ThrusterMode::Can) {
                 this->state_interface_data.emplace_back(
-                    prefix + "esc/rpm", to_interface_data_ptr(this->input.state.esc_rpms[i]),
-                    sizeof(this->input.state.esc_rpms[i]));
-                this->state_interface_data.emplace_back(
-                    prefix + "esc/voltage",
+                    tc_prefix + "esc/voltage",
                     to_interface_data_ptr(this->input.state.esc_voltages[i]),
                     sizeof(this->input.state.esc_voltages[i]));
                 this->state_interface_data.emplace_back(
-                    prefix + "esc/water_leaked",
+                    tc_prefix + "esc/water_leaked",
                     to_interface_data_ptr(this->input.state.esc_water_leaked_flags[i]),
                     sizeof(this->input.state.esc_water_leaked_flags[i]));
+
+                // RPMのみ`attitude_controller`経由で取得する
+                const auto ac_prefix = "attitude_controller/thruster_controller" +
+                                       std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
+                this->state_interface_data.emplace_back(
+                    ac_prefix + "esc/rpm", to_interface_data_ptr(this->input.state.esc_rpms[i]),
+                    sizeof(this->input.state.esc_rpms[i]));
             }
         }
 
