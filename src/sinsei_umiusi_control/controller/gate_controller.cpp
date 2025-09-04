@@ -134,11 +134,11 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                     prefix + "esc/rpm", to_interface_data_ptr(this->input.state.esc_rpms[i]),
                     sizeof(this->input.state.esc_rpms[i]));
                 this->state_interface_data.emplace_back(
-                    prefix + "/esc/voltage",
+                    prefix + "esc/voltage",
                     to_interface_data_ptr(this->input.state.esc_voltages[i]),
                     sizeof(this->input.state.esc_voltages[i]));
                 this->state_interface_data.emplace_back(
-                    prefix + "/esc/water_leaked",
+                    prefix + "esc/water_leaked",
                     to_interface_data_ptr(this->input.state.esc_water_leaked_flags[i]),
                     sizeof(this->input.state.esc_water_leaked_flags[i]));
             }
