@@ -107,37 +107,40 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
             to_interface_data_ptr(this->input.state.imu_velocity.z),
             sizeof(this->input.state.imu_velocity.z));
         for (size_t i = 0; i < 4; ++i) {
-            const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
+            const auto tc_prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
 
             this->state_interface_data.emplace_back(
-                prefix + "esc_enabled",
-                to_interface_data_ptr(this->input.state.thruster_esc_enabled[i]),
-                sizeof(this->input.state.thruster_esc_enabled[i]));
+                tc_prefix + "esc/enabled",
+                to_interface_data_ptr(this->input.state.esc_enabled_flags[i]),
+                sizeof(this->input.state.esc_enabled_flags[i]));
             this->state_interface_data.emplace_back(
-                prefix + "servo_enabled",
-                to_interface_data_ptr(this->input.state.thruster_servo_enabled[i]),
-                sizeof(this->input.state.thruster_servo_enabled[i]));
+                tc_prefix + "esc/duty_cycle",
+                to_interface_data_ptr(this->input.state.esc_duty_cycles[i]),
+                sizeof(this->input.state.esc_duty_cycles[i]));
             this->state_interface_data.emplace_back(
-                prefix + "duty_cycle",
-                to_interface_data_ptr(this->input.state.thruster_duty_cycles[i]),
-                sizeof(this->input.state.thruster_duty_cycles[i]));
+                tc_prefix + "servo/enabled",
+                to_interface_data_ptr(this->input.state.servo_enabled_flags[i]),
+                sizeof(this->input.state.servo_enabled_flags[i]));
             this->state_interface_data.emplace_back(
-                prefix + "angle", to_interface_data_ptr(this->input.state.thruster_angles[i]),
-                sizeof(this->input.state.thruster_angles[i]));
-        }
-        if (this->thruster_mode == util::ThrusterMode::Can) {
-            for (size_t i = 0; i < 4; ++i) {
-                const auto prefix = "attitude_controller/thruster_controller" +
-                                    std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
+                tc_prefix + "servo/angle", to_interface_data_ptr(this->input.state.servo_angles[i]),
+                sizeof(this->input.state.servo_angles[i]));
 
+            if (this->thruster_mode == util::ThrusterMode::Can) {
                 this->state_interface_data.emplace_back(
-                    prefix + "esc/rpm", to_interface_data_ptr(this->input.state.thruster_rpm[i]),
-                    sizeof(this->input.state.thruster_rpm[i]));
-
+                    tc_prefix + "thruster/esc/voltage",
+                    to_interface_data_ptr(this->input.state.esc_voltages[i]),
+                    sizeof(this->input.state.esc_voltages[i]));
                 this->state_interface_data.emplace_back(
-                    "thruster" + std::to_string(i + 1) + "/esc/water_leaked",
-                    to_interface_data_ptr(this->input.state.esc_water_leaked[i]),
-                    sizeof(this->input.state.esc_water_leaked[i]));
+                    tc_prefix + "thruster/esc/water_leaked",
+                    to_interface_data_ptr(this->input.state.esc_water_leaked_flags[i]),
+                    sizeof(this->input.state.esc_water_leaked_flags[i]));
+
+                // RPMのみ`attitude_controller`経由で取得する
+                const auto ac_prefix = "attitude_controller/thruster_controller" +
+                                       std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
+                this->state_interface_data.emplace_back(
+                    ac_prefix + "esc/rpm", to_interface_data_ptr(this->input.state.esc_rpms[i]),
+                    sizeof(this->input.state.esc_rpms[i]));
             }
         }
 
@@ -179,14 +182,14 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
             this->get_node()->create_subscription<msg::ThrusterEnabledAll>(
                 cmd_prefix + "thruster_enabled_all", qos,
                 [this](const msg::ThrusterEnabledAll::SharedPtr input) {
-                    this->output.cmd.thruster_esc_enabled_ref[0].value = input->lf.esc;
-                    this->output.cmd.thruster_esc_enabled_ref[1].value = input->lb.esc;
-                    this->output.cmd.thruster_esc_enabled_ref[2].value = input->rb.esc;
-                    this->output.cmd.thruster_esc_enabled_ref[3].value = input->rf.esc;
-                    this->output.cmd.thruster_servo_enabled_ref[0].value = input->lf.servo;
-                    this->output.cmd.thruster_servo_enabled_ref[1].value = input->lb.servo;
-                    this->output.cmd.thruster_servo_enabled_ref[2].value = input->rb.servo;
-                    this->output.cmd.thruster_servo_enabled_ref[3].value = input->rf.servo;
+                    this->output.cmd.esc_enabled_ref[0].value = input->lf.esc;
+                    this->output.cmd.esc_enabled_ref[1].value = input->lb.esc;
+                    this->output.cmd.esc_enabled_ref[2].value = input->rb.esc;
+                    this->output.cmd.esc_enabled_ref[3].value = input->rf.esc;
+                    this->output.cmd.servo_enabled_ref[0].value = input->lf.servo;
+                    this->output.cmd.servo_enabled_ref[1].value = input->lb.servo;
+                    this->output.cmd.servo_enabled_ref[2].value = input->rb.servo;
+                    this->output.cmd.servo_enabled_ref[3].value = input->rf.servo;
                 });
         this->input.sub.target_subscriber = this->get_node()->create_subscription<msg::Target>(
             cmd_prefix + "target", qos, [this](const msg::Target::SharedPtr input) {
@@ -251,13 +254,12 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
             const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
 
             this->command_interface_data.push_back(std::make_tuple(
-                prefix + "esc_enabled",
-                to_interface_data_ptr(this->output.cmd.thruster_esc_enabled_ref[i]),
-                sizeof(this->output.cmd.thruster_esc_enabled_ref[i])));
+                prefix + "esc/enabled", to_interface_data_ptr(this->output.cmd.esc_enabled_ref[i]),
+                sizeof(this->output.cmd.esc_enabled_ref[i])));
             this->command_interface_data.push_back(std::make_tuple(
-                prefix + "servo_enabled",
-                to_interface_data_ptr(this->output.cmd.thruster_servo_enabled_ref[i]),
-                sizeof(this->output.cmd.thruster_servo_enabled_ref[i])));
+                prefix + "servo/enabled",
+                to_interface_data_ptr(this->output.cmd.servo_enabled_ref[i]),
+                sizeof(this->output.cmd.servo_enabled_ref[i])));
         }
 
         // Publishers
@@ -271,13 +273,6 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
         this->output.pub.thruster_state_all_publisher =
             this->get_node()->create_publisher<msg::ThrusterStateAll>(
                 state_prefix + "thruster_state_all", qos);
-        if (this->thruster_mode == util::ThrusterMode::Can) {
-            for (size_t i = 0; i < 4; ++i) {
-                this->output.pub.esc_state_publishers[i] =
-                    this->get_node()->create_publisher<msg::EscState>(
-                        state_prefix + "esc" + std::to_string(i + 1) + "_state", qos);
-            }
-        }
     }
 
     return controller_interface::CallbackReturn::SUCCESS;
@@ -318,53 +313,52 @@ auto GateController::update(
                         msg::ThrusterOutput()
                             .set__enabled(
                                 msg::ThrusterEnabled()
-                                    .set__esc(this->input.state.thruster_esc_enabled[0].value)
-                                    .set__servo(this->input.state.thruster_servo_enabled[0].value))
-                            .set__duty_cycle(this->input.state.thruster_duty_cycles[0].value)
-                            .set__angle(this->input.state.thruster_angles[0].value))
-                    .set__rpm(this->input.state.thruster_rpm[0].value))
+                                    .set__esc(this->input.state.esc_enabled_flags[0].value)
+                                    .set__servo(this->input.state.servo_enabled_flags[0].value))
+                            .set__duty_cycle(this->input.state.esc_duty_cycles[0].value)
+                            .set__angle(this->input.state.servo_angles[0].value))
+                    .set__rpm(this->input.state.esc_rpms[0].value)
+                    .set__voltage(this->input.state.esc_voltages[0].value)
+                    .set__water_leaked(this->input.state.esc_water_leaked_flags[0].value))
             .set__lb(
                 msg::ThrusterState()
                     .set__output(
                         msg::ThrusterOutput()
                             .set__enabled(
                                 msg::ThrusterEnabled()
-                                    .set__esc(this->input.state.thruster_esc_enabled[1].value)
-                                    .set__servo(this->input.state.thruster_servo_enabled[1].value))
-                            .set__duty_cycle(this->input.state.thruster_duty_cycles[1].value)
-                            .set__angle(this->input.state.thruster_angles[1].value))
-                    .set__rpm(this->input.state.thruster_rpm[1].value))
+                                    .set__esc(this->input.state.esc_enabled_flags[1].value)
+                                    .set__servo(this->input.state.servo_enabled_flags[1].value))
+                            .set__duty_cycle(this->input.state.esc_duty_cycles[1].value)
+                            .set__angle(this->input.state.servo_angles[1].value))
+                    .set__rpm(this->input.state.esc_rpms[1].value)
+                    .set__voltage(this->input.state.esc_voltages[1].value)
+                    .set__water_leaked(this->input.state.esc_water_leaked_flags[1].value))
             .set__rb(
                 msg::ThrusterState()
                     .set__output(
                         msg::ThrusterOutput()
                             .set__enabled(
                                 msg::ThrusterEnabled()
-                                    .set__esc(this->input.state.thruster_esc_enabled[2].value)
-                                    .set__servo(this->input.state.thruster_servo_enabled[2].value))
-                            .set__duty_cycle(this->input.state.thruster_duty_cycles[2].value)
-                            .set__angle(this->input.state.thruster_angles[2].value))
-                    .set__rpm(this->input.state.thruster_rpm[2].value))
+                                    .set__esc(this->input.state.esc_enabled_flags[2].value)
+                                    .set__servo(this->input.state.servo_enabled_flags[2].value))
+                            .set__duty_cycle(this->input.state.esc_duty_cycles[2].value)
+                            .set__angle(this->input.state.servo_angles[2].value))
+                    .set__rpm(this->input.state.esc_rpms[2].value)
+                    .set__voltage(this->input.state.esc_voltages[2].value)
+                    .set__water_leaked(this->input.state.esc_water_leaked_flags[2].value))
             .set__rf(
                 msg::ThrusterState()
                     .set__output(
                         msg::ThrusterOutput()
                             .set__enabled(
                                 msg::ThrusterEnabled()
-                                    .set__esc(this->input.state.thruster_esc_enabled[3].value)
-                                    .set__servo(this->input.state.thruster_servo_enabled[3].value))
-                            .set__duty_cycle(this->input.state.thruster_duty_cycles[3].value)
-                            .set__angle(this->input.state.thruster_angles[3].value))
-                    .set__rpm(this->input.state.thruster_rpm[3].value)));
-    if (this->thruster_mode == util::ThrusterMode::Can) {
-        for (size_t i = 0; i < 4; ++i) {
-            this->output.pub.esc_state_publishers[i]->publish(
-                msg::EscState()
-                    .set__voltage(this->input.state.main_power_battery_voltage
-                                      .value)  // TODO: ESCの電圧センサを使う
-                    .set__water_leaked(this->input.state.esc_water_leaked[i].value));
-        }
-    }
+                                    .set__esc(this->input.state.esc_enabled_flags[3].value)
+                                    .set__servo(this->input.state.servo_enabled_flags[3].value))
+                            .set__duty_cycle(this->input.state.esc_duty_cycles[3].value)
+                            .set__angle(this->input.state.servo_angles[3].value))
+                    .set__rpm(this->input.state.esc_rpms[3].value)
+                    .set__voltage(this->input.state.esc_voltages[3].value)
+                    .set__water_leaked(this->input.state.esc_water_leaked_flags[3].value)));
 
     // コマンドを送信
     util::interface_accessor::set_commands_to_loaned_interfaces(

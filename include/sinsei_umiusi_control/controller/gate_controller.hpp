@@ -12,8 +12,8 @@
 #include "sinsei_umiusi_control/cmd/indicator_led.hpp"
 #include "sinsei_umiusi_control/cmd/led_tape.hpp"
 #include "sinsei_umiusi_control/cmd/main_power.hpp"
-#include "sinsei_umiusi_control/cmd/thruster.hpp"
-#include "sinsei_umiusi_control/msg/esc_state.hpp"
+#include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
+#include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
 #include "sinsei_umiusi_control/msg/headlights_output.hpp"
 #include "sinsei_umiusi_control/msg/imu_state.hpp"
 #include "sinsei_umiusi_control/msg/indicator_led_output.hpp"
@@ -23,10 +23,10 @@
 #include "sinsei_umiusi_control/msg/target.hpp"
 #include "sinsei_umiusi_control/msg/thruster_enabled_all.hpp"
 #include "sinsei_umiusi_control/msg/thruster_state_all.hpp"
-#include "sinsei_umiusi_control/state/esc.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/state/main_power.hpp"
-#include "sinsei_umiusi_control/state/thruster.hpp"
+#include "sinsei_umiusi_control/state/thruster/esc.hpp"
+#include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
@@ -44,13 +44,15 @@ class GateController : public controller_interface::ControllerInterface {
             sinsei_umiusi_control::state::imu::Temperature imu_temperature;
             sinsei_umiusi_control::state::imu::Quaternion imu_quaternion;
             sinsei_umiusi_control::state::imu::Velocity imu_velocity;
-            std::array<sinsei_umiusi_control::state::thruster::Rpm, 4> thruster_rpm;
-            std::array<sinsei_umiusi_control::state::thruster::EscEnabled, 4> thruster_esc_enabled;
-            std::array<sinsei_umiusi_control::state::thruster::ServoEnabled, 4>
-                thruster_servo_enabled;
-            std::array<sinsei_umiusi_control::state::thruster::DutyCycle, 4> thruster_duty_cycles;
-            std::array<sinsei_umiusi_control::state::thruster::Angle, 4> thruster_angles;
-            std::array<sinsei_umiusi_control::state::esc::WaterLeaked, 4> esc_water_leaked;
+            std::array<sinsei_umiusi_control::state::thruster::esc::Enabled, 4> esc_enabled_flags;
+            std::array<sinsei_umiusi_control::state::thruster::esc::DutyCycle, 4> esc_duty_cycles;
+            std::array<sinsei_umiusi_control::state::thruster::esc::Rpm, 4> esc_rpms;
+            std::array<sinsei_umiusi_control::state::thruster::esc::Voltage, 4> esc_voltages;
+            std::array<sinsei_umiusi_control::state::thruster::esc::WaterLeaked, 4>
+                esc_water_leaked_flags;
+            std::array<sinsei_umiusi_control::state::thruster::servo::Enabled, 4>
+                servo_enabled_flags;
+            std::array<sinsei_umiusi_control::state::thruster::servo::Angle, 4> servo_angles;
         };
         // Subscribers for commands
         struct Subscribers {
@@ -75,10 +77,8 @@ class GateController : public controller_interface::ControllerInterface {
             sinsei_umiusi_control::cmd::headlights::LowBeamEnabled low_beam_enabled_ref;
             sinsei_umiusi_control::cmd::headlights::IrEnabled ir_enabled_ref;
 
-            std::array<sinsei_umiusi_control::cmd::thruster::EscEnabled, 4>
-                thruster_esc_enabled_ref;
-            std::array<sinsei_umiusi_control::cmd::thruster::ServoEnabled, 4>
-                thruster_servo_enabled_ref;
+            std::array<sinsei_umiusi_control::cmd::thruster::esc::Enabled, 4> esc_enabled_ref;
+            std::array<sinsei_umiusi_control::cmd::thruster::servo::Enabled, 4> servo_enabled_ref;
 
             sinsei_umiusi_control::cmd::led_tape::Color led_tape_color_ref;
             sinsei_umiusi_control::cmd::attitude::Orientation target_orientation_ref;
@@ -89,7 +89,6 @@ class GateController : public controller_interface::ControllerInterface {
             rclcpp::Publisher<msg::MainPowerState>::SharedPtr main_power_state_publisher;
             rclcpp::Publisher<msg::ImuState>::SharedPtr imu_state_publisher;
             rclcpp::Publisher<msg::ThrusterStateAll>::SharedPtr thruster_state_all_publisher;
-            std::array<rclcpp::Publisher<msg::EscState>::SharedPtr, 4> esc_state_publishers;
         };
         Command cmd;
         Publishers pub;

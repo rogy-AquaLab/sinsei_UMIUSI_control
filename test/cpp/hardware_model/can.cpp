@@ -67,18 +67,18 @@ TEST(CanModelTest, CanModelCanModeOnWriteTest) {
     auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS);
     auto result = can_model.on_write(
         succmd::main_power::Enabled{false},
-        std::array<succmd::thruster::EscEnabled, 4>{
-            succmd::thruster::EscEnabled{false}, succmd::thruster::EscEnabled{false},
-            succmd::thruster::EscEnabled{false}, succmd::thruster::EscEnabled{false}},
-        std::array<succmd::thruster::ServoEnabled, 4>{
-            succmd::thruster::ServoEnabled{false}, succmd::thruster::ServoEnabled{false},
-            succmd::thruster::ServoEnabled{false}, succmd::thruster::ServoEnabled{false}},
-        std::array<succmd::thruster::DutyCycle, 4>{
-            succmd::thruster::DutyCycle{1.0f}, succmd::thruster::DutyCycle{0.0f},
-            succmd::thruster::DutyCycle{0.0f}, succmd::thruster::DutyCycle{0.0f}},
-        std::array<succmd::thruster::Angle, 4>{
-            succmd::thruster::Angle{0.0f}, succmd::thruster::Angle{0.0f},
-            succmd::thruster::Angle{0.0f}, succmd::thruster::Angle{0.0f}},
+        std::array<succmd::thruster::esc::Enabled, 4>{
+            succmd::thruster::esc::Enabled{false}, succmd::thruster::esc::Enabled{false},
+            succmd::thruster::esc::Enabled{false}, succmd::thruster::esc::Enabled{false}},
+        std::array<succmd::thruster::esc::DutyCycle, 4>{
+            succmd::thruster::esc::DutyCycle{1.0f}, succmd::thruster::esc::DutyCycle{0.0f},
+            succmd::thruster::esc::DutyCycle{0.0f}, succmd::thruster::esc::DutyCycle{0.0f}},
+        std::array<succmd::thruster::servo::Enabled, 4>{
+            succmd::thruster::servo::Enabled{false}, succmd::thruster::servo::Enabled{false},
+            succmd::thruster::servo::Enabled{false}, succmd::thruster::servo::Enabled{false}},
+        std::array<succmd::thruster::servo::Angle, 4>{
+            succmd::thruster::servo::Angle{0.0f}, succmd::thruster::servo::Angle{0.0f},
+            succmd::thruster::servo::Angle{0.0f}, succmd::thruster::servo::Angle{0.0f}},
 
         succmd::led_tape::Color{0, 0, 0});
     // FIXME: 実装が終わっていないので失敗する

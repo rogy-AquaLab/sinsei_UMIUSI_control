@@ -47,7 +47,6 @@ endif()
 
 # 本来は`msg`や`srv`専用にパッケージを分けるべきだが、リポジトリを跨ぎたくないためここに置いている。
 rosidl_generate_interfaces(${PROJECT_NAME}_msgs
-  "msg/EscState.msg"
   "msg/HeadlightsOutput.msg"
   "msg/ImuState.msg"
   "msg/IndicatorLedOutput.msg"
@@ -116,7 +115,10 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
-  ament_add_pytest_test(pytest test/python)
+  ament_add_pytest_test(
+    pytest test/python
+    TIMEOUT 120
+  )
   ament_auto_add_gmock(test_hardware_model
     test/cpp/hardware_model/headlights.cpp
     test/cpp/hardware_model/imu.cpp

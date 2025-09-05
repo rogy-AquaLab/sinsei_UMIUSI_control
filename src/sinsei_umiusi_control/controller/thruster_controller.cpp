@@ -108,33 +108,40 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
         prefix + "esc/enabled", util::to_interface_data_ptr(this->output.cmd.esc_enabled),
         sizeof(this->output.cmd.esc_enabled)));
     this->command_interface_data.push_back(std::make_tuple(
+        prefix + "esc/duty_cycle", util::to_interface_data_ptr(this->output.cmd.esc_duty_cycle),
+        sizeof(this->output.cmd.esc_duty_cycle)));
+    this->command_interface_data.push_back(std::make_tuple(
         prefix + "servo/enabled", util::to_interface_data_ptr(this->output.cmd.servo_enabled),
         sizeof(this->output.cmd.servo_enabled)));
     this->command_interface_data.push_back(std::make_tuple(
-        prefix + "esc/duty_cycle", util::to_interface_data_ptr(this->output.cmd.duty_cycle),
-        sizeof(this->output.cmd.duty_cycle)));
-    this->command_interface_data.push_back(std::make_tuple(
-        prefix + "servo/angle", util::to_interface_data_ptr(this->output.cmd.angle),
-        sizeof(this->output.cmd.angle)));
+        prefix + "servo/angle", util::to_interface_data_ptr(this->output.cmd.servo_angle),
+        sizeof(this->output.cmd.servo_angle)));
 
     if (this->mode == util::ThrusterMode::Can) {
         this->state_interface_data.push_back(std::make_tuple(
-            prefix + "esc/rpm", util::to_interface_data_ptr(this->input.state.rpm),
-            sizeof(this->input.state.rpm)));
+            prefix + "esc/rpm", util::to_interface_data_ptr(this->input.state.esc_rpm),
+            sizeof(this->input.state.esc_rpm)));
+        this->state_interface_data.push_back(std::make_tuple(
+            prefix + "esc/voltage", util::to_interface_data_ptr(this->input.state.esc_voltage),
+            sizeof(this->input.state.esc_voltage)));
+        this->state_interface_data.push_back(std::make_tuple(
+            prefix + "esc/water_leaked",
+            util::to_interface_data_ptr(this->input.state.esc_water_leaked),
+            sizeof(this->input.state.esc_water_leaked)));
     }
 
     this->ref_interface_data.push_back(std::make_tuple(
-        "esc_enabled", util::to_interface_data_ptr(this->input.cmd.esc_enabled),
+        "esc/enabled", util::to_interface_data_ptr(this->input.cmd.esc_enabled),
         sizeof(this->input.cmd.esc_enabled)));
     this->ref_interface_data.push_back(std::make_tuple(
-        "servo_enabled", util::to_interface_data_ptr(this->input.cmd.servo_enabled),
+        "esc/duty_cycle", util::to_interface_data_ptr(this->input.cmd.esc_duty_cycle),
+        sizeof(this->input.cmd.esc_duty_cycle)));
+    this->ref_interface_data.push_back(std::make_tuple(
+        "servo/enabled", util::to_interface_data_ptr(this->input.cmd.servo_enabled),
         sizeof(this->input.cmd.servo_enabled)));
     this->ref_interface_data.push_back(std::make_tuple(
-        "duty_cycle", util::to_interface_data_ptr(this->input.cmd.duty_cycle),
-        sizeof(this->input.cmd.duty_cycle)));
-    this->ref_interface_data.push_back(std::make_tuple(
-        "angle", util::to_interface_data_ptr(this->input.cmd.angle),
-        sizeof(this->input.cmd.angle)));
+        "servo/angle", util::to_interface_data_ptr(this->input.cmd.servo_angle),
+        sizeof(this->input.cmd.servo_angle)));
 
     {
         const auto prefix = std::string("cmd/direct/thruster_controller/");
@@ -146,8 +153,8 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                 [this](const msg::ThrusterOutput::SharedPtr msg) {
                     this->output.state.esc_enabled.value = msg->enabled.esc;
                     this->output.state.servo_enabled.value = msg->enabled.servo;
-                    this->output.state.duty_cycle.value = msg->duty_cycle;
-                    this->output.state.angle.value = msg->angle;
+                    this->output.state.esc_duty_cycle.value = msg->duty_cycle;
+                    this->output.state.servo_angle.value = msg->angle;
                 });
         this->input.sub.thruster_output_all =
             this->get_node()->create_subscription<msg::ThrusterOutputAll>(
@@ -160,24 +167,24 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                     }
                     if (thruster_pos == "lf") {
                         this->output.state.esc_enabled.value = msg->lf.enabled.esc;
+                        this->output.state.esc_duty_cycle.value = msg->lf.duty_cycle;
                         this->output.state.servo_enabled.value = msg->lf.enabled.servo;
-                        this->output.state.duty_cycle.value = msg->lf.duty_cycle;
-                        this->output.state.angle.value = msg->lf.angle;
+                        this->output.state.servo_angle.value = msg->lf.angle;
                     } else if (thruster_pos == "lb") {
                         this->output.state.esc_enabled.value = msg->lb.enabled.esc;
+                        this->output.state.esc_duty_cycle.value = msg->lb.duty_cycle;
                         this->output.state.servo_enabled.value = msg->lb.enabled.servo;
-                        this->output.state.duty_cycle.value = msg->lb.duty_cycle;
-                        this->output.state.angle.value = msg->lb.angle;
-                    } else if (thruster_pos == "rf") {
-                        this->output.state.esc_enabled.value = msg->rf.enabled.esc;
-                        this->output.state.servo_enabled.value = msg->rf.enabled.servo;
-                        this->output.state.duty_cycle.value = msg->rf.duty_cycle;
-                        this->output.state.angle.value = msg->rf.angle;
+                        this->output.state.servo_angle.value = msg->lb.angle;
                     } else if (thruster_pos == "rb") {
                         this->output.state.esc_enabled.value = msg->rb.enabled.esc;
+                        this->output.state.esc_duty_cycle.value = msg->rb.duty_cycle;
                         this->output.state.servo_enabled.value = msg->rb.enabled.servo;
-                        this->output.state.duty_cycle.value = msg->rb.duty_cycle;
-                        this->output.state.angle.value = msg->rb.angle;
+                        this->output.state.servo_angle.value = msg->rb.angle;
+                    } else if (thruster_pos == "rf") {
+                        this->output.state.esc_enabled.value = msg->rf.enabled.esc;
+                        this->output.state.esc_duty_cycle.value = msg->rf.duty_cycle;
+                        this->output.state.servo_enabled.value = msg->rf.enabled.servo;
+                        this->output.state.servo_angle.value = msg->rf.angle;
                     }
                 });
     }
@@ -208,17 +215,17 @@ auto ThrusterController::on_export_state_interfaces()
             this->get_node()->get_name(), "thruster" + name.substr(OFFSET), data));
     }
     interfaces.emplace_back(hardware_interface::StateInterface(
-        this->get_node()->get_name(), "esc_enabled",
+        this->get_node()->get_name(), "esc/enabled",
         util::to_interface_data_ptr(this->output.state.esc_enabled)));
     interfaces.emplace_back(hardware_interface::StateInterface(
-        this->get_node()->get_name(), "servo_enabled",
+        this->get_node()->get_name(), "esc/duty_cycle",
+        util::to_interface_data_ptr(this->output.state.esc_duty_cycle)));
+    interfaces.emplace_back(hardware_interface::StateInterface(
+        this->get_node()->get_name(), "servo/enabled",
         util::to_interface_data_ptr(this->output.state.servo_enabled)));
     interfaces.emplace_back(hardware_interface::StateInterface(
-        this->get_node()->get_name(), "duty_cycle",
-        util::to_interface_data_ptr(this->output.state.duty_cycle)));
-    interfaces.emplace_back(hardware_interface::StateInterface(
-        this->get_node()->get_name(), "angle",
-        util::to_interface_data_ptr(this->output.state.angle)));
+        this->get_node()->get_name(), "servo/angle",
+        util::to_interface_data_ptr(this->output.state.servo_angle)));
 
     return interfaces;
 }
@@ -257,17 +264,17 @@ auto ThrusterController::update_and_write_commands(
         (this->input.sub.thruster_output_all->get_publisher_count() == 0);
     if (has_no_thruster_publishers) {
         this->output.state.esc_enabled.value = this->input.cmd.esc_enabled.value;
-        this->output.state.servo_enabled.value = this->input.cmd.servo_enabled.value;
         const auto sgn = this->is_forward ? 1.0 : -1.0;
-        const auto resized = this->max_duty * this->input.cmd.duty_cycle.value;
-        this->output.state.duty_cycle.value = sgn * resized;
-        this->output.state.angle.value = this->input.cmd.angle.value;
+        const auto resized = this->max_duty * this->input.cmd.esc_duty_cycle.value;
+        this->output.state.esc_duty_cycle.value = sgn * resized;
+        this->output.state.servo_enabled.value = this->input.cmd.servo_enabled.value;
+        this->output.state.servo_angle.value = this->input.cmd.servo_angle.value;
     }
 
     this->output.cmd.esc_enabled.value = this->output.state.esc_enabled.value;
+    this->output.cmd.esc_duty_cycle.value = this->output.state.esc_duty_cycle.value;
     this->output.cmd.servo_enabled.value = this->output.state.servo_enabled.value;
-    this->output.cmd.duty_cycle.value = this->output.state.duty_cycle.value;
-    this->output.cmd.angle.value = this->output.state.angle.value;
+    this->output.cmd.servo_angle.value = this->output.state.servo_angle.value;
 
     // コマンドを送信
     res = util::interface_accessor::set_commands_to_loaned_interfaces(
