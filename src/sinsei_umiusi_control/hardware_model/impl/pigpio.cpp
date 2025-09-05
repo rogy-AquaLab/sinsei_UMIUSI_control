@@ -66,9 +66,22 @@ auto suchm::impl::Pigpio::write_digital(const Pin & pin, bool && enabled)
     }
 }
 
-auto suchm::impl::Pigpio::write_pwm() -> tl::expected<void, Error> {
-    // TODO: PWMの処理を実装する
-    return tl::unexpected(Error::UnknownError);
+auto suchm::impl::Pigpio::write_pwm(const Pin & pin, const int && pulsewidth)
+    -> tl::expected<void, Error> {
+    const auto res = ::set_servo_pulsewidth(pi, pin, pulsewidth);
+    if (res == 0) {
+        return {};
+    }
+    switch (res) {
+        case PI_BAD_GPIO:
+            return tl::unexpected(Error::BadGpio);
+        case PI_BAD_PULSEWIDTH:
+            return tl::unexpected(Error::BadPulsewidth);
+        case PI_NOT_PERMITTED:
+            return tl::unexpected(Error::NotPermitted);
+        default:
+            return tl::unexpected(Error::UnknownError);
+    }
 }
 
 auto suchm::impl::Pigpio::i2c_open(const Addr & address) -> tl::expected<void, Error> {
