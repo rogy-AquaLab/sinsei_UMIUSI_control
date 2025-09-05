@@ -5,6 +5,7 @@
 #include <rclcpp_lifecycle/state.hpp>
 #include <string>
 
+#include "sinsei_umiusi_control/msg/low_power_circuit_health.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
@@ -106,6 +107,18 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
             "attitude_controller/imu/velocity.z",
             to_interface_data_ptr(this->input.state.imu_velocity.z),
             sizeof(this->input.state.imu_velocity.z));
+        this->state_interface_data.emplace_back(
+            "can/health", to_interface_data_ptr(this->input.state.can_health),
+            sizeof(this->input.state.can_health));
+        this->state_interface_data.emplace_back(
+            "headlights/health", to_interface_data_ptr(this->input.state.headlights_health),
+            sizeof(this->input.state.headlights_health));
+        this->state_interface_data.emplace_back(
+            "imu/health", to_interface_data_ptr(this->input.state.imu_health),
+            sizeof(this->input.state.imu_health));
+        this->state_interface_data.emplace_back(
+            "indicator_led/health", to_interface_data_ptr(this->input.state.indicator_led_health),
+            sizeof(this->input.state.indicator_led_health));
         for (size_t i = 0; i < 4; ++i) {
             const auto tc_prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
 
@@ -273,6 +286,9 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
         this->output.pub.thruster_state_all_publisher =
             this->get_node()->create_publisher<msg::ThrusterStateAll>(
                 state_prefix + "thruster_state_all", qos);
+        this->output.pub.low_power_circuit_health_publisher =
+            this->get_node()->create_publisher<msg::LowPowerCircuitHealth>(
+                state_prefix + "low_power_circuit_health", qos);
     }
 
     return controller_interface::CallbackReturn::SUCCESS;
@@ -359,6 +375,20 @@ auto GateController::update(
                     .set__rpm(this->input.state.esc_rpms[3].value)
                     .set__voltage(this->input.state.esc_voltages[3].value)
                     .set__water_leaked(this->input.state.esc_water_leaked_flags[3].value)));
+    this->output.pub.low_power_circuit_health_publisher->publish(
+        msg::LowPowerCircuitHealth()
+            .set__can(
+                this->input.state.can_health.is_ok ? msg::LowPowerCircuitHealth::OK
+                                                   : msg::LowPowerCircuitHealth::ERROR)
+            .set__headlights(
+                this->input.state.headlights_health.is_ok ? msg::LowPowerCircuitHealth::OK
+                                                          : msg::LowPowerCircuitHealth::ERROR)
+            .set__imu(
+                this->input.state.imu_health.is_ok ? msg::LowPowerCircuitHealth::OK
+                                                   : msg::LowPowerCircuitHealth::ERROR)
+            .set__indicator_led(
+                this->input.state.indicator_led_health.is_ok ? msg::LowPowerCircuitHealth::OK
+                                                             : msg::LowPowerCircuitHealth::ERROR));
 
     // コマンドを送信
     util::interface_accessor::set_commands_to_loaned_interfaces(

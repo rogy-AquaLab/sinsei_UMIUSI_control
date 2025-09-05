@@ -3,7 +3,6 @@
 
 #include <cstring>
 #include <type_traits>
-#include <utility>
 
 namespace sinsei_umiusi_control::util {
 
@@ -28,8 +27,7 @@ inline auto from_interface_data(InterfaceData && value) -> T {
         "T must be smaller than or equal to InterfaceData (double)");
     static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
     T result;
-    auto && src = std::move(value);
-    std::memcpy(&result, &src, sizeof(T));
+    std::memcpy(&result, &value, sizeof(T));
     return result;
 }
 
@@ -51,8 +49,7 @@ inline auto to_interface_data(T && value) -> InterfaceData {
         "T must be smaller than or equal to InterfaceData (double)");
     static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
     InterfaceData result;
-    auto && src = std::forward(value);
-    std::memcpy(&result, &src, sizeof(InterfaceData));
+    std::memcpy(&result, &value, sizeof(InterfaceData));
     return result;
 }
 

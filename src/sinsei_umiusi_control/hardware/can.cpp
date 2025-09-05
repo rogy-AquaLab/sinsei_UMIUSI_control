@@ -2,6 +2,7 @@
 
 #include "sinsei_umiusi_control/cmd/main_power.hpp"
 #include "sinsei_umiusi_control/hardware_model/impl/linux_can.hpp"
+#include "sinsei_umiusi_control/state/can.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
@@ -105,20 +106,27 @@ auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
 auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
     -> hif::return_type {
     if (!this->model) {
+        this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
+
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_WARN_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  Can model is not initialized");
+
         return hif::return_type::OK;
     }
 
     auto res = this->model->on_read();
     if (!res) {
+        this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
+
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to read CAN data: %s",
             res.error().c_str());
+
         return hif::return_type::OK;
     }
+    this->set_state("can/health", util::to_interface_data(state::can::Health{true}));
 
     auto variant = res.value();
 

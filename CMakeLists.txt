@@ -51,6 +51,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}_msgs
   "msg/ImuState.msg"
   "msg/IndicatorLedOutput.msg"
   "msg/LedTapeOutput.msg"
+  "msg/LowPowerCircuitHealth.msg"
   "msg/MainPowerOutput.msg"
   "msg/MainPowerState.msg"
   "msg/Target.msg"
