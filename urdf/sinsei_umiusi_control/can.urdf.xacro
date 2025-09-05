@@ -49,6 +49,10 @@
       <gpio name="led_tape">
         <command_interface name="color" />
       </gpio>
+
+      <sensor name="can">
+        <state_interface name="health" />
+      </sensor>
     </ros2_control>
   </xacro:macro>
 

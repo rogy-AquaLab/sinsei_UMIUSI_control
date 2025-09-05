@@ -1,6 +1,7 @@
 #include "sinsei_umiusi_control/hardware/indicator_led.hpp"
 
 #include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
+#include "sinsei_umiusi_control/state/indicator_led.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
@@ -50,19 +51,28 @@ auto suchw::IndicatorLed::write(const rclcpp::Time & /*time*/, const rclcpp::Dur
     auto enabled = util::from_interface_data<sinsei_umiusi_control::cmd::indicator_led::Enabled>(
         this->get_command("indicator_led/enabled"));
     if (!this->model) {
+        this->set_state(
+            "indicator_led/health", util::to_interface_data(state::indicator_led::Health{false}));
+
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_WARN_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION,
             "\n  Indicator LED model is not initialized");
+
         return hif::return_type::OK;
     }
 
     const auto res = this->model->on_write(std::move(enabled));
     if (!res) {
+        this->set_state(
+            "indicator_led/health", util::to_interface_data(state::indicator_led::Health{false}));
+
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION,
             "\n  Failed to write Indicator LED: %s", res.error().c_str());
+
+        return hif::return_type::OK;
     }
 
     return hif::return_type::OK;

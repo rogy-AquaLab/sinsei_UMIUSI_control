@@ -11,13 +11,19 @@ struct Quaternion {
     double z;
     double w;
 };
+
 struct Velocity {
     double x;
     double y;
     double z;
 };
+
 struct Temperature {
     int8_t value;
+};
+
+struct Health {
+    bool is_ok;
 };
 
 }  // namespace sinsei_umiusi_control::state::imu

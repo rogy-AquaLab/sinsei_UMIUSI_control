@@ -18,12 +18,16 @@
 #include "sinsei_umiusi_control/msg/imu_state.hpp"
 #include "sinsei_umiusi_control/msg/indicator_led_output.hpp"
 #include "sinsei_umiusi_control/msg/led_tape_output.hpp"
+#include "sinsei_umiusi_control/msg/low_power_circuit_health.hpp"
 #include "sinsei_umiusi_control/msg/main_power_output.hpp"
 #include "sinsei_umiusi_control/msg/main_power_state.hpp"
 #include "sinsei_umiusi_control/msg/target.hpp"
 #include "sinsei_umiusi_control/msg/thruster_enabled_all.hpp"
 #include "sinsei_umiusi_control/msg/thruster_state_all.hpp"
+#include "sinsei_umiusi_control/state/can.hpp"
+#include "sinsei_umiusi_control/state/headlights.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
+#include "sinsei_umiusi_control/state/indicator_led.hpp"
 #include "sinsei_umiusi_control/state/main_power.hpp"
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
 #include "sinsei_umiusi_control/state/thruster/servo.hpp"
@@ -53,6 +57,10 @@ class GateController : public controller_interface::ControllerInterface {
             std::array<sinsei_umiusi_control::state::thruster::servo::Enabled, 4>
                 servo_enabled_flags;
             std::array<sinsei_umiusi_control::state::thruster::servo::Angle, 4> servo_angles;
+            sinsei_umiusi_control::state::can::Health can_health;
+            sinsei_umiusi_control::state::headlights::Health headlights_health;
+            sinsei_umiusi_control::state::imu::Health imu_health;
+            sinsei_umiusi_control::state::indicator_led::Health indicator_led_health;
         };
         // Subscribers for commands
         struct Subscribers {
@@ -89,6 +97,8 @@ class GateController : public controller_interface::ControllerInterface {
             rclcpp::Publisher<msg::MainPowerState>::SharedPtr main_power_state_publisher;
             rclcpp::Publisher<msg::ImuState>::SharedPtr imu_state_publisher;
             rclcpp::Publisher<msg::ThrusterStateAll>::SharedPtr thruster_state_all_publisher;
+            rclcpp::Publisher<msg::LowPowerCircuitHealth>::SharedPtr
+                low_power_circuit_health_publisher;
         };
         Command cmd;
         Publishers pub;
