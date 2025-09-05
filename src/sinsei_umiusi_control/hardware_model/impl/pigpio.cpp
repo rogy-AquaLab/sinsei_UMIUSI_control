@@ -4,14 +4,13 @@
 #include <pigpiod_if2.h>
 #include <sys/types.h>
 
-namespace suchm = sinsei_umiusi_control::hardware_model;
+using namespace sinsei_umiusi_control::hardware_model;
 
-suchm::impl::Pigpio::Pigpio() { this->pi = ::pigpio_start(NULL, NULL); }
+impl::Pigpio::Pigpio() { this->pi = ::pigpio_start(NULL, NULL); }
 
-suchm::impl::Pigpio::~Pigpio() { ::pigpio_stop(pi); }
+impl::Pigpio::~Pigpio() { ::pigpio_stop(pi); }
 
-auto suchm::impl::Pigpio::set_mode_output(const std::vector<Pin> & pins)
-    -> tl::expected<void, Error> {
+auto impl::Pigpio::set_mode_output(const std::vector<Pin> & pins) -> tl::expected<void, Error> {
     for (const auto & pin : pins) {
         const auto res = ::set_mode(this->pi, pin, PI_OUTPUT);
         if (res == 0) {
@@ -29,8 +28,7 @@ auto suchm::impl::Pigpio::set_mode_output(const std::vector<Pin> & pins)
     return {};
 }
 
-auto suchm::impl::Pigpio::set_mode_input(const std::vector<Pin> & pins)
-    -> tl::expected<void, Error> {
+auto impl::Pigpio::set_mode_input(const std::vector<Pin> & pins) -> tl::expected<void, Error> {
     for (const auto & pin : pins) {
         const auto res = ::set_mode(this->pi, pin, PI_INPUT);
         if (res == 0) {
@@ -48,8 +46,7 @@ auto suchm::impl::Pigpio::set_mode_input(const std::vector<Pin> & pins)
     return {};
 }
 
-auto suchm::impl::Pigpio::write_digital(const Pin & pin, bool && enabled)
-    -> tl::expected<void, Error> {
+auto impl::Pigpio::write_digital(const Pin & pin, bool && enabled) -> tl::expected<void, Error> {
     const auto res = ::gpio_write(pi, pin, enabled ? 1 : 0);
     if (res == 0) {
         return {};
@@ -66,12 +63,12 @@ auto suchm::impl::Pigpio::write_digital(const Pin & pin, bool && enabled)
     }
 }
 
-auto suchm::impl::Pigpio::write_pwm() -> tl::expected<void, Error> {
+auto impl::Pigpio::write_pwm() -> tl::expected<void, Error> {
     // TODO: PWMの処理を実装する
     return tl::unexpected(Error::UnknownError);
 }
 
-auto suchm::impl::Pigpio::i2c_open(const Addr & address) -> tl::expected<void, Error> {
+auto impl::Pigpio::i2c_open(const Addr & address) -> tl::expected<void, Error> {
     this->i2c_address = address;
     const auto res = ::i2c_open(pi, I2C_BUS, this->i2c_address, 0U);
     if (res >= 0) {
@@ -94,7 +91,7 @@ auto suchm::impl::Pigpio::i2c_open(const Addr & address) -> tl::expected<void, E
     }
 }
 
-auto suchm::impl::Pigpio::i2c_close() -> tl::expected<void, Error> {
+auto impl::Pigpio::i2c_close() -> tl::expected<void, Error> {
     if (!this->i2c_handle) {
         return tl::unexpected(Error::NoHandle);
     }
@@ -110,7 +107,7 @@ auto suchm::impl::Pigpio::i2c_close() -> tl::expected<void, Error> {
     }
 }
 
-auto suchm::impl::Pigpio::i2c_write_byte(std::byte && value) -> tl::expected<void, Error> {
+auto impl::Pigpio::i2c_write_byte(std::byte && value) -> tl::expected<void, Error> {
     if (!this->i2c_handle) {
         return tl::unexpected(Error::NoHandle);
     }
@@ -130,7 +127,7 @@ auto suchm::impl::Pigpio::i2c_write_byte(std::byte && value) -> tl::expected<voi
     }
 }
 
-auto suchm::impl::Pigpio::i2c_read_byte() const -> tl::expected<std::byte, Error> {
+auto impl::Pigpio::i2c_read_byte() const -> tl::expected<std::byte, Error> {
     if (!this->i2c_handle) {
         return tl::unexpected(Error::NoHandle);
     }
@@ -148,7 +145,7 @@ auto suchm::impl::Pigpio::i2c_read_byte() const -> tl::expected<std::byte, Error
     }
 }
 
-auto suchm::impl::Pigpio::i2c_write_byte_data(const Addr & reg, std::byte && value)
+auto impl::Pigpio::i2c_write_byte_data(const Addr & reg, std::byte && value)
     -> tl::expected<void, Error> {
     if (!this->i2c_handle) {
         return tl::unexpected(Error::NoHandle);
@@ -169,8 +166,7 @@ auto suchm::impl::Pigpio::i2c_write_byte_data(const Addr & reg, std::byte && val
     }
 }
 
-auto suchm::impl::Pigpio::i2c_read_byte_data(const Addr & reg) const
-    -> tl::expected<std::byte, Error> {
+auto impl::Pigpio::i2c_read_byte_data(const Addr & reg) const -> tl::expected<std::byte, Error> {
     if (!this->i2c_handle) {
         return tl::unexpected(Error::NoHandle);
     }

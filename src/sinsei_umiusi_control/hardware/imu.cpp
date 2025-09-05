@@ -3,13 +3,11 @@
 #include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
-namespace suchw = sinsei_umiusi_control::hardware;
-namespace hif = hardware_interface;
-namespace rlc = rclcpp_lifecycle;
+using namespace sinsei_umiusi_control::hardware;
 
-auto suchw::Imu::on_init(const hif::HardwareComponentInterfaceParams & params)
-    -> hif::CallbackReturn {
-    this->hif::SensorInterface::on_init(params);
+auto Imu::on_init(const hardware_interface::HardwareComponentInterfaceParams & params)
+    -> hardware_interface::CallbackReturn {
+    this->hardware_interface::SensorInterface::on_init(params);
 
     this->model.emplace(std::make_unique<sinsei_umiusi_control::hardware_model::impl::Pigpio>());
 
@@ -20,16 +18,16 @@ auto suchw::Imu::on_init(const hif::HardwareComponentInterfaceParams & params)
         this->model.reset();
     }
 
-    return hif::CallbackReturn::SUCCESS;
+    return hardware_interface::CallbackReturn::SUCCESS;
 }
 
-auto suchw::Imu::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
-    -> hif::return_type {
+auto Imu::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
+    -> hardware_interface::return_type {
     if (!this->model) {
         constexpr auto DURATION = 3000;
         RCLCPP_WARN_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  IMU model is not initialized");
-        return hif::return_type::OK;
+        return hardware_interface::return_type::OK;
     }
 
     const auto res = this->model->on_read();
@@ -51,7 +49,7 @@ auto suchw::Imu::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
     // this->set_state("imu/velocity.z", velocity.z);
     this->set_state("imu/temperature", util::to_interface_data(temperature));
 
-    return hif::return_type::OK;
+    return hardware_interface::return_type::OK;
 }
 
 #include <pluginlib/class_list_macros.hpp>

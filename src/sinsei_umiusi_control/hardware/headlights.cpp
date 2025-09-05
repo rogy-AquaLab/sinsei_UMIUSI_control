@@ -6,19 +6,16 @@
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
-namespace suchm = sinsei_umiusi_control::hardware_model;
-namespace suchw = sinsei_umiusi_control::hardware;
-namespace hif = hardware_interface;
-namespace rlc = rclcpp_lifecycle;
+using namespace sinsei_umiusi_control::hardware;
 
-auto suchw::Headlights::on_init(const hif::HardwareComponentInterfaceParams & params)
-    -> hif::CallbackReturn {
-    this->hif::SystemInterface::on_init(params);
+auto Headlights::on_init(const hardware_interface::HardwareComponentInterfaceParams & params)
+    -> hardware_interface::CallbackReturn {
+    this->hardware_interface::SystemInterface::on_init(params);
 
-    auto gpio = std::make_unique<suchm::impl::Pigpio>();
-    auto high_beam_pin = std::make_unique<suchm::impl::Pigpio>();
-    auto low_beam_pin = std::make_unique<suchm::impl::Pigpio>();
-    auto ir_pin = std::make_unique<suchm::impl::Pigpio>();
+    auto gpio = std::make_unique<hardware_model::impl::Pigpio>();
+    auto high_beam_pin = std::make_unique<hardware_model::impl::Pigpio>();
+    auto low_beam_pin = std::make_unique<hardware_model::impl::Pigpio>();
+    auto ir_pin = std::make_unique<hardware_model::impl::Pigpio>();
 
     // ピン番号をパラメーターから取得
     const auto high_beam_pin_num_str =
@@ -26,20 +23,20 @@ auto suchw::Headlights::on_init(const hif::HardwareComponentInterfaceParams & pa
     if (!high_beam_pin_num_str) {
         RCLCPP_ERROR(
             this->get_logger(), "Parameter 'high_beam_pin' not found in hardware parameters.");
-        return hif::CallbackReturn::ERROR;
+        return hardware_interface::CallbackReturn::ERROR;
     }
     const auto low_beam_pin_num_str =
         util::find_param(params.hardware_info.hardware_parameters, "low_beam_pin");
     if (!low_beam_pin_num_str) {
         RCLCPP_ERROR(
             this->get_logger(), "Parameter 'low_beam_pin' not found in hardware parameters.");
-        return hif::CallbackReturn::ERROR;
+        return hardware_interface::CallbackReturn::ERROR;
     }
     const auto ir_pin_num_str =
         util::find_param(params.hardware_info.hardware_parameters, "ir_pin");
     if (!ir_pin_num_str) {
         RCLCPP_ERROR(this->get_logger(), "Parameter 'ir_pin' not found in hardware parameters.");
-        return hif::CallbackReturn::ERROR;
+        return hardware_interface::CallbackReturn::ERROR;
     }
 
     int high_beam_pin_num, low_beam_pin_num, ir_pin_num;
@@ -49,7 +46,7 @@ auto suchw::Headlights::on_init(const hif::HardwareComponentInterfaceParams & pa
         ir_pin_num = std::stoi(ir_pin_num_str.value());
     } catch (const std::invalid_argument & e) {
         RCLCPP_ERROR(this->get_logger(), "Invalid pin number: %s", e.what());
-        return hif::CallbackReturn::ERROR;
+        return hardware_interface::CallbackReturn::ERROR;
     }
 
     this->model.emplace(std::move(gpio), high_beam_pin_num, low_beam_pin_num, ir_pin_num);
@@ -62,17 +59,17 @@ auto suchw::Headlights::on_init(const hif::HardwareComponentInterfaceParams & pa
         this->model.reset();
     }
 
-    return hif::CallbackReturn::SUCCESS;
+    return hardware_interface::CallbackReturn::SUCCESS;
 }
 
-auto suchw::Headlights::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
-    -> hif::return_type {
+auto Headlights::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
+    -> hardware_interface::return_type {
     if (this->model) this->model->on_read();
-    return hif::return_type::OK;
+    return hardware_interface::return_type::OK;
 }
 
-auto suchw::Headlights::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
-    -> hif::return_type {
+auto Headlights::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
+    -> hardware_interface::return_type {
     auto high_beam_enabled =
         util::from_interface_data<sinsei_umiusi_control::cmd::headlights::HighBeamEnabled>(
             this->get_command("headlights/high_beam_enabled"));
@@ -87,7 +84,7 @@ auto suchw::Headlights::write(const rclcpp::Time & /*time*/, const rclcpp::Durat
         RCLCPP_WARN_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION,
             "\n  Headlights model is not initialized");
-        return hif::return_type::OK;
+        return hardware_interface::return_type::OK;
     }
 
     const auto res = this->model->on_write(
@@ -99,7 +96,7 @@ auto suchw::Headlights::write(const rclcpp::Time & /*time*/, const rclcpp::Durat
             res.error().c_str());
     }
 
-    return hif::return_type::OK;
+    return hardware_interface::return_type::OK;
 }
 
 #include <pluginlib/class_list_macros.hpp>
