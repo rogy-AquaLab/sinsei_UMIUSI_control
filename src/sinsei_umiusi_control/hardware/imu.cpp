@@ -7,8 +7,9 @@ namespace suchw = sinsei_umiusi_control::hardware;
 namespace hif = hardware_interface;
 namespace rlc = rclcpp_lifecycle;
 
-auto suchw::Imu::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
-    this->hif::SensorInterface::on_init(info);
+auto suchw::Imu::on_init(const hif::HardwareComponentInterfaceParams & params)
+    -> hif::CallbackReturn {
+    this->hif::SensorInterface::on_init(params);
 
     this->model.emplace(std::make_unique<sinsei_umiusi_control::hardware_model::impl::Pigpio>());
 

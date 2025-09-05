@@ -2,6 +2,7 @@
 #define SINSEI_UMIUSI_CONTROL_HARDWARE_IMU_HPP
 
 #include <hardware_interface/sensor_interface.hpp>
+#include <hardware_interface/types/hardware_component_interface_params.hpp>
 #include <rclcpp/macros.hpp>
 
 #include "sinsei_umiusi_control/hardware_model/imu_model.hpp"
@@ -17,7 +18,7 @@ class Imu : public hardware_interface::SensorInterface {
 
     Imu() = default;
 
-    auto on_init(const hardware_interface::HardwareInfo & info)
+    auto on_init(const hardware_interface::HardwareComponentInterfaceParams & params)
         -> hardware_interface::CallbackReturn override;
     auto read(const rclcpp::Time & time, const rclcpp::Duration & period)
         -> hardware_interface::return_type override;

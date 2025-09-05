@@ -24,10 +24,12 @@ suchw::Can::~Can() {
     }
 }
 
-auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
-    this->hif::SystemInterface::on_init(info);
+auto suchw::Can::on_init(const hif::HardwareComponentInterfaceParams & params)
+    -> hif::CallbackReturn {
+    this->hif::SystemInterface::on_init(params);
 
-    const auto thruster_mode = util::find_param(info.hardware_parameters, "thruster_mode");
+    const auto thruster_mode =
+        util::find_param(params.hardware_info.hardware_parameters, "thruster_mode");
     if (!thruster_mode) {
         RCLCPP_ERROR(
             this->get_logger(), "Parameter 'thruster_mode' not found in hardware parameters.");
@@ -43,7 +45,7 @@ auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
     std::array<int, 4> vesc_ids;
     for (size_t i = 0; i < 4; ++i) {
         auto vesc_id_key = "vesc" + std::to_string(i + 1) + "_id";
-        auto vesc_id_str = util::find_param(info.hardware_parameters, vesc_id_key);
+        auto vesc_id_str = util::find_param(params.hardware_info.hardware_parameters, vesc_id_key);
         if (!vesc_id_str) {
             RCLCPP_ERROR(
                 this->get_logger(), "Parameter '%s' not found in hardware parameters.",
@@ -62,7 +64,7 @@ auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
 
     // Thrusterすべてに信号を`period_led_tape_per_thrusters`回送るごとにLEDテープの信号を1回送る
     const auto period_led_tape_per_thrusters_str =
-        util::find_param(info.hardware_parameters, "period_led_tape_per_thrusters");
+        util::find_param(params.hardware_info.hardware_parameters, "period_led_tape_per_thrusters");
     if (!period_led_tape_per_thrusters_str) {
         RCLCPP_ERROR(
             this->get_logger(),

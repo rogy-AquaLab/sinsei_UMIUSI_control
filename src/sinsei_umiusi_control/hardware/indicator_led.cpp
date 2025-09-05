@@ -8,13 +8,14 @@ namespace suchw = sinsei_umiusi_control::hardware;
 namespace hif = hardware_interface;
 namespace rlc = rclcpp_lifecycle;
 
-auto suchw::IndicatorLed::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
-    this->hif::SystemInterface::on_init(info);
+auto suchw::IndicatorLed::on_init(const hif::HardwareComponentInterfaceParams & params)
+    -> hif::CallbackReturn {
+    this->hif::SystemInterface::on_init(params);
 
     auto led_pin = std::make_unique<sinsei_umiusi_control::hardware_model::impl::Pigpio>();
 
     // ピン番号をパラメーターから取得
-    const auto led_pin_num_str = util::find_param(info.hardware_parameters, "pin");
+    const auto led_pin_num_str = util::find_param(params.hardware_info.hardware_parameters, "pin");
     if (!led_pin_num_str) {
         RCLCPP_ERROR(this->get_logger(), "Parameter 'pin' not found in hardware parameters.");
         return hif::CallbackReturn::ERROR;

@@ -11,8 +11,9 @@ namespace suchw = sinsei_umiusi_control::hardware;
 namespace hif = hardware_interface;
 namespace rlc = rclcpp_lifecycle;
 
-auto suchw::Headlights::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
-    this->hif::SystemInterface::on_init(info);
+auto suchw::Headlights::on_init(const hif::HardwareComponentInterfaceParams & params)
+    -> hif::CallbackReturn {
+    this->hif::SystemInterface::on_init(params);
 
     auto gpio = std::make_unique<suchm::impl::Pigpio>();
     auto high_beam_pin = std::make_unique<suchm::impl::Pigpio>();
@@ -20,19 +21,22 @@ auto suchw::Headlights::on_init(const hif::HardwareInfo & info) -> hif::Callback
     auto ir_pin = std::make_unique<suchm::impl::Pigpio>();
 
     // ピン番号をパラメーターから取得
-    const auto high_beam_pin_num_str = util::find_param(info.hardware_parameters, "high_beam_pin");
+    const auto high_beam_pin_num_str =
+        util::find_param(params.hardware_info.hardware_parameters, "high_beam_pin");
     if (!high_beam_pin_num_str) {
         RCLCPP_ERROR(
             this->get_logger(), "Parameter 'high_beam_pin' not found in hardware parameters.");
         return hif::CallbackReturn::ERROR;
     }
-    const auto low_beam_pin_num_str = util::find_param(info.hardware_parameters, "low_beam_pin");
+    const auto low_beam_pin_num_str =
+        util::find_param(params.hardware_info.hardware_parameters, "low_beam_pin");
     if (!low_beam_pin_num_str) {
         RCLCPP_ERROR(
             this->get_logger(), "Parameter 'low_beam_pin' not found in hardware parameters.");
         return hif::CallbackReturn::ERROR;
     }
-    const auto ir_pin_num_str = util::find_param(info.hardware_parameters, "ir_pin");
+    const auto ir_pin_num_str =
+        util::find_param(params.hardware_info.hardware_parameters, "ir_pin");
     if (!ir_pin_num_str) {
         RCLCPP_ERROR(this->get_logger(), "Parameter 'ir_pin' not found in hardware parameters.");
         return hif::CallbackReturn::ERROR;

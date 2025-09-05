@@ -2,6 +2,7 @@
 #define SINSEI_UMIUSI_CONTROL_HARDWARE_CAN_HPP
 
 #include <hardware_interface/system_interface.hpp>
+#include <hardware_interface/types/hardware_component_interface_params.hpp>
 #include <rclcpp/macros.hpp>
 
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
@@ -21,7 +22,7 @@ class Can : public hardware_interface::SystemInterface {
     Can() = default;
     ~Can() override;
 
-    auto on_init(const hardware_interface::HardwareInfo & info)
+    auto on_init(const hardware_interface::HardwareComponentInterfaceParams & params)
         -> hardware_interface::CallbackReturn override;
     auto read(const rclcpp::Time & time, const rclcpp::Duration & period)
         -> hardware_interface::return_type override;
