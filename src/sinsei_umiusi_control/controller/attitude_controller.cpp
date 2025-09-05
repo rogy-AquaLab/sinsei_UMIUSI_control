@@ -214,8 +214,8 @@ auto AttitudeController::update_and_write_commands(
     } else {
         RCLCPP_INFO(
             this->get_node()->get_logger(), "Control mode changed: %s -> %s",
-            logic::control_mode_to_str(this->logic->control_mode()).c_str(),
-            logic::control_mode_to_str(control_mode_res.value()).c_str());
+            logic::control_mode_to_str(this->logic->control_mode()).data(),
+            logic::control_mode_to_str(control_mode_res.value()).data());
 
         // モードが変わった場合はロジックを変更して初期化
         switch (control_mode_res.value()) {

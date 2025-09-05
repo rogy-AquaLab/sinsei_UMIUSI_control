@@ -61,7 +61,7 @@ auto suchm::impl::LinuxCan::close() -> tl::expected<void, std::string> {
     return {};
 }
 
-auto suchm::impl::LinuxCan::init(const std::string ifname) -> tl::expected<void, std::string> {
+auto suchm::impl::LinuxCan::init(const std::string_view ifname) -> tl::expected<void, std::string> {
     // Create a socket
     this->sock = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
     if (this->sock < 0) {
@@ -71,7 +71,7 @@ auto suchm::impl::LinuxCan::init(const std::string ifname) -> tl::expected<void,
 
     // Interface request (name -> if_index mapping)
     struct ifreq ifr {};
-    std::strncpy(ifr.ifr_name, ifname.c_str(), IFNAMSIZ - 1);
+    std::strncpy(ifr.ifr_name, ifname.data(), IFNAMSIZ - 1);
     auto res = ::ioctl(this->sock.value(), SIOCGIFINDEX, &ifr);
     if (res < 0) {
         this->close();  // Reset the socket descriptor on error
