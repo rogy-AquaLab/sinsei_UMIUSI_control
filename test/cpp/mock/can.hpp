@@ -12,7 +12,7 @@ namespace sinsei_umiusi_control::test::mock {
 
 class Can : public sinsei_umiusi_control::hardware_model::interface::Can {
   public:
-    MOCK_METHOD1(init, tl::expected<void, std::string>(const std::string ifname));
+    MOCK_METHOD1(init, tl::expected<void, std::string>(const std::string_view ifname));
     MOCK_METHOD0(close, tl::expected<void, std::string>());
     MOCK_METHOD1(
         send_frame, tl::expected<void, std::string>(

@@ -6,11 +6,9 @@
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
-namespace suchw = sinsei_umiusi_control::hardware;
-namespace hif = hardware_interface;
-namespace rlc = rclcpp_lifecycle;
+using namespace sinsei_umiusi_control::hardware;
 
-suchw::Can::~Can() {
+Can::~Can() {
     if (!this->model) {
         RCLCPP_ERROR(this->get_logger(), "Can model is not initialized.");
         return;
@@ -25,31 +23,33 @@ suchw::Can::~Can() {
     }
 }
 
-auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
-    this->hif::SystemInterface::on_init(info);
+auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & params)
+    -> hardware_interface::CallbackReturn {
+    this->hardware_interface::SystemInterface::on_init(params);
 
-    const auto thruster_mode = util::find_param(info.hardware_parameters, "thruster_mode");
+    const auto thruster_mode =
+        util::find_param(params.hardware_info.hardware_parameters, "thruster_mode");
     if (!thruster_mode) {
         RCLCPP_ERROR(
             this->get_logger(), "Parameter 'thruster_mode' not found in hardware parameters.");
-        return hif::CallbackReturn::ERROR;
+        return hardware_interface::CallbackReturn::ERROR;
     }
     const auto mode_res = util::get_mode_from_str(thruster_mode.value());
     if (!mode_res) {
         RCLCPP_ERROR(this->get_logger(), "Invalid thruster mode: %s", mode_res.error().c_str());
-        return hif::CallbackReturn::ERROR;
+        return hardware_interface::CallbackReturn::ERROR;
     }
     this->thruster_mode = mode_res.value();
 
     std::array<int, 4> vesc_ids;
     for (size_t i = 0; i < 4; ++i) {
         auto vesc_id_key = "vesc" + std::to_string(i + 1) + "_id";
-        auto vesc_id_str = util::find_param(info.hardware_parameters, vesc_id_key);
+        auto vesc_id_str = util::find_param(params.hardware_info.hardware_parameters, vesc_id_key);
         if (!vesc_id_str) {
             RCLCPP_ERROR(
                 this->get_logger(), "Parameter '%s' not found in hardware parameters.",
                 vesc_id_key.c_str());
-            return hif::CallbackReturn::ERROR;
+            return hardware_interface::CallbackReturn::ERROR;
         }
         try {
             vesc_ids[i] = std::stoi(vesc_id_str.value());
@@ -57,18 +57,18 @@ auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
             RCLCPP_ERROR(
                 this->get_logger(), "Invalid VESC ID '%s': %s", vesc_id_str.value().c_str(),
                 e.what());
-            return hif::CallbackReturn::ERROR;
+            return hardware_interface::CallbackReturn::ERROR;
         }
     }
 
     // Thrusterすべてに信号を`period_led_tape_per_thrusters`回送るごとにLEDテープの信号を1回送る
     const auto period_led_tape_per_thrusters_str =
-        util::find_param(info.hardware_parameters, "period_led_tape_per_thrusters");
+        util::find_param(params.hardware_info.hardware_parameters, "period_led_tape_per_thrusters");
     if (!period_led_tape_per_thrusters_str) {
         RCLCPP_ERROR(
             this->get_logger(),
             "Parameter 'period_led_tape_per_thrusters' not found in hardware parameters.");
-        return hif::CallbackReturn::ERROR;
+        return hardware_interface::CallbackReturn::ERROR;
     }
     size_t period_led_tape_per_thrusters = 0;
     try {
@@ -78,7 +78,7 @@ auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
         RCLCPP_ERROR(
             this->get_logger(), "Invalid value for `period_led_tape_per_thrusters` (%s): %s",
             period_led_tape_per_thrusters_str.value().c_str(), e.what());
-        return hif::CallbackReturn::ERROR;
+        return hardware_interface::CallbackReturn::ERROR;
     }
     // `period_led_tape_per_thrusters`が1以下のとき、特定のコマンドがLEDテープのコマンドに邪魔されて送れなくなってしまう。
     if (period_led_tape_per_thrusters <= 1) {
@@ -86,7 +86,7 @@ auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
             this->get_logger(),
             "Invalid value for `period_led_tape_per_thrusters` (%zu): must be greater than 1",
             period_led_tape_per_thrusters);
-        return hif::CallbackReturn::ERROR;
+        return hardware_interface::CallbackReturn::ERROR;
     }
 
     this->model.emplace(
@@ -100,19 +100,18 @@ auto suchw::Can::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn 
         this->model.reset();
     }
 
-    return hif::CallbackReturn::SUCCESS;
+    return hardware_interface::CallbackReturn::SUCCESS;
 }
 
-auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
-    -> hif::return_type {
+auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
+    -> hardware_interface::return_type {
     if (!this->model) {
         this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
 
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_WARN_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  Can model is not initialized");
-
-        return hif::return_type::OK;
+        return hardware_interface::return_type::OK;
     }
 
     auto res = this->model->on_read();
@@ -123,8 +122,7 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
         RCLCPP_ERROR_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to read CAN data: %s",
             res.error().c_str());
-
-        return hif::return_type::OK;
+        return hardware_interface::return_type::OK;
     }
     this->set_state("can/health", util::to_interface_data(state::can::Health{true}));
 
@@ -176,16 +174,16 @@ auto suchw::Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*
         }
     }
 
-    return hif::return_type::OK;
+    return hardware_interface::return_type::OK;
 }
 
-auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
-    -> hif::return_type {
+auto Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
+    -> hardware_interface::return_type {
     if (!this->model) {
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_WARN_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  Can model is not initialized");
-        return hif::return_type::OK;
+        return hardware_interface::return_type::OK;
     }
 
     auto && main_power_enabled = util::from_interface_data<cmd::main_power::Enabled>(
@@ -222,7 +220,7 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
                 RCLCPP_ERROR_THROTTLE(
                     this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to write Can: %s",
                     res.error().c_str());
-                return hif::return_type::OK;
+                return hardware_interface::return_type::OK;
             }
             break;
         }
@@ -235,16 +233,16 @@ auto suchw::Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
                 RCLCPP_ERROR_THROTTLE(
                     this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to write Can: %s",
                     res.error().c_str());
-                return hif::return_type::OK;
+                return hardware_interface::return_type::OK;
             }
             break;
         }
 
         default: {
-            return hif::return_type::ERROR;  // unreachable
+            return hardware_interface::return_type::ERROR;  // unreachable
         }
     }
-    return hif::return_type::OK;
+    return hardware_interface::return_type::OK;
 }
 
 #include <pluginlib/class_list_macros.hpp>

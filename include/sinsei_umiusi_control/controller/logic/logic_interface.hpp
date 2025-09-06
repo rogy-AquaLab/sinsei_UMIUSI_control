@@ -11,7 +11,7 @@ enum class ControlMode {
     FeedBack,
 };
 
-inline auto control_mode_to_str(const ControlMode & mode) -> std::string {
+inline auto control_mode_to_str(const ControlMode & mode) -> std::string_view {
     switch (mode) {
         case ControlMode::FeedForward:
             return "ff";

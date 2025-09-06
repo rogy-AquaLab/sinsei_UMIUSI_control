@@ -15,7 +15,7 @@ ImuModel::ImuModel(std::unique_ptr<interface::Gpio> gpio) : gpio(std::move(gpio)
 auto ImuModel::on_init() -> tl::expected<void, std::string> {
     auto res = this->gpio->i2c_open(ADDRESS).map_error(interface::gpio_error_to_string);
     if (!res) {
-        return tl::unexpected<std::string>(
+        return tl::make_unexpected(
             "Failed to open I2C bus for BNO055: I2C open error: " + res.error());
     }
 
@@ -29,11 +29,11 @@ auto ImuModel::on_init() -> tl::expected<void, std::string> {
                          .map_error(interface::gpio_error_to_string)
                          .map(std::to_integer<interface::Gpio::Addr>);
         if (!id_opt_res) {
-            return tl::unexpected<std::string>(
+            return tl::make_unexpected(
                 "Failed to read CHIP_ID from BNO055: I2C read error: " + id_opt_res.error());
         }
         if (id_opt_res.value() != ID) {
-            return tl::unexpected<std::string>(
+            return tl::make_unexpected(
                 "Failed to find BNO055 device (found ID: " + std::to_string(id_opt_res.value()) +
                 ")");
         }
@@ -43,7 +43,7 @@ auto ImuModel::on_init() -> tl::expected<void, std::string> {
     res = this->gpio->i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG})
               .map_error(interface::gpio_error_to_string);
     if (!res) {
-        return tl::unexpected<std::string>(
+        return tl::make_unexpected(
             "Failed to set BNO055 to CONFIG mode: I2C write error: " + res.error());
     }
 
@@ -51,7 +51,7 @@ auto ImuModel::on_init() -> tl::expected<void, std::string> {
     res = this->gpio->i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20})
               .map_error(interface::gpio_error_to_string);
     if (!res) {
-        return tl::unexpected<std::string>(
+        return tl::make_unexpected(
             "Failed to trigger BNO055 reset: I2C write error: " + res.error());
     }
 
@@ -71,7 +71,7 @@ auto ImuModel::on_init() -> tl::expected<void, std::string> {
         rclcpp::sleep_for(std::chrono::milliseconds(WAIT_INTERVAL_MS));
     }
     if (timeout) {
-        return tl::unexpected<std::string>(
+        return tl::make_unexpected(
             "BNO055 did not restart within timeout period (" + std::to_string(TIMEOUT_MS) + " ms)");
     }
     rclcpp::sleep_for(static_cast<std::chrono::nanoseconds>(50ms));
@@ -80,7 +80,7 @@ auto ImuModel::on_init() -> tl::expected<void, std::string> {
     res = this->gpio->i2c_write_byte_data(PWR_MODE_ADDR, std::byte{POWER_MODE_NORMAL})
               .map_error(interface::gpio_error_to_string);
     if (!res) {
-        return tl::unexpected<std::string>(
+        return tl::make_unexpected(
             "Failed to set BNO055 to NORMAL power mode: I2C write error: " + res.error());
     }
     rclcpp::sleep_for(static_cast<std::chrono::nanoseconds>(10ms));
@@ -88,14 +88,14 @@ auto ImuModel::on_init() -> tl::expected<void, std::string> {
     res = this->gpio->i2c_write_byte_data(PAGE_ID_ADDR, std::byte{0x0})
               .map_error(interface::gpio_error_to_string);
     if (!res) {
-        return tl::unexpected<std::string>(
+        return tl::make_unexpected(
             "Failed to set BNO055 to PAGE 0: I2C write error: " + res.error());
     }
 
     res = this->gpio->i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x0})
               .map_error(interface::gpio_error_to_string);
     if (!res) {
-        return tl::unexpected<std::string>(
+        return tl::make_unexpected(
             "Failed to clear BNO055 SYS_TRIGGER: I2C write error: " + res.error());
     }
     rclcpp::sleep_for(static_cast<std::chrono::nanoseconds>(10ms));
@@ -104,7 +104,7 @@ auto ImuModel::on_init() -> tl::expected<void, std::string> {
     res = this->gpio->i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_NDOF})
               .map_error(interface::gpio_error_to_string);
     if (!res) {
-        return tl::unexpected<std::string>(
+        return tl::make_unexpected(
             "Failed to set BNO055 to NDOF mode: I2C write error: " + res.error());
     }
     rclcpp::sleep_for(static_cast<std::chrono::nanoseconds>(20ms));
@@ -118,7 +118,7 @@ auto ImuModel::on_read()
         std::string> {
     const auto quaternion_res = this->read_quat();
     if (!quaternion_res) {
-        return tl::unexpected<std::string>(
+        return tl::make_unexpected(
             "Failed to read quaternion data from BNO055: " + quaternion_res.error());
     }
 
@@ -128,7 +128,7 @@ auto ImuModel::on_read()
     const auto temp_raw_res =
         this->gpio->i2c_read_byte_data(TEMP_ADDR).map_error(interface::gpio_error_to_string);
     if (!temp_raw_res) {
-        return tl::unexpected<std::string>(
+        return tl::make_unexpected(
             "Failed to read temperature data from BNO055: I2C read error: " + temp_raw_res.error());
     }
     const auto temp_raw = temp_raw_res.value();
@@ -148,7 +148,7 @@ auto ImuModel::read_quat() -> tl::expected<state::imu::Quaternion, std::string> 
         auto byte_opt_res = this->gpio->i2c_read_byte_data(QUATERNION_DATA_W_LSB_ADDR + i)
                                 .map_error(interface::gpio_error_to_string);
         if (!byte_opt_res) {
-            return tl::unexpected<std::string>("I2C read error: " + byte_opt_res.error());
+            return tl::make_unexpected("I2C read error: " + byte_opt_res.error());
         }
         buffer[i] = byte_opt_res.value();
     }
