@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
+#include "sinsei_umiusi_control/state/headlights.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
@@ -80,6 +81,9 @@ auto Headlights::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
         this->get_command("headlights/ir_enabled"));
 
     if (!this->model) {
+        this->set_state(
+            "headlights/health", util::to_interface_data(state::headlights::Health{false}));
+
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_WARN_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION,
@@ -90,10 +94,15 @@ auto Headlights::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
     const auto res = this->model->on_write(
         std::move(high_beam_enabled), std::move(low_beam_enabled), std::move(ir_enabled));
     if (!res) {
+        this->set_state(
+            "headlights/health", util::to_interface_data(state::headlights::Health{false}));
+
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to write Headlights: %s",
             res.error().c_str());
+
+        return hardware_interface::return_type::OK;
     }
 
     return hardware_interface::return_type::OK;

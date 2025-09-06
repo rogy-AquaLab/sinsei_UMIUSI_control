@@ -1,6 +1,7 @@
 #include "sinsei_umiusi_control/hardware/imu.hpp"
 
 #include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
+#include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
 using namespace sinsei_umiusi_control::hardware;
@@ -24,6 +25,8 @@ auto Imu::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
 auto Imu::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
     -> hardware_interface::return_type {
     if (!this->model) {
+        this->set_state("imu/health", util::to_interface_data(state::imu::Health{false}));
+
         constexpr auto DURATION = 3000;
         RCLCPP_WARN_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  IMU model is not initialized");
@@ -32,11 +35,16 @@ auto Imu::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
 
     const auto res = this->model->on_read();
     if (!res) {
+        this->set_state("imu/health", util::to_interface_data(state::imu::Health{false}));
+
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to read IMU data: %s",
             res.error().c_str());
+
+        return hardware_interface::return_type::OK;
     }
+    this->set_state("imu/health", util::to_interface_data(state::imu::Health{true}));
 
     const auto [quaternion, velocity, temperature] = res.value();
 

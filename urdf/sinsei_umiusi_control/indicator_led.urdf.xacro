@@ -7,8 +7,10 @@
         <plugin>sinsei_umiusi_control/hardware/IndicatorLed</plugin>
         <param name="pin">${pin}</param>
       </hardware>
+
       <gpio name="indicator_led">
         <command_interface name="enabled" />
+        <state_interface name="health" />
       </gpio>
     </ros2_control>
   </xacro:macro>
