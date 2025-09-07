@@ -53,5 +53,9 @@ comment:
 fixes:
   - "ros_ws/src/*/sinsei_UMIUSI_control/sinsei_umiusi_control/::"
 
+ignore:
+  - "test/*"
+  - "test/**/*"
+
 github_checks:
   annotations: false
