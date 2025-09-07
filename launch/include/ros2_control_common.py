@@ -8,8 +8,6 @@ from launch.substitutions import (
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
-PACKAGE_NAME = 'sinsei_umiusi_control'
-
 
 def generate_launch_description():
     robot_description = ParameterValue(
