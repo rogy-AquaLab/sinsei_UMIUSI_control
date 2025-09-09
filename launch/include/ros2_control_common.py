@@ -6,10 +6,7 @@ from launch.substitutions import (
     FindExecutable,
 )
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
 from launch_ros.parameter_descriptions import ParameterValue
-
-PACKAGE_NAME = 'sinsei_umiusi_control'
 
 
 def generate_launch_description():
@@ -18,9 +15,7 @@ def generate_launch_description():
             [
                 PathJoinSubstitution([FindExecutable(name='xacro')]),
                 ' ',
-                PathJoinSubstitution(
-                    [FindPackageShare(PACKAGE_NAME), 'urdf', 'main.urdf.xacro']
-                ),
+                LaunchConfiguration('robot_description_file'),
                 ' thruster_mode:=',
                 LaunchConfiguration('thruster_mode'),
                 ' vesc1_id:=',
@@ -52,9 +47,7 @@ def generate_launch_description():
                 executable='ros2_control_node',
                 output='both',
                 parameters=[
-                    PathJoinSubstitution(
-                        [FindPackageShare(PACKAGE_NAME), 'params', 'controllers.yaml']
-                    ),
+                    LaunchConfiguration('controllers_param_file'),
                     {'thruster_mode': LaunchConfiguration('thruster_mode')},
                 ],
             ),
