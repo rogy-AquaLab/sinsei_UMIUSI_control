@@ -7,10 +7,11 @@
 #include <vector>
 
 #include "sinsei_umiusi_control/cmd/attitude.hpp"
-#include "sinsei_umiusi_control/cmd/thruster.hpp"
+#include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
+#include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
 #include "sinsei_umiusi_control/controller/logic/logic_interface.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
-#include "sinsei_umiusi_control/state/thruster.hpp"
+#include "sinsei_umiusi_control/state/thruster/esc.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
@@ -19,23 +20,26 @@ namespace sinsei_umiusi_control::controller {
 class AttitudeController : public controller_interface::ChainableControllerInterface {
   public:
     struct Input {
-        struct Command {  // Command interfaces (in)
+        // Command interfaces (in)
+        struct Command {
             cmd::attitude::Orientation target_orientation;
             cmd::attitude::Velocity target_velocity;
         };
-        struct State {  // State interfaces (out)
+        // State interfaces (in)
+        struct State {
             state::imu::Quaternion imu_quaternion;
             state::imu::Velocity imu_velocity;
-            std::array<state::thruster::Rpm, 4> thruster_rpms;
+            std::array<state::thruster::esc::Rpm, 4> esc_rpms;
         };
         Command cmd;
         State state;
     };
 
     struct Output {
-        struct Command {  // Command interfaces (out)
-            std::array<cmd::thruster::Angle, 4> thruster_angles;
-            std::array<cmd::thruster::DutyCycle, 4> thruster_duty_cycles;
+        // Command interfaces (out)
+        struct Command {
+            std::array<cmd::thruster::esc::DutyCycle, 4> esc_duty_cycles;
+            std::array<cmd::thruster::servo::Angle, 4> servo_angles;
         };
         Command cmd;
     };

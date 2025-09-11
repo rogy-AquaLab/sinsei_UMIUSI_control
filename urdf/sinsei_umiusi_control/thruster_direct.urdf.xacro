@@ -11,6 +11,7 @@
         <gpio name="${thruster_name}/servo">
           <command_interface name="enabled" />
           <command_interface name="angle" />
+          <state_interface name="state" />
         </gpio>
       </ros2_control>
       <ros2_control name="${thruster_name}/esc" type="system">
@@ -20,6 +21,7 @@
         <gpio name="${thruster_name}/esc">
           <command_interface name="enabled" />
           <command_interface name="duty_cycle" />
+          <state_interface name="health" />
         </gpio>
       </ros2_control>
     </xacro:macro>

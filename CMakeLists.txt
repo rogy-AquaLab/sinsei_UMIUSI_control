@@ -45,6 +45,33 @@ if(NOT Eigen3_FOUND)
   message(FATAL_ERROR "Eigen3 not found. Please install Eigen3.")
 endif()
 
+# 本来は`msg`や`srv`専用にパッケージを分けるべきだが、リポジトリを跨ぎたくないためここに置いている。
+rosidl_generate_interfaces(${PROJECT_NAME}_msgs
+  "msg/HeadlightsOutput.msg"
+  "msg/ImuState.msg"
+  "msg/IndicatorLedOutput.msg"
+  "msg/LedTapeOutput.msg"
+  "msg/LowPowerCircuitHealth.msg"
+  "msg/MainPowerOutput.msg"
+  "msg/MainPowerState.msg"
+  "msg/Target.msg"
+  "msg/ThrusterEnabled.msg"
+  "msg/ThrusterEnabledAll.msg"
+  "msg/ThrusterOutput.msg"
+  "msg/ThrusterOutputAll.msg"
+  "msg/ThrusterState.msg"
+  "msg/ThrusterStateAll.msg"
+
+  DEPENDENCIES
+    std_msgs
+    geometry_msgs
+
+  LIBRARY_NAME
+    ${PROJECT_NAME}
+)
+ament_export_dependencies(rosidl_default_runtime)
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME}_msgs rosidl_typesupport_cpp)
+
 ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   src/${PROJECT_NAME}/hardware/can.cpp
   src/${PROJECT_NAME}/hardware/headlights.cpp
@@ -74,6 +101,9 @@ ament_auto_add_library(${PROJECT_NAME}_controller SHARED
   src/${PROJECT_NAME}/controller/thruster_controller.cpp
   src/${PROJECT_NAME}/util/interface_accessor.cpp
 )
+target_link_libraries(${PROJECT_NAME}_controller
+  ${cpp_typesupport_target}
+)
 target_include_directories(${PROJECT_NAME}_controller
   PRIVATE
     ${Eigen3_INCLUDE_DIRS}
@@ -86,7 +116,10 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
-  ament_add_pytest_test(pytest test/python)
+  ament_add_pytest_test(
+    pytest test/python
+    TIMEOUT 120
+  )
   ament_auto_add_gmock(test_hardware_model
     test/cpp/hardware_model/headlights.cpp
     test/cpp/hardware_model/imu.cpp

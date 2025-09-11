@@ -8,23 +8,24 @@ namespace sinsei_umiusi_control::util {
 
 enum class ThrusterMode { Can, Direct };
 
-inline auto get_mode_from_str(const std::string & str) -> tl::expected<ThrusterMode, std::string> {
+inline auto get_mode_from_str(const std::string_view & str)
+    -> tl::expected<ThrusterMode, std::string> {
     if (str == "can") {
         return ThrusterMode::Can;
     } else if (str == "direct") {
         return ThrusterMode::Direct;
     } else {
-        return tl::make_unexpected("Invalid thruster mode: " + str);
+        return tl::make_unexpected("Invalid thruster mode: " + std::string(str));
     }
 }
 
-inline auto get_mode_from_str(std::string && str) -> tl::expected<ThrusterMode, std::string> {
+inline auto get_mode_from_str(std::string_view && str) -> tl::expected<ThrusterMode, std::string> {
     if (str == "can") {
         return ThrusterMode::Can;
     } else if (str == "direct") {
         return ThrusterMode::Direct;
     } else {
-        return tl::make_unexpected("Invalid thruster mode: " + str);
+        return tl::make_unexpected("Invalid thruster mode: " + std::string(str));
     }
 }
 

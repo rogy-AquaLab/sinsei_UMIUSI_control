@@ -3,34 +3,80 @@
 
 #include <controller_interface/chainable_controller_interface.hpp>
 #include <hardware_interface/hardware_interface/handle.hpp>
+#include <rclcpp/subscription.hpp>
 #include <vector>
 
-#include "sinsei_umiusi_control/cmd/thruster.hpp"
-#include "sinsei_umiusi_control/state/thruster.hpp"
+#include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
+#include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
+#include "sinsei_umiusi_control/msg/thruster_output.hpp"
+#include "sinsei_umiusi_control/msg/thruster_output_all.hpp"
+#include "sinsei_umiusi_control/state/thruster/esc.hpp"
+#include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 namespace sinsei_umiusi_control::controller {
 
 class ThrusterController : public controller_interface::ChainableControllerInterface {
+  public:
+    struct Input {
+        // Command interfaces (in)
+        struct Command {
+            cmd::thruster::esc::Enabled esc_enabled;
+            cmd::thruster::esc::DutyCycle esc_duty_cycle;
+            cmd::thruster::servo::Enabled servo_enabled;
+            cmd::thruster::servo::Angle servo_angle;
+        };
+        // State interfaces (in)
+        struct State {
+            state::thruster::esc::Rpm esc_rpm;
+            state::thruster::esc::Voltage esc_voltage;
+            state::thruster::esc::WaterLeaked esc_water_leaked;
+        };
+        // Subscribers for command inputs
+        struct Subscriber {
+            rclcpp::Subscription<msg::ThrusterOutput>::SharedPtr thruster_output;
+            rclcpp::Subscription<msg::ThrusterOutputAll>::SharedPtr thruster_output_all;
+        };
+        Command cmd;
+        State state;
+        Subscriber sub;
+    };
+    struct Output {
+        // Command interfaces (out)
+        struct Command {
+            cmd::thruster::esc::Enabled esc_enabled;
+            cmd::thruster::esc::DutyCycle esc_duty_cycle;
+            cmd::thruster::servo::Enabled servo_enabled;
+            cmd::thruster::servo::Angle servo_angle;
+        };
+        // State interfaces (out)
+        struct State {
+            state::thruster::esc::Enabled esc_enabled;
+            state::thruster::esc::DutyCycle esc_duty_cycle;
+            state::thruster::servo::Enabled servo_enabled;
+            state::thruster::servo::Angle servo_angle;
+        };
+        Command cmd;
+        State state;
+    };
+
   private:
-    // Command interfaces (in)
-    sinsei_umiusi_control::cmd::thruster::ServoEnabled servo_enabled;
-    sinsei_umiusi_control::cmd::thruster::EscEnabled esc_enabled;
-    sinsei_umiusi_control::cmd::thruster::Angle angle;
-    sinsei_umiusi_control::cmd::thruster::DutyCycle duty_cycle;
+    Input input;
+    Output output;
 
-    // State interfaces (out)
-    sinsei_umiusi_control::state::thruster::Rpm rpm;
+    util::interface_accessor::InterfaceDataContainer command_interface_data;
+    util::interface_accessor::InterfaceDataContainer state_interface_data;
+    util::interface_accessor::InterfaceDataContainer ref_interface_data;
 
-    sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer command_interface_data;
-    sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer state_interface_data;
-    sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer ref_interface_data;
-
-    // Thruster ID (1~4)
-    uint8_t id;
-
+    // Thruster mode (CAN or Direct)
     util::ThrusterMode mode;
+    // Thruster hardware component ID (1~4)
+    uint8_t id;
+    // Thruster direction (true for forward, false for reverse)
+    bool is_forward;
+    // Maximum duty cycle (0.0 to 1.0)
+    double max_duty;
 
   public:
     ThrusterController() = default;

@@ -5,6 +5,7 @@
       <hardware>
         <plugin>sinsei_umiusi_control/hardware/Imu</plugin>
       </hardware>
+
       <sensor name="imu">
         <state_interface name="quaternion.x" />
         <state_interface name="quaternion.y" />
@@ -14,6 +15,7 @@
         <state_interface name="velocity.y" />
         <state_interface name="velocity.z" />
         <state_interface name="temperature" />
+        <state_interface name="health" />
       </sensor>
     </ros2_control>
   </xacro:macro>

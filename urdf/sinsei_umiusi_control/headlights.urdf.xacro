@@ -9,10 +9,12 @@
         <param name="low_beam_pin">${low_beam_pin}</param>
         <param name="ir_pin">${ir_pin}</param>
       </hardware>
+
       <gpio name="headlights">
         <command_interface name="high_beam_enabled" />
         <command_interface name="low_beam_enabled" />
         <command_interface name="ir_enabled" />
+        <state_interface name="health" />
       </gpio>
     </ros2_control>
   </xacro:macro>

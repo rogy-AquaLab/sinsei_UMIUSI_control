@@ -1,30 +1,30 @@
 #include "sinsei_umiusi_control/hardware/indicator_led.hpp"
 
 #include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
+#include "sinsei_umiusi_control/state/indicator_led.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
-namespace suchw = sinsei_umiusi_control::hardware;
-namespace hif = hardware_interface;
-namespace rlc = rclcpp_lifecycle;
+using namespace sinsei_umiusi_control::hardware;
 
-auto suchw::IndicatorLed::on_init(const hif::HardwareInfo & info) -> hif::CallbackReturn {
-    this->hif::SystemInterface::on_init(info);
+auto IndicatorLed::on_init(const hardware_interface::HardwareComponentInterfaceParams & params)
+    -> hardware_interface::CallbackReturn {
+    this->hardware_interface::SystemInterface::on_init(params);
 
     auto led_pin = std::make_unique<sinsei_umiusi_control::hardware_model::impl::Pigpio>();
 
     // ピン番号をパラメーターから取得
-    const auto led_pin_num_str = util::find_param(info.hardware_parameters, "pin");
+    const auto led_pin_num_str = util::find_param(params.hardware_info.hardware_parameters, "pin");
     if (!led_pin_num_str) {
         RCLCPP_ERROR(this->get_logger(), "Parameter 'pin' not found in hardware parameters.");
-        return hif::CallbackReturn::ERROR;
+        return hardware_interface::CallbackReturn::ERROR;
     }
     int led_pin_num;
     try {
         led_pin_num = std::stoi(led_pin_num_str.value());
     } catch (const std::invalid_argument & e) {
         RCLCPP_ERROR(this->get_logger(), "Invalid pin number: %s", e.what());
-        return hif::CallbackReturn::ERROR;
+        return hardware_interface::CallbackReturn::ERROR;
     }
     this->model.emplace(std::move(led_pin), led_pin_num);
 
@@ -36,36 +36,44 @@ auto suchw::IndicatorLed::on_init(const hif::HardwareInfo & info) -> hif::Callba
         this->model.reset();
     }
 
-    return hif::CallbackReturn::SUCCESS;
+    return hardware_interface::CallbackReturn::SUCCESS;
 }
 
-auto suchw::IndicatorLed::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
-    -> hif::return_type {
+auto IndicatorLed::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
+    -> hardware_interface::return_type {
     if (this->model) this->model->on_read();
-    return hif::return_type::OK;
+    return hardware_interface::return_type::OK;
 }
 
-auto suchw::IndicatorLed::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
-    -> hif::return_type {
+auto IndicatorLed::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
+    -> hardware_interface::return_type {
     auto enabled = util::from_interface_data<sinsei_umiusi_control::cmd::indicator_led::Enabled>(
         this->get_command("indicator_led/enabled"));
     if (!this->model) {
+        this->set_state(
+            "indicator_led/health", util::to_interface_data(state::indicator_led::Health{false}));
+
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_WARN_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION,
             "\n  Indicator LED model is not initialized");
-        return hif::return_type::OK;
+        return hardware_interface::return_type::OK;
     }
 
     const auto res = this->model->on_write(std::move(enabled));
     if (!res) {
+        this->set_state(
+            "indicator_led/health", util::to_interface_data(state::indicator_led::Health{false}));
+
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION,
             "\n  Failed to write Indicator LED: %s", res.error().c_str());
+
+        return hardware_interface::return_type::OK;
     }
 
-    return hif::return_type::OK;
+    return hardware_interface::return_type::OK;
 }
 
 #include <pluginlib/class_list_macros.hpp>

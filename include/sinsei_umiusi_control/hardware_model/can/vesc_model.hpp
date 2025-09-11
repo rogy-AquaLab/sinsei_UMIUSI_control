@@ -5,11 +5,9 @@
 #include <optional>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
+#include <variant>
 
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
-#include "sinsei_umiusi_control/state/esc.hpp"
-#include "sinsei_umiusi_control/state/thruster.hpp"
-#include "sinsei_umiusi_control/util/enum_cast.hpp"
 
 // ref: https://github.com/vedderb/bldc/blob/822d270/documentation/comm_can.md
 // ref: https://github.com/rogy-AquaLab/sinsei-UMIUSI/blob/fa11563/ESP32_CAN/lib/vesc_can_esp32/vesc_can_esp32.hpp
@@ -29,13 +27,74 @@ enum class VescSimpleCommandID : uint32_t {
     CAN_PACKET_SET_SERVO = 69,
 };
 
-enum class VescStatusCommandID : uint32_t {
-    CAN_PACKET_STATUS = 9,
-    CAN_PACKET_STATUS_2 = 14,
-    CAN_PACKET_STATUS_3 = 15,
-    CAN_PACKET_STATUS_4 = 16,
-    CAN_PACKET_STATUS_5 = 27,
-    CAN_PACKET_STATUS_6 = 58,
+struct PacketStatus {
+    static constexpr uint32_t ID = 9;
+
+    double erpm;
+    double current;
+    double duty;
+
+    static constexpr double ERPM_SCALE = 1;
+    static constexpr double CURRENT_SCALE = 10;
+    static constexpr double DUTY_SCALE = 1000;
+};
+
+struct PacketStatus2 {
+    static constexpr uint32_t ID = 14;
+
+    double amp_hour;
+    double amp_hour_charge;
+
+    static constexpr double AMP_HOUR_SCALE = 10000;
+    static constexpr double AMP_HOUR_CHARGE_SCALE = 10000;
+};
+
+struct PacketStatus3 {
+    static constexpr uint32_t ID = 15;
+
+    double watt_hour;
+    double watt_hour_charge;
+
+    static constexpr double WATT_HOUR_SCALE = 10000;
+    static constexpr double WATT_HOUR_CHARGE_SCALE = 10000;
+};
+
+struct PacketStatus4 {
+    static constexpr uint32_t ID = 16;
+
+    double temp_fet;
+    double temp_motor;
+    double current_in;
+    double pid_pos;
+
+    static constexpr double TEMP_FET_SCALE = 10;
+    static constexpr double TEMP_MOTOR_SCALE = 10;
+    static constexpr double CURRENT_IN_SCALE = 10;
+    static constexpr double PID_POS_SCALE = 50;
+};
+
+struct PacketStatus5 {
+    static constexpr uint32_t ID = 27;
+
+    double tachometer;
+    double volts_in;
+
+    static constexpr double TACHOMETER_SCALE = 6;
+    static constexpr double VOLTS_IN_SCALE = 10;
+};
+
+struct PacketStatus6 {
+    static constexpr uint32_t ID = 58;
+
+    double adc1;
+    double adc2;
+    double adc3;
+    double ppm;
+
+    static constexpr double ADC1_SCALE = 1000;
+    static constexpr double ADC2_SCALE = 1000;
+    static constexpr double ADC3_SCALE = 1000;
+    static constexpr double PPM_SCALE = 1000;
 };
 
 enum class VescAdcChannel : uint8_t { ADC1, ADC2, ADC3 };
@@ -43,11 +102,6 @@ enum class VescAdcChannel : uint8_t { ADC1, ADC2, ADC3 };
 class VescModel {
   public:
     using Id = uint8_t;
-
-    static constexpr double BLDC_POLES = 14.0;
-
-    // FIXME: 仮の値
-    static constexpr double WATER_LEAKED_VOLTAGE_THRESHOLD = 2.0;
 
     static constexpr int STATUS_COMMAND_NUM = 6;
 
@@ -66,35 +120,6 @@ class VescModel {
     // 元々のファームウェアにはないが、lispBMにより追加で実装
     static constexpr double SET_SERVO_SCALE = 10000;
 
-    // CAN_PACKET_STATUS
-    static constexpr double ERPM_SCALE = 1;
-    static constexpr double CURRENT_SCALE = 10;
-    static constexpr double DUTY_SCALE = 1000;
-
-    // CAN_PACKET_STATUS2
-    static constexpr double AMP_HOUR_SCALE = 10000;
-    static constexpr double AMP_HOUR_CHARGE_SCALE = 10000;
-
-    // CAN_PACKET_STATUS3
-    static constexpr double WATT_HOUR_SCALE = 10000;
-    static constexpr double WATT_HOUR_CHARGE_SCALE = 10000;
-
-    // CAN_PACKET_STATUS4
-    static constexpr double TEMP_FET_SCALE = 10;
-    static constexpr double TEMP_MOTOR_SCALE = 10;
-    static constexpr double CURRENT_IN_SCALE = 10;
-    static constexpr double PID_POS_SCALE = 50;
-
-    // CAN_PACKET_STATUS5
-    static constexpr double TACOMETER_SCALE = 6;
-    static constexpr double VOLTS_IN_SCALE = 10;
-
-    // CAN_PACKET_STATUS6
-    static constexpr double ADC1_SCALE = 1000;
-    static constexpr double ADC2_SCALE = 1000;
-    static constexpr double ADC3_SCALE = 1000;
-    static constexpr double PPM_SCALE = 1000;
-
   private:
     Id id;
 
@@ -106,9 +131,6 @@ class VescModel {
 
     auto id_matches(const interface::CanFrame & frame) const -> bool;
 
-    static auto get_cmd_id(const interface::CanFrame & frame)
-        -> tl::expected<VescStatusCommandID, std::string>;
-
   public:
     VescModel(Id id);
 
@@ -117,42 +139,13 @@ class VescModel {
     auto make_servo_angle_frame(double && deg) const
         -> tl::expected<interface::CanFrame, std::string>;
 
-    auto get_rpm(const interface::CanFrame & frame) const
-        -> tl::expected<std::optional<sinsei_umiusi_control::state::thruster::Rpm>, std::string>;
+    using AnyPacketStatus = std::variant<
+        PacketStatus, PacketStatus2, PacketStatus3, PacketStatus4, PacketStatus5, PacketStatus6>;
 
-    auto get_water_leaked(const interface::CanFrame & frame) const
-        -> tl::expected<std::optional<sinsei_umiusi_control::state::esc::WaterLeaked>, std::string>;
+    auto get_packet_status(const interface::CanFrame & frame) const
+        -> tl::expected<std::optional<AnyPacketStatus>, std::string>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::can
-
-namespace sinsei_umiusi_control::util {
-
-template <>
-constexpr auto enum_cast(const hardware_model::interface::CanFrame::Id & value)
-    -> tl::expected<
-        sinsei_umiusi_control::hardware_model::can::VescStatusCommandID, EnumCastError> {
-    using sinsei_umiusi_control::hardware_model::can::VescStatusCommandID;
-    using sinsei_umiusi_control::hardware_model::interface::CanFrame;
-
-    switch (value) {
-        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS):
-            return VescStatusCommandID::CAN_PACKET_STATUS;
-        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS_2):
-            return VescStatusCommandID::CAN_PACKET_STATUS_2;
-        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS_3):
-            return VescStatusCommandID::CAN_PACKET_STATUS_3;
-        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS_4):
-            return VescStatusCommandID::CAN_PACKET_STATUS_4;
-        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS_5):
-            return VescStatusCommandID::CAN_PACKET_STATUS_5;
-        case static_cast<CanFrame::Id>(VescStatusCommandID::CAN_PACKET_STATUS_6):
-            return VescStatusCommandID::CAN_PACKET_STATUS_6;
-        default:
-            return tl::make_unexpected(EnumCastError::InvalidValue);
-    }
-}
-
-}  // namespace sinsei_umiusi_control::util
 
 #endif  // SINSEI_UMIUSI_CONTROL_hardware_model_CAN_VESC_MODEL_HPP
