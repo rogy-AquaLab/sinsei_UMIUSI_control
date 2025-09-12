@@ -404,7 +404,7 @@ TEST(Bno055ModelGetTempTest, fail_on_get_temperature) {
 TEST(Bno055ModelGetQuatTest, fail_on_get_quaternion) {
     auto gpio = std::make_unique<mock::Gpio>();
 
-    EXPECT_CALL(*gpio, i2c_read_byte_data(QUATERNION_DATA_W_LSB_ADDR))
+    EXPECT_CALL(*gpio, i2c_read_block_data(QUATERNION_DATA_W_LSB_ADDR, testing::NotNull(), 8))
         .Times(1)
         .WillOnce(Return(tl::make_unexpected(interface::GpioError::I2cReadFailed)));
 
