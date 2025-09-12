@@ -391,12 +391,6 @@ TEST(Bno055ModelBeginTest, fail_on_set_opr_mode_ndof) {
 TEST(Bno055ModelGetTempTest, fail_on_get_temperature) {
     auto gpio = std::make_unique<mock::Gpio>();
 
-    for (int i = 0; i < 8; ++i) {
-        EXPECT_CALL(*gpio, i2c_read_byte_data(QUATERNION_DATA_W_LSB_ADDR + i))
-            .WillOnce(Return(tl::expected<std::byte, interface::GpioError>(
-                std::byte{0x00})));  // Dummy data for quaternion
-    }
-
     EXPECT_CALL(*gpio, i2c_read_byte_data(TEMP_ADDR))
         .Times(1)
         .WillOnce(Return(tl::make_unexpected(interface::GpioError::I2cReadFailed)));
