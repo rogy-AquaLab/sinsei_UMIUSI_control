@@ -17,6 +17,7 @@ class ImuModel {
   public:
     ImuModel(std::unique_ptr<interface::Gpio> gpio);
     auto on_init() -> tl::expected<void, std::string>;
+    auto on_destroy() -> tl::expected<void, std::string>;
     auto on_read() -> tl::expected<
                        std::tuple<
                            sinsei_umiusi_control::state::imu::Quaternion,

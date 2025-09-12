@@ -141,6 +141,8 @@ class Bno055Model {
 
     auto begin() -> tl::expected<void, std::string>;
 
+    auto close() -> tl::expected<void, std::string>;
+
     auto get_temp() -> tl::expected<state::imu::Temperature, std::string>;
 
     auto get_quat() -> tl::expected<state::imu::Quaternion, std::string>;

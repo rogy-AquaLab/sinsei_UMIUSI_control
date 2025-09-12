@@ -6,6 +6,21 @@
 
 using namespace sinsei_umiusi_control::hardware;
 
+Imu::~Imu() {
+    if (!this->model) {
+        RCLCPP_ERROR(this->get_logger(), "Imu model is not initialized.");
+        return;
+    }
+
+    auto res = this->model->on_destroy();
+    if (!res) {
+        RCLCPP_ERROR(
+            this->get_logger(), "\n  Failed to destroy Imu model: %s", res.error().c_str());
+    } else {
+        RCLCPP_INFO(this->get_logger(), "Imu model destroyed successfully.");
+    }
+}
+
 auto Imu::on_init(const hardware_interface::HardwareComponentInterfaceParams & params)
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SensorInterface::on_init(params);

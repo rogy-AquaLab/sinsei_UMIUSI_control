@@ -15,6 +15,15 @@ auto ImuModel::on_init() -> tl::expected<void, std::string> {
     return {};
 }
 
+auto ImuModel::on_destroy() -> tl::expected<void, std::string> {
+    auto res = this->bno055_model.close();
+    if (!res) {
+        return tl::make_unexpected("Failed to close BNO055: " + res.error());
+    }
+
+    return {};
+}
+
 auto ImuModel::on_read() -> tl::expected<
                              std::tuple<
                                  state::imu::Quaternion, state::imu::Acceleration,

@@ -124,6 +124,14 @@ auto imu::Bno055Model::get_temp() -> tl::expected<state::imu::Temperature, std::
     return state::imu::Temperature{static_cast<int8_t>(fixed_temp)};
 }
 
+auto imu::Bno055Model::close() -> tl::expected<void, std::string> {
+    auto res = this->gpio->i2c_close().map_error(interface::gpio_error_to_string);
+    if (!res) {
+        return tl::make_unexpected("Failed to close I2C bus: " + res.error());
+    }
+    return {};
+}
+
 // ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.cpp#L401
 auto imu::Bno055Model::get_vector(VectorType type) -> tl::expected<Vector3, std::string> {
     const auto addr = this->get_address(type);
