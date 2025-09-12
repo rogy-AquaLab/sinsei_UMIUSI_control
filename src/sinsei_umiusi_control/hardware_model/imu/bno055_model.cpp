@@ -124,6 +124,31 @@ auto imu::Bno055Model::get_temp() -> tl::expected<state::imu::Temperature, std::
     return state::imu::Temperature{static_cast<int8_t>(fixed_temp)};
 }
 
+auto imu::Bno055Model::get_vector(VectorType type)
+    -> tl::expected<std::tuple<double, double, double>, std::string> {
+    const auto addr = this->get_address(type);
+    auto buffer = std::array<std::byte, 6>{};
+
+    for (int i = 0; i < 6; ++i) {
+        auto byte_opt_res =
+            this->gpio->i2c_read_byte_data(addr + i).map_error(interface::gpio_error_to_string);
+        if (!byte_opt_res) {
+            return tl::make_unexpected("I2C read error: " + byte_opt_res.error());
+        }
+        buffer[i] = byte_opt_res.value();
+    }
+
+    const auto x = std::to_integer<int16_t>(buffer[0]) | (std::to_integer<int16_t>(buffer[1]) << 8);
+    const auto y = std::to_integer<int16_t>(buffer[2]) | (std::to_integer<int16_t>(buffer[3]) << 8);
+    const auto z = std::to_integer<int16_t>(buffer[4]) | (std::to_integer<int16_t>(buffer[5]) << 8);
+
+    const auto scale = this->get_scale(type);
+
+    return std::make_tuple(
+        static_cast<double>(x) * scale, static_cast<double>(y) * scale,
+        static_cast<double>(z) * scale);
+}
+
 auto imu::Bno055Model::get_quad() -> tl::expected<state::imu::Quaternion, std::string> {
     // ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.cpp#L466
 
