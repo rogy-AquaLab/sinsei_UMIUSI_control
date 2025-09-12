@@ -96,17 +96,29 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
             to_interface_data_ptr(this->input.state.imu_quaternion.w),
             sizeof(this->input.state.imu_quaternion.w));
         this->state_interface_data.emplace_back(
-            "attitude_controller/imu/velocity.x",
-            to_interface_data_ptr(this->input.state.imu_velocity.x),
-            sizeof(this->input.state.imu_velocity.x));
+            "attitude_controller/imu/acceleration.x",
+            to_interface_data_ptr(this->input.state.imu_acceleration.x),
+            sizeof(this->input.state.imu_acceleration.x));
         this->state_interface_data.emplace_back(
-            "attitude_controller/imu/velocity.y",
-            to_interface_data_ptr(this->input.state.imu_velocity.y),
-            sizeof(this->input.state.imu_velocity.y));
+            "attitude_controller/imu/acceleration.y",
+            to_interface_data_ptr(this->input.state.imu_acceleration.y),
+            sizeof(this->input.state.imu_acceleration.y));
         this->state_interface_data.emplace_back(
-            "attitude_controller/imu/velocity.z",
-            to_interface_data_ptr(this->input.state.imu_velocity.z),
-            sizeof(this->input.state.imu_velocity.z));
+            "attitude_controller/imu/acceleration.z",
+            to_interface_data_ptr(this->input.state.imu_acceleration.z),
+            sizeof(this->input.state.imu_acceleration.z));
+        this->state_interface_data.emplace_back(
+            "attitude_controller/imu/angular_velocity.x",
+            to_interface_data_ptr(this->input.state.imu_angular_velocity.x),
+            sizeof(this->input.state.imu_angular_velocity.x));
+        this->state_interface_data.emplace_back(
+            "attitude_controller/imu/angular_velocity.y",
+            to_interface_data_ptr(this->input.state.imu_angular_velocity.y),
+            sizeof(this->input.state.imu_angular_velocity.y));
+        this->state_interface_data.emplace_back(
+            "attitude_controller/imu/angular_velocity.z",
+            to_interface_data_ptr(this->input.state.imu_angular_velocity.z),
+            sizeof(this->input.state.imu_angular_velocity.z));
         this->state_interface_data.emplace_back(
             "can/health", to_interface_data_ptr(this->input.state.can_health),
             sizeof(this->input.state.can_health));
@@ -311,10 +323,14 @@ auto GateController::update(
             .set__water_leaked(this->input.state.water_leaked.value));
     this->output.pub.imu_state_publisher->publish(
         msg::ImuState()
-            .set__velocity(geometry_msgs::msg::Vector3()
-                               .set__x(this->input.state.imu_velocity.x)
-                               .set__y(this->input.state.imu_velocity.y)
-                               .set__z(this->input.state.imu_velocity.z))
+            .set__acceleration(geometry_msgs::msg::Vector3()
+                                   .set__x(this->input.state.imu_acceleration.x)
+                                   .set__y(this->input.state.imu_acceleration.y)
+                                   .set__z(this->input.state.imu_acceleration.z))
+            .set__angular_velocity(geometry_msgs::msg::Vector3()
+                                       .set__x(this->input.state.imu_angular_velocity.x)
+                                       .set__y(this->input.state.imu_angular_velocity.y)
+                                       .set__z(this->input.state.imu_angular_velocity.z))
             .set__quaternion(geometry_msgs::msg::Quaternion()
                                  .set__x(this->input.state.imu_quaternion.x)
                                  .set__y(this->input.state.imu_quaternion.y)

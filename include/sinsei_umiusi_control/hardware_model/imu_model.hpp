@@ -20,7 +20,8 @@ class ImuModel {
     auto on_read() -> tl::expected<
                        std::tuple<
                            sinsei_umiusi_control::state::imu::Quaternion,
-                           sinsei_umiusi_control::state::imu::Velocity,
+                           sinsei_umiusi_control::state::imu::Acceleration,
+                           sinsei_umiusi_control::state::imu::AngularVelocity,
                            sinsei_umiusi_control::state::imu::Temperature>,
                        std::string>;
 };

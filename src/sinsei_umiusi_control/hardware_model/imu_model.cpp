@@ -15,18 +15,28 @@ auto ImuModel::on_init() -> tl::expected<void, std::string> {
     return {};
 }
 
-auto ImuModel::on_read()
-    -> tl::expected<
-        std::tuple<state::imu::Quaternion, state::imu::Velocity, state::imu::Temperature>,
-        std::string> {
+auto ImuModel::on_read() -> tl::expected<
+                             std::tuple<
+                                 state::imu::Quaternion, state::imu::Acceleration,
+                                 state::imu::AngularVelocity, state::imu::Temperature>,
+                             std::string> {
     const auto quaternion_res = this->bno055_model.get_quad();
     if (!quaternion_res) {
         return tl::make_unexpected(
             "Failed to read quaternion data from BNO055: " + quaternion_res.error());
     }
 
-    // FIXME: dummy
-    const state::imu::Velocity velocity{0.0, 0.0, 0.0};
+    const auto acceleration_res = this->bno055_model.get_acceleration();
+    if (!acceleration_res) {
+        return tl::make_unexpected(
+            "Failed to read acceleration data from BNO055: " + acceleration_res.error());
+    }
+
+    const auto angular_velocity_res = this->bno055_model.get_angular_velocity();
+    if (!angular_velocity_res) {
+        return tl::make_unexpected(
+            "Failed to read angular velocity data from BNO055: " + angular_velocity_res.error());
+    }
 
     const auto temp_res = this->bno055_model.get_temp();
     if (!temp_res) {
@@ -34,5 +44,7 @@ auto ImuModel::on_read()
             "Failed to read temperature data from BNO055: " + temp_res.error());
     }
 
-    return std::make_tuple(quaternion_res.value(), velocity, temp_res.value());
+    return std::make_tuple(
+        quaternion_res.value(), acceleration_res.value(), angular_velocity_res.value(),
+        temp_res.value());
 }
