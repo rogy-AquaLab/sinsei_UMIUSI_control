@@ -124,6 +124,7 @@ auto imu::Bno055Model::get_temp() -> tl::expected<state::imu::Temperature, std::
     return state::imu::Temperature{static_cast<int8_t>(fixed_temp)};
 }
 
+// ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.cpp#L401
 auto imu::Bno055Model::get_vector(VectorType type) -> tl::expected<Vector3, std::string> {
     const auto addr = this->get_address(type);
     auto buffer = std::array<std::byte, 6>{};
@@ -148,9 +149,8 @@ auto imu::Bno055Model::get_vector(VectorType type) -> tl::expected<Vector3, std:
         static_cast<double>(z) * scale);
 }
 
+// ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.cpp#L466
 auto imu::Bno055Model::get_quat() -> tl::expected<state::imu::Quaternion, std::string> {
-    // ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.cpp#L466
-
     auto buffer = std::array<std::byte, 8>{};
 
     for (int i = 0; i < 8; ++i) {
