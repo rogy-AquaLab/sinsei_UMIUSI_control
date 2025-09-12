@@ -2,7 +2,6 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
-#include <cstdint>
 #include <rcpputils/tl_expected/expected.hpp>
 
 #include "mock/gpio.hpp"
