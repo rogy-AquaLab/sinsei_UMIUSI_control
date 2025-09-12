@@ -124,8 +124,7 @@ auto imu::Bno055Model::get_temp() -> tl::expected<state::imu::Temperature, std::
     return state::imu::Temperature{static_cast<int8_t>(fixed_temp)};
 }
 
-auto imu::Bno055Model::get_vector(VectorType type)
-    -> tl::expected<std::tuple<double, double, double>, std::string> {
+auto imu::Bno055Model::get_vector(VectorType type) -> tl::expected<Vector3, std::string> {
     const auto addr = this->get_address(type);
     auto buffer = std::array<std::byte, 6>{};
 
@@ -173,4 +172,24 @@ auto imu::Bno055Model::get_quad() -> tl::expected<state::imu::Quaternion, std::s
     return state::imu::Quaternion{
         static_cast<double>(x) * SCALE, static_cast<double>(y) * SCALE,
         static_cast<double>(z) * SCALE, static_cast<double>(w) * SCALE};
+}
+
+auto imu::Bno055Model::get_acceleration() -> tl::expected<state::imu::Acceleration, std::string> {
+    // BNO055内で重力加速度を除いてある線形加速度を使用
+    const auto res = this->get_vector(VectorType::LinearAccel);
+    if (!res) {
+        return tl::make_unexpected(res.error());
+    }
+    const auto [x, y, z] = res.value();
+    return state::imu::Acceleration{x, y, z};
+}
+
+auto imu::Bno055Model::get_angular_velocity()
+    -> tl::expected<state::imu::AngularVelocity, std::string> {
+    const auto res = this->get_vector(VectorType::Gyroscope);
+    if (!res) {
+        return tl::make_unexpected(res.error());
+    }
+    const auto [x, y, z] = res.value();
+    return state::imu::AngularVelocity{x, y, z};
 }

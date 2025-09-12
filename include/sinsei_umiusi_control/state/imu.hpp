@@ -12,7 +12,20 @@ struct Quaternion {
     double w;
 };
 
+// TODO: Velocityは使わない予定なので消去する
 struct Velocity {
+    double x;
+    double y;
+    double z;
+};
+
+struct Acceleration {
+    double x;
+    double y;
+    double z;
+};
+
+struct AngularVelocity {
     double x;
     double y;
     double z;

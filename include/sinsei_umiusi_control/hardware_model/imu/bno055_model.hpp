@@ -11,9 +11,6 @@ namespace sinsei_umiusi_control::hardware_model::imu {
 
 // ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.h
 class Bno055Model {
-  private:
-    std::unique_ptr<interface::Gpio> gpio;
-
   public:
     static constexpr interface::Gpio::Addr ADDRESS{0x28};
 
@@ -99,6 +96,9 @@ class Bno055Model {
     /** BNO055 power settings */
     static constexpr std::byte POWER_MODE_NORMAL{0x00};
 
+  private:
+    std::unique_ptr<interface::Gpio> gpio;
+
     enum class VectorType { Accelerometer, Magnetometer, Gyroscope, Euler, LinearAccel, Gravity };
 
     constexpr auto get_address(VectorType type) -> interface::Gpio::Addr {
@@ -120,28 +120,34 @@ class Bno055Model {
 
     constexpr auto get_scale(VectorType type) -> double {
         switch (type) {
-            case VectorType::Magnetometer:
-            case VectorType::Gyroscope:
-            case VectorType::Euler:
+            case VectorType::Magnetometer:  // 1uT = 16 LSB
+            case VectorType::Gyroscope:     // 1dps = 16 LSB
+            case VectorType::Euler:         // 1 degree = 16 LSB
                 return 1.0 / 16.0;
 
-            case VectorType::Accelerometer:
-            case VectorType::LinearAccel:
-            case VectorType::Gravity:
+            case VectorType::Accelerometer:  // 1m/s^2 = 100 LSB
+            case VectorType::LinearAccel:    // 1m/s^2 = 100 LSB
+            case VectorType::Gravity:        // 1m/s^2 = 100 LSB
                 return 1.0 / 100.0;
         }
     }
 
+    using Vector3 = std::tuple<double, double, double>;
+
+    auto get_vector(VectorType type) -> tl::expected<Vector3, std::string>;
+
+  public:
     Bno055Model(std::unique_ptr<interface::Gpio> gpio);
 
     auto begin() -> tl::expected<void, std::string>;
 
     auto get_temp() -> tl::expected<state::imu::Temperature, std::string>;
 
-    auto get_vector(VectorType type)
-        -> tl::expected<std::tuple<double, double, double>, std::string>;
-
     auto get_quad() -> tl::expected<state::imu::Quaternion, std::string>;
+
+    auto get_acceleration() -> tl::expected<state::imu::Acceleration, std::string>;
+
+    auto get_angular_velocity() -> tl::expected<state::imu::AngularVelocity, std::string>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::imu
