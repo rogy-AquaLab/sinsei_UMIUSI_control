@@ -137,49 +137,43 @@ auto imu::Bno055Model::get_vector(VectorType type) -> tl::expected<Vector3, std:
     const auto addr = this->get_address(type);
     auto buffer = std::array<std::byte, 6>{};
 
-    for (int i = 0; i < 6; ++i) {
-        auto byte_opt_res =
-            this->gpio->i2c_read_byte_data(addr + i).map_error(interface::gpio_error_to_string);
-        if (!byte_opt_res) {
-            return tl::make_unexpected("I2C read error: " + byte_opt_res.error());
-        }
-        buffer[i] = byte_opt_res.value();
+    auto res = this->gpio->i2c_read_block_data(addr, buffer.data(), buffer.size())
+                   .map_error(interface::gpio_error_to_string);
+    if (!res) {
+        return tl::make_unexpected("I2C read error: " + res.error());
     }
 
-    const auto x = std::to_integer<int16_t>(buffer[0]) | (std::to_integer<int16_t>(buffer[1]) << 8);
-    const auto y = std::to_integer<int16_t>(buffer[2]) | (std::to_integer<int16_t>(buffer[3]) << 8);
-    const auto z = std::to_integer<int16_t>(buffer[4]) | (std::to_integer<int16_t>(buffer[5]) << 8);
+    const auto x_raw = to_s16(buffer[0], buffer[1]);
+    const auto y_raw = to_s16(buffer[2], buffer[3]);
+    const auto z_raw = to_s16(buffer[4], buffer[5]);
 
     const auto scale = this->get_scale(type);
-
-    return std::make_tuple(
-        static_cast<double>(x) * scale, static_cast<double>(y) * scale,
-        static_cast<double>(z) * scale);
+    return Vector3{
+        static_cast<double>(x_raw) * scale, static_cast<double>(y_raw) * scale,
+        static_cast<double>(z_raw) * scale};
 }
 
 // ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.cpp#L466
 auto imu::Bno055Model::get_quat() -> tl::expected<state::imu::Quaternion, std::string> {
     auto buffer = std::array<std::byte, 8>{};
 
-    for (int i = 0; i < 8; ++i) {
-        auto byte_opt_res = this->gpio->i2c_read_byte_data(QUATERNION_DATA_W_LSB_ADDR + i)
-                                .map_error(interface::gpio_error_to_string);
-        if (!byte_opt_res) {
-            return tl::make_unexpected("I2C read error: " + byte_opt_res.error());
-        }
-        buffer[i] = byte_opt_res.value();
+    auto res =
+        this->gpio->i2c_read_block_data(QUATERNION_DATA_W_LSB_ADDR, buffer.data(), buffer.size())
+            .map_error(interface::gpio_error_to_string);
+    if (!res) {
+        return tl::make_unexpected("I2C read error: " + res.error());
     }
 
-    const auto w = std::to_integer<int16_t>(buffer[0]) | (std::to_integer<int16_t>(buffer[1]) << 8);
-    const auto x = std::to_integer<int16_t>(buffer[2]) | (std::to_integer<int16_t>(buffer[3]) << 8);
-    const auto y = std::to_integer<int16_t>(buffer[4]) | (std::to_integer<int16_t>(buffer[5]) << 8);
-    const auto z = std::to_integer<int16_t>(buffer[6]) | (std::to_integer<int16_t>(buffer[7]) << 8);
+    const int16_t w_raw = to_s16(buffer[0], buffer[1]);
+    const int16_t x_raw = to_s16(buffer[2], buffer[3]);
+    const int16_t y_raw = to_s16(buffer[4], buffer[5]);
+    const int16_t z_raw = to_s16(buffer[6], buffer[7]);
 
-    constexpr auto SCALE = 1.0 / (1 << 14);
+    constexpr double SCALE = 1.0 / (1 << 14);
 
     return state::imu::Quaternion{
-        static_cast<double>(x) * SCALE, static_cast<double>(y) * SCALE,
-        static_cast<double>(z) * SCALE, static_cast<double>(w) * SCALE};
+        static_cast<double>(w_raw) * SCALE, static_cast<double>(x_raw) * SCALE,
+        static_cast<double>(y_raw) * SCALE, static_cast<double>(z_raw) * SCALE};
 }
 
 auto imu::Bno055Model::get_acceleration() -> tl::expected<state::imu::Acceleration, std::string> {

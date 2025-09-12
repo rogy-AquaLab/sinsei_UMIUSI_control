@@ -99,6 +99,13 @@ class Bno055Model {
   private:
     std::unique_ptr<interface::Gpio> gpio;
 
+    // 2バイト（LSB、MSB）を結合して符号付き16ビット整数（int16_t）に変換
+    static inline auto to_s16(std::byte lsb, std::byte msb) -> int16_t {
+        uint16_t u = static_cast<uint16_t>(std::to_integer<uint8_t>(lsb)) |
+                     (static_cast<uint16_t>(std::to_integer<uint8_t>(msb)) << 8);
+        return static_cast<int16_t>(u);
+    }
+
     enum class VectorType { Accelerometer, Magnetometer, Gyroscope, Euler, LinearAccel, Gravity };
 
     constexpr auto get_address(VectorType type) -> interface::Gpio::Addr {
