@@ -386,6 +386,7 @@ TEST(Bno055ModelBeginTest, fail_on_set_opr_mode_ndof) {
     ASSERT_FALSE(result);
 }
 
+// TODO: get_vectorのテストを追加する
 // TODO: Add success cases for get_quat and get_temp
 
 TEST(Bno055ModelGetTempTest, fail_on_get_temperature) {
