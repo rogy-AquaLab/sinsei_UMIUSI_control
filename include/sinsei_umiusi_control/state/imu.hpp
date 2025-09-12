@@ -12,7 +12,13 @@ struct Quaternion {
     double w;
 };
 
-struct Velocity {
+struct Acceleration {
+    double x;
+    double y;
+    double z;
+};
+
+struct AngularVelocity {
     double x;
     double y;
     double z;

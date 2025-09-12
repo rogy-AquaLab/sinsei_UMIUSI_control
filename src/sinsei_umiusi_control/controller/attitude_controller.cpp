@@ -124,14 +124,26 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
         "imu/quaternion.w", util::to_interface_data_ptr(this->input.state.imu_quaternion.w),
         sizeof(this->input.state.imu_quaternion.w)));
     this->state_interface_data.push_back(std::make_tuple(
-        "imu/velocity.x", util::to_interface_data_ptr(this->input.state.imu_velocity.x),
-        sizeof(this->input.state.imu_velocity.x)));
+        "imu/acceleration.x", util::to_interface_data_ptr(this->input.state.imu_acceleration.x),
+        sizeof(this->input.state.imu_acceleration.x)));
     this->state_interface_data.push_back(std::make_tuple(
-        "imu/velocity.y", util::to_interface_data_ptr(this->input.state.imu_velocity.y),
-        sizeof(this->input.state.imu_velocity.y)));
+        "imu/acceleration.y", util::to_interface_data_ptr(this->input.state.imu_acceleration.y),
+        sizeof(this->input.state.imu_acceleration.y)));
     this->state_interface_data.push_back(std::make_tuple(
-        "imu/velocity.z", util::to_interface_data_ptr(this->input.state.imu_velocity.z),
-        sizeof(this->input.state.imu_velocity.z)));
+        "imu/acceleration.z", util::to_interface_data_ptr(this->input.state.imu_acceleration.z),
+        sizeof(this->input.state.imu_acceleration.z)));
+    this->state_interface_data.push_back(std::make_tuple(
+        "imu/angular_velocity.x",
+        util::to_interface_data_ptr(this->input.state.imu_angular_velocity.x),
+        sizeof(this->input.state.imu_angular_velocity.x)));
+    this->state_interface_data.push_back(std::make_tuple(
+        "imu/angular_velocity.y",
+        util::to_interface_data_ptr(this->input.state.imu_angular_velocity.y),
+        sizeof(this->input.state.imu_angular_velocity.y)));
+    this->state_interface_data.push_back(std::make_tuple(
+        "imu/angular_velocity.z",
+        util::to_interface_data_ptr(this->input.state.imu_angular_velocity.z),
+        sizeof(this->input.state.imu_angular_velocity.z)));
 
     this->ref_interface_data.push_back(std::make_tuple(
         "target_orientation.x", util::to_interface_data_ptr(this->input.cmd.target_orientation.x),

@@ -41,6 +41,8 @@ class Pigpio : public interface::Gpio {
     auto i2c_write_byte_data(const Addr & reg, std::byte && value)
         -> tl::expected<void, Error> override;
     auto i2c_read_byte_data(const Addr & reg) const -> tl::expected<std::byte, Error> override;
+    auto i2c_read_block_data(const Addr & reg, std::byte * buffer, const size_t length) const
+        -> tl::expected<void, Error> override;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::impl

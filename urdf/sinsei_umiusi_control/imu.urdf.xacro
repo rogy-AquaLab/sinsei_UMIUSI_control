@@ -11,9 +11,12 @@
         <state_interface name="quaternion.y" />
         <state_interface name="quaternion.z" />
         <state_interface name="quaternion.w" />
-        <state_interface name="velocity.x" />
-        <state_interface name="velocity.y" />
-        <state_interface name="velocity.z" />
+        <state_interface name="acceleration.x" />
+        <state_interface name="acceleration.y" />
+        <state_interface name="acceleration.z" />
+        <state_interface name="angular_velocity.x" />
+        <state_interface name="angular_velocity.y" />
+        <state_interface name="angular_velocity.z" />
         <state_interface name="temperature" />
         <state_interface name="health" />
       </sensor>
