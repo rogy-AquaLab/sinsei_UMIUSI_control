@@ -38,6 +38,10 @@ class Gpio : public hardware_model::interface::Gpio {
     MOCK_CONST_METHOD1(
         i2c_read_byte_data, tl::expected<std::byte, hardware_model::interface::Gpio::Error>(
                                 const hardware_model::interface::Gpio::Addr & reg));
+    MOCK_CONST_METHOD3(
+        i2c_read_block_data, tl::expected<void, hardware_model::interface::Gpio::Error>(
+                                 const hardware_model::interface::Gpio::Addr & reg,
+                                 std::byte * buffer, const size_t length));
 };
 }  // namespace sinsei_umiusi_control::test::mock
 
