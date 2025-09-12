@@ -148,7 +148,7 @@ auto imu::Bno055Model::get_vector(VectorType type) -> tl::expected<Vector3, std:
         static_cast<double>(z) * scale);
 }
 
-auto imu::Bno055Model::get_quad() -> tl::expected<state::imu::Quaternion, std::string> {
+auto imu::Bno055Model::get_quat() -> tl::expected<state::imu::Quaternion, std::string> {
     // ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.cpp#L466
 
     auto buffer = std::array<std::byte, 8>{};

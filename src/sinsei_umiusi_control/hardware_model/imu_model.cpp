@@ -20,7 +20,7 @@ auto ImuModel::on_read() -> tl::expected<
                                  state::imu::Quaternion, state::imu::Acceleration,
                                  state::imu::AngularVelocity, state::imu::Temperature>,
                              std::string> {
-    const auto quaternion_res = this->bno055_model.get_quad();
+    const auto quaternion_res = this->bno055_model.get_quat();
     if (!quaternion_res) {
         return tl::make_unexpected(
             "Failed to read quaternion data from BNO055: " + quaternion_res.error());

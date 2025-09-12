@@ -386,7 +386,7 @@ TEST(Bno055ModelBeginTest, fail_on_set_opr_mode_ndof) {
     ASSERT_FALSE(result);
 }
 
-// TODO: Add success cases for get_quad and get_temp
+// TODO: Add success cases for get_quat and get_temp
 
 TEST(Bno055ModelGetTempTest, fail_on_get_temperature) {
     auto gpio = std::make_unique<mock::Gpio>();
@@ -401,7 +401,7 @@ TEST(Bno055ModelGetTempTest, fail_on_get_temperature) {
     ASSERT_FALSE(result);
 }
 
-TEST(Bno055ModelGetQuadTest, fail_on_get_quaternion) {
+TEST(Bno055ModelGetQuatTest, fail_on_get_quaternion) {
     auto gpio = std::make_unique<mock::Gpio>();
 
     EXPECT_CALL(*gpio, i2c_read_byte_data(QUATERNION_DATA_W_LSB_ADDR))
@@ -409,7 +409,7 @@ TEST(Bno055ModelGetQuadTest, fail_on_get_quaternion) {
         .WillOnce(Return(tl::make_unexpected(interface::GpioError::I2cReadFailed)));
 
     auto bno055_model = imu::Bno055Model(std::move(gpio));
-    auto result = bno055_model.get_quad();
+    auto result = bno055_model.get_quat();
 
     ASSERT_FALSE(result);
 }

@@ -143,7 +143,7 @@ class Bno055Model {
 
     auto get_temp() -> tl::expected<state::imu::Temperature, std::string>;
 
-    auto get_quad() -> tl::expected<state::imu::Quaternion, std::string>;
+    auto get_quat() -> tl::expected<state::imu::Quaternion, std::string>;
 
     auto get_acceleration() -> tl::expected<state::imu::Acceleration, std::string>;
 
