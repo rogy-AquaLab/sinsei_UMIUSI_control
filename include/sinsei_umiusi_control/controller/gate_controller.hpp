@@ -47,7 +47,8 @@ class GateController : public controller_interface::ControllerInterface {
             sinsei_umiusi_control::state::main_power::WaterLeaked water_leaked;
             sinsei_umiusi_control::state::imu::Temperature imu_temperature;
             sinsei_umiusi_control::state::imu::Quaternion imu_quaternion;
-            sinsei_umiusi_control::state::imu::Velocity imu_velocity;
+            sinsei_umiusi_control::state::imu::Acceleration imu_acceleration;
+            sinsei_umiusi_control::state::imu::AngularVelocity imu_angular_velocity;
             std::array<sinsei_umiusi_control::state::thruster::esc::Enabled, 4> esc_enabled_flags;
             std::array<sinsei_umiusi_control::state::thruster::esc::DutyCycle, 4> esc_duty_cycles;
             std::array<sinsei_umiusi_control::state::thruster::esc::Rpm, 4> esc_rpms;

@@ -17,6 +17,7 @@ class Imu : public hardware_interface::SensorInterface {
     RCLCPP_SHARED_PTR_DEFINITIONS(Imu)
 
     Imu() = default;
+    ~Imu() override;
 
     auto on_init(const hardware_interface::HardwareComponentInterfaceParams & params)
         -> hardware_interface::CallbackReturn override;

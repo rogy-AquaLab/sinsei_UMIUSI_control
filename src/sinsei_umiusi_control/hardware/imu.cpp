@@ -6,6 +6,21 @@
 
 using namespace sinsei_umiusi_control::hardware;
 
+Imu::~Imu() {
+    if (!this->model) {
+        RCLCPP_ERROR(this->get_logger(), "Imu model is not initialized.");
+        return;
+    }
+
+    auto res = this->model->on_destroy();
+    if (!res) {
+        RCLCPP_ERROR(
+            this->get_logger(), "\n  Failed to destroy Imu model: %s", res.error().c_str());
+    } else {
+        RCLCPP_INFO(this->get_logger(), "Imu model destroyed successfully.");
+    }
+}
+
 auto Imu::on_init(const hardware_interface::HardwareComponentInterfaceParams & params)
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SensorInterface::on_init(params);
@@ -46,15 +61,18 @@ auto Imu::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
     }
     this->set_state("imu/health", util::to_interface_data(state::imu::Health{true}));
 
-    const auto [quaternion, velocity, temperature] = res.value();
+    const auto [quaternion, acceleration, angular_velocity, temperature] = res.value();
 
     this->set_state("imu/quaternion.x", quaternion.x);
     this->set_state("imu/quaternion.y", quaternion.y);
     this->set_state("imu/quaternion.z", quaternion.z);
     this->set_state("imu/quaternion.w", quaternion.w);
-    // this->set_state("imu/velocity.x", velocity.x);
-    // this->set_state("imu/velocity.y", velocity.y);
-    // this->set_state("imu/velocity.z", velocity.z);
+    this->set_state("imu/acceleration.x", acceleration.x);
+    this->set_state("imu/acceleration.y", acceleration.y);
+    this->set_state("imu/acceleration.z", acceleration.z);
+    this->set_state("imu/angular_velocity.x", angular_velocity.x);
+    this->set_state("imu/angular_velocity.y", angular_velocity.y);
+    this->set_state("imu/angular_velocity.z", angular_velocity.z);
     this->set_state("imu/temperature", util::to_interface_data(temperature));
 
     return hardware_interface::return_type::OK;

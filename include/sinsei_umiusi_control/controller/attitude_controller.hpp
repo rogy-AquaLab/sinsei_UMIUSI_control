@@ -28,7 +28,8 @@ class AttitudeController : public controller_interface::ChainableControllerInter
         // State interfaces (in)
         struct State {
             state::imu::Quaternion imu_quaternion;
-            state::imu::Velocity imu_velocity;
+            state::imu::Acceleration imu_acceleration;
+            state::imu::AngularVelocity imu_angular_velocity;
             std::array<state::thruster::esc::Rpm, 4> esc_rpms;
         };
         Command cmd;
