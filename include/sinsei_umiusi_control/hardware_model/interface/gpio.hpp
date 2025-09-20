@@ -73,7 +73,9 @@ class Gpio {
     virtual auto set_mode_output(const std::vector<Pin> & pins) -> tl::expected<void, Error> = 0;
     virtual auto set_mode_input(const std::vector<Pin> & pins) -> tl::expected<void, Error> = 0;
     virtual auto write_digital(const Pin & pin, bool && enabled) -> tl::expected<void, Error> = 0;
-    virtual auto write_pwm(const Pin & pin, const int && pulsewidth)
+    virtual auto write_pwm_duty(const Pin & pin, const double && duty)
+        -> tl::expected<void, Error> = 0;
+    virtual auto write_pwm_pulsewidth(const Pin & pin, const int && pulsewidth)
         -> tl::expected<void, Error> = 0;
 
     virtual auto i2c_open(const Addr & address) -> tl::expected<void, Error> = 0;

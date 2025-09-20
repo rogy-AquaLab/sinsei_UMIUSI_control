@@ -47,7 +47,7 @@ auto impl::Pigpio::set_mode_input(const std::vector<Pin> & pins) -> tl::expected
 }
 
 auto impl::Pigpio::write_digital(const Pin & pin, bool && enabled) -> tl::expected<void, Error> {
-    const auto res = ::gpio_write(pi, pin, enabled ? 1 : 0);
+    const auto res = ::gpio_write(this->pi, pin, enabled ? 1 : 0);
     if (res == 0) {
         return {};
     }
@@ -63,9 +63,27 @@ auto impl::Pigpio::write_digital(const Pin & pin, bool && enabled) -> tl::expect
     }
 }
 
-auto impl::Pigpio::write_pwm(const Pin & pin, const int && pulsewidth)
+auto impl::Pigpio::write_pwm_duty(const Pin & pin, const double && duty)
     -> tl::expected<void, Error> {
-    const auto res = ::set_servo_pulsewidth(pi, pin, pulsewidth);
+    const auto res = ::set_PWM_dutycycle(this->pi, pin, static_cast<int>(duty * 255.0));
+    if (res == 0) {
+        return {};
+    }
+    switch (res) {
+        case PI_BAD_GPIO:
+            return tl::unexpected(Error::BadGpio);
+        case PI_BAD_DUTYCYCLE:
+            return tl::unexpected(Error::BadParameter);
+        case PI_NOT_PERMITTED:
+            return tl::unexpected(Error::NotPermitted);
+        default:
+            return tl::unexpected(Error::UnknownError);
+    }
+}
+
+auto impl::Pigpio::write_pwm_pulsewidth(const Pin & pin, const int && pulsewidth)
+    -> tl::expected<void, Error> {
+    const auto res = ::set_servo_pulsewidth(this->pi, pin, pulsewidth);
     if (res == 0) {
         return {};
     }
@@ -83,7 +101,7 @@ auto impl::Pigpio::write_pwm(const Pin & pin, const int && pulsewidth)
 
 auto impl::Pigpio::i2c_open(const Addr & address) -> tl::expected<void, Error> {
     this->i2c_address = address;
-    const auto res = ::i2c_open(pi, I2C_BUS, this->i2c_address, 0U);
+    const auto res = ::i2c_open(this->pi, I2C_BUS, this->i2c_address, 0U);
     if (res >= 0) {
         this->i2c_handle = res;
         return {};
@@ -125,7 +143,7 @@ auto impl::Pigpio::i2c_write_byte(std::byte && value) -> tl::expected<void, Erro
         return tl::unexpected(Error::NoHandle);
     }
     const auto b_val = std::to_integer<Addr>(value);
-    auto res = ::i2c_write_byte(pi, this->i2c_handle.value(), b_val);
+    auto res = ::i2c_write_byte(this->pi, this->i2c_handle.value(), b_val);
     switch (res) {
         case 0:
             return {};
@@ -144,7 +162,7 @@ auto impl::Pigpio::i2c_read_byte() const -> tl::expected<std::byte, Error> {
     if (!this->i2c_handle) {
         return tl::unexpected(Error::NoHandle);
     }
-    const auto res = ::i2c_read_byte(pi, this->i2c_handle.value());
+    const auto res = ::i2c_read_byte(this->pi, this->i2c_handle.value());
     if (res >= 0) {
         return static_cast<std::byte>(res & 0xFF);
     }
@@ -164,7 +182,7 @@ auto impl::Pigpio::i2c_write_byte_data(const Addr & reg, std::byte && value)
         return tl::unexpected(Error::NoHandle);
     }
     const auto b_val = std::to_integer<Addr>(value);
-    const auto res = ::i2c_write_byte_data(pi, this->i2c_handle.value(), reg, b_val);
+    const auto res = ::i2c_write_byte_data(this->pi, this->i2c_handle.value(), reg, b_val);
     switch (res) {
         case 0:
             return {};
@@ -183,7 +201,7 @@ auto impl::Pigpio::i2c_read_byte_data(const Addr & reg) const -> tl::expected<st
     if (!this->i2c_handle) {
         return tl::unexpected(Error::NoHandle);
     }
-    const auto res = ::i2c_read_byte_data(pi, this->i2c_handle.value(), reg);
+    const auto res = ::i2c_read_byte_data(this->pi, this->i2c_handle.value(), reg);
     if (res >= 0) {
         return static_cast<std::byte>(res & 0xFF);
     }
