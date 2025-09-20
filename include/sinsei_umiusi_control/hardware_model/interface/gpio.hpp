@@ -75,7 +75,7 @@ class Gpio {
     virtual auto write_digital(const Pin & pin, bool && enabled) -> tl::expected<void, Error> = 0;
     virtual auto write_pwm_duty(const Pin & pin, const double && duty)
         -> tl::expected<void, Error> = 0;
-    virtual auto write_pwm_pulsewidth(const Pin & pin, const int && pulsewidth)
+    virtual auto write_set_servo(const Pin & pin, bool && enabled, const double && angle)
         -> tl::expected<void, Error> = 0;
 
     virtual auto i2c_open(const Addr & address) -> tl::expected<void, Error> = 0;
