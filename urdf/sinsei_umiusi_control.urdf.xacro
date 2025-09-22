@@ -8,6 +8,14 @@
       low_beam_pin
       ir_pin
       indicator_led_pin
+      servo_direct1_pin
+      servo_direct2_pin
+      servo_direct3_pin
+      servo_direct4_pin
+      esc_direct1_pin
+      esc_direct2_pin
+      esc_direct3_pin
+      esc_direct4_pin
       vesc1_id
       vesc2_id
       vesc3_id
@@ -31,7 +39,16 @@
       period_led_tape_per_thrusters="${period_led_tape_per_thrusters}"
     />
     <xacro:if value="${thruster_mode == 'direct'}">
-      <xacro:thruster_direct />
+      <xacro:thruster_direct
+        servo1_pin="${servo_direct1_pin}"
+        servo2_pin="${servo_direct2_pin}"
+        servo3_pin="${servo_direct3_pin}"
+        servo4_pin="${servo_direct4_pin}"
+        esc1_pin="${esc_direct1_pin}"
+        esc2_pin="${esc_direct2_pin}"
+        esc3_pin="${esc_direct3_pin}"
+        esc4_pin="${esc_direct4_pin}"
+      />
     </xacro:if>
     <xacro:imu />
     <xacro:headlights
