@@ -3,7 +3,7 @@ launch:
   - arg:
       description: "Thruster manipulation mode (can / direct)"
       name: thruster_mode
-      default: "direct"
+      default: "can"
 
   - arg:
       description: "CAN ID for VESC 1 (corresponds to thruster 1)"
