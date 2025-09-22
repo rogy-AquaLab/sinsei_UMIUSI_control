@@ -1,6 +1,7 @@
 #include "sinsei_umiusi_control/hardware/thruster_direct/servo_direct.hpp"
 
 #include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
+#include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
@@ -74,8 +75,9 @@ auto thruster_direct::ServoDirect::write(
         this->get_command(prefix + "servo/angle"));
 
     if (!this->model) {
-        // this->set_state(
-        //     prefix + "servo/health", util::to_interface_data(state::thruster::servo::Health{false}));
+        this->set_state(
+            prefix + "servo/health",
+            util::to_interface_data(state::thruster::servo::Health{false}));
 
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_WARN_THROTTLE(
@@ -86,8 +88,9 @@ auto thruster_direct::ServoDirect::write(
 
     const auto res = this->model->on_write(std::move(enabled), std::move(angle));
     if (!res) {
-        // this->set_state(
-        //     prefix + "servo/health", util::to_interface_data(state::thruster::servo::Health{false}));
+        this->set_state(
+            prefix + "servo/health",
+            util::to_interface_data(state::thruster::servo::Health{false}));
 
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(

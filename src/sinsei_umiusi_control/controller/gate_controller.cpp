@@ -166,6 +166,15 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                 this->state_interface_data.emplace_back(
                     ac_prefix + "esc/rpm", to_interface_data_ptr(this->input.state.esc_rpms[i]),
                     sizeof(this->input.state.esc_rpms[i]));
+            } else if (this->thruster_mode == util::ThrusterMode::Direct) {
+                this->state_interface_data.emplace_back(
+                    tc_prefix + "thruster_direct/esc/health",
+                    to_interface_data_ptr(this->input.state.esc_direct_healthes[i]),
+                    sizeof(this->input.state.esc_direct_healthes[i]));
+                this->state_interface_data.emplace_back(
+                    tc_prefix + "thruster_direct/servo/health",
+                    to_interface_data_ptr(this->input.state.servo_direct_healthes[i]),
+                    sizeof(this->input.state.servo_direct_healthes[i]));
             }
         }
 

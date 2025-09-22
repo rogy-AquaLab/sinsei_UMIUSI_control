@@ -1,6 +1,7 @@
 #include "sinsei_umiusi_control/hardware/thruster_direct/esc_direct.hpp"
 
 #include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
+#include "sinsei_umiusi_control/state/thruster/esc.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
@@ -74,8 +75,8 @@ auto thruster_direct::EscDirect::write(
             this->get_command(prefix + "esc/duty_cycle"));
 
     if (!this->model) {
-        // this->set_state(
-        //     prefix + "esc/health", util::to_interface_data(state::thruster::esc::Health{false}));
+        this->set_state(
+            prefix + "esc/health", util::to_interface_data(state::thruster::esc::Health{false}));
 
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_WARN_THROTTLE(
@@ -86,8 +87,8 @@ auto thruster_direct::EscDirect::write(
 
     const auto res = this->model->on_write(std::move(enabled), std::move(duty_cycle));
     if (!res) {
-        // this->set_state(
-        //     prefix + "esc/health", util::to_interface_data(state::thruster::esc::Health{false}));
+        this->set_state(
+            prefix + "esc/health", util::to_interface_data(state::thruster::esc::Health{false}));
 
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(
