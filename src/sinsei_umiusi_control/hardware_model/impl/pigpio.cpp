@@ -220,3 +220,28 @@ auto impl::Pigpio::i2c_read_byte_data(const Addr & reg) const -> tl::expected<st
             return tl::unexpected(Error::UnknownError);
     }
 }
+
+auto impl::Pigpio::i2c_read_block_data(
+    const Addr & reg, std::byte * buffer, const size_t length) const -> tl::expected<void, Error> {
+    if (!this->i2c_handle) {
+        return tl::unexpected(Error::NoHandle);
+    }
+    auto res = ::i2c_read_i2c_block_data(
+        this->pi, this->i2c_handle.value(), reg, reinterpret_cast<char *>(buffer), length);
+
+    if (res == static_cast<int>(length)) return {};
+
+    // 部分読みも失敗扱い
+    if (res >= 0) return tl::unexpected(Error::I2cReadFailed);
+
+    switch (res) {
+        case PI_BAD_HANDLE:
+            return tl::unexpected(Error::BadHandle);
+        case PI_BAD_PARAM:
+            return tl::unexpected(Error::BadParameter);
+        case PI_I2C_READ_FAILED:
+            return tl::unexpected(Error::I2cReadFailed);
+        default:
+            return tl::unexpected(Error::UnknownError);
+    }
+}
