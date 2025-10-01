@@ -81,7 +81,7 @@ auto impl::Pigpio::write_pwm_duty(const Pin & pin, const double && duty)
     }
 }
 
-auto impl::Pigpio::write_set_servo(const Pin & pin, bool && enabled, const double && angle)
+auto impl::Pigpio::write_servo_angle(const Pin & pin, bool && enabled, const double && angle)
     -> tl::expected<void, Error> {
     // 角度をパルス幅に変換
     constexpr auto min = PI_MIN_SERVO_PULSEWIDTH;

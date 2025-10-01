@@ -18,6 +18,6 @@ auto ServoDirectModel::on_write(
     sinsei_umiusi_control::cmd::thruster::servo::Angle && angle)
     -> tl::expected<void, std::string> {
     return this->gpio
-        ->write_set_servo(this->servo_pin, std::move(enabled.value), std::move(angle.value))
+        ->write_servo_angle(this->servo_pin, std::move(enabled.value), std::move(angle.value))
         .map_error(interface::gpio_error_to_string);
 }
