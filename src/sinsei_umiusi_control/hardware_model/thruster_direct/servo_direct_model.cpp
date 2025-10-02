@@ -17,7 +17,11 @@ auto ServoDirectModel::on_write(
     sinsei_umiusi_control::cmd::thruster::servo::Enabled && enabled,
     sinsei_umiusi_control::cmd::thruster::servo::Angle && angle)
     -> tl::expected<void, std::string> {
-    return this->gpio
-        ->write_servo_angle(this->servo_pin, std::move(enabled.value), std::move(angle.value))
+    // 角度をパルス幅に変換
+    // TODO: 最小値や最大値をパラメーターとして設定できるようにする
+    constexpr auto MIN = 520;
+    constexpr auto MAX = 2400;
+    auto pulsewidth = enabled.value ? MIN + (MAX - MIN) * (angle.value + 90.0) / 180.0 : 0;
+    return this->gpio->write_servo_pulsewidth(this->servo_pin, static_cast<uint16_t>(pulsewidth))
         .map_error(interface::gpio_error_to_string);
 }

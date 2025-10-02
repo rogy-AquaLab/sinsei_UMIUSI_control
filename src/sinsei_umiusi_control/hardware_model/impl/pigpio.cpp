@@ -81,13 +81,9 @@ auto impl::Pigpio::write_pwm_duty(const Pin & pin, const double && duty)
     }
 }
 
-auto impl::Pigpio::write_servo_angle(const Pin & pin, bool && enabled, const double && angle)
+auto impl::Pigpio::write_servo_pulsewidth(const Pin & pin, const uint16_t && pulsewidth)
     -> tl::expected<void, Error> {
-    // 角度をパルス幅に変換
-    constexpr auto min = PI_MIN_SERVO_PULSEWIDTH;
-    constexpr auto max = PI_MAX_SERVO_PULSEWIDTH;
-    auto pulsewidth = enabled ? min + (max - min) * (angle + 90.0) / 180.0 : PI_SERVO_OFF;
-    const auto res = ::set_servo_pulsewidth(this->pi, pin, static_cast<int>(pulsewidth));
+    const auto res = ::set_servo_pulsewidth(this->pi, pin, pulsewidth);
     if (res == 0) {
         return {};
     }
