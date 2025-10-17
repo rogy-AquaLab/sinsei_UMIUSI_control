@@ -490,7 +490,6 @@ TEST(Bno055ModelGetAngularVelocity, success) {
     EXPECT_EQ(result.value().z, expected_angular_vel.z);
 }
 
-// TODO: Add success cases for get_quat and get_temp
 TEST(Bno055ModelGetTempTest, success) {
     auto gpio = std::make_unique<mock::Gpio>();
 
