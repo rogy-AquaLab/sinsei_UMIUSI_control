@@ -2,7 +2,6 @@
 #define SINSEI_UMIUSI_CONTROL_ATTITUDE_CONTROLLER_HPP
 
 #include <controller_interface/chainable_controller_interface.hpp>
-#include <hardware_interface/hardware_interface/handle.hpp>
 #include <memory>
 #include <vector>
 
