@@ -4,6 +4,8 @@
 #include <string>
 #include <tuple>
 
+#include "sinsei_umiusi_control/util/thruster_mode.hpp"
+
 using namespace sinsei_umiusi_control::hardware_model;
 
 auto CanModel::update_and_generate_command(
@@ -74,7 +76,7 @@ auto CanModel::update_and_generate_command(
 
 CanModel::CanModel(
     std::shared_ptr<interface::Can> can, std::array<int, 4> vesc_ids,
-    size_t period_led_tape_per_thrusters)
+    size_t period_led_tape_per_thrusters, util::ThrusterMode thruster_mode)
 : can(can),
   vesc_models{{
       can::VescModel(vesc_ids[0]),
@@ -83,7 +85,8 @@ CanModel::CanModel(
       can::VescModel(vesc_ids[3]),
   }},
   last_main_power_enabled{false},
-  period_led_tape_per_thrusters{period_led_tape_per_thrusters} {}
+  period_led_tape_per_thrusters{period_led_tape_per_thrusters},
+  thruster_mode(thruster_mode) {}
 
 auto CanModel::on_init() -> tl::expected<void, std::string> {
     const auto res = this->can->init("can0");
@@ -124,10 +127,11 @@ auto CanModel::on_read() const
     // TODO: この位置に`can::MainPowerModel`の処理を追加する
 
     for (size_t i = 0; i < 4; ++i) {
+        const auto vesc_id = std::to_string(i + 1);
+
         const auto packet_status_res = this->vesc_models[i].get_packet_status(frame.value());
         if (!packet_status_res) {
-            error_message +=
-                "    VESC " + std::to_string(i + 1) + ": " + packet_status_res.error() + "\n";
+            error_message += "    VESC " + vesc_id + ": " + packet_status_res.error() + "\n";
             continue;
         }
 
@@ -135,6 +139,13 @@ auto CanModel::on_read() const
         if (!packet_status_opt) {
             // `Can::VescModel`では処理できないためスキップ
             continue;
+        }
+
+        // `thruster_mode`が`Direct`の時は、VESCからのフレームを無視する
+        if (this->thruster_mode == util::ThrusterMode::Direct) {
+            return tl::make_unexpected(
+                "Received CAN frame from VESC " + vesc_id +
+                " but thruster mode is Direct, so ignored.");
         }
 
         switch (packet_status_opt.value().index()) {
