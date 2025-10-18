@@ -27,19 +27,19 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SystemInterface::on_init(params);
 
-    const auto thruster_mode =
+    const auto mode_str =
         util::find_param(params.hardware_info.hardware_parameters, "thruster_mode");
-    if (!thruster_mode) {
+    if (!mode_str) {
         RCLCPP_ERROR(
             this->get_logger(), "Parameter 'thruster_mode' not found in hardware parameters.");
         return hardware_interface::CallbackReturn::ERROR;
     }
-    const auto mode_res = util::get_mode_from_str(thruster_mode.value());
+    const auto mode_res = util::get_mode_from_str(mode_str.value());
     if (!mode_res) {
         RCLCPP_ERROR(this->get_logger(), "Invalid thruster mode: %s", mode_res.error().c_str());
         return hardware_interface::CallbackReturn::ERROR;
     }
-    this->thruster_mode = mode_res.value();
+    auto thruster_mode = mode_res.value();
 
     std::array<int, 4> vesc_ids;
     for (size_t i = 0; i < 4; ++i) {
@@ -90,8 +90,8 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     }
 
     this->model.emplace(
-        std::make_shared<hardware_model::impl::LinuxCan>(), vesc_ids,
-        period_led_tape_per_thrusters);
+        std::make_shared<hardware_model::impl::LinuxCan>(), vesc_ids, period_led_tape_per_thrusters,
+        thruster_mode);
 
     auto res = this->model->on_init();
     if (!res) {
@@ -191,7 +191,7 @@ auto Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period
     auto && led_tape_color =
         util::from_interface_data<cmd::led_tape::Color>(this->get_command("led_tape/color"));
 
-    switch (this->thruster_mode) {
+    switch (this->model->thruster_mode) {
         case util::ThrusterMode::Can: {
             auto thruster_name = [](size_t i) { return "thruster" + std::to_string(i + 1); };
 

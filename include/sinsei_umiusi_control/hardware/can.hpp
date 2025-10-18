@@ -6,15 +6,12 @@
 #include <rclcpp/macros.hpp>
 
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
-#include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 namespace sinsei_umiusi_control::hardware {
 
 class Can : public hardware_interface::SystemInterface {
   private:
     std::optional<hardware_model::CanModel> model;
-
-    util::ThrusterMode thruster_mode;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(Can)

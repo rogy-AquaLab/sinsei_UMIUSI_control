@@ -21,6 +21,7 @@ launch:
       description: "CAN ID for VESC 4 (corresponds to thruster 4)"
       name: vesc4_id
       default: "127"
+
   - arg:
       description: "GPIO pin number for High beam headlight"
       name: high_beam_pin
@@ -41,6 +42,40 @@ launch:
       description: "LED tape's operation period per thrusters' operation period"
       name: period_led_tape_per_thrusters
       default: "10"
+
+  # only used when `thruster_mode` is set to `direct`
+  - arg:
+      description: "GPIO pin number for servo 1 (corresponds to thruster 1)"
+      name: servo_direct1_pin
+      default: "13"
+  - arg:
+      description: "GPIO pin number for servo 2 (corresponds to thruster 2)"
+      name: servo_direct2_pin
+      default: "18"
+  - arg:
+      description: "GPIO pin number for servo 3 (corresponds to thruster 3)"
+      name: servo_direct3_pin
+      default: "17"
+  - arg:
+      description: "GPIO pin number for servo 4 (corresponds to thruster 4)"
+      name: servo_direct4_pin
+      default: "4"
+  - arg:
+      description: "GPIO pin number for ESC 1 (corresponds to thruster 1)"
+      name: esc_direct1_pin
+      default: "21"
+  - arg:
+      description: "GPIO pin number for ESC 2 (corresponds to thruster 2)"
+      name: esc_direct2_pin
+      default: "19"
+  - arg:
+      description: "GPIO pin number for ESC 3 (corresponds to thruster 3)"
+      name: esc_direct3_pin
+      default: "16"
+  - arg:
+      description: "GPIO pin number for ESC 4 (corresponds to thruster 4)"
+      name: esc_direct4_pin
+      default: "12"
 
   # Environment dependent parameters
   - arg:

@@ -15,6 +15,7 @@ enum class GpioError {
     BadFlags,
     BadHandle,
     BadParameter,
+    BadPulsewidth,
     NoHandle,
     I2cNotOpen,
     I2cBadBus,
@@ -39,6 +40,8 @@ inline auto gpio_error_to_string(const GpioError & error) -> std::string {
             return "Bad handle specified";
         case GpioError::BadParameter:
             return "Bad parameter specified";
+        case GpioError::BadPulsewidth:
+            return "Bad pulsewidth specified";
         case GpioError::NoHandle:
             return "No handle available";
         case GpioError::I2cNotOpen:
@@ -70,7 +73,10 @@ class Gpio {
     virtual auto set_mode_output(const std::vector<Pin> & pins) -> tl::expected<void, Error> = 0;
     virtual auto set_mode_input(const std::vector<Pin> & pins) -> tl::expected<void, Error> = 0;
     virtual auto write_digital(const Pin & pin, bool && enabled) -> tl::expected<void, Error> = 0;
-    virtual auto write_pwm() -> tl::expected<void, Error> = 0;
+    virtual auto write_pwm_duty(const Pin & pin, const double && duty)
+        -> tl::expected<void, Error> = 0;
+    virtual auto write_servo_pulsewidth(const Pin & pin, const uint16_t && pulsewidth)
+        -> tl::expected<void, Error> = 0;
 
     virtual auto i2c_open(const Addr & address) -> tl::expected<void, Error> = 0;
     virtual auto i2c_close() -> tl::expected<void, Error> = 0;

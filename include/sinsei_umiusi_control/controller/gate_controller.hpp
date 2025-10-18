@@ -58,6 +58,9 @@ class GateController : public controller_interface::ControllerInterface {
             std::array<sinsei_umiusi_control::state::thruster::servo::Enabled, 4>
                 servo_enabled_flags;
             std::array<sinsei_umiusi_control::state::thruster::servo::Angle, 4> servo_angles;
+            std::array<sinsei_umiusi_control::state::thruster::esc::Health, 4> esc_direct_healthes;
+            std::array<sinsei_umiusi_control::state::thruster::servo::Health, 4>
+                servo_direct_healthes;
             sinsei_umiusi_control::state::can::Health can_health;
             sinsei_umiusi_control::state::headlights::Health headlights_health;
             sinsei_umiusi_control::state::imu::Health imu_health;

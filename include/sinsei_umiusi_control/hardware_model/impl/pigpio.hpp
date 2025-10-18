@@ -32,7 +32,10 @@ class Pigpio : public interface::Gpio {
     auto set_mode_output(const std::vector<Pin> & pins) -> tl::expected<void, Error> override;
     auto set_mode_input(const std::vector<Pin> & pins) -> tl::expected<void, Error> override;
     auto write_digital(const Pin & pin, bool && enabled) -> tl::expected<void, Error> override;
-    auto write_pwm() -> tl::expected<void, Error> override;
+    auto write_pwm_duty(const Pin & pin, const double && duty)
+        -> tl::expected<void, Error> override;
+    auto write_servo_pulsewidth(const Pin & pin, const uint16_t && pulsewidth)
+        -> tl::expected<void, Error> override;
 
     auto i2c_open(const Addr & address) -> tl::expected<void, Error> override;
     auto i2c_close() -> tl::expected<void, Error> override;
