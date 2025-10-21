@@ -2,14 +2,23 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
 
   <xacro:macro name="thruster_direct"
-    params="servo1_pin servo2_pin servo3_pin servo4_pin esc1_pin esc2_pin esc3_pin esc4_pin">
-    <xacro:macro name="thruster_direct" params="id servo_pin esc_pin">
+    params="
+    servo1_min_pulse_width servo1_max_pulse_width
+    servo2_min_pulse_width servo2_max_pulse_width
+    servo3_min_pulse_width servo3_max_pulse_width
+    servo4_min_pulse_width servo4_max_pulse_width
+    servo1_pin servo2_pin servo3_pin servo4_pin
+    esc1_pin esc2_pin esc3_pin esc4_pin">
+    <xacro:macro name="thruster_direct"
+      params="id servo_min_pulse_width servo_max_pulse_width servo_pin esc_pin">
       <xacro:property name="thruster_name" value="thruster_direct${id}" />
       <ros2_control name="${thruster_name}/servo" type="system">
         <hardware>
           <plugin>sinsei_umiusi_control/hardware/ServoDirect</plugin>
           <param name="id">${id}</param>
           <param name="pin">${servo_pin}</param>
+          <param name="min_pulse_width">${servo_min_pulse_width}</param>
+          <param name="max_pulse_width">${servo_max_pulse_width}</param>
         </hardware>
         <gpio name="${thruster_name}/servo">
           <command_interface name="enabled" />
@@ -31,10 +40,18 @@
       </ros2_control>
     </xacro:macro>
 
-    <xacro:thruster_direct id="1" servo_pin="${servo1_pin}" esc_pin="${esc1_pin}" />
-    <xacro:thruster_direct id="2" servo_pin="${servo2_pin}" esc_pin="${esc2_pin}" />
-    <xacro:thruster_direct id="3" servo_pin="${servo3_pin}" esc_pin="${esc3_pin}" />
-    <xacro:thruster_direct id="4" servo_pin="${servo4_pin}" esc_pin="${esc4_pin}" />
+    <xacro:thruster_direct id="1" servo_min_pulse_width="${servo1_min_pulse_width}"
+      servo_max_pulse_width="${servo1_max_pulse_width}" servo_pin="${servo1_pin}"
+      esc_pin="${esc1_pin}" />
+    <xacro:thruster_direct id="2" servo_min_pulse_width="${servo2_min_pulse_width}"
+      servo_max_pulse_width="${servo2_max_pulse_width}" servo_pin="${servo2_pin}"
+      esc_pin="${esc2_pin}" />
+    <xacro:thruster_direct id="3" servo_min_pulse_width="${servo3_min_pulse_width}"
+      servo_max_pulse_width="${servo3_max_pulse_width}" servo_pin="${servo3_pin}"
+      esc_pin="${esc3_pin}" />
+    <xacro:thruster_direct id="4" servo_min_pulse_width="${servo4_min_pulse_width}"
+      servo_max_pulse_width="${servo4_max_pulse_width}" servo_pin="${servo4_pin}"
+      esc_pin="${esc4_pin}" />
   </xacro:macro>
 
 </robot>

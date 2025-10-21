@@ -8,6 +8,14 @@
       low_beam_pin
       ir_pin
       indicator_led_pin
+      servo_direct1_min_pulse_width
+      servo_direct1_max_pulse_width
+      servo_direct2_min_pulse_width
+      servo_direct2_max_pulse_width
+      servo_direct3_min_pulse_width
+      servo_direct3_max_pulse_width
+      servo_direct4_min_pulse_width
+      servo_direct4_max_pulse_width
       servo_direct1_pin
       servo_direct2_pin
       servo_direct3_pin
@@ -40,6 +48,14 @@
     />
     <xacro:if value="${thruster_mode == 'direct'}">
       <xacro:thruster_direct
+        servo1_min_pulse_width="${servo_direct1_min_pulse_width}"
+        servo1_max_pulse_width="${servo_direct1_max_pulse_width}"
+        servo2_min_pulse_width="${servo_direct2_min_pulse_width}"
+        servo2_max_pulse_width="${servo_direct2_max_pulse_width}"
+        servo3_min_pulse_width="${servo_direct3_min_pulse_width}"
+        servo3_max_pulse_width="${servo_direct3_max_pulse_width}"
+        servo4_min_pulse_width="${servo_direct4_min_pulse_width}"
+        servo4_max_pulse_width="${servo_direct4_max_pulse_width}"
         servo1_pin="${servo_direct1_pin}"
         servo2_pin="${servo_direct2_pin}"
         servo3_pin="${servo_direct3_pin}"
