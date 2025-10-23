@@ -12,7 +12,7 @@ auto thruster_direct::EscDirect::on_init(
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SystemInterface::on_init(params);
 
-    auto esc_pin = std::make_unique<sinsei_umiusi_control::hardware_model::impl::Pigpio>();
+    auto gpio = std::make_unique<sinsei_umiusi_control::hardware_model::impl::Pigpio>();
 
     // ID、ピン番号をパラメーターから取得
     const auto id_str = util::find_param(params.hardware_info.hardware_parameters, "id");
@@ -90,7 +90,7 @@ auto thruster_direct::EscDirect::on_init(
     }
 
     this->model.emplace(
-        std::move(esc_pin), esc_pin_num, center_pulse_width, negative_pulse_width_radius,
+        std::move(gpio), esc_pin_num, center_pulse_width, negative_pulse_width_radius,
         positive_pulse_width_radius);
 
     const auto res = this->model->on_init();

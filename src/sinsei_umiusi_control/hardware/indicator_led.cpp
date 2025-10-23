@@ -11,7 +11,7 @@ auto IndicatorLed::on_init(const hardware_interface::HardwareComponentInterfaceP
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SystemInterface::on_init(params);
 
-    auto led_pin = std::make_unique<sinsei_umiusi_control::hardware_model::impl::Pigpio>();
+    auto gpio = std::make_unique<sinsei_umiusi_control::hardware_model::impl::Pigpio>();
 
     // ピン番号をパラメーターから取得
     const auto led_pin_num_str = util::find_param(params.hardware_info.hardware_parameters, "pin");
@@ -26,7 +26,7 @@ auto IndicatorLed::on_init(const hardware_interface::HardwareComponentInterfaceP
         RCLCPP_ERROR(this->get_logger(), "Invalid pin number: %s", e.what());
         return hardware_interface::CallbackReturn::ERROR;
     }
-    this->model.emplace(std::move(led_pin), led_pin_num);
+    this->model.emplace(std::move(gpio), led_pin_num);
 
     const auto res = this->model->on_init();
     if (!res) {
