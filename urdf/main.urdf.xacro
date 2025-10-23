@@ -6,6 +6,26 @@
   <xacro:arg name="low_beam_pin" default="'unknown'" />
   <xacro:arg name="ir_pin" default="'unknown'" />
   <xacro:arg name="indicator_led_pin" default="'unknown'" />
+  <xacro:arg name="esc_direct1_pin" default="'unknown'" />
+  <xacro:arg name="esc_direct2_pin" default="'unknown'" />
+  <xacro:arg name="esc_direct3_pin" default="'unknown'" />
+  <xacro:arg name="esc_direct4_pin" default="'unknown'" />
+  <xacro:arg name="servo_direct1_pin" default="'unknown'" />
+  <xacro:arg name="servo_direct2_pin" default="'unknown'" />
+  <xacro:arg name="servo_direct3_pin" default="'unknown'" />
+  <xacro:arg name="servo_direct4_pin" default="'unknown'" />
+  <xacro:arg name="esc_direct1_center_pulse_width" default="'unknown'" />
+  <xacro:arg name="esc_direct1_negative_pulse_width_radius" default="'unknown'" />
+  <xacro:arg name="esc_direct1_positive_pulse_width_radius" default="''unknown'" />
+  <xacro:arg name="esc_direct2_center_pulse_width" default="'unknown'" />
+  <xacro:arg name="esc_direct2_negative_pulse_width_radius" default="'unknown'" />
+  <xacro:arg name="esc_direct2_positive_pulse_width_radius" default="'unknown'" />
+  <xacro:arg name="esc_direct3_center_pulse_width" default="'unknown'" />
+  <xacro:arg name="esc_direct3_negative_pulse_width_radius" default="'unknown'" />
+  <xacro:arg name="esc_direct3_positive_pulse_width_radius" default="'unknown'" />
+  <xacro:arg name="esc_direct4_center_pulse_width" default="'unknown'" />
+  <xacro:arg name="esc_direct4_negative_pulse_width_radius" default="'unknown'" />
+  <xacro:arg name="esc_direct4_positive_pulse_width_radius" default="'unknown'" />
   <xacro:arg name="servo_direct1_min_pulse_width" default="'unknown'" />
   <xacro:arg name="servo_direct1_max_pulse_width" default="'unknown'" />
   <xacro:arg name="servo_direct2_min_pulse_width" default="'unknown'" />
@@ -14,14 +34,6 @@
   <xacro:arg name="servo_direct3_max_pulse_width" default="'unknown'" />
   <xacro:arg name="servo_direct4_min_pulse_width" default="'unknown'" />
   <xacro:arg name="servo_direct4_max_pulse_width" default="'unknown'" />
-  <xacro:arg name="servo_direct1_pin" default="'unknown'" />
-  <xacro:arg name="servo_direct2_pin" default="'unknown'" />
-  <xacro:arg name="servo_direct3_pin" default="'unknown'" />
-  <xacro:arg name="servo_direct4_pin" default="'unknown'" />
-  <xacro:arg name="esc_direct1_pin" default="'unknown'" />
-  <xacro:arg name="esc_direct2_pin" default="'unknown'" />
-  <xacro:arg name="esc_direct3_pin" default="'unknown'" />
-  <xacro:arg name="esc_direct4_pin" default="'unknown'" />
   <xacro:arg name="vesc1_id" default="'unknown'" />
   <xacro:arg name="vesc2_id" default="'unknown'" />
   <xacro:arg name="vesc3_id" default="'unknown'" />
@@ -38,6 +50,26 @@
     low_beam_pin="$(arg low_beam_pin)"
     ir_pin="$(arg ir_pin)"
     indicator_led_pin="$(arg indicator_led_pin)"
+    esc_direct1_pin="$(arg esc_direct1_pin)"
+    esc_direct2_pin="$(arg esc_direct2_pin)"
+    esc_direct3_pin="$(arg esc_direct3_pin)"
+    esc_direct4_pin="$(arg esc_direct4_pin)"
+    servo_direct1_pin="$(arg servo_direct1_pin)"
+    servo_direct2_pin="$(arg servo_direct2_pin)"
+    servo_direct3_pin="$(arg servo_direct3_pin)"
+    servo_direct4_pin="$(arg servo_direct4_pin)"
+    esc_direct1_center_pulse_width="$(arg esc_direct1_center_pulse_width)"
+    esc_direct1_negative_pulse_width_radius="$(arg esc_direct1_negative_pulse_width_radius)"
+    esc_direct1_positive_pulse_width_radius="$(arg esc_direct1_positive_pulse_width_radius)"
+    esc_direct2_center_pulse_width="$(arg esc_direct2_center_pulse_width)"
+    esc_direct2_negative_pulse_width_radius="$(arg esc_direct2_negative_pulse_width_radius)"
+    esc_direct2_positive_pulse_width_radius="$(arg esc_direct2_positive_pulse_width_radius)"
+    esc_direct3_center_pulse_width="$(arg esc_direct3_center_pulse_width)"
+    esc_direct3_negative_pulse_width_radius="$(arg esc_direct3_negative_pulse_width_radius)"
+    esc_direct3_positive_pulse_width_radius="$(arg esc_direct3_positive_pulse_width_radius)"
+    esc_direct4_center_pulse_width="$(arg esc_direct4_center_pulse_width)"
+    esc_direct4_negative_pulse_width_radius="$(arg esc_direct4_negative_pulse_width_radius)"
+    esc_direct4_positive_pulse_width_radius="$(arg esc_direct4_positive_pulse_width_radius)"
     servo_direct1_min_pulse_width="$(arg servo_direct1_min_pulse_width)"
     servo_direct1_max_pulse_width="$(arg servo_direct1_max_pulse_width)"
     servo_direct2_min_pulse_width="$(arg servo_direct2_min_pulse_width)"
@@ -46,14 +78,6 @@
     servo_direct3_max_pulse_width="$(arg servo_direct3_max_pulse_width)"
     servo_direct4_min_pulse_width="$(arg servo_direct4_min_pulse_width)"
     servo_direct4_max_pulse_width="$(arg servo_direct4_max_pulse_width)"
-    servo_direct1_pin="$(arg servo_direct1_pin)"
-    servo_direct2_pin="$(arg servo_direct2_pin)"
-    servo_direct3_pin="$(arg servo_direct3_pin)"
-    servo_direct4_pin="$(arg servo_direct4_pin)"
-    esc_direct1_pin="$(arg esc_direct1_pin)"
-    esc_direct2_pin="$(arg esc_direct2_pin)"
-    esc_direct3_pin="$(arg esc_direct3_pin)"
-    esc_direct4_pin="$(arg esc_direct4_pin)"
     vesc1_id="$(arg vesc1_id)"
     vesc2_id="$(arg vesc2_id)"
     vesc3_id="$(arg vesc3_id)"
