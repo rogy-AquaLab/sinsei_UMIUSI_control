@@ -21,10 +21,6 @@ class Gpio : public hardware_model::interface::Gpio {
         write_digital, tl::expected<void, hardware_model::interface::Gpio::Error>(
                            const hardware_model::interface::Gpio::Pin & pin, bool && enabled));
     MOCK_METHOD2(
-        write_pwm_duty,
-        tl::expected<void, hardware_model::interface::Gpio::Error>(
-            const hardware_model::interface::Gpio::Pin & pin, const double && duty));
-    MOCK_METHOD2(
         write_servo_pulsewidth,
         tl::expected<void, hardware_model::interface::Gpio::Error>(
             const hardware_model::interface::Gpio::Pin & pin,
