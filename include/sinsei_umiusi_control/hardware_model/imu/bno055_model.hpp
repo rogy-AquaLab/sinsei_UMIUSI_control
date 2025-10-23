@@ -1,7 +1,6 @@
 #ifndef SINSEI_UMIUSI_CONTROL_hardware_model_IMU_BNO055_MODEL_HPP
 #define SINSEI_UMIUSI_CONTROL_hardware_model_IMU_BNO055_MODEL_HPP
 
-#include <cassert>
 #include <cstddef>
 #include <memory>
 
@@ -123,10 +122,9 @@ class Bno055Model {
                 return LINEAR_ACCEL_DATA_X_LSB_ADDR;
             case VectorType::Gravity:
                 return GRAVITY_DATA_X_LSB_ADDR;
+            default:
+                return 0;  // unreachable
         }
-
-        assert(false && "Unexpected VectorType in get_address()");
-        return 0;
     }
 
     constexpr auto get_scale(VectorType type) -> double {
@@ -140,10 +138,10 @@ class Bno055Model {
             case VectorType::LinearAccel:    // 1m/s^2 = 100 LSB
             case VectorType::Gravity:        // 1m/s^2 = 100 LSB
                 return 1.0 / 100.0;
-        }
 
-        assert(false && "Unexpected VectorType in get_scale()");
-        return 0.0;
+            default:
+                return 0.0;  // unreachable
+        }
     }
 
     using Vector3 = std::tuple<double, double, double>;
