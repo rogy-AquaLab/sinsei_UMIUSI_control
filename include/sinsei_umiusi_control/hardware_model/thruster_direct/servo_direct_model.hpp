@@ -15,8 +15,13 @@ class ServoDirectModel {
     std::unique_ptr<interface::Gpio> gpio;
     interface::Gpio::Pin servo_pin;
 
+    interface::Gpio::PulseWidth min_pulse_width;
+    interface::Gpio::PulseWidth max_pulse_width;
+
   public:
-    ServoDirectModel(std::unique_ptr<interface::Gpio> gpio, interface::Gpio::Pin servo_pin);
+    ServoDirectModel(
+        std::unique_ptr<interface::Gpio> gpio, interface::Gpio::Pin servo_pin,
+        interface::Gpio::PulseWidth min_pulse_width, interface::Gpio::PulseWidth max_pulse_width);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_read() const -> tl::expected<void, std::string>;
     auto on_write(

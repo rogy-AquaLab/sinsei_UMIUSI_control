@@ -15,8 +15,16 @@ class EscDirectModel {
     std::unique_ptr<interface::Gpio> gpio;
     interface::Gpio::Pin esc_pin;
 
+    interface::Gpio::PulseWidth center_pulse_width;
+    interface::Gpio::PulseWidth negative_pulse_width_radius;
+    interface::Gpio::PulseWidth positive_pulse_width_radius;
+
   public:
-    EscDirectModel(std::unique_ptr<interface::Gpio> gpio, interface::Gpio::Pin esc_pin);
+    EscDirectModel(
+        std::unique_ptr<interface::Gpio> gpio, interface::Gpio::Pin esc_pin,
+        interface::Gpio::PulseWidth center_pulse_width,
+        interface::Gpio::PulseWidth negative_pulse_width_radius,
+        interface::Gpio::PulseWidth positive_pulse_width_radius);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_read() const -> tl::expected<void, std::string>;
     auto on_write(
