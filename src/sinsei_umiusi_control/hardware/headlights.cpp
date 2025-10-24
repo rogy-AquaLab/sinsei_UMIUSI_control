@@ -14,9 +14,6 @@ auto Headlights::on_init(const hardware_interface::HardwareComponentInterfacePar
     this->hardware_interface::SystemInterface::on_init(params);
 
     auto gpio = std::make_unique<hardware_model::impl::Pigpio>();
-    auto high_beam_pin = std::make_unique<hardware_model::impl::Pigpio>();
-    auto low_beam_pin = std::make_unique<hardware_model::impl::Pigpio>();
-    auto ir_pin = std::make_unique<hardware_model::impl::Pigpio>();
 
     // ピン番号をパラメーターから取得
     const auto high_beam_pin_num_str =

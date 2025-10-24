@@ -122,6 +122,8 @@ class Bno055Model {
                 return LINEAR_ACCEL_DATA_X_LSB_ADDR;
             case VectorType::Gravity:
                 return GRAVITY_DATA_X_LSB_ADDR;
+            default:
+                return 0;  // unreachable
         }
     }
 
@@ -136,6 +138,9 @@ class Bno055Model {
             case VectorType::LinearAccel:    // 1m/s^2 = 100 LSB
             case VectorType::Gravity:        // 1m/s^2 = 100 LSB
                 return 1.0 / 100.0;
+
+            default:
+                return 0.0;  // unreachable
         }
     }
 
