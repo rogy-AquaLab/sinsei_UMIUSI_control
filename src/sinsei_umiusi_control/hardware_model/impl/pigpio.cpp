@@ -63,7 +63,7 @@ auto impl::Pigpio::write_digital(const Pin & pin, bool && enabled) -> tl::expect
     }
 }
 
-auto impl::Pigpio::write_servo_pulsewidth(const Pin & pin, const PulseWidth && pulsewidth)
+auto impl::Pigpio::write_pwm_pulsewidth(const Pin & pin, const PulseWidth && pulsewidth)
     -> tl::expected<void, Error> {
     const auto res = ::set_servo_pulsewidth(this->pi, pin, pulsewidth);
     if (res == 0) {

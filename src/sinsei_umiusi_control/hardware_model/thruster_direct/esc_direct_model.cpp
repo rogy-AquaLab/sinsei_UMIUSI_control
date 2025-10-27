@@ -33,7 +33,6 @@ auto EscDirectModel::on_write(
                                                              : positive_radius * duty_cycle.value)
                           : 0;
     return this->gpio
-        ->write_servo_pulsewidth(
-            this->esc_pin, static_cast<interface::Gpio::PulseWidth>(pulsewidth))
+        ->write_pwm_pulsewidth(this->esc_pin, static_cast<interface::Gpio::PulseWidth>(pulsewidth))
         .map_error(interface::gpio_error_to_string);
 }

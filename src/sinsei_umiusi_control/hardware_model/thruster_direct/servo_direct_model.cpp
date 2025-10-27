@@ -29,7 +29,7 @@ auto ServoDirectModel::on_write(
     const auto max = this->max_pulse_width;
     auto pulsewidth = enabled.value ? min + (max - min) * (angle.value + 90.0) / 180.0 : 0;
     return this->gpio
-        ->write_servo_pulsewidth(
+        ->write_pwm_pulsewidth(
             this->servo_pin, static_cast<interface::Gpio::PulseWidth>(pulsewidth))
         .map_error(interface::gpio_error_to_string);
 }
