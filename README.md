@@ -32,9 +32,10 @@ All types of messages are defined in this package.
 
 ### Published by `GateController`
 
-| Topic Name                       | Type name (URL to `.msg` file)                             | Description                                                           |
-| -------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------- |
-| `state/main_power_state`         | [`MainPowerState`](./msg/MainPowerState.msg)               | Main power circuit status (Voltage, Current, etc.)                    |
-| `state/imu_state`                | [`ImuState`](./msg/ImuState.msg)                           | IMU status (Acceleration, Angular Velocity, Quaternion, etc.)                               |
-| `state/thruster_state_all`       | [`ThrusterStateAll`](./msg/ThrusterStateAll.msg)           | Thruster status (RPM, Current, Voltage, etc.) for each thruster       |
-| `state/low_power_circuit_health` | [`LowPowerCircuitHealth`](./msg/LowPowerCircuitHealth.msg) | Health status (`0` for ok / `1` for error) for each low-power circuit |
+| Topic Name                        | Type name (URL to `.msg` file)                               | Description                                                                             |
+| --------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| `state/main_power_enabled`        | [`MainPowerEnabled`](./msg/MainPowerEnabled.msg)             | Main power enabled / disabled status                                                    |
+| `state/imu_state`                 | [`ImuState`](./msg/ImuState.msg)                             | IMU status (Acceleration, Angular Velocity, Quaternion, etc.)                           |
+| `state/thruster_state_all`        | [`ThrusterStateAll`](./msg/ThrusterStateAll.msg)             | Thruster status (RPM, Current, Voltage, etc.) for each thruster                         |
+| `state/low_power_circuit_health`  | [`LowPowerCircuitHealth`](./msg/LowPowerCircuitHealth.msg)   | Health status (`0` for ok / `1` for error) for each low-power circuit                   |
+| `state/high_power_circuit_health` | [`HighPowerCircuitHealth`](./msg/HighPowerCircuitHealth.msg) | Health-related values for each high-power circuit (Voltage, Current, WaterLeaked, etc.) |

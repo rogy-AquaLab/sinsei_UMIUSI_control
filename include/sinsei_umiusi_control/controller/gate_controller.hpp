@@ -15,12 +15,13 @@
 #include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
 #include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
 #include "sinsei_umiusi_control/msg/headlights_output.hpp"
+#include "sinsei_umiusi_control/msg/high_power_circuit_health.hpp"
 #include "sinsei_umiusi_control/msg/imu_state.hpp"
 #include "sinsei_umiusi_control/msg/indicator_led_output.hpp"
 #include "sinsei_umiusi_control/msg/led_tape_output.hpp"
 #include "sinsei_umiusi_control/msg/low_power_circuit_health.hpp"
+#include "sinsei_umiusi_control/msg/main_power_enabled.hpp"
 #include "sinsei_umiusi_control/msg/main_power_output.hpp"
-#include "sinsei_umiusi_control/msg/main_power_state.hpp"
 #include "sinsei_umiusi_control/msg/target.hpp"
 #include "sinsei_umiusi_control/msg/thruster_enabled_all.hpp"
 #include "sinsei_umiusi_control/msg/thruster_state_all.hpp"
@@ -98,11 +99,13 @@ class GateController : public controller_interface::ControllerInterface {
         };
         // Publishers for states
         struct Publishers {
-            rclcpp::Publisher<msg::MainPowerState>::SharedPtr main_power_state_publisher;
+            rclcpp::Publisher<msg::MainPowerEnabled>::SharedPtr main_power_enabled_publisher;
             rclcpp::Publisher<msg::ImuState>::SharedPtr imu_state_publisher;
             rclcpp::Publisher<msg::ThrusterStateAll>::SharedPtr thruster_state_all_publisher;
             rclcpp::Publisher<msg::LowPowerCircuitHealth>::SharedPtr
                 low_power_circuit_health_publisher;
+            rclcpp::Publisher<msg::HighPowerCircuitHealth>::SharedPtr
+                high_power_circuit_health_publisher;
         };
         Command cmd;
         Publishers pub;

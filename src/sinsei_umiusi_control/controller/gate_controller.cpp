@@ -5,6 +5,7 @@
 #include <rclcpp_lifecycle/state.hpp>
 #include <string>
 
+#include "sinsei_umiusi_control/msg/esc_state.hpp"
 #include "sinsei_umiusi_control/msg/low_power_circuit_health.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
@@ -299,9 +300,9 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
         // Publishers
         const auto state_prefix = std::string("state/");
         const auto qos = rclcpp::SystemDefaultsQoS();
-        this->output.pub.main_power_state_publisher =
-            this->get_node()->create_publisher<msg::MainPowerState>(
-                state_prefix + "main_power_state", qos);
+        this->output.pub.main_power_enabled_publisher =
+            this->get_node()->create_publisher<msg::MainPowerEnabled>(
+                state_prefix + "main_power_enabled", qos);
         this->output.pub.imu_state_publisher =
             this->get_node()->create_publisher<msg::ImuState>(state_prefix + "imu_state", qos);
         this->output.pub.thruster_state_all_publisher =
@@ -310,6 +311,9 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
         this->output.pub.low_power_circuit_health_publisher =
             this->get_node()->create_publisher<msg::LowPowerCircuitHealth>(
                 state_prefix + "low_power_circuit_health", qos);
+        this->output.pub.high_power_circuit_health_publisher =
+            this->get_node()->create_publisher<msg::HighPowerCircuitHealth>(
+                state_prefix + "high_power_circuit_health", qos);
     }
 
     return controller_interface::CallbackReturn::SUCCESS;
@@ -322,14 +326,8 @@ auto GateController::update(
     util::interface_accessor::get_states_from_loaned_interfaces(
         this->state_interfaces_, this->state_interface_data);
 
-    // 状態をトピックに出力
-    this->output.pub.main_power_state_publisher->publish(
-        msg::MainPowerState()
-            .set__enabled(this->output.cmd.main_power_enabled_ref.value)
-            .set__voltage(this->input.state.main_power_battery_voltage.value)
-            .set__current(this->input.state.main_power_battery_current.value)
-            .set__temperature(this->input.state.main_temperature.value)
-            .set__water_leaked(this->input.state.water_leaked.value));
+    this->output.pub.main_power_enabled_publisher->publish(
+        msg::MainPowerEnabled().set__enabled(this->output.cmd.main_power_enabled_ref.value));
     this->output.pub.imu_state_publisher->publish(
         msg::ImuState()
             .set__acceleration(geometry_msgs::msg::Vector3()
@@ -358,9 +356,7 @@ auto GateController::update(
                                     .set__servo(this->input.state.servo_enabled_flags[0].value))
                             .set__duty_cycle(this->input.state.esc_duty_cycles[0].value)
                             .set__angle(this->input.state.servo_angles[0].value))
-                    .set__rpm(this->input.state.esc_rpms[0].value)
-                    .set__voltage(this->input.state.esc_voltages[0].value)
-                    .set__water_leaked(this->input.state.esc_water_leaked_flags[0].value))
+                    .set__rpm(this->input.state.esc_rpms[0].value))
             .set__lb(
                 msg::ThrusterState()
                     .set__output(
@@ -371,9 +367,7 @@ auto GateController::update(
                                     .set__servo(this->input.state.servo_enabled_flags[1].value))
                             .set__duty_cycle(this->input.state.esc_duty_cycles[1].value)
                             .set__angle(this->input.state.servo_angles[1].value))
-                    .set__rpm(this->input.state.esc_rpms[1].value)
-                    .set__voltage(this->input.state.esc_voltages[1].value)
-                    .set__water_leaked(this->input.state.esc_water_leaked_flags[1].value))
+                    .set__rpm(this->input.state.esc_rpms[1].value))
             .set__rb(
                 msg::ThrusterState()
                     .set__output(
@@ -384,9 +378,7 @@ auto GateController::update(
                                     .set__servo(this->input.state.servo_enabled_flags[2].value))
                             .set__duty_cycle(this->input.state.esc_duty_cycles[2].value)
                             .set__angle(this->input.state.servo_angles[2].value))
-                    .set__rpm(this->input.state.esc_rpms[2].value)
-                    .set__voltage(this->input.state.esc_voltages[2].value)
-                    .set__water_leaked(this->input.state.esc_water_leaked_flags[2].value))
+                    .set__rpm(this->input.state.esc_rpms[2].value))
             .set__rf(
                 msg::ThrusterState()
                     .set__output(
@@ -397,9 +389,7 @@ auto GateController::update(
                                     .set__servo(this->input.state.servo_enabled_flags[3].value))
                             .set__duty_cycle(this->input.state.esc_duty_cycles[3].value)
                             .set__angle(this->input.state.servo_angles[3].value))
-                    .set__rpm(this->input.state.esc_rpms[3].value)
-                    .set__voltage(this->input.state.esc_voltages[3].value)
-                    .set__water_leaked(this->input.state.esc_water_leaked_flags[3].value)));
+                    .set__rpm(this->input.state.esc_rpms[3].value)));
     this->output.pub.low_power_circuit_health_publisher->publish(
         msg::LowPowerCircuitHealth()
             .set__can(
@@ -414,6 +404,28 @@ auto GateController::update(
             .set__indicator_led(
                 this->input.state.indicator_led_health.is_ok ? msg::LowPowerCircuitHealth::OK
                                                              : msg::LowPowerCircuitHealth::ERROR));
+    this->output.pub.high_power_circuit_health_publisher->publish(
+        msg::HighPowerCircuitHealth()
+            .set__voltage(this->input.state.main_power_battery_voltage.value)
+            .set__current(this->input.state.main_power_battery_current.value)
+            .set__temperature(this->input.state.main_temperature.value)
+            .set__water_leaked(this->input.state.water_leaked.value)
+            .set__esc_lf_state(
+                msg::EscState()
+                    .set__voltage(this->input.state.esc_voltages[0].value)
+                    .set__water_leaked(this->input.state.esc_water_leaked_flags[0].value))
+            .set__esc_lb_state(
+                msg::EscState()
+                    .set__voltage(this->input.state.esc_voltages[1].value)
+                    .set__water_leaked(this->input.state.esc_water_leaked_flags[1].value))
+            .set__esc_rb_state(
+                msg::EscState()
+                    .set__voltage(this->input.state.esc_voltages[2].value)
+                    .set__water_leaked(this->input.state.esc_water_leaked_flags[2].value))
+            .set__esc_rf_state(
+                msg::EscState()
+                    .set__voltage(this->input.state.esc_voltages[3].value)
+                    .set__water_leaked(this->input.state.esc_water_leaked_flags[3].value)));
 
     // コマンドを送信
     util::interface_accessor::set_commands_to_loaned_interfaces(
