@@ -47,13 +47,15 @@ endif()
 
 # 本来は`msg`や`srv`専用にパッケージを分けるべきだが、リポジトリを跨ぎたくないためここに置いている。
 rosidl_generate_interfaces(${PROJECT_NAME}_msgs
+  "msg/EscState.msg"  
   "msg/HeadlightsOutput.msg"
+  "msg/HighPowerCircuitHealth.msg"
   "msg/ImuState.msg"
   "msg/IndicatorLedOutput.msg"
   "msg/LedTapeOutput.msg"
   "msg/LowPowerCircuitHealth.msg"
+  "msg/MainPowerEnabled.msg"
   "msg/MainPowerOutput.msg"
-  "msg/MainPowerState.msg"
   "msg/Target.msg"
   "msg/ThrusterEnabled.msg"
   "msg/ThrusterEnabledAll.msg"
