@@ -12,7 +12,7 @@ auto thruster_direct::EscDirect::on_init(
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SystemInterface::on_init(params);
 
-    auto esc_pin = std::make_unique<sinsei_umiusi_control::hardware_model::impl::Pigpio>();
+    auto gpio = std::make_unique<sinsei_umiusi_control::hardware_model::impl::Pigpio>();
 
     // ID、ピン番号をパラメーターから取得
     const auto id_str = util::find_param(params.hardware_info.hardware_parameters, "id");
@@ -43,7 +43,55 @@ auto thruster_direct::EscDirect::on_init(
         RCLCPP_ERROR(this->get_logger(), "Invalid pin number: %s", e.what());
         return hardware_interface::CallbackReturn::ERROR;
     }
-    this->model.emplace(std::move(esc_pin), esc_pin_num);
+
+    const auto center_pulse_width_str =
+        util::find_param(params.hardware_info.hardware_parameters, "center_pulse_width");
+    if (!center_pulse_width_str) {
+        RCLCPP_ERROR(
+            this->get_logger(), "Parameter 'center_pulse_width' not found in hardware parameters.");
+        return hardware_interface::CallbackReturn::ERROR;
+    }
+    int center_pulse_width;
+    try {
+        center_pulse_width = std::stoi(center_pulse_width_str.value());
+    } catch (const std::invalid_argument & e) {
+        RCLCPP_ERROR(this->get_logger(), "Invalid center pulse width: %s", e.what());
+        return hardware_interface::CallbackReturn::ERROR;
+    }
+    const auto negative_pulse_width_radius_str =
+        util::find_param(params.hardware_info.hardware_parameters, "negative_pulse_width_radius");
+    if (!negative_pulse_width_radius_str) {
+        RCLCPP_ERROR(
+            this->get_logger(),
+            "Parameter 'negative_pulse_width_radius' not found in hardware parameters.");
+        return hardware_interface::CallbackReturn::ERROR;
+    }
+    int negative_pulse_width_radius;
+    try {
+        negative_pulse_width_radius = std::stoi(negative_pulse_width_radius_str.value());
+    } catch (const std::invalid_argument & e) {
+        RCLCPP_ERROR(this->get_logger(), "Invalid negative pulse width radius: %s", e.what());
+        return hardware_interface::CallbackReturn::ERROR;
+    }
+    const auto positive_pulse_width_radius_str =
+        util::find_param(params.hardware_info.hardware_parameters, "positive_pulse_width_radius");
+    if (!positive_pulse_width_radius_str) {
+        RCLCPP_ERROR(
+            this->get_logger(),
+            "Parameter 'positive_pulse_width_radius' not found in hardware parameters.");
+        return hardware_interface::CallbackReturn::ERROR;
+    }
+    int positive_pulse_width_radius;
+    try {
+        positive_pulse_width_radius = std::stoi(positive_pulse_width_radius_str.value());
+    } catch (const std::invalid_argument & e) {
+        RCLCPP_ERROR(this->get_logger(), "Invalid positive pulse width radius: %s", e.what());
+        return hardware_interface::CallbackReturn::ERROR;
+    }
+
+    this->model.emplace(
+        std::move(gpio), esc_pin_num, center_pulse_width, negative_pulse_width_radius,
+        positive_pulse_width_radius);
 
     const auto res = this->model->on_init();
     if (!res) {

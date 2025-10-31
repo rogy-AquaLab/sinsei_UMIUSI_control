@@ -45,6 +45,22 @@ launch:
 
   # only used when `thruster_mode` is set to `direct`
   - arg:
+      description: "GPIO pin number for ESC 1 (corresponds to thruster 1)"
+      name: esc_direct1_pin
+      default: "21"
+  - arg:
+      description: "GPIO pin number for ESC 2 (corresponds to thruster 2)"
+      name: esc_direct2_pin
+      default: "19"
+  - arg:
+      description: "GPIO pin number for ESC 3 (corresponds to thruster 3)"
+      name: esc_direct3_pin
+      default: "16"
+  - arg:
+      description: "GPIO pin number for ESC 4 (corresponds to thruster 4)"
+      name: esc_direct4_pin
+      default: "12"
+  - arg:
       description: "GPIO pin number for servo 1 (corresponds to thruster 1)"
       name: servo_direct1_pin
       default: "13"
@@ -61,21 +77,85 @@ launch:
       name: servo_direct4_pin
       default: "4"
   - arg:
-      description: "GPIO pin number for ESC 1 (corresponds to thruster 1)"
-      name: esc_direct1_pin
-      default: "21"
+      description: "Center pulse width for ESC 1 (corresponds to thruster 1)"
+      name: esc_direct1_center_pulse_width
+      default: "1500"
   - arg:
-      description: "GPIO pin number for ESC 2 (corresponds to thruster 2)"
-      name: esc_direct2_pin
-      default: "19"
+      description: "Negative pulse width radius for ESC 1 (corresponds to thruster 1)"
+      name: esc_direct1_negative_pulse_width_radius
+      default: "500"
   - arg:
-      description: "GPIO pin number for ESC 3 (corresponds to thruster 3)"
-      name: esc_direct3_pin
-      default: "16"
+      description: "Positive pulse width radius for ESC 1 (corresponds to thruster 1)"
+      name: esc_direct1_positive_pulse_width_radius
+      default: "500"
   - arg:
-      description: "GPIO pin number for ESC 4 (corresponds to thruster 4)"
-      name: esc_direct4_pin
-      default: "12"
+      description: "Center pulse width for ESC 2 (corresponds to thruster 2)"
+      name: esc_direct2_center_pulse_width
+      default: "1500"
+  - arg:
+      description: "Negative pulse width radius for ESC 2 (corresponds to thruster 2)"
+      name: esc_direct2_negative_pulse_width_radius
+      default: "500"
+  - arg:
+      description: "Positive pulse width radius for ESC 2 (corresponds to thruster 2)"
+      name: esc_direct2_positive_pulse_width_radius
+      default: "500"
+  - arg:
+      description: "Center pulse width for ESC 3 (corresponds to thruster 3)"
+      name: esc_direct3_center_pulse_width
+      default: "1500"
+  - arg:
+      description: "Negative pulse width radius for ESC 3 (corresponds to thruster 3)"
+      name: esc_direct3_negative_pulse_width_radius
+      default: "500"
+  - arg:
+      description: "Positive pulse width radius for ESC 3 (corresponds to thruster 3)"
+      name: esc_direct3_positive_pulse_width_radius
+      default: "500"
+  - arg:
+      description: "Center pulse width for ESC 4 (corresponds to thruster 4)"
+      name: esc_direct4_center_pulse_width
+      default: "1500"
+  - arg:
+      description: "Negative pulse width radius for ESC 4 (corresponds to thruster 4)"
+      name: esc_direct4_negative_pulse_width_radius
+      default: "500"
+  - arg:
+      description: "Positive pulse width radius for ESC 4 (corresponds to thruster 4)"
+      name: esc_direct4_positive_pulse_width_radius
+      default: "500"
+  - arg:
+      description: "Minimum pulse width for servo 1 (corresponds to thruster 1)"
+      name: servo_direct1_min_pulse_width
+      default: "520"
+  - arg:
+      description: "Maximum pulse width for servo 1 (corresponds to thruster 1)"
+      name: servo_direct1_max_pulse_width
+      default: "2400"
+  - arg:
+      description: "Minimum pulse width for servo 2 (corresponds to thruster 2)"
+      name: servo_direct2_min_pulse_width
+      default: "520"
+  - arg:
+      description: "Maximum pulse width for servo 2 (corresponds to thruster 2)"
+      name: servo_direct2_max_pulse_width
+      default: "2400"
+  - arg:
+      description: "Minimum pulse width for servo 3 (corresponds to thruster 3)"
+      name: servo_direct3_min_pulse_width
+      default: "520"
+  - arg:
+      description: "Maximum pulse width for servo 3 (corresponds to thruster 3)"
+      name: servo_direct3_max_pulse_width
+      default: "2400"
+  - arg:
+      description: "Minimum pulse width for servo 4 (corresponds to thruster 4)"
+      name: servo_direct4_min_pulse_width
+      default: "520"
+  - arg:
+      description: "Maximum pulse width for servo 4 (corresponds to thruster 4)"
+      name: servo_direct4_max_pulse_width
+      default: "2400"
 
   # Environment dependent parameters
   - arg:
