@@ -1,0 +1,54 @@
+# ref: https://github.com/rogy-AquaLab/2024_umiusi/blob/main/device/camera_reader/camera_reader/camera.py
+
+import cv2
+import rclpy
+from cv_bridge import CvBridge
+from rclpy.node import Node
+from sensor_msgs.msg import CompressedImage
+
+
+class UsbCamera(Node):
+    def __init__(self):
+        super().__init__('usb_camera')
+        self.publisher_ = self.create_publisher(CompressedImage, 'camera_image', 10)
+        self.timer = self.create_timer(0.01, self.timer_callback)
+        param = self.declare_parameter('camera_id', 0)
+        camera_id = (
+            self.get_parameter_or(param.name, param).get_parameter_value().integer_value
+        )
+        assert isinstance(camera_id, int)
+        self.cap = cv2.VideoCapture(camera_id)
+        # カメラ解像度の設定
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+        # バッファサイズの設定
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        self.bridge = CvBridge()
+        if not self.cap.isOpened():
+            self.get_logger().error('Failed to open camera')
+            rclpy.shutdown()
+
+    def timer_callback(self):
+        ret, frame = self.cap.read()
+        if ret:
+            exposure_time = self.cap.get(cv2.CAP_PROP_EXPOSURE)
+            if exposure_time >= 0:
+                self.get_logger().info(f'Exposure time: {exposure_time}')
+            msg = self.bridge.cv2_to_compressed_imgmsg(frame)
+            msg.header = self._generate_header()
+            self.publisher_.publish(msg)
+        else:
+            self.get_logger().error('Failed to capture image')
+
+
+def main(args=None):
+    rclpy.init(args=args)
+    usb_camera = UsbCamera()
+    rclpy.spin(usb_camera)
+    usb_camera.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
