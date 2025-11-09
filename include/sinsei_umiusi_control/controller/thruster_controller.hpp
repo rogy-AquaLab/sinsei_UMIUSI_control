@@ -85,8 +85,6 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     uint8_t id;
     // Thruster direction (true for forward, false for reverse)
     bool is_forward;
-    // Maximum duty cycle (0.0 to 1.0)
-    double max_duty;
 
   public:
     ThrusterController() = default;

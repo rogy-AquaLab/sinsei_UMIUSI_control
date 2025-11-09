@@ -68,12 +68,24 @@ auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
             .set__description("Thruster direction (true for forward, false for reverse)")
             .set__type(rclcpp::PARAMETER_BOOL));
     this->get_node()->declare_parameter(
+        "duty_per_thrust", 1.0,
+        ParameterDescriptor{}
+            .set__description("Duty cycle per unit thrust [/N]")
+            .set__type(rclcpp::PARAMETER_DOUBLE));
+    this->get_node()->declare_parameter(
         "max_duty", 0.0,
         ParameterDescriptor{}
             .set__description("Maximum duty cycle (0.0 to 1.0)")
             .set__type(rclcpp::PARAMETER_DOUBLE)
             .set__floating_point_range(
                 {FloatingPointRange{}.set__from_value(0.0).set__to_value(1.0)}));
+    this->get_node()->declare_parameter(
+        "max_duty_step_per_sec", 1.0,
+        ParameterDescriptor{}
+            .set__description("Maximum change in duty cycle per second")
+            .set__type(rclcpp::PARAMETER_DOUBLE)
+            .set__floating_point_range(
+                {FloatingPointRange{}.set__from_value(0.0).set__to_value(100.0)}));
 
     this->input = Input{};
     this->output = Output{};
@@ -95,13 +107,25 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                                         ->get_parameter("id")
                                         .as_int());  // パラメータで範囲に制約を設けているので安全
 
-    this->is_forward = this->get_node()->get_parameter("is_forward").as_bool();
+    this->is_forward = this->get_node()
+                           ->get_parameter("is_forward")
+                           .as_bool();  // パラメータで範囲に制約を設けているので安全
 
-    this->max_duty = this->get_node()
-                         ->get_parameter("max_duty")
-                         .as_double();  // パラメータで範囲に制約を設けているので安全
+    const auto duty_per_thrust = this->get_node()
+                                     ->get_parameter("duty_per_thrust")
+                                     .as_double();  // パラメータで範囲に制約を設けているので安全
 
-    this->logic = std::make_unique<logic::thruster::LinearAcceleration>();
+    const auto max_duty_cycle = this->get_node()
+                                    ->get_parameter("max_duty")
+                                    .as_double();  // パラメータで範囲に制約を設けているので安全
+
+    const auto max_duty_step_per_sec =
+        this->get_node()
+            ->get_parameter("max_duty_step_per_sec")
+            .as_double();  // パラメータで範囲に制約を設けているので安全
+
+    this->logic = std::make_unique<logic::thruster::LinearAcceleration>(
+        duty_per_thrust, max_duty_cycle, max_duty_step_per_sec);
 
     const auto prefix = this->mode == util::ThrusterMode::Can
                             ? "thruster" + std::to_string(this->id) + "/"
@@ -259,10 +283,6 @@ auto ThrusterController::update_and_write_commands(
     const rclcpp::Duration & period) -> controller_interface::return_type {
     // パラメータを取得
     this->is_forward = this->get_node()->get_parameter("is_forward").as_bool();
-
-    this->max_duty = this->get_node()
-                         ->get_parameter("max_duty")
-                         .as_double();  // パラメータで範囲に制約を設けているので安全
 
     // 状態を取得
     auto res = util::interface_accessor::get_states_from_loaned_interfaces(

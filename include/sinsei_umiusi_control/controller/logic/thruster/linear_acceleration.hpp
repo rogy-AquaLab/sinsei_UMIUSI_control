@@ -8,20 +8,18 @@
 namespace sinsei_umiusi_control::controller::logic::thruster {
 
 class LinearAcceleration : public ThrusterController::Logic {
-  public:
-    static constexpr auto DEFAULT_MAX_DUTY_CYCLE = 0.5;
-    static constexpr auto DEFAULT_MAX_DUTY_STEP_PER_SEC = 1.0;
-    static constexpr auto DEFAULT_DUTY_PER_THRUST = 1.0;
-
+  private:
+    double duty_per_thrust;
     double max_duty_cycle;
     double max_duty_step_per_sec;
-    double duty_per_thrust;
     double duty_cycle;
 
-    LinearAcceleration()
-    : max_duty_cycle(DEFAULT_MAX_DUTY_CYCLE),
-      max_duty_step_per_sec(DEFAULT_MAX_DUTY_STEP_PER_SEC),
-      duty_per_thrust(DEFAULT_DUTY_PER_THRUST),
+  public:
+    LinearAcceleration(
+        double duty_per_thrust, double max_duty_cycle, double max_duty_step_per_sec)  // NOLINT
+    : duty_per_thrust(duty_per_thrust),
+      max_duty_cycle(max_duty_cycle),
+      max_duty_step_per_sec(max_duty_step_per_sec),
       duty_cycle(0.0) {}
 
     auto control_mode() const -> logic::ControlMode override {
