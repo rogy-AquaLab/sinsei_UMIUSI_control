@@ -9,6 +9,7 @@
 #include "rcl_interfaces/msg/floating_point_range.hpp"
 #include "rcl_interfaces/msg/integer_range.hpp"
 #include "rcl_interfaces/msg/parameter_descriptor.hpp"
+#include "sinsei_umiusi_control/controller/logic/thruster/linear_acceleration.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
@@ -100,6 +101,8 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                          ->get_parameter("max_duty")
                          .as_double();  // パラメータで範囲に制約を設けているので安全
 
+    this->logic = std::make_unique<logic::thruster::LinearAcceleration>();
+
     const auto prefix = this->mode == util::ThrusterMode::Can
                             ? "thruster" + std::to_string(this->id) + "/"
                             : "thruster_direct" + std::to_string(this->id) + "/";
@@ -142,8 +145,8 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
         "esc/enabled", util::to_interface_data_ptr(this->input.cmd.esc_enabled),
         sizeof(this->input.cmd.esc_enabled)));
     this->ref_interface_data.push_back(std::make_tuple(
-        "esc/duty_cycle", util::to_interface_data_ptr(this->input.cmd.esc_duty_cycle),
-        sizeof(this->input.cmd.esc_duty_cycle)));
+        "esc/duty_cycle", util::to_interface_data_ptr(this->input.cmd.esc_thrust),
+        sizeof(this->input.cmd.esc_thrust)));
     this->ref_interface_data.push_back(std::make_tuple(
         "servo/enabled", util::to_interface_data_ptr(this->input.cmd.servo_enabled),
         sizeof(this->input.cmd.servo_enabled)));
@@ -252,8 +255,8 @@ auto ThrusterController::update_reference_from_subscribers(
 }
 
 auto ThrusterController::update_and_write_commands(
-    const rclcpp::Time & /*time*/,
-    const rclcpp::Duration & /*period*/) -> controller_interface::return_type {
+    const rclcpp::Time & time,
+    const rclcpp::Duration & period) -> controller_interface::return_type {
     // パラメータを取得
     this->is_forward = this->get_node()->get_parameter("is_forward").as_bool();
 
@@ -271,24 +274,17 @@ auto ThrusterController::update_and_write_commands(
             "Failed to get value of state interfaces");
     }
 
-    // TODO: logicクラスを実装する
     const auto has_no_thruster_publishers =
         (this->input.sub.thruster_output->get_publisher_count() == 0) &&
         (this->input.sub.thruster_output_all->get_publisher_count() == 0);
     if (has_no_thruster_publishers) {
-        this->output.state.esc_enabled.value = this->input.cmd.esc_enabled.value;
-        const auto sgn = this->is_forward ? 1.0 : -1.0;
-        const auto resized = this->max_duty * this->input.cmd.esc_duty_cycle.value;
-        this->output.state.esc_duty_cycle.value = sgn * resized;
-        this->output.state.servo_enabled.value = this->input.cmd.servo_enabled.value;
-        this->output.state.servo_angle.value = this->input.cmd.servo_angle.value;
+        this->output = this->logic->update(time.seconds(), period.seconds(), this->input);
     }
 
     this->output.cmd.esc_enabled.value = this->output.state.esc_enabled.value;
     this->output.cmd.esc_duty_cycle.value = this->output.state.esc_duty_cycle.value;
     this->output.cmd.servo_enabled.value = this->output.state.servo_enabled.value;
     this->output.cmd.servo_angle.value = this->output.state.servo_angle.value;
-
     if (this->mode == util::ThrusterMode::Direct) {
         this->output.state.esc_direct_health = this->input.state.esc_direct_health;
         this->output.state.servo_direct_health = this->input.state.servo_direct_health;

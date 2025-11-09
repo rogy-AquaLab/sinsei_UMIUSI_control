@@ -7,6 +7,7 @@
 
 #include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
 #include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
+#include "sinsei_umiusi_control/controller/logic/logic_interface.hpp"
 #include "sinsei_umiusi_control/msg/thruster_output.hpp"
 #include "sinsei_umiusi_control/msg/thruster_output_all.hpp"
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
@@ -22,7 +23,7 @@ class ThrusterController : public controller_interface::ChainableControllerInter
         // Command interfaces (in)
         struct Command {
             cmd::thruster::esc::Enabled esc_enabled;
-            cmd::thruster::esc::DutyCycle esc_duty_cycle;
+            cmd::thruster::esc::Thrust esc_thrust;
             cmd::thruster::servo::Enabled servo_enabled;
             cmd::thruster::servo::Angle servo_angle;
         };
@@ -66,9 +67,13 @@ class ThrusterController : public controller_interface::ChainableControllerInter
         State state;
     };
 
+    using Logic = logic::LogicInterface<Input, Output>;
+
   private:
     Input input;
     Output output;
+
+    std::unique_ptr<Logic> logic;
 
     util::interface_accessor::InterfaceDataContainer command_interface_data;
     util::interface_accessor::InterfaceDataContainer state_interface_data;

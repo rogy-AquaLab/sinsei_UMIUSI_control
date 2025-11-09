@@ -9,6 +9,9 @@ struct Enabled {
 struct DutyCycle {
     double value;
 };
+struct Thrust {  // 推力
+    double value;
+};
 
 }  // namespace sinsei_umiusi_control::cmd::thruster::esc
 

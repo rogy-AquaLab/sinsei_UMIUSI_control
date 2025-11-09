@@ -93,9 +93,8 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
     for (size_t i = 0; i < 4; ++i) {
         const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
         this->command_interface_data.push_back(std::make_tuple(
-            prefix + "esc/duty_cycle",
-            util::to_interface_data_ptr(this->output.cmd.esc_duty_cycles[i]),
-            sizeof(this->output.cmd.esc_duty_cycles[i])));
+            prefix + "esc/duty_cycle", util::to_interface_data_ptr(this->output.cmd.esc_thrusts[i]),
+            sizeof(this->output.cmd.esc_thrusts[i])));
         this->command_interface_data.push_back(std::make_tuple(
             prefix + "servo/angle", util::to_interface_data_ptr(this->output.cmd.servo_angles[i]),
             sizeof(this->output.cmd.servo_angles[i])));

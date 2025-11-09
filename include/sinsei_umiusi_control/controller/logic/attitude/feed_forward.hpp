@@ -74,9 +74,9 @@ class FeedForward : public AttitudeController::Logic {
             const auto phi = std::atan2(y, x);
             return (phi > half_pi && phi < 3.0 * half_pi) ? -1.0 : 1.0;
         };
-        const auto duty_sgns = std::array<double, 4>{
+        const auto thrust_sgns = std::array<double, 4>{
             SGN(y[0], y[1]), SGN(y[2], y[3]), SGN(y[4], y[5]), SGN(y[6], y[7])};
-        const auto duty_abss = std::array<double, 4>{
+        const auto thrust_abss = std::array<double, 4>{
             MGN(y[0], y[1]), MGN(y[2], y[3]), MGN(y[4], y[5]), MGN(y[6], y[7])};
 
         // 絶対値の最大値が1になるように正規化。ただし、0除算を避けるために最大値が0のときは0にする。
@@ -87,16 +87,16 @@ class FeedForward : public AttitudeController::Logic {
         };
 
         // √2 == (a * 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 の第一成分と第二成分の二乗和の平方根)
-        constexpr auto MAX_DUTY = boost::math::constants::root_two<double>();
-        output.cmd.esc_duty_cycles = {
-            sinsei_umiusi_control::cmd::thruster::esc::DutyCycle{
-                NRM(duty_sgns[0], duty_abss[0], MAX_DUTY)},
-            sinsei_umiusi_control::cmd::thruster::esc::DutyCycle{
-                NRM(duty_sgns[1], duty_abss[1], MAX_DUTY)},
-            sinsei_umiusi_control::cmd::thruster::esc::DutyCycle{
-                NRM(duty_sgns[2], duty_abss[2], MAX_DUTY)},
-            sinsei_umiusi_control::cmd::thruster::esc::DutyCycle{
-                NRM(duty_sgns[3], duty_abss[3], MAX_DUTY)},
+        constexpr auto MAX_THRUST = boost::math::constants::root_two<double>();
+        output.cmd.esc_thrusts = {
+            sinsei_umiusi_control::cmd::thruster::esc::Thrust{
+                NRM(thrust_sgns[0], thrust_abss[0], MAX_THRUST)},
+            sinsei_umiusi_control::cmd::thruster::esc::Thrust{
+                NRM(thrust_sgns[1], thrust_abss[1], MAX_THRUST)},
+            sinsei_umiusi_control::cmd::thruster::esc::Thrust{
+                NRM(thrust_sgns[2], thrust_abss[2], MAX_THRUST)},
+            sinsei_umiusi_control::cmd::thruster::esc::Thrust{
+                NRM(thrust_sgns[3], thrust_abss[3], MAX_THRUST)},
         };
 
         return output;
