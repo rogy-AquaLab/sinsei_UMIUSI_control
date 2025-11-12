@@ -38,7 +38,7 @@ class AttitudeController : public controller_interface::ChainableControllerInter
     struct Output {
         // Command interfaces (out)
         struct Command {
-            std::array<cmd::thruster::esc::DutyCycle, 4> esc_duty_cycles;
+            std::array<cmd::thruster::esc::Thrust, 4> esc_thrusts;
             std::array<cmd::thruster::servo::Angle, 4> servo_angles;
         };
         Command cmd;

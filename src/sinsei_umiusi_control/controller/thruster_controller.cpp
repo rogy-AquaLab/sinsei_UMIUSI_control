@@ -9,6 +9,7 @@
 #include "rcl_interfaces/msg/floating_point_range.hpp"
 #include "rcl_interfaces/msg/integer_range.hpp"
 #include "rcl_interfaces/msg/parameter_descriptor.hpp"
+#include "sinsei_umiusi_control/controller/logic/thruster/linear_acceleration.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
@@ -67,12 +68,24 @@ auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
             .set__description("Thruster direction (true for forward, false for reverse)")
             .set__type(rclcpp::PARAMETER_BOOL));
     this->get_node()->declare_parameter(
+        "duty_per_thrust", 1.0,
+        ParameterDescriptor{}
+            .set__description("Duty cycle per unit thrust [/N]")
+            .set__type(rclcpp::PARAMETER_DOUBLE));
+    this->get_node()->declare_parameter(
         "max_duty", 0.0,
         ParameterDescriptor{}
             .set__description("Maximum duty cycle (0.0 to 1.0)")
             .set__type(rclcpp::PARAMETER_DOUBLE)
             .set__floating_point_range(
                 {FloatingPointRange{}.set__from_value(0.0).set__to_value(1.0)}));
+    this->get_node()->declare_parameter(
+        "max_duty_step_per_sec", 1.0,
+        ParameterDescriptor{}
+            .set__description("Maximum change in duty cycle per second")
+            .set__type(rclcpp::PARAMETER_DOUBLE)
+            .set__floating_point_range(
+                {FloatingPointRange{}.set__from_value(0.0).set__to_value(100.0)}));
 
     this->input = Input{};
     this->output = Output{};
@@ -94,11 +107,25 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                                         ->get_parameter("id")
                                         .as_int());  // パラメータで範囲に制約を設けているので安全
 
-    this->is_forward = this->get_node()->get_parameter("is_forward").as_bool();
+    this->is_forward = this->get_node()
+                           ->get_parameter("is_forward")
+                           .as_bool();  // パラメータで範囲に制約を設けているので安全
 
-    this->max_duty = this->get_node()
-                         ->get_parameter("max_duty")
-                         .as_double();  // パラメータで範囲に制約を設けているので安全
+    const auto duty_per_thrust = this->get_node()
+                                     ->get_parameter("duty_per_thrust")
+                                     .as_double();  // パラメータで範囲に制約を設けているので安全
+
+    const auto max_duty_cycle = this->get_node()
+                                    ->get_parameter("max_duty")
+                                    .as_double();  // パラメータで範囲に制約を設けているので安全
+
+    const auto max_duty_step_per_sec =
+        this->get_node()
+            ->get_parameter("max_duty_step_per_sec")
+            .as_double();  // パラメータで範囲に制約を設けているので安全
+
+    this->logic = std::make_unique<logic::thruster::LinearAcceleration>(
+        duty_per_thrust, max_duty_cycle, max_duty_step_per_sec);
 
     const auto prefix = this->mode == util::ThrusterMode::Can
                             ? "thruster" + std::to_string(this->id) + "/"
@@ -142,8 +169,8 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
         "esc/enabled", util::to_interface_data_ptr(this->input.cmd.esc_enabled),
         sizeof(this->input.cmd.esc_enabled)));
     this->ref_interface_data.push_back(std::make_tuple(
-        "esc/duty_cycle", util::to_interface_data_ptr(this->input.cmd.esc_duty_cycle),
-        sizeof(this->input.cmd.esc_duty_cycle)));
+        "esc/duty_cycle", util::to_interface_data_ptr(this->input.cmd.esc_thrust),
+        sizeof(this->input.cmd.esc_thrust)));
     this->ref_interface_data.push_back(std::make_tuple(
         "servo/enabled", util::to_interface_data_ptr(this->input.cmd.servo_enabled),
         sizeof(this->input.cmd.servo_enabled)));
@@ -252,14 +279,10 @@ auto ThrusterController::update_reference_from_subscribers(
 }
 
 auto ThrusterController::update_and_write_commands(
-    const rclcpp::Time & /*time*/,
-    const rclcpp::Duration & /*period*/) -> controller_interface::return_type {
+    const rclcpp::Time & time,
+    const rclcpp::Duration & period) -> controller_interface::return_type {
     // パラメータを取得
     this->is_forward = this->get_node()->get_parameter("is_forward").as_bool();
-
-    this->max_duty = this->get_node()
-                         ->get_parameter("max_duty")
-                         .as_double();  // パラメータで範囲に制約を設けているので安全
 
     // 状態を取得
     auto res = util::interface_accessor::get_states_from_loaned_interfaces(
@@ -271,24 +294,17 @@ auto ThrusterController::update_and_write_commands(
             "Failed to get value of state interfaces");
     }
 
-    // TODO: logicクラスを実装する
     const auto has_no_thruster_publishers =
         (this->input.sub.thruster_output->get_publisher_count() == 0) &&
         (this->input.sub.thruster_output_all->get_publisher_count() == 0);
     if (has_no_thruster_publishers) {
-        this->output.state.esc_enabled.value = this->input.cmd.esc_enabled.value;
-        const auto sgn = this->is_forward ? 1.0 : -1.0;
-        const auto resized = this->max_duty * this->input.cmd.esc_duty_cycle.value;
-        this->output.state.esc_duty_cycle.value = sgn * resized;
-        this->output.state.servo_enabled.value = this->input.cmd.servo_enabled.value;
-        this->output.state.servo_angle.value = this->input.cmd.servo_angle.value;
+        this->output = this->logic->update(time.seconds(), period.seconds(), this->input);
     }
 
     this->output.cmd.esc_enabled.value = this->output.state.esc_enabled.value;
     this->output.cmd.esc_duty_cycle.value = this->output.state.esc_duty_cycle.value;
     this->output.cmd.servo_enabled.value = this->output.state.servo_enabled.value;
     this->output.cmd.servo_angle.value = this->output.state.servo_angle.value;
-
     if (this->mode == util::ThrusterMode::Direct) {
         this->output.state.esc_direct_health = this->input.state.esc_direct_health;
         this->output.state.servo_direct_health = this->input.state.servo_direct_health;

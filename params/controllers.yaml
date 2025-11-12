@@ -20,7 +20,9 @@
       update_rate: 50 # Hz
       id: 1 # ID of the thruster hardware component (`N` for `thrusterN` in the URDF)
       is_forward: true # Thruster direction (true for forward, false for reverse)
+      duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
       max_duty: 0.5 # Maximum duty cycle (0.0 to 1.0)
+      max_duty_step_per_sec: 1.0 # Maximum change in duty cycle per second
 
   thruster_controller_lb: # Left Back Thruster
     ros__parameters:
@@ -28,7 +30,9 @@
       update_rate: 50 # Hz
       id: 2 # ID of the thruster hardware component (`N` for `thrusterN` in the URDF)
       is_forward: true # Thruster direction (true for forward, false for reverse)
+      duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
       max_duty: 0.5 # Maximum duty cycle (0.0 to 1.0)
+      max_duty_step_per_sec: 1.0 # Maximum change in duty cycle per second
 
   thruster_controller_rb: # Right Back Thruster
     ros__parameters:
@@ -36,7 +40,9 @@
       update_rate: 50 # Hz
       id: 3 # ID of the thruster hardware component (`N` for `thrusterN` in the URDF)
       is_forward: true # Thruster direction (true for forward, false for reverse)
+      duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
       max_duty: 0.5 # Maximum duty cycle (0.0 to 1.0)
+      max_duty_step_per_sec: 1.0 # Maximum change in duty cycle per second
 
   thruster_controller_rf: # Right Front Thruster
     ros__parameters:
@@ -44,4 +50,6 @@
       update_rate: 50 # Hz
       id: 4 # ID of the thruster hardware component (`N` for `thrusterN` in the URDF)
       is_forward: true # Thruster direction (true for forward, false for reverse)
+      duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
       max_duty: 0.5 # Maximum duty cycle (0.0 to 1.0)
+      max_duty_step_per_sec: 1.0 # Maximum change in duty cycle per second
