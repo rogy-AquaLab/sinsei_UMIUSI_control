@@ -63,25 +63,7 @@ auto impl::Pigpio::write_digital(const Pin & pin, bool && enabled) -> tl::expect
     }
 }
 
-auto impl::Pigpio::write_pwm_duty(const Pin & pin, const double && duty)
-    -> tl::expected<void, Error> {
-    const auto res = ::set_PWM_dutycycle(this->pi, pin, static_cast<int>(duty * 255.0));
-    if (res == 0) {
-        return {};
-    }
-    switch (res) {
-        case PI_BAD_GPIO:
-            return tl::unexpected(Error::BadGpio);
-        case PI_BAD_DUTYCYCLE:
-            return tl::unexpected(Error::BadParameter);
-        case PI_NOT_PERMITTED:
-            return tl::unexpected(Error::NotPermitted);
-        default:
-            return tl::unexpected(Error::UnknownError);
-    }
-}
-
-auto impl::Pigpio::write_servo_pulsewidth(const Pin & pin, const uint16_t && pulsewidth)
+auto impl::Pigpio::write_pwm_pulsewidth(const Pin & pin, const PulseWidth && pulsewidth)
     -> tl::expected<void, Error> {
     const auto res = ::set_servo_pulsewidth(this->pi, pin, pulsewidth);
     if (res == 0) {

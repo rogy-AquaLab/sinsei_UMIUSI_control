@@ -8,14 +8,34 @@
       low_beam_pin
       ir_pin
       indicator_led_pin
-      servo_direct1_pin
-      servo_direct2_pin
-      servo_direct3_pin
-      servo_direct4_pin
       esc_direct1_pin
       esc_direct2_pin
       esc_direct3_pin
       esc_direct4_pin
+      servo_direct1_pin
+      servo_direct2_pin
+      servo_direct3_pin
+      servo_direct4_pin
+      esc_direct1_center_pulse_width
+      esc_direct1_negative_pulse_width_radius
+      esc_direct1_positive_pulse_width_radius
+      esc_direct2_center_pulse_width
+      esc_direct2_negative_pulse_width_radius
+      esc_direct2_positive_pulse_width_radius
+      esc_direct3_center_pulse_width
+      esc_direct3_negative_pulse_width_radius
+      esc_direct3_positive_pulse_width_radius
+      esc_direct4_center_pulse_width
+      esc_direct4_negative_pulse_width_radius
+      esc_direct4_positive_pulse_width_radius
+      servo_direct1_min_pulse_width
+      servo_direct1_max_pulse_width
+      servo_direct2_min_pulse_width
+      servo_direct2_max_pulse_width
+      servo_direct3_min_pulse_width
+      servo_direct3_max_pulse_width
+      servo_direct4_min_pulse_width
+      servo_direct4_max_pulse_width
       vesc1_id
       vesc2_id
       vesc3_id
@@ -40,14 +60,34 @@
     />
     <xacro:if value="${thruster_mode == 'direct'}">
       <xacro:thruster_direct
-        servo1_pin="${servo_direct1_pin}"
-        servo2_pin="${servo_direct2_pin}"
-        servo3_pin="${servo_direct3_pin}"
-        servo4_pin="${servo_direct4_pin}"
         esc1_pin="${esc_direct1_pin}"
         esc2_pin="${esc_direct2_pin}"
         esc3_pin="${esc_direct3_pin}"
         esc4_pin="${esc_direct4_pin}"
+        servo1_pin="${servo_direct1_pin}"
+        servo2_pin="${servo_direct2_pin}"
+        servo3_pin="${servo_direct3_pin}"
+        servo4_pin="${servo_direct4_pin}"
+        esc1_center_pulse_width="${esc_direct1_center_pulse_width}"
+        esc1_negative_pulse_width_radius="${esc_direct1_negative_pulse_width_radius}"
+        esc1_positive_pulse_width_radius="${esc_direct1_positive_pulse_width_radius}"
+        esc2_center_pulse_width="${esc_direct2_center_pulse_width}"
+        esc2_negative_pulse_width_radius="${esc_direct2_negative_pulse_width_radius}"
+        esc2_positive_pulse_width_radius="${esc_direct2_positive_pulse_width_radius}"
+        esc3_center_pulse_width="${esc_direct3_center_pulse_width}"
+        esc3_negative_pulse_width_radius="${esc_direct3_negative_pulse_width_radius}"
+        esc3_positive_pulse_width_radius="${esc_direct3_positive_pulse_width_radius}"
+        esc4_center_pulse_width="${esc_direct4_center_pulse_width}"
+        esc4_negative_pulse_width_radius="${esc_direct4_negative_pulse_width_radius}"
+        esc4_positive_pulse_width_radius="${esc_direct4_positive_pulse_width_radius}"
+        servo1_min_pulse_width="${servo_direct1_min_pulse_width}"
+        servo1_max_pulse_width="${servo_direct1_max_pulse_width}"
+        servo2_min_pulse_width="${servo_direct2_min_pulse_width}"
+        servo2_max_pulse_width="${servo_direct2_max_pulse_width}"
+        servo3_min_pulse_width="${servo_direct3_min_pulse_width}"
+        servo3_max_pulse_width="${servo_direct3_max_pulse_width}"
+        servo4_min_pulse_width="${servo_direct4_min_pulse_width}"
+        servo4_max_pulse_width="${servo_direct4_max_pulse_width}"
       />
     </xacro:if>
     <xacro:imu />
