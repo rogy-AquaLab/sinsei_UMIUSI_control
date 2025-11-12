@@ -37,8 +37,9 @@ inline auto to_interface_data(const T & value) -> InterfaceData {
         sizeof(T) <= sizeof(InterfaceData),
         "T must be smaller than or equal to InterfaceData (double)");
     static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
-    InterfaceData result;
-    std::memcpy(&result, &value, sizeof(InterfaceData));
+
+    InterfaceData result = 0.0;
+    std::memcpy(&result, &value, sizeof(T));
     return result;
 }
 
@@ -48,8 +49,9 @@ inline auto to_interface_data(T && value) -> InterfaceData {
         sizeof(T) <= sizeof(InterfaceData),
         "T must be smaller than or equal to InterfaceData (double)");
     static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
-    InterfaceData result;
-    std::memcpy(&result, &value, sizeof(InterfaceData));
+
+    InterfaceData result = 0.0;
+    std::memcpy(&result, &value, sizeof(T));
     return result;
 }
 
