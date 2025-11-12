@@ -47,13 +47,15 @@ endif()
 
 # 本来は`msg`や`srv`専用にパッケージを分けるべきだが、リポジトリを跨ぎたくないためここに置いている。
 rosidl_generate_interfaces(${PROJECT_NAME}_msgs
+  "msg/EscState.msg"
   "msg/HeadlightsOutput.msg"
+  "msg/HighPowerCircuitHealth.msg"
   "msg/ImuState.msg"
   "msg/IndicatorLedOutput.msg"
   "msg/LedTapeOutput.msg"
   "msg/LowPowerCircuitHealth.msg"
+  "msg/MainPowerEnabled.msg"
   "msg/MainPowerOutput.msg"
-  "msg/MainPowerState.msg"
   "msg/Target.msg"
   "msg/ThrusterEnabled.msg"
   "msg/ThrusterEnabledAll.msg"
@@ -125,6 +127,7 @@ if(BUILD_TESTING)
     test/cpp/hardware_model/headlights.cpp
     # test/cpp/hardware_model/imu.cpp TODO: 未実装
     test/cpp/hardware_model/imu/bno055.cpp
+    test/cpp/hardware_model/imu.cpp
     test/cpp/hardware_model/indicator_led.cpp
     test/cpp/hardware_model/can.cpp
     test/cpp/hardware_model/can/vesc.cpp

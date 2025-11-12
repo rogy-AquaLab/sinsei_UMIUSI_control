@@ -1,3 +1,5 @@
+# Low power circuit health status
+
 int8 OK = 0
 int8 ERROR = 1
 
