@@ -99,7 +99,7 @@ target_link_libraries(${PROJECT_NAME}_hardware
 )
 target_include_directories(${PROJECT_NAME}_hardware
   PRIVATE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
 ament_auto_add_library(${PROJECT_NAME}_controller SHARED
@@ -113,7 +113,7 @@ target_link_libraries(${PROJECT_NAME}_controller
 )
 target_include_directories(${PROJECT_NAME}_controller
   PRIVATE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     ${Eigen3_INCLUDE_DIRS}
 )
 
