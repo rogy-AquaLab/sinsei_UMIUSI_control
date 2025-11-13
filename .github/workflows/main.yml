@@ -197,7 +197,7 @@ jobs:
             -DCMAKE_C_FLAGS='-coverage'
           coverage-result: false
 
-      - run: colcon lcov-result --build-base ros_ws/build --filter '/usr/*' '/opt/ros/*' '*/build/*' '*/test/*' --lcov-args --ignore-errors gcov,gcov,mismatch,mismatch
+      - run: colcon lcov-result --build-base ros_ws/build --filter '/usr/*' '/opt/ros/*' '*/build/*' '*/test/*' --lcov-args --ignore-errors gcov,mismatch,negative
 
       - name: Codecov
         uses: codecov/codecov-action@v5

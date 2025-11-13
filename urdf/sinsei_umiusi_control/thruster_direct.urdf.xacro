@@ -18,7 +18,7 @@
       esc_center_pulse_width esc_negative_pulse_width_radius esc_positive_pulse_width_radius
       servo_min_pulse_width servo_max_pulse_width">
       <xacro:property name="thruster_name" value="thruster_direct${id}" />
-      <ros2_control name="${thruster_name}/servo" type="system">
+      <ros2_control name="${thruster_name}/servo" type="system" is_async="true">
         <hardware>
           <plugin>sinsei_umiusi_control/hardware/ServoDirect</plugin>
           <param name="id">${id}</param>
@@ -32,7 +32,7 @@
           <state_interface name="health" />
         </gpio>
       </ros2_control>
-      <ros2_control name="${thruster_name}/esc" type="system">
+      <ros2_control name="${thruster_name}/esc" type="system" is_async="true">
         <hardware>
           <plugin>sinsei_umiusi_control/hardware/EscDirect</plugin>
           <param name="id">${id}</param>

@@ -3,7 +3,7 @@
 
   <xacro:macro name="can"
     params="thruster_mode vesc1_id vesc2_id vesc3_id vesc4_id period_led_tape_per_thrusters">
-    <ros2_control name="can" type="system">
+    <ros2_control name="can" type="system" is_async="true">
       <hardware>
         <plugin>sinsei_umiusi_control/hardware/Can</plugin>
         <param name="thruster_mode">${thruster_mode}</param>

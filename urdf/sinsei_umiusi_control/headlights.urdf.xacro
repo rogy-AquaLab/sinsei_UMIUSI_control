@@ -2,7 +2,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
 
   <xacro:macro name="headlights" params="high_beam_pin low_beam_pin ir_pin">
-    <ros2_control name="headlights" type="system">
+    <ros2_control name="headlights" type="system" is_async="true">
       <hardware>
         <plugin>sinsei_umiusi_control/hardware/Headlights</plugin>
         <param name="high_beam_pin">${high_beam_pin}</param>
