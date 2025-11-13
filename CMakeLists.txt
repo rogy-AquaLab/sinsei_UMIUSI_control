@@ -138,7 +138,9 @@ if(BUILD_TESTING)
     test/cpp/hardware_model/can/vesc.cpp
   )
   target_include_directories(test_hardware_model
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/cpp>
+    PRIVATE
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/cpp>
   )
   ament_auto_add_gmock(test_util
     test/cpp/util.cpp
