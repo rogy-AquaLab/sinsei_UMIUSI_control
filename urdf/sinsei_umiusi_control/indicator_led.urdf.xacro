@@ -2,7 +2,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
 
   <xacro:macro name="indicator_led" params="pin">
-    <ros2_control name="indicator_led" type="system">
+    <ros2_control name="indicator_led" type="system" is_async="true">
       <hardware>
         <plugin>sinsei_umiusi_control/hardware/IndicatorLed</plugin>
         <param name="pin">${pin}</param>
