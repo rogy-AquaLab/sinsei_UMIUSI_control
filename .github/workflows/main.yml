@@ -15,8 +15,8 @@ on:
       - "**.md"
 
 env:
-  ROS_DISTRO: jazzy # default value, can be overridden by `.env` file
-  PACKAGE_NAME: ${{ github.event.repository.name }}  # default value, can be overridden by `.env` file
+  ROS_DISTRO: jazzy                    # default value, can be overridden by `.env` file
+  PACKAGE_NAME: sinsei_umiusi_control  # default value, can be overridden by `.env` file
 
 jobs:
   parse-env-file:
