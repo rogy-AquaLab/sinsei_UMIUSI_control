@@ -16,6 +16,7 @@ on:
 
 env:
   ROS_DISTRO: jazzy # default value, can be overridden by `.env` file
+  PACKAGE_NAME: ${{ github.event.repository.name }}  # default value, can be overridden by `.env` file
 
 jobs:
   parse-env-file:
@@ -204,4 +205,5 @@ jobs:
         with:
           files: ros_ws/lcov/total_coverage.info
           name: Coverage of sinsei_UMIUSI_control
+          codecov_yml_path: ros_ws/src/*/${{ github.event.repository.name }}/${{ env.PACKAGE_NAME }} 
           token: ${{ secrets.CODECOV_TOKEN }}
