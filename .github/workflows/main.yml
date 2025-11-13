@@ -205,5 +205,5 @@ jobs:
         with:
           files: ros_ws/lcov/total_coverage.info
           name: Coverage of sinsei_UMIUSI_control
-          codecov_yml_path: /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/*/${{ github.event.repository.name }}/${{ env.PACKAGE_NAME }}/.github/codecov.yml
+          codecov_yml_path: /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/[0-9a-z]*/${{ github.event.repository.name }}/${{ env.PACKAGE_NAME }}/.github/codecov.yml
           token: ${{ secrets.CODECOV_TOKEN }}
