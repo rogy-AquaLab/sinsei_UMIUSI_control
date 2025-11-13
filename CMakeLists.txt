@@ -97,6 +97,10 @@ ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
 target_link_libraries(${PROJECT_NAME}_hardware
   ${PIGPIO_LIBRARY}
 )
+target_include_directories(${PROJECT_NAME}_hardware
+  PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME}>
+)
 
 ament_auto_add_library(${PROJECT_NAME}_controller SHARED
   src/${PROJECT_NAME}/controller/gate_controller.cpp
@@ -109,6 +113,7 @@ target_link_libraries(${PROJECT_NAME}_controller
 )
 target_include_directories(${PROJECT_NAME}_controller
   PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME}>
     ${Eigen3_INCLUDE_DIRS}
 )
 
