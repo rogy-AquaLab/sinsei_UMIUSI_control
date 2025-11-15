@@ -5,9 +5,6 @@ launch:
   - let:
       name: ros2_control_common
       value: "$(find-pkg-share $(var pkg_name))/launch/include/ros2_control_common.py"
-  - let:
-      name: camera_ros_launch_file
-      value: "$(find-pkg-share camera_ros)/launch/camera.launch.py"
 
   - arg:
       name: args
@@ -24,9 +21,6 @@ launch:
     - include:
         file: "$(var ros2_control_common)"
 
-    - include:
-        file: "$(var camera_ros_launch_file)"
-
     - node:
         pkg: "controller_manager"
         exec: "spawner"
@@ -38,3 +32,19 @@ launch:
           attitude_controller
           gate_controller
           --param-file $(var controllers_param_file)
+
+    - node:
+        pkg: "camera_ros"
+        exec: "camera_node"
+        param:
+        -
+          name: "camera"
+          value: 0
+
+    - node:
+        pkg: "camera_ros"
+        exec: "camera_node"
+        param:
+        -
+          name: "camera"
+          value: 1
