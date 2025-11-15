@@ -14,14 +14,13 @@ on:
       - "docs/**"
       - "**.md"
 
-env:
-  ROS_DISTRO: jazzy # default value, can be overridden by `.env` file
-
 jobs:
   parse-env-file:
     name: Parse Environment
     runs-on: ubuntu-latest
     outputs:
+      PACKAGE_NAME: ${{ steps.parse-env-file.outputs.PACKAGE_NAME }}
+      ROS_DISTRO: ${{ steps.parse-env-file.outputs.ROS_DISTRO }}
       file-hash: ${{ steps.hash-files.outputs.hash }}
     steps:
       - name: Checkout repository
@@ -30,7 +29,7 @@ jobs:
       - name: Parse environment file
         id: parse-env-file
         shell: bash
-        run: source .github/workflows/scripts/parse-env-file.sh $GITHUB_ENV || exit 0
+        run: source .github/workflows/scripts/parse-env-file.sh $GITHUB_OUTPUT || exit 0
 
       - name: Hash files for cache key
         id: hash-files
@@ -82,7 +81,7 @@ jobs:
       - name: Fetch cache
         uses: actions/cache@v4
         env:
-          prefix: ${{ runner.os }}-sccache-ros-${{ env.ROS_DISTRO }}-build
+          prefix: ${{ runner.os }}-sccache-ros-${{ needs.parse-env-file.outputs.ROS_DISTRO }}-build
         with:
           path: /github/home/.cache/sccache
           key: ${{ env.prefix }}-${{ needs.parse-env-file.outputs.file-hash }}
@@ -96,7 +95,7 @@ jobs:
       - name: Colcon Build
         uses: ros-tooling/action-ros-ci@v0.4
         with:
-          target-ros2-distro: ${{ env.ROS_DISTRO }}
+          target-ros2-distro: ${{ needs.parse-env-file.outputs.ROS_DISTRO }}
           skip-tests: true
 
       - name: Upload ROS C++ libraries
@@ -104,8 +103,8 @@ jobs:
         with:
           name: ros-cpp-libraries
           path: |
-            /opt/ros/${{ env.ROS_DISTRO }}/include
-            /opt/ros/${{ env.ROS_DISTRO }}/src
+            /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/include
+            /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/src
 
       - name: Upload Build results (`build` directory)
         uses: actions/upload-artifact@v4
@@ -136,7 +135,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ros-cpp-libraries
-          path: /opt/ros/${{ env.ROS_DISTRO }}
+          path: /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}
           merge-multiple: true
 
       - name: Download Colcon Build results (`build` directory)
@@ -191,7 +190,7 @@ jobs:
       - name: Colcon Test
         uses: ros-tooling/action-ros-ci@v0.4
         with:
-          target-ros2-distro: ${{ env.ROS_DISTRO }}
+          target-ros2-distro: ${{ needs.parse-env-file.outputs.ROS_DISTRO }}
           extra-cmake-args: |
             -DCMAKE_CXX_FLAGS='-coverage' \
             -DCMAKE_C_FLAGS='-coverage'

@@ -1,6 +1,6 @@
 #!/usr/env bash
 
-GITHUB_ENV=$1
+OUTPUT=$1
 
 echo "Parsing environment variables..."
 if [ ! -f .env ]; then
@@ -12,6 +12,6 @@ while IFS='=' read -r key value; do
     if [[ -n "$key" ]] && [[ ! "$key" =~ ^\s*# ]]; then
         # Remove surrounding quotes if they exist
         echo "Setting environment variable: $key = $value"
-        echo "$key=$value" >> "$GITHUB_ENV"
+        echo "$key=$value" >> "$OUTPUT"
     fi
 done < .env
