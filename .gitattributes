@@ -1,0 +1,7 @@
+# Set default behavior to automatically normalize line endings for text files
+# (Mainly for windows users)
+
+* text eol=lf
+
+*.png binary
+*.jpg binary
