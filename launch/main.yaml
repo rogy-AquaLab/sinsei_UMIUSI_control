@@ -5,6 +5,9 @@ launch:
   - let:
       name: ros2_control_common
       value: "$(find-pkg-share $(var pkg_name))/launch/include/ros2_control_common.py"
+  - let:
+      name: camera_ros_launch_file
+      value: "$(find-pkg-share camera_ros)/launch/camera.launch.py"
 
   - arg:
       name: args
@@ -19,7 +22,10 @@ launch:
         namespace: "$(var namespace)"
 
     - include:
-       file: "$(var ros2_control_common)"
+        file: "$(var ros2_control_common)"
+
+    - include:
+        file: "$(var camera_ros_launch_file)"
 
     - node:
         pkg: "controller_manager"
