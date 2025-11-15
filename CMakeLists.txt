@@ -45,35 +45,6 @@ if(NOT Eigen3_FOUND)
   message(FATAL_ERROR "Eigen3 not found. Please install Eigen3.")
 endif()
 
-# 本来は`msg`や`srv`専用にパッケージを分けるべきだが、リポジトリを跨ぎたくないためここに置いている。
-rosidl_generate_interfaces(${PROJECT_NAME}_msgs
-  "msg/EscState.msg"
-  "msg/HeadlightsOutput.msg"
-  "msg/HighPowerCircuitHealth.msg"
-  "msg/ImuState.msg"
-  "msg/IndicatorLedOutput.msg"
-  "msg/LedTapeOutput.msg"
-  "msg/LowPowerCircuitHealth.msg"
-  "msg/MainPowerEnabled.msg"
-  "msg/MainPowerOutput.msg"
-  "msg/Target.msg"
-  "msg/ThrusterEnabled.msg"
-  "msg/ThrusterEnabledAll.msg"
-  "msg/ThrusterOutput.msg"
-  "msg/ThrusterOutputAll.msg"
-  "msg/ThrusterState.msg"
-  "msg/ThrusterStateAll.msg"
-
-  DEPENDENCIES
-    std_msgs
-    geometry_msgs
-
-  LIBRARY_NAME
-    ${PROJECT_NAME}
-)
-ament_export_dependencies(rosidl_default_runtime)
-rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME}_msgs rosidl_typesupport_cpp)
-
 ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   src/${PROJECT_NAME}/hardware/can.cpp
   src/${PROJECT_NAME}/hardware/headlights.cpp
@@ -115,6 +86,9 @@ target_include_directories(${PROJECT_NAME}_controller
   PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     ${Eigen3_INCLUDE_DIRS}
+)
+ament_target_dependencies(${PROJECT_NAME}_controller
+  sinsei_umiusi_msgs
 )
 
 pluginlib_export_plugin_description_file(hardware_interface plugin/umiusi_hardware_plugin.xml)

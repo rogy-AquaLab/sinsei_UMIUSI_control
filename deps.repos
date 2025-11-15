@@ -1,0 +1,5 @@
+repositories:
+  sinsei_umiusi_msgs:
+    type: git
+    url: https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs.git
+    version: main
