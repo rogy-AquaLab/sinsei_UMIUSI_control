@@ -198,9 +198,9 @@ jobs:
           extra-cmake-args: |
             -DCMAKE_CXX_FLAGS='-coverage' \
             -DCMAKE_C_FLAGS='-coverage'
-          coverage-result: false
+          # coverage-result: false
 
-      - run: cd ros_ws && colcon lcov-result --build-base build --filter '/usr/*' '/opt/ros/*' '*/build/*' '*/test/*' --lcov-args --ignore-errors gcov,mismatch,negative
+      # - run: cd ros_ws && colcon lcov-result --build-base build --filter '/usr/*' '/opt/ros/*' '*/build/*' '*/test/*' --lcov-args --ignore-errors gcov,mismatch,negative
 
       - name: debug
         run: pwd; ls -lRa
