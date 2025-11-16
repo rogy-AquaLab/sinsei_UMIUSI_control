@@ -191,7 +191,7 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
         this->input.sub.main_power_output_subscriber =
             this->get_node()->create_subscription<msg::MainPowerOutput>(
                 cmd_prefix + "main_power_output", qos,
-                [this](const msg::MainPowerEnabled::SharedPtr input) {
+                [this](const msg::MainPowerOutput::SharedPtr input) {
                     this->output.cmd.main_power_enabled_ref.value = input->enabled;
                 });
         this->input.sub.led_tape_output_subscriber =
