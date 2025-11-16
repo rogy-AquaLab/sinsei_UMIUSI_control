@@ -207,7 +207,9 @@ jobs:
             --lcov-args --ignore-errors gcov,mismatch,negative
 
       - name: debug
-        run: pwd; ls -lRa; mkdir ./${{ github.event.repository.name }}; cp -r ros_ws/src/*/${{ github.event.repository.name }}/{include,src} ./${{ github.event.repository.name }}/
+        run: pwd; ls -lRa; mkdir ./${{ github.event.repository.name }}
+
+      - run: cp -r ros_ws/src/*/${{ github.event.repository.name }}/include ./${{ github.event.repository.name }}/
 
       - name: Codecov
         uses: codecov/codecov-action@v5
