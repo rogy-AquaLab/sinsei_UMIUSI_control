@@ -200,7 +200,13 @@ jobs:
             -DCMAKE_C_FLAGS='-coverage'
           coverage-result: false
 
-      - run: cd ros_ws && colcon lcov-result --build-base build --filter '/usr/*' '/opt/ros/*' '*/build/*' '*/test/*' --lcov-args --ignore-errors gcov,mismatch,negative
+      - run: |
+          cd ros_ws && colcon lcov-result \
+            --build-base build \
+            --filter '/usr/*' '/opt/ros/*' '*/build/*' '*/test/*' \
+            --lcov-args --ignore-errors gcov,mismatch,negative && \
+          cp ros_ws/src/*/${{ needs.parse-env-file.outputs.PACKAGE_NAME }}/include ./ -r && \
+          cp ros_ws/src/*/${{ needs.parse-env-file.outputs.PACKAGE_NAME }}/src ./ -r
 
       - name: debug
         run: pwd; ls -lRa
@@ -209,9 +215,8 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           name: Coverage of sinsei_UMIUSI_control
-          working-directory: ros_ws/src/$(ls ros_ws/src | grep '[0-9a-z]*')/${{ github.event.repository.name }}
-          files: ../../../lcov/total_coverage.info # ros_ws/lcov/total_coverage.info
-          codecov_yml_path: .github/codecov.yml
+          files: ros_ws/lcov/total_coverage.info
+          codecov_yml_path: ros_ws/src/*/${{ needs.parse-env-file.outputs.PACKAGE_NAME }}/.github/codecov.yml
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
