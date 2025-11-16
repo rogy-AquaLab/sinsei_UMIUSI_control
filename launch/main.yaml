@@ -12,7 +12,7 @@ launch:
       default: "$(find-pkg-share $(var pkg_name))/params/launch_args.yaml"
 
   - include:
-     file: "$(var args)"
+      file: "$(var args)"
 
   - group:
     - push_ros_namespace:
