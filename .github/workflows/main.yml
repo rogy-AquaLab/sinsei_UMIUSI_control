@@ -209,7 +209,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           name: Coverage of sinsei_UMIUSI_control
-          working-directory: ros_ws/src/*/${{ github.event.repository.name }}
+          working-directory: ros_ws/src/$(ls ros_ws/src | grep [0-9a-z]*)/${{ github.event.repository.name }}
           files: ../../../lcov/total_coverage.info # ros_ws/lcov/total_coverage.info
           codecov_yml_path: .github/codecov.yml
           fail_ci_if_error: true
