@@ -108,9 +108,9 @@ class GateController : public controller_interface::ControllerInterface {
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::ThrusterStateAll>::SharedPtr
                 thruster_state_all_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::LowPowerCircuitInfo>::SharedPtr
-                low_power_circuit_health_publisher;
+                low_power_circuit_info_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::HighPowerCircuitInfo>::SharedPtr
-                high_power_circuit_health_publisher;
+                high_power_circuit_info_publisher;
         };
         Command cmd;
         Publishers pub;

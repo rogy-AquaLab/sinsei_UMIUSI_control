@@ -308,12 +308,12 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
         this->output.pub.thruster_state_all_publisher =
             this->get_node()->create_publisher<msg::ThrusterStateAll>(
                 state_prefix + "thruster_state_all", qos);
-        this->output.pub.low_power_circuit_health_publisher =
+        this->output.pub.low_power_circuit_info_publisher =
             this->get_node()->create_publisher<msg::LowPowerCircuitInfo>(
-                state_prefix + "low_power_circuit_health", qos);
-        this->output.pub.high_power_circuit_health_publisher =
+                state_prefix + "low_power_circuit_info", qos);
+        this->output.pub.high_power_circuit_info_publisher =
             this->get_node()->create_publisher<msg::HighPowerCircuitInfo>(
-                state_prefix + "high_power_circuit_health", qos);
+                state_prefix + "high_power_circuit_info", qos);
     }
 
     return controller_interface::CallbackReturn::SUCCESS;
@@ -390,7 +390,7 @@ auto GateController::update(
                             .set__duty_cycle(this->input.state.esc_duty_cycles[3].value)
                             .set__angle(this->input.state.servo_angles[3].value))
                     .set__rpm(this->input.state.esc_rpms[3].value)));
-    this->output.pub.low_power_circuit_health_publisher->publish(
+    this->output.pub.low_power_circuit_info_publisher->publish(
         msg::LowPowerCircuitInfo()
             .set__can(
                 this->input.state.can_health.is_ok ? msg::LowPowerCircuitInfo::OK
@@ -404,7 +404,7 @@ auto GateController::update(
             .set__indicator_led(
                 this->input.state.indicator_led_health.is_ok ? msg::LowPowerCircuitInfo::OK
                                                              : msg::LowPowerCircuitInfo::ERROR));
-    this->output.pub.high_power_circuit_health_publisher->publish(
+    this->output.pub.high_power_circuit_info_publisher->publish(
         msg::HighPowerCircuitInfo()
             .set__voltage(this->input.state.main_power_battery_voltage.value)
             .set__current(this->input.state.main_power_battery_current.value)
