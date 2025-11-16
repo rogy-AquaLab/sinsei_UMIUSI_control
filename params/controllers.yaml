@@ -1,7 +1,7 @@
 /**:
   controller_manager:
     ros__parameters:
-      update_rate: 300 # Hz
+      update_rate: 100 # Hz
 
   gate_controller:
     ros__parameters:
