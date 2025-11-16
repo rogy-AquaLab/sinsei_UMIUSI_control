@@ -204,8 +204,7 @@ jobs:
           cd ros_ws && colcon lcov-result \
             --build-base build \
             --filter '/usr/*' '/opt/ros/*' '*/build/*' '*/test/*' \
-            --lcov-args --ignore-errors gcov,mismatch,negative && \
-          cp -r src/*/${{ github.event.repository.name }}/{include,src} ../
+            --lcov-args --ignore-errors gcov,mismatch,negative
 
       - name: debug
         run: pwd; ls -lRa
@@ -215,7 +214,7 @@ jobs:
         with:
           name: Coverage of sinsei_UMIUSI_control
           files: ros_ws/lcov/total_coverage.info
-          codecov_yml_path: ros_ws/src/*/${{ needs.parse-env-file.outputs.PACKAGE_NAME }}/.github/codecov.yml
+          codecov_yml_path: ros_ws/src/*/${{ github.event.repository.name }}/.github/codecov.yml
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
