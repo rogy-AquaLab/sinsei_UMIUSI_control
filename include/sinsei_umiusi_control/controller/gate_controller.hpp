@@ -30,16 +30,10 @@
 #include "sinsei_umiusi_msgs/msg/led_tape_output.hpp"
 #include "sinsei_umiusi_msgs/msg/low_power_circuit_info.hpp"
 #include "sinsei_umiusi_msgs/msg/main_power_enabled.hpp"
+#include "sinsei_umiusi_msgs/msg/main_power_output.hpp"
 #include "sinsei_umiusi_msgs/msg/target.hpp"
 #include "sinsei_umiusi_msgs/msg/thruster_enabled_all.hpp"
 #include "sinsei_umiusi_msgs/msg/thruster_state_all.hpp"
-
-namespace sinsei_umiusi_msgs::msg {
-
-// TODO: sinsei_umiusi_msgs側の命名を修正
-using MainPowerOutput = MainPowerEnabled;
-
-}  // namespace sinsei_umiusi_msgs::msg
 
 namespace sinsei_umiusi_control::controller {
 

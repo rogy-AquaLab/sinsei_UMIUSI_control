@@ -79,9 +79,6 @@ ament_auto_add_library(${PROJECT_NAME}_controller SHARED
   src/${PROJECT_NAME}/controller/thruster_controller.cpp
   src/${PROJECT_NAME}/util/interface_accessor.cpp
 )
-target_link_libraries(${PROJECT_NAME}_controller
-  ${cpp_typesupport_target}
-)
 target_include_directories(${PROJECT_NAME}_controller
   PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
