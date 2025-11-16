@@ -1,34 +1,50 @@
 launch:
-    - let:
-          name: pkg_name
-          value: "sinsei_umiusi_control"
-    - let:
-          name: ros2_control_common
-          value: "$(find-pkg-share $(var pkg_name))/launch/include/ros2_control_common.py"
+  - let:
+      name: pkg_name
+      value: "sinsei_umiusi_control"
+  - let:
+      name: ros2_control_common
+      value: "$(find-pkg-share $(var pkg_name))/launch/include/ros2_control_common.py"
 
-    - arg:
-          name: args
-          description: "Path to the launch arguments file"
-          default: "$(find-pkg-share $(var pkg_name))/params/launch_args.yaml"
+  - arg:
+      name: args
+      description: "Path to the launch arguments file"
+      default: "$(find-pkg-share $(var pkg_name))/params/launch_args.yaml"
+
+  - include:
+      file: "$(var args)"
+
+  - group:
+    - push_ros_namespace:
+        namespace: "$(var namespace)"
 
     - include:
-          file: "$(var args)"
+        file: "$(var ros2_control_common)"
 
-    - group:
-          - push_ros_namespace:
-                namespace: "$(var namespace)"
+    - node:
+        pkg: "controller_manager"
+        exec: "spawner"
+        args: |
+          thruster_controller_lf
+          thruster_controller_lb
+          thruster_controller_rb
+          thruster_controller_rf
+          attitude_controller
+          gate_controller
+          --param-file $(var controllers_param_file)
 
-          - include:
-                file: "$(var ros2_control_common)"
+    - node:
+        pkg: "camera_ros"
+        exec: "camera_node"
+        param:
+        -
+          name: "camera"
+          value: 0
 
-          - node:
-                pkg: "controller_manager"
-                exec: "spawner"
-                args: |
-                    thruster_controller_lf
-                    thruster_controller_lb
-                    thruster_controller_rb
-                    thruster_controller_rf
-                    attitude_controller
-                    gate_controller
-                    --param-file $(var controllers_param_file)
+    - node:
+        pkg: "camera_ros"
+        exec: "camera_node"
+        param:
+        -
+          name: "camera"
+          value: 1
