@@ -205,7 +205,7 @@ jobs:
             --build-base build \
             --filter '/usr/*' '/opt/ros/*' '*/build/*' '*/test/*' \
             --lcov-args --ignore-errors gcov,mismatch,negative && \
-          ls; pwd; cp -r src/*/${{ needs.parse-env-file.outputs.PACKAGE_NAME }}/{include,src} ../
+          cp -r src/*/${{ github.event.repository.name }}/{include,src} ../
 
       - name: debug
         run: pwd; ls -lRa
