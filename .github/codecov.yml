@@ -50,8 +50,8 @@ comment:
   hide_project_coverage: false
   behavior: once
 
-# fixes:
-#   - "ros_ws/src/*/sinsei_UMIUSI_control/sinsei_umiusi_control/::"
+fixes:
+  - "ros_ws/src/*/sinsei_UMIUSI_control/::"
 
 ignore:
   - "test/*"
