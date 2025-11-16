@@ -203,7 +203,7 @@ jobs:
       - run: colcon lcov-result --build-base ros_ws/build --filter '/usr/*' '/opt/ros/*' '*/build/*' '*/test/*' --lcov-args --ignore-errors gcov,mismatch,negative
 
       - name: debug
-        run: echo $(pwd); ls -lRa ros_ws/src
+        run: echo $(pwd); ls -lRa
 
       - name: Codecov
         uses: codecov/codecov-action@v5
