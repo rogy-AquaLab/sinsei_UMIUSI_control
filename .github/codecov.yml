@@ -51,7 +51,7 @@ comment:
   behavior: once
 
 fixes:
-  - "ros_ws/src/*/sinsei_UMIUSI_control/sinsei_umiusi_control/::"
+  - "ros_ws/src/*/sinsei_UMIUSI_control/::"
 
 ignore:
   - "test/*"
