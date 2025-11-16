@@ -8,14 +8,16 @@
 #include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
 #include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
 #include "sinsei_umiusi_control/controller/logic/logic_interface.hpp"
-#include "sinsei_umiusi_control/msg/thruster_output.hpp"
-#include "sinsei_umiusi_control/msg/thruster_output_all.hpp"
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
 #include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
+#include "sinsei_umiusi_msgs/msg/thruster_output.hpp"
+#include "sinsei_umiusi_msgs/msg/thruster_output_all.hpp"
 
 namespace sinsei_umiusi_control::controller {
+
+namespace msg = sinsei_umiusi_msgs::msg;
 
 class ThrusterController : public controller_interface::ChainableControllerInterface {
   public:

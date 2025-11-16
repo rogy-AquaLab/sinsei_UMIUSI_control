@@ -5,12 +5,12 @@
 #include <rclcpp_lifecycle/state.hpp>
 #include <string>
 
-#include "sinsei_umiusi_control/msg/esc_state.hpp"
-#include "sinsei_umiusi_control/msg/low_power_circuit_health.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
 using namespace sinsei_umiusi_control::controller;
+
+namespace msg = sinsei_umiusi_msgs::msg;
 
 auto GateController::command_interface_configuration() const
     -> controller_interface::InterfaceConfiguration {
@@ -309,10 +309,10 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
             this->get_node()->create_publisher<msg::ThrusterStateAll>(
                 state_prefix + "thruster_state_all", qos);
         this->output.pub.low_power_circuit_health_publisher =
-            this->get_node()->create_publisher<msg::LowPowerCircuitHealth>(
+            this->get_node()->create_publisher<msg::LowPowerCircuitInfo>(
                 state_prefix + "low_power_circuit_health", qos);
         this->output.pub.high_power_circuit_health_publisher =
-            this->get_node()->create_publisher<msg::HighPowerCircuitHealth>(
+            this->get_node()->create_publisher<msg::HighPowerCircuitInfo>(
                 state_prefix + "high_power_circuit_health", qos);
     }
 
@@ -391,21 +391,21 @@ auto GateController::update(
                             .set__angle(this->input.state.servo_angles[3].value))
                     .set__rpm(this->input.state.esc_rpms[3].value)));
     this->output.pub.low_power_circuit_health_publisher->publish(
-        msg::LowPowerCircuitHealth()
+        msg::LowPowerCircuitInfo()
             .set__can(
-                this->input.state.can_health.is_ok ? msg::LowPowerCircuitHealth::OK
-                                                   : msg::LowPowerCircuitHealth::ERROR)
+                this->input.state.can_health.is_ok ? msg::LowPowerCircuitInfo::OK
+                                                   : msg::LowPowerCircuitInfo::ERROR)
             .set__headlights(
-                this->input.state.headlights_health.is_ok ? msg::LowPowerCircuitHealth::OK
-                                                          : msg::LowPowerCircuitHealth::ERROR)
+                this->input.state.headlights_health.is_ok ? msg::LowPowerCircuitInfo::OK
+                                                          : msg::LowPowerCircuitInfo::ERROR)
             .set__imu(
-                this->input.state.imu_health.is_ok ? msg::LowPowerCircuitHealth::OK
-                                                   : msg::LowPowerCircuitHealth::ERROR)
+                this->input.state.imu_health.is_ok ? msg::LowPowerCircuitInfo::OK
+                                                   : msg::LowPowerCircuitInfo::ERROR)
             .set__indicator_led(
-                this->input.state.indicator_led_health.is_ok ? msg::LowPowerCircuitHealth::OK
-                                                             : msg::LowPowerCircuitHealth::ERROR));
+                this->input.state.indicator_led_health.is_ok ? msg::LowPowerCircuitInfo::OK
+                                                             : msg::LowPowerCircuitInfo::ERROR));
     this->output.pub.high_power_circuit_health_publisher->publish(
-        msg::HighPowerCircuitHealth()
+        msg::HighPowerCircuitInfo()
             .set__voltage(this->input.state.main_power_battery_voltage.value)
             .set__current(this->input.state.main_power_battery_current.value)
             .set__temperature(this->input.state.main_temperature.value)

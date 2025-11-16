@@ -96,6 +96,8 @@ jobs:
         uses: ros-tooling/action-ros-ci@v0.4
         with:
           target-ros2-distro: ${{ needs.parse-env-file.outputs.ROS_DISTRO }}
+          package-name: "${{ needs.parse-env-file.outputs.PACKAGE_NAME }} sinsei_umiusi_msgs"
+          vcs-repo-file-url: ./deps.repos
           skip-tests: true
 
       - name: Upload ROS C++ libraries
@@ -191,6 +193,8 @@ jobs:
         uses: ros-tooling/action-ros-ci@v0.4
         with:
           target-ros2-distro: ${{ needs.parse-env-file.outputs.ROS_DISTRO }}
+          package-name: "${{ needs.parse-env-file.outputs.PACKAGE_NAME }} sinsei_umiusi_msgs"
+          vcs-repo-file-url: ./deps.repos
           extra-cmake-args: |
             -DCMAKE_CXX_FLAGS='-coverage' \
             -DCMAKE_C_FLAGS='-coverage'

@@ -16,6 +16,8 @@
 
 using namespace sinsei_umiusi_control::controller;
 
+namespace msg = sinsei_umiusi_msgs::msg;
+
 auto ThrusterController::command_interface_configuration() const
     -> controller_interface::InterfaceConfiguration {
     auto cmd_names = std::vector<std::string>{};

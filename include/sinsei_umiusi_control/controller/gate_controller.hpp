@@ -14,17 +14,6 @@
 #include "sinsei_umiusi_control/cmd/main_power.hpp"
 #include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
 #include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
-#include "sinsei_umiusi_control/msg/headlights_output.hpp"
-#include "sinsei_umiusi_control/msg/high_power_circuit_health.hpp"
-#include "sinsei_umiusi_control/msg/imu_state.hpp"
-#include "sinsei_umiusi_control/msg/indicator_led_output.hpp"
-#include "sinsei_umiusi_control/msg/led_tape_output.hpp"
-#include "sinsei_umiusi_control/msg/low_power_circuit_health.hpp"
-#include "sinsei_umiusi_control/msg/main_power_enabled.hpp"
-#include "sinsei_umiusi_control/msg/main_power_output.hpp"
-#include "sinsei_umiusi_control/msg/target.hpp"
-#include "sinsei_umiusi_control/msg/thruster_enabled_all.hpp"
-#include "sinsei_umiusi_control/msg/thruster_state_all.hpp"
 #include "sinsei_umiusi_control/state/can.hpp"
 #include "sinsei_umiusi_control/state/headlights.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
@@ -34,6 +23,17 @@
 #include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
+#include "sinsei_umiusi_msgs/msg/headlights_output.hpp"
+#include "sinsei_umiusi_msgs/msg/high_power_circuit_info.hpp"
+#include "sinsei_umiusi_msgs/msg/imu_state.hpp"
+#include "sinsei_umiusi_msgs/msg/indicator_led_output.hpp"
+#include "sinsei_umiusi_msgs/msg/led_tape_output.hpp"
+#include "sinsei_umiusi_msgs/msg/low_power_circuit_info.hpp"
+#include "sinsei_umiusi_msgs/msg/main_power_enabled.hpp"
+#include "sinsei_umiusi_msgs/msg/main_power_output.hpp"
+#include "sinsei_umiusi_msgs/msg/target.hpp"
+#include "sinsei_umiusi_msgs/msg/thruster_enabled_all.hpp"
+#include "sinsei_umiusi_msgs/msg/thruster_state_all.hpp"
 
 namespace sinsei_umiusi_control::controller {
 
@@ -69,14 +69,17 @@ class GateController : public controller_interface::ControllerInterface {
         };
         // Subscribers for commands
         struct Subscribers {
-            rclcpp::Subscription<msg::IndicatorLedOutput>::SharedPtr
+            rclcpp::Subscription<sinsei_umiusi_msgs::msg::IndicatorLedOutput>::SharedPtr
                 indicator_led_output_subscriber;
-            rclcpp::Subscription<msg::MainPowerOutput>::SharedPtr main_power_output_subscriber;
-            rclcpp::Subscription<msg::HeadlightsOutput>::SharedPtr headlights_output_subscriber;
-            rclcpp::Subscription<msg::ThrusterEnabledAll>::SharedPtr
+            rclcpp::Subscription<sinsei_umiusi_msgs::msg::MainPowerOutput>::SharedPtr
+                main_power_output_subscriber;
+            rclcpp::Subscription<sinsei_umiusi_msgs::msg::HeadlightsOutput>::SharedPtr
+                headlights_output_subscriber;
+            rclcpp::Subscription<sinsei_umiusi_msgs::msg::ThrusterEnabledAll>::SharedPtr
                 thruster_enabled_all_subscriber;
-            rclcpp::Subscription<msg::LedTapeOutput>::SharedPtr led_tape_output_subscriber;
-            rclcpp::Subscription<msg::Target>::SharedPtr target_subscriber;
+            rclcpp::Subscription<sinsei_umiusi_msgs::msg::LedTapeOutput>::SharedPtr
+                led_tape_output_subscriber;
+            rclcpp::Subscription<sinsei_umiusi_msgs::msg::Target>::SharedPtr target_subscriber;
         };
         State state;
         Subscribers sub;
@@ -99,12 +102,14 @@ class GateController : public controller_interface::ControllerInterface {
         };
         // Publishers for states
         struct Publishers {
-            rclcpp::Publisher<msg::MainPowerEnabled>::SharedPtr main_power_enabled_publisher;
-            rclcpp::Publisher<msg::ImuState>::SharedPtr imu_state_publisher;
-            rclcpp::Publisher<msg::ThrusterStateAll>::SharedPtr thruster_state_all_publisher;
-            rclcpp::Publisher<msg::LowPowerCircuitHealth>::SharedPtr
+            rclcpp::Publisher<sinsei_umiusi_msgs::msg::MainPowerEnabled>::SharedPtr
+                main_power_enabled_publisher;
+            rclcpp::Publisher<sinsei_umiusi_msgs::msg::ImuState>::SharedPtr imu_state_publisher;
+            rclcpp::Publisher<sinsei_umiusi_msgs::msg::ThrusterStateAll>::SharedPtr
+                thruster_state_all_publisher;
+            rclcpp::Publisher<sinsei_umiusi_msgs::msg::LowPowerCircuitInfo>::SharedPtr
                 low_power_circuit_health_publisher;
-            rclcpp::Publisher<msg::HighPowerCircuitHealth>::SharedPtr
+            rclcpp::Publisher<sinsei_umiusi_msgs::msg::HighPowerCircuitInfo>::SharedPtr
                 high_power_circuit_health_publisher;
         };
         Command cmd;
