@@ -40,8 +40,9 @@
         <state_interface name="temperature" data_type="double">
           <param name="initial_value">0.0</param>
         </state_interface>
-        <state_interface name="health" data_type="bool">
-          <param name="initial_value">false</param>
+        <state_interface name="health" data_type="double">
+          <!-- false (Cannot use bool type due to ros2_control bug) -->
+          <param name="initial_value">0.0</param>
         </state_interface>
       </sensor>
     </ros2_control>

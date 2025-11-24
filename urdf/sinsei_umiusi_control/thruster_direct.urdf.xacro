@@ -27,14 +27,16 @@
           <param name="max_pulse_width">${servo_max_pulse_width}</param>
         </hardware>
         <gpio name="${thruster_name}/servo">
-          <command_interface name="enabled" data_type="bool">
-            <param name="initial_value">false</param>
+          <command_interface name="enabled" data_type="double">
+            <!-- false (Cannot use bool type due to ros2_control bug) -->
+            <param name="initial_value">0.0</param>
           </command_interface>
           <command_interface name="angle" data_type="double">
             <param name="initial_value">0.0</param>
           </command_interface>
-          <state_interface name="health" data_type="bool">
-            <param name="initial_value">false</param>
+          <state_interface name="health" data_type="double">
+            <!-- false (Cannot use bool type due to ros2_control bug) -->
+            <param name="initial_value">0.0</param>
           </state_interface>
         </gpio>
       </ros2_control>
@@ -48,14 +50,16 @@
           <param name="positive_pulse_width_radius">${esc_positive_pulse_width_radius}</param>
         </hardware>
         <gpio name="${thruster_name}/esc">
-          <command_interface name="enabled" data_type="bool">
-            <param name="initial_value">false</param>
+          <command_interface name="enabled" data_type="double">
+            <!-- false (Cannot use bool type due to ros2_control bug) -->
+            <param name="initial_value">0.0</param>
           </command_interface>
           <command_interface name="duty_cycle" data_type="double">
             <param name="initial_value">0.0</param>
           </command_interface>
-          <state_interface name="health" data_type="bool">
-            <param name="initial_value">false</param>
+          <state_interface name="health" data_type="double">
+            <!-- false (Cannot use bool type due to ros2_control bug) -->
+            <param name="initial_value">0.0</param>
           </state_interface>
         </gpio>
       </ros2_control>
