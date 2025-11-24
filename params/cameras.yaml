@@ -1,11 +1,12 @@
-pi_camera:
-  ros__parameters:
-    camera: "/base/soc/i2c0mux/i2c@1/imx708@1a"
-    width: 1024
-    height: 768
+/**:
+  pi_camera:
+    ros__parameters:
+      camera: "/base/soc/i2c0mux/i2c@1/imx708@1a"
+      width: 1024
+      height: 768
 
-usb_camera:
-  ros__parameters:
-    camera: "/base/scb/pcie@7d500000/pci@0,0/usb@0,0-1.4:1.0-0c45:6366"
-    width: 1024
-    height: 768
+  usb_camera:
+    ros__parameters:
+      camera: "/base/scb/pcie@7d500000/pci@0,0/usb@0,0-1.4:1.0-0c45:6366"
+      width: 1024
+      height: 768

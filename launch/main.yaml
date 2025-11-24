@@ -36,10 +36,11 @@ launch:
         pkg: "camera_ros"
         exec: "camera_node"
         name: "pi_camera"
-        args: "--param-file $(var cameras_param_file)"
-
+        param:
+        - from: "$(var cameras_param_file)"
     - node:
         pkg: "camera_ros"
         exec: "camera_node"
         name: "usb_camera"
-        args: "--param-file $(var cameras_param_file)"
+        param:
+        - from: "$(var cameras_param_file)"
