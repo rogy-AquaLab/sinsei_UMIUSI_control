@@ -32,19 +32,15 @@ launch:
           attitude_controller
           gate_controller
           --param-file $(var controllers_param_file)
-
     - node:
         pkg: "camera_ros"
         exec: "camera_node"
+        name: "pi_camera"
         param:
-        -
-          name: "camera"
-          value: 0
-
+        - from: "$(var cameras_param_file)"
     - node:
         pkg: "camera_ros"
         exec: "camera_node"
+        name: "usb_camera"
         param:
-        -
-          name: "camera"
-          value: 1
+        - from: "$(var cameras_param_file)"
