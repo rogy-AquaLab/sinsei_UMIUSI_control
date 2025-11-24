@@ -7,18 +7,42 @@
       </hardware>
 
       <sensor name="imu">
-        <state_interface name="quaternion.x" />
-        <state_interface name="quaternion.y" />
-        <state_interface name="quaternion.z" />
-        <state_interface name="quaternion.w" />
-        <state_interface name="acceleration.x" />
-        <state_interface name="acceleration.y" />
-        <state_interface name="acceleration.z" />
-        <state_interface name="angular_velocity.x" />
-        <state_interface name="angular_velocity.y" />
-        <state_interface name="angular_velocity.z" />
-        <state_interface name="temperature" />
-        <state_interface name="health" />
+        <state_interface name="quaternion.x" data_type="double">
+          <param name="initial_value">1.0</param>
+        </state_interface>
+        <state_interface name="quaternion.y" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="quaternion.z" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="quaternion.w" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="acceleration.x" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="acceleration.y" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="acceleration.z" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="angular_velocity.x" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="angular_velocity.y" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="angular_velocity.z" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="temperature" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="health" data_type="bool">
+          <param name="initial_value">false</param>
+        </state_interface>
       </sensor>
     </ros2_control>
   </xacro:macro>

@@ -9,8 +9,12 @@
       </hardware>
 
       <gpio name="indicator_led">
-        <command_interface name="enabled" />
-        <state_interface name="health" />
+        <command_interface name="enabled" data_type="bool">
+          <param name="initial_value">false</param>
+        </command_interface>
+        <state_interface name="health" data_type="bool">
+          <param name="initial_value">false</param>
+        </state_interface>
       </gpio>
     </ros2_control>
   </xacro:macro>
