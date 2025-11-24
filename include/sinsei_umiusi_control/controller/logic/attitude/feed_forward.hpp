@@ -10,6 +10,26 @@
 namespace sinsei_umiusi_control::controller::logic::attitude {
 
 class FeedForward : public AttitudeController::Logic {
+  private:
+    static auto atan_or_zero(const double & x, const double & y) -> double {
+        constexpr auto pi = boost::math::constants::pi<double>();
+        if (x == 0.0 && y == 0.0) {
+            return 0.0;
+        }
+        return std::atan(y / x) * 180.0 / pi;
+    }
+
+    static auto magnitude(const double & x, const double & y) -> double {
+        return std::sqrt(x * x + y * y);
+    }
+
+    static auto sign(const double & x, const double & y) -> double {
+        // π/2 < φ < 3π/2 -> negative
+        constexpr auto half_pi = boost::math::constants::half_pi<double>();
+        const auto phi = std::atan2(y, x);
+        return (phi > half_pi && phi < 3.0 * half_pi) ? -1.0 : 1.0;
+    }
+
   public:
     auto control_mode() const -> logic::ControlMode override {
         return logic::ControlMode::FeedForward;
@@ -23,7 +43,6 @@ class FeedForward : public AttitudeController::Logic {
 
     auto update(double /*time*/, double /*duration*/, const AttitudeController::Input & input)
         -> AttitudeController::Output override {
-        // TODO: Implement feed-forward logic
         const auto target_orientation = to_eigen_vector(input.cmd.target_orientation);
         const auto target_velocity = to_eigen_vector(input.cmd.target_velocity);
 
@@ -54,49 +73,30 @@ class FeedForward : public AttitudeController::Logic {
         const auto y = a * u;
 
         auto output = AttitudeController::Output{};
-        constexpr auto ATAN_OR_ZERO = [](const double & x, const double & y) -> double {
-            constexpr auto pi = boost::math::constants::pi<double>();
-            return (x == 0.0 && y == 0.0) ? 0.0 : std::atan(y / x) * 180.0 / pi;
-        };
         output.cmd.servo_angles = {
-            sinsei_umiusi_control::cmd::thruster::servo::Angle{ATAN_OR_ZERO(y[0], y[1])},
-            sinsei_umiusi_control::cmd::thruster::servo::Angle{ATAN_OR_ZERO(y[2], y[3])},
-            sinsei_umiusi_control::cmd::thruster::servo::Angle{ATAN_OR_ZERO(y[4], y[5])},
-            sinsei_umiusi_control::cmd::thruster::servo::Angle{ATAN_OR_ZERO(y[6], y[7])},
-        };
-        // Magnitude
-        constexpr auto MGN = [](const double & x, const double & y) -> double {
-            return std::sqrt(x * x + y * y);
-        };
-        // Sign (phi/2 < φ < 3π/2 -> negative)
-        constexpr auto SGN = [](const double & x, const double & y) -> double {
-            constexpr auto half_pi = boost::math::constants::half_pi<double>();
-            const auto phi = std::atan2(y, x);
-            return (phi > half_pi && phi < 3.0 * half_pi) ? -1.0 : 1.0;
+            sinsei_umiusi_control::cmd::thruster::servo::Angle{atan_or_zero(y[0], y[1])},
+            sinsei_umiusi_control::cmd::thruster::servo::Angle{atan_or_zero(y[2], y[3])},
+            sinsei_umiusi_control::cmd::thruster::servo::Angle{atan_or_zero(y[4], y[5])},
+            sinsei_umiusi_control::cmd::thruster::servo::Angle{atan_or_zero(y[6], y[7])},
         };
         const auto thrust_sgns = std::array<double, 4>{
-            SGN(y[0], y[1]), SGN(y[2], y[3]), SGN(y[4], y[5]), SGN(y[6], y[7])};
+            sign(y[0], y[1]), sign(y[2], y[3]), sign(y[4], y[5]), sign(y[6], y[7])};
         const auto thrust_abss = std::array<double, 4>{
-            MGN(y[0], y[1]), MGN(y[2], y[3]), MGN(y[4], y[5]), MGN(y[6], y[7])};
+            magnitude(y[0], y[1]), magnitude(y[2], y[3]), magnitude(y[4], y[5]),
+            magnitude(y[6], y[7])};
 
-        // 絶対値の最大値が1になるように正規化。ただし、0除算を避けるために最大値が0のときは0にする。
-        // Norm
-        constexpr auto NRM = [](const double & sgn, const double & abs,
-                                const double & max_abs) -> double {
-            return max_abs == 0.0 ? 0.0 : (sgn * abs / max_abs);
-        };
-
+        // 絶対値の最大値が1になるように正規化
         // √2 == (a * 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 の第一成分と第二成分の二乗和の平方根)
         constexpr auto MAX_THRUST = boost::math::constants::root_two<double>();
         output.cmd.esc_thrusts = {
             sinsei_umiusi_control::cmd::thruster::esc::Thrust{
-                NRM(thrust_sgns[0], thrust_abss[0], MAX_THRUST)},
+                thrust_sgns[0] * thrust_abss[0] / MAX_THRUST},
             sinsei_umiusi_control::cmd::thruster::esc::Thrust{
-                NRM(thrust_sgns[1], thrust_abss[1], MAX_THRUST)},
+                thrust_sgns[1] * thrust_abss[1] / MAX_THRUST},
             sinsei_umiusi_control::cmd::thruster::esc::Thrust{
-                NRM(thrust_sgns[2], thrust_abss[2], MAX_THRUST)},
+                thrust_sgns[2] * thrust_abss[2] / MAX_THRUST},
             sinsei_umiusi_control::cmd::thruster::esc::Thrust{
-                NRM(thrust_sgns[3], thrust_abss[3], MAX_THRUST)},
+                thrust_sgns[3] * thrust_abss[3] / MAX_THRUST},
         };
 
         return output;
