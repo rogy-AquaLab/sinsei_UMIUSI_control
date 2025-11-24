@@ -167,6 +167,10 @@ launch:
       name: controllers_param_file
       default: "$(find-pkg-share $(var pkg_name))/params/controllers.yaml"
   - arg:
+      description: "File path for cameras parameters"
+      name: cameras_param_file
+      default: "$(find-pkg-share $(var pkg_name))/params/cameras.yaml"
+  - arg:
       description: "File path for robot description"
       name: robot_description_file
       default: "$(find-pkg-share $(var pkg_name))/urdf/main.urdf.xacro"
