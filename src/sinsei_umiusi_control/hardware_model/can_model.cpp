@@ -44,12 +44,18 @@ auto CanModel::update_and_generate_command(
                 return std::forward_as_tuple(thruster_id, esc_enabled_flags[thruster_index]);
             }
             case 1: {  // esc_duty_cycle
+                if (!esc_enabled_flags[thruster_index].value) {
+                    break;  // ESCが無効の場合はデューティ比を送信しない
+                }
                 return std::forward_as_tuple(thruster_id, esc_duty_cycles[thruster_index]);
             }
             case 2: {  // servo_enabled
                 return std::forward_as_tuple(thruster_id, servo_enabled_flags[thruster_index]);
             }
             case 3: {  // servo_angle
+                if (!servo_enabled_flags[thruster_index].value) {
+                    break;  // サーボが無効の場合は角度を送信しない
+                }
                 return std::forward_as_tuple(thruster_id, servo_angles[thruster_index]);
             }
             default: {

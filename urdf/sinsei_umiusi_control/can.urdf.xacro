@@ -18,16 +18,33 @@
         <xacro:property name="thruster_name" value="thruster${id}" />
 
         <gpio name="${thruster_name}/servo">
-          <command_interface name="enabled" />
-          <command_interface name="angle" />
+          <command_interface name="enabled" data_type="double">
+            <!-- false (Cannot use bool type due to ros2_control bug) -->
+            <param name="initial_value">0.0</param>
+          </command_interface>
+          <command_interface name="angle" data_type="double">
+            <param name="initial_value">0.0</param>
+          </command_interface>
         </gpio>
 
         <gpio name="${thruster_name}/esc">
-          <command_interface name="enabled" />
-          <command_interface name="duty_cycle" />
-          <state_interface name="rpm" />
-          <state_interface name="voltage" />
-          <state_interface name="water_leaked" />
+          <command_interface name="enabled" data_type="double">
+            <!-- false (Cannot use bool type due to ros2_control bug) -->
+            <param name="initial_value">0.0</param>
+          </command_interface>
+          <command_interface name="duty_cycle" data_type="double">
+            <param name="initial_value">0.0</param>
+          </command_interface>
+          <state_interface name="rpm" data_type="double">
+            <param name="initial_value">0.0</param>
+          </state_interface>
+          <state_interface name="voltage" data_type="double">
+            <param name="initial_value">0.0</param>
+          </state_interface>
+          <state_interface name="water_leaked" data_type="double">
+            <!-- false (Cannot use bool type due to ros2_control bug) -->
+            <param name="initial_value">0.0</param>
+          </state_interface>
         </gpio>
       </xacro:macro>
 
@@ -39,19 +56,36 @@
       </xacro:if>
 
       <gpio name="main_power">
-        <command_interface name="enabled" />
-        <state_interface name="battery_current" />
-        <state_interface name="battery_voltage" />
-        <state_interface name="temperature" />
-        <state_interface name="water_leaked" />
+        <command_interface name="enabled" data_type="double">
+          <!-- false (Cannot use bool type due to ros2_control bug) -->
+          <param name="initial_value">0.0</param>
+        </command_interface>
+        <state_interface name="battery_current" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="battery_voltage" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="temperature" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="water_leaked" data_type="double">
+          <!-- false (Cannot use bool type due to ros2_control bug) -->
+          <param name="initial_value">0.0</param>
+        </state_interface>
       </gpio>
 
       <gpio name="led_tape">
-        <command_interface name="color" />
+        <command_interface name="color" data_type="double">
+          <param name="initial_value">0.0</param>
+        </command_interface>
       </gpio>
 
       <sensor name="can">
-        <state_interface name="health" />
+        <state_interface name="health" data_type="double">
+          <!-- false (Cannot use bool type due to ros2_control bug) -->
+          <param name="initial_value">0.0</param>
+        </state_interface>
       </sensor>
     </ros2_control>
   </xacro:macro>

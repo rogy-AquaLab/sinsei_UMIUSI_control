@@ -11,10 +11,22 @@
       </hardware>
 
       <gpio name="headlights">
-        <command_interface name="high_beam_enabled" />
-        <command_interface name="low_beam_enabled" />
-        <command_interface name="ir_enabled" />
-        <state_interface name="health" />
+        <command_interface name="high_beam_enabled" data_type="double">
+          <!-- false (Cannot use bool type due to ros2_control bug) -->
+          <param name="initial_value">0.0</param>
+        </command_interface>
+        <command_interface name="low_beam_enabled" data_type="double">
+          <!-- false (Cannot use bool type due to ros2_control bug) -->
+          <param name="initial_value">0.0</param>
+        </command_interface>
+        <command_interface name="ir_enabled" data_type="double">
+          <!-- false (Cannot use bool type due to ros2_control bug) -->
+          <param name="initial_value">0.0</param>
+        </command_interface>
+        <state_interface name="health" data_type="double">
+          <!-- false (Cannot use bool type due to ros2_control bug) -->
+          <param name="initial_value">0.0</param>
+        </state_interface>
       </gpio>
     </ros2_control>
   </xacro:macro>
