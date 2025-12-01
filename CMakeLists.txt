@@ -60,7 +60,6 @@ ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   src/${PROJECT_NAME}/hardware_model/thruster_direct/esc_direct_model.cpp
   src/${PROJECT_NAME}/hardware_model/thruster_direct/servo_direct_model.cpp
   src/${PROJECT_NAME}/hardware_model/can/vesc_model.cpp
-  src/${PROJECT_NAME}/hardware_model/imu/bno055_model.cpp
 
   src/${PROJECT_NAME}/hardware_model/impl/pigpio.cpp
   src/${PROJECT_NAME}/hardware_model/impl/linux_can.cpp
