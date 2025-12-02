@@ -128,11 +128,25 @@ auto ImuModel::on_read() -> tl::expected<
     // 通信回数削減のため一括でデータを取得する
     std::array<std::byte, 45> buf;
 
-    const auto res = this->gpio->i2c_read_block_data(START_ADDR, buf.data(), buf.size())
-                         .map_error(interface::gpio_error_to_string);
+    // const auto res = this->gpio->i2c_read_block_data(START_ADDR, buf.data(), buf.size())
+    //                      .map_error(interface::gpio_error_to_string);
 
-    if (!res) {
-        return tl::make_unexpected("I2C read error: " + res.error());
+    // if (!res) {
+    //     return tl::make_unexpected("I2C read error: " + res.error());
+    // }
+
+    // レジスタのアドレスをセット
+    auto wres = this->gpio->i2c_write_byte(static_cast<std::byte>(START_ADDR))
+                    .map_error(interface::gpio_error_to_string);
+    if (!wres) {
+        return tl::make_unexpected("I2C write error: " + wres.error());
+    }
+
+    // データを一括取得
+    auto rres = this->gpio->i2c_read_device(buf.data(), buf.size())
+                    .map_error(interface::gpio_error_to_string);
+    if (!rres) {
+        return tl::make_unexpected("I2C read error: " + rres.error());
     }
 
     constexpr auto ACC_SCALE = 1.0 / 100.0;
