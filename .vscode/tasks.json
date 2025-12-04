@@ -4,27 +4,15 @@
     {
       "label": "colcon: build",
       "type": "shell",
-      "command": "colcon",
-      "args": [
-        "build",
-        "--symlink-install",
-      ]
+      "command": "ROOT_DIR=$(dirname $(dirname ${workspaceFolder})) && cd $ROOT_DIR && colcon build --symlink-install"
     },
     {
       "label": "ros2: launch",
       "type": "shell",
       "dependsOn": [
-        "colcon: build",
+        "colcon: build"
       ],
-      "command": [
-        "source",
-        "${workspaceFolder}/install/setup.bash",
-        "&&",
-        "ros2",
-        "launch",
-        "sinsei_umiusi_control",
-        "main.yaml"
-      ],
+      "command": "ROOT_DIR=$(dirname $(dirname ${workspaceFolder})) && cd $ROOT_DIR && source install/local_setup.bash && ros2 launch sinsei_umiusi_control main.yaml"
     }
   ]
 }
