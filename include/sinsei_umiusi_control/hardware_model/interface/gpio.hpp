@@ -86,6 +86,8 @@ class Gpio {
     virtual auto i2c_read_byte_data(const Addr & reg) const -> tl::expected<std::byte, Error> = 0;
     virtual auto i2c_read_block_data(const Addr & reg, std::byte * buffer, const size_t length)
         const -> tl::expected<void, Error> = 0;
+    virtual auto i2c_read_device(std::byte * buffer, const size_t length) const
+        -> tl::expected<void, Error> = 0;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::interface
