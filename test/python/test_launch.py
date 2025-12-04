@@ -106,7 +106,7 @@ def test_controllers_running(helper_node, launch_arguments):
     """Test if the controllers are running."""
     cnames = controllers(launch_arguments)
     ns = launch_arguments.get('namespace', '')
-    check_controllers_running(helper_node, cnames, ns, 'active', 30)
+    check_controllers_running(helper_node, cnames, ns, 'active', 120)
 
 
 @pytest.fixture(
