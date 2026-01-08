@@ -14,8 +14,9 @@ RUN apt-get update && apt-get install -y \
     clangd-18 \
     clang-format-18 \
     clang-tidy-18 \
-    sccache \
-    python3-colcon-lcov-result
+    lld \
+    lld-18 \
+    sccache
 
 # Install can-utils
 RUN apt-get install -y can-utils
