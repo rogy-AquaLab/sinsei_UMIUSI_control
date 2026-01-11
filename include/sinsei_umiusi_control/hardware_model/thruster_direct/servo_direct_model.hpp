@@ -25,7 +25,7 @@ class ServoDirectModel {
     auto on_init() -> tl::expected<void, std::string>;
     auto on_read() const -> tl::expected<void, std::string>;
     auto on_write(
-        sinsei_umiusi_control::cmd::thruster::servo::Enabled && enabled,
+        sinsei_umiusi_control::cmd::thruster::servo::Allowed && allowed,
         sinsei_umiusi_control::cmd::thruster::servo::Angle && angle)
         -> tl::expected<void, std::string>;
 };

@@ -3,11 +3,16 @@
 
 namespace sinsei_umiusi_control::cmd::thruster::servo {
 
-struct Enabled {
+struct Runnable {
     bool value;
 };
 struct Angle {
     double value;
+};
+
+// 最終的にスラスタを動かしていいかどうか
+struct Allowed {
+    bool value;
 };
 
 }  // namespace sinsei_umiusi_control::cmd::thruster::servo

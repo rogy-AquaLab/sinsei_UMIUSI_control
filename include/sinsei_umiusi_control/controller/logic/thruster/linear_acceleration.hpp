@@ -42,9 +42,13 @@ class LinearAcceleration : public ThrusterController::Logic {
         this->duty_cycle = std::clamp(target, min, max);
 
         auto output = ThrusterController::Output{};
-        output.state.esc_enabled.value = input.cmd.esc_enabled.value;
+        // TODO: `disabled`の処理を追加する
+        output.state.esc_mode.value = input.cmd.esc_runnable.value ? util::ThrusterMode::Runnable
+                                                                   : util::ThrusterMode::Standby;
         output.state.esc_duty_cycle.value = this->duty_cycle;
-        output.state.servo_enabled.value = input.cmd.servo_enabled.value;
+        output.state.servo_mode.value = input.cmd.servo_runnable.value
+                                            ? util::ThrusterMode::Runnable
+                                            : util::ThrusterMode::Standby;
         output.state.servo_angle.value = input.cmd.servo_angle.value;
         return output;
     }

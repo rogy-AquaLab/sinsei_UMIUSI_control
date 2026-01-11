@@ -22,15 +22,15 @@ class CanModel {
   public:
     using ThrusterId = size_t;
 
-    using EscEnabled = cmd::thruster::esc::Enabled;
+    using EscAllowed = cmd::thruster::esc::Allowed;
     using EscDutyCycle = cmd::thruster::esc::DutyCycle;
-    using ServoEnabled = cmd::thruster::servo::Enabled;
+    using ServoAllowed = cmd::thruster::servo::Allowed;
     using ServoAngle = cmd::thruster::servo::Angle;
 
   private:
     using WriteCommand = std::variant<
-        cmd::main_power::Enabled, std::tuple<ThrusterId, EscEnabled>,
-        std::tuple<ThrusterId, ServoEnabled>, std::tuple<ThrusterId, EscDutyCycle>,
+        cmd::main_power::Enabled, std::tuple<ThrusterId, EscAllowed>,
+        std::tuple<ThrusterId, ServoAllowed>, std::tuple<ThrusterId, EscDutyCycle>,
         std::tuple<ThrusterId, ServoAngle>, cmd::led_tape::Color>;
 
     std::shared_ptr<interface::Can> can;
@@ -40,7 +40,7 @@ class CanModel {
     // main_powerが更新されたときは必ずこれを送信する
     cmd::main_power::Enabled last_main_power_enabled;
 
-    // `(% 16) / 4`: `EscEnabled`, `ServoEnabled`, `DutyCycle` or `Angle`
+    // `(% 16) / 4`: `EscAllowed`, `ServoAllowed`, `DutyCycle` or `Angle`
     // `% 4`:        `thruster ID - 1`
     size_t loop_times = 0;
 
@@ -57,9 +57,9 @@ class CanModel {
     // Update the internal state and select a command to write.
     auto update_and_generate_command(
         cmd::main_power::Enabled && main_power_enabled,
-        std::array<cmd::thruster::esc::Enabled, 4> && esc_enabled_flags,
+        std::array<cmd::thruster::esc::Allowed, 4> && esc_allowed_flags,
         std::array<cmd::thruster::esc::DutyCycle, 4> && esc_duty_cycles,
-        std::array<cmd::thruster::servo::Enabled, 4> && servo_enabled_flags,
+        std::array<cmd::thruster::servo::Allowed, 4> && servo_allowed_flags,
         std::array<cmd::thruster::servo::Angle, 4> && servo_angles,
         cmd::led_tape::Color && led_tape_color) -> WriteCommand;
 
@@ -86,9 +86,9 @@ class CanModel {
             std::string>;
     auto on_write(
         cmd::main_power::Enabled && main_power_enabled,
-        std::array<cmd::thruster::esc::Enabled, 4> && esc_enabled_flags,
+        std::array<cmd::thruster::esc::Allowed, 4> && esc_allowed_flags,
         std::array<cmd::thruster::esc::DutyCycle, 4> && esc_duty_cycles,
-        std::array<cmd::thruster::servo::Enabled, 4> && servo_enabled_flags,
+        std::array<cmd::thruster::servo::Allowed, 4> && servo_allowed_flags,
         std::array<cmd::thruster::servo::Angle, 4> && servo_angles,
         cmd::led_tape::Color && led_tape_color) -> tl::expected<void, std::string>;
 

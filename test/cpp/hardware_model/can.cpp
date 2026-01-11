@@ -7,6 +7,7 @@
 #include <rcpputils/tl_expected/expected.hpp>
 
 #include "gmock/gmock.h"
+#include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 
 namespace succmd = sinsei_umiusi_control::cmd;
@@ -71,15 +72,15 @@ TEST(CanModelTest, CanModelCanModeOnWriteTest) {
         suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
     auto result = can_model.on_write(
         succmd::main_power::Enabled{false},
-        std::array<succmd::thruster::esc::Enabled, 4>{
-            succmd::thruster::esc::Enabled{false}, succmd::thruster::esc::Enabled{false},
-            succmd::thruster::esc::Enabled{false}, succmd::thruster::esc::Enabled{false}},
+        std::array<succmd::thruster::esc::Allowed, 4>{
+            succmd::thruster::esc::Allowed{false}, succmd::thruster::esc::Allowed{false},
+            succmd::thruster::esc::Allowed{false}, succmd::thruster::esc::Allowed{false}},
         std::array<succmd::thruster::esc::DutyCycle, 4>{
             succmd::thruster::esc::DutyCycle{1.0f}, succmd::thruster::esc::DutyCycle{0.0f},
             succmd::thruster::esc::DutyCycle{0.0f}, succmd::thruster::esc::DutyCycle{0.0f}},
-        std::array<succmd::thruster::servo::Enabled, 4>{
-            succmd::thruster::servo::Enabled{false}, succmd::thruster::servo::Enabled{false},
-            succmd::thruster::servo::Enabled{false}, succmd::thruster::servo::Enabled{false}},
+        std::array<succmd::thruster::servo::Allowed, 4>{
+            succmd::thruster::servo::Allowed{false}, succmd::thruster::servo::Allowed{false},
+            succmd::thruster::servo::Allowed{false}, succmd::thruster::servo::Allowed{false}},
         std::array<succmd::thruster::servo::Angle, 4>{
             succmd::thruster::servo::Angle{0.0f}, succmd::thruster::servo::Angle{0.0f},
             succmd::thruster::servo::Angle{0.0f}, succmd::thruster::servo::Angle{0.0f}},

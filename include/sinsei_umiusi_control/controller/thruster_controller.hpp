@@ -24,9 +24,9 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     struct Input {
         // Command interfaces (in)
         struct Command {
-            cmd::thruster::esc::Enabled esc_enabled;
+            cmd::thruster::esc::Runnable esc_runnable;
             cmd::thruster::esc::Thrust esc_thrust;
-            cmd::thruster::servo::Enabled servo_enabled;
+            cmd::thruster::servo::Runnable servo_runnable;
             cmd::thruster::servo::Angle servo_angle;
         };
         // State interfaces (in)
@@ -50,16 +50,16 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     struct Output {
         // Command interfaces (out)
         struct Command {
-            cmd::thruster::esc::Enabled esc_enabled;
+            cmd::thruster::esc::Allowed esc_allowed;
             cmd::thruster::esc::DutyCycle esc_duty_cycle;
-            cmd::thruster::servo::Enabled servo_enabled;
+            cmd::thruster::servo::Allowed servo_allowed;
             cmd::thruster::servo::Angle servo_angle;
         };
         // State interfaces (out)
         struct State {
-            state::thruster::esc::Enabled esc_enabled;
+            state::thruster::esc::Mode esc_mode;
             state::thruster::esc::DutyCycle esc_duty_cycle;
-            state::thruster::servo::Enabled servo_enabled;
+            state::thruster::servo::Mode servo_mode;
             state::thruster::servo::Angle servo_angle;
 
             state::thruster::esc::Health esc_direct_health;

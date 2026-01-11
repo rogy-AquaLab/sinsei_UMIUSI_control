@@ -13,6 +13,7 @@
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 #include "sinsei_umiusi_control/util/thruster_driver_type.hpp"
+#include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 using namespace sinsei_umiusi_control::controller;
 
@@ -135,14 +136,14 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                             : "thruster_direct" + std::to_string(this->id) + "/";
 
     this->command_interface_data.push_back(std::make_tuple(
-        prefix + "esc/enabled", util::to_interface_data_ptr(this->output.cmd.esc_enabled),
-        sizeof(this->output.cmd.esc_enabled)));
+        prefix + "esc/allowed", util::to_interface_data_ptr(this->output.cmd.esc_allowed),
+        sizeof(this->output.cmd.esc_allowed)));
     this->command_interface_data.push_back(std::make_tuple(
         prefix + "esc/duty_cycle", util::to_interface_data_ptr(this->output.cmd.esc_duty_cycle),
         sizeof(this->output.cmd.esc_duty_cycle)));
     this->command_interface_data.push_back(std::make_tuple(
-        prefix + "servo/enabled", util::to_interface_data_ptr(this->output.cmd.servo_enabled),
-        sizeof(this->output.cmd.servo_enabled)));
+        prefix + "servo/allowed", util::to_interface_data_ptr(this->output.cmd.servo_allowed),
+        sizeof(this->output.cmd.servo_allowed)));
     this->command_interface_data.push_back(std::make_tuple(
         prefix + "servo/angle", util::to_interface_data_ptr(this->output.cmd.servo_angle),
         sizeof(this->output.cmd.servo_angle)));
@@ -169,14 +170,14 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
     }
 
     this->ref_interface_data.push_back(std::make_tuple(
-        "esc/enabled", util::to_interface_data_ptr(this->input.cmd.esc_enabled),
-        sizeof(this->input.cmd.esc_enabled)));
+        "esc/runnable", util::to_interface_data_ptr(this->input.cmd.esc_runnable),
+        sizeof(this->input.cmd.esc_runnable)));
     this->ref_interface_data.push_back(std::make_tuple(
         "esc/duty_cycle", util::to_interface_data_ptr(this->input.cmd.esc_thrust),
         sizeof(this->input.cmd.esc_thrust)));
     this->ref_interface_data.push_back(std::make_tuple(
-        "servo/enabled", util::to_interface_data_ptr(this->input.cmd.servo_enabled),
-        sizeof(this->input.cmd.servo_enabled)));
+        "servo/runnable", util::to_interface_data_ptr(this->input.cmd.servo_runnable),
+        sizeof(this->input.cmd.servo_runnable)));
     this->ref_interface_data.push_back(std::make_tuple(
         "servo/angle", util::to_interface_data_ptr(this->input.cmd.servo_angle),
         sizeof(this->input.cmd.servo_angle)));
@@ -189,8 +190,13 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
             this->get_node()->create_subscription<msg::ThrusterOutput>(
                 prefix + "output_" + thruster_pos, qos,
                 [this](const msg::ThrusterOutput::SharedPtr msg) {
-                    this->output.state.esc_enabled.value = msg->enabled.esc;
-                    this->output.state.servo_enabled.value = msg->enabled.servo;
+                    // TODO: `disabled`パラメーターの処理を追加する
+                    this->output.state.esc_mode.value = msg->runnable.esc
+                                                            ? util::ThrusterMode::Runnable
+                                                            : util::ThrusterMode::Standby;
+                    this->output.state.servo_mode.value = msg->runnable.servo
+                                                              ? util::ThrusterMode::Runnable
+                                                              : util::ThrusterMode::Standby;
                     this->output.state.esc_duty_cycle.value = msg->duty_cycle;
                     this->output.state.servo_angle.value = msg->angle;
                 });
@@ -203,25 +209,42 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                         // `thruster_output_(lf|lb|rb|rf)` が使える場合は `thruster_output_all` は使わない
                         return;
                     }
+                    // TODO: `disabled`パラメーターの処理を追加する
                     if (thruster_pos == "lf") {
-                        this->output.state.esc_enabled.value = msg->lf.enabled.esc;
+                        this->output.state.esc_mode.value = msg->lf.runnable.esc
+                                                                ? util::ThrusterMode::Runnable
+                                                                : util::ThrusterMode::Standby;
                         this->output.state.esc_duty_cycle.value = msg->lf.duty_cycle;
-                        this->output.state.servo_enabled.value = msg->lf.enabled.servo;
+                        this->output.state.servo_mode.value = msg->lf.runnable.servo
+                                                                  ? util::ThrusterMode::Runnable
+                                                                  : util::ThrusterMode::Standby;
                         this->output.state.servo_angle.value = msg->lf.angle;
                     } else if (thruster_pos == "lb") {
-                        this->output.state.esc_enabled.value = msg->lb.enabled.esc;
+                        this->output.state.esc_mode.value = msg->lb.runnable.esc
+                                                                ? util::ThrusterMode::Runnable
+                                                                : util::ThrusterMode::Standby;
                         this->output.state.esc_duty_cycle.value = msg->lb.duty_cycle;
-                        this->output.state.servo_enabled.value = msg->lb.enabled.servo;
+                        this->output.state.servo_mode.value = msg->lb.runnable.servo
+                                                                  ? util::ThrusterMode::Runnable
+                                                                  : util::ThrusterMode::Standby;
                         this->output.state.servo_angle.value = msg->lb.angle;
                     } else if (thruster_pos == "rb") {
-                        this->output.state.esc_enabled.value = msg->rb.enabled.esc;
+                        this->output.state.esc_mode.value = msg->rb.runnable.esc
+                                                                ? util::ThrusterMode::Runnable
+                                                                : util::ThrusterMode::Standby;
                         this->output.state.esc_duty_cycle.value = msg->rb.duty_cycle;
-                        this->output.state.servo_enabled.value = msg->rb.enabled.servo;
+                        this->output.state.servo_mode.value = msg->rb.runnable.servo
+                                                                  ? util::ThrusterMode::Runnable
+                                                                  : util::ThrusterMode::Standby;
                         this->output.state.servo_angle.value = msg->rb.angle;
                     } else if (thruster_pos == "rf") {
-                        this->output.state.esc_enabled.value = msg->rf.enabled.esc;
+                        this->output.state.esc_mode.value = msg->rf.runnable.esc
+                                                                ? util::ThrusterMode::Runnable
+                                                                : util::ThrusterMode::Standby;
                         this->output.state.esc_duty_cycle.value = msg->rf.duty_cycle;
-                        this->output.state.servo_enabled.value = msg->rf.enabled.servo;
+                        this->output.state.servo_mode.value = msg->rf.runnable.servo
+                                                                  ? util::ThrusterMode::Runnable
+                                                                  : util::ThrusterMode::Standby;
                         this->output.state.servo_angle.value = msg->rf.angle;
                     }
                 });
@@ -258,14 +281,14 @@ auto ThrusterController::on_export_state_interfaces()
             hardware_interface::StateInterface(this->get_node()->get_name(), fixed_name, data));
     }
     interfaces.emplace_back(hardware_interface::StateInterface(
-        this->get_node()->get_name(), "esc/enabled",
-        util::to_interface_data_ptr(this->output.state.esc_enabled)));
+        this->get_node()->get_name(), "esc/mode",
+        util::to_interface_data_ptr(this->output.state.esc_mode)));
     interfaces.emplace_back(hardware_interface::StateInterface(
         this->get_node()->get_name(), "esc/duty_cycle",
         util::to_interface_data_ptr(this->output.state.esc_duty_cycle)));
     interfaces.emplace_back(hardware_interface::StateInterface(
-        this->get_node()->get_name(), "servo/enabled",
-        util::to_interface_data_ptr(this->output.state.servo_enabled)));
+        this->get_node()->get_name(), "servo/mode",
+        util::to_interface_data_ptr(this->output.state.servo_mode)));
     interfaces.emplace_back(hardware_interface::StateInterface(
         this->get_node()->get_name(), "servo/angle",
         util::to_interface_data_ptr(this->output.state.servo_angle)));
@@ -304,9 +327,11 @@ auto ThrusterController::update_and_write_commands(
         this->output = this->logic->update(time.seconds(), period.seconds(), this->input);
     }
 
-    this->output.cmd.esc_enabled.value = this->output.state.esc_enabled.value;
+    this->output.cmd.esc_allowed.value =
+        this->output.state.esc_mode.value == util::ThrusterMode::Runnable;
     this->output.cmd.esc_duty_cycle.value = this->output.state.esc_duty_cycle.value;
-    this->output.cmd.servo_enabled.value = this->output.state.servo_enabled.value;
+    this->output.cmd.servo_allowed.value =
+        this->output.state.servo_mode.value == util::ThrusterMode::Runnable;
     this->output.cmd.servo_angle.value = this->output.state.servo_angle.value;
     if (this->driver_type == util::ThrusterDriverType::Direct) {
         this->output.state.esc_direct_health = this->input.state.esc_direct_health;
