@@ -27,19 +27,22 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SystemInterface::on_init(params);
 
-    const auto mode_str =
-        util::find_param(params.hardware_info.hardware_parameters, "thruster_mode");
-    if (!mode_str) {
+    const auto driver_type_str =
+        util::find_param(params.hardware_info.hardware_parameters, "thruster_driver_type");
+    if (!driver_type_str) {
         RCLCPP_ERROR(
-            this->get_logger(), "Parameter 'thruster_mode' not found in hardware parameters.");
+            this->get_logger(),
+            "Parameter 'thruster_driver_type' not found in hardware parameters.");
         return hardware_interface::CallbackReturn::ERROR;
     }
-    const auto mode_res = util::get_mode_from_str(mode_str.value());
-    if (!mode_res) {
-        RCLCPP_ERROR(this->get_logger(), "Invalid thruster mode: %s", mode_res.error().c_str());
+    const auto driver_type_res = util::get_driver_type_from_str(driver_type_str.value());
+    if (!driver_type_res) {
+        RCLCPP_ERROR(
+            this->get_logger(), "Invalid thruster driver type: %s",
+            driver_type_res.error().c_str());
         return hardware_interface::CallbackReturn::ERROR;
     }
-    auto thruster_mode = mode_res.value();
+    auto thruster_driver_type = driver_type_res.value();
 
     std::array<int, 4> vesc_ids;
     for (size_t i = 0; i < 4; ++i) {
@@ -91,7 +94,7 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
 
     this->model.emplace(
         std::make_shared<hardware_model::impl::LinuxCan>(), vesc_ids, period_led_tape_per_thrusters,
-        thruster_mode);
+        thruster_driver_type);
 
     auto res = this->model->on_init();
     if (!res) {
@@ -191,8 +194,8 @@ auto Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period
     auto && led_tape_color =
         util::from_interface_data<cmd::led_tape::Color>(this->get_command("led_tape/color"));
 
-    switch (this->model->thruster_mode) {
-        case util::ThrusterMode::Can: {
+    switch (this->model->thruster_driver_type) {
+        case util::ThrusterDriverType::Can: {
             auto thruster_name = [](size_t i) { return "thruster" + std::to_string(i + 1); };
 
             auto && esc_enabled_flags = std::array<cmd::thruster::esc::Enabled, 4>{};
@@ -225,7 +228,8 @@ auto Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period
             break;
         }
 
-        case util::ThrusterMode::Direct: {  // this->thruster_mode == util::ThrusterMode::Direct
+        case util::ThrusterDriverType::
+            Direct: {  // this->thruster_driver_type == util::ThrusterDriverType::Direct
             const auto res =
                 this->model->on_write(std::move(main_power_enabled), std::move(led_tape_color));
             if (!res) {

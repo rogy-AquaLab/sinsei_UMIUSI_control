@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
 
-  <xacro:arg name="thruster_mode" default="'unknown'" />
+  <xacro:arg name="thruster_driver_type" default="'unknown'" />
   <xacro:arg name="high_beam_pin" default="'unknown'" />
   <xacro:arg name="low_beam_pin" default="'unknown'" />
   <xacro:arg name="ir_pin" default="'unknown'" />
@@ -45,7 +45,7 @@
   <link name="base_link"></link>
 
   <xacro:sinsei_umiusi_control
-    thruster_mode="$(arg thruster_mode)"
+    thruster_driver_type="$(arg thruster_driver_type)"
     high_beam_pin="$(arg high_beam_pin)"
     low_beam_pin="$(arg low_beam_pin)"
     ir_pin="$(arg ir_pin)"

@@ -11,7 +11,7 @@
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
 #include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
-#include "sinsei_umiusi_control/util/thruster_mode.hpp"
+#include "sinsei_umiusi_control/util/thruster_driver_type.hpp"
 #include "sinsei_umiusi_msgs/msg/thruster_output.hpp"
 #include "sinsei_umiusi_msgs/msg/thruster_output_all.hpp"
 
@@ -81,8 +81,8 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     util::interface_accessor::InterfaceDataContainer state_interface_data;
     util::interface_accessor::InterfaceDataContainer ref_interface_data;
 
-    // Thruster mode (CAN or Direct)
-    util::ThrusterMode mode;
+    // Thruster driver type (CAN or Direct)
+    util::ThrusterDriverType driver_type;
     // Thruster hardware component ID (1~4)
     uint8_t id;
     // Thruster direction (true for forward, false for reverse)

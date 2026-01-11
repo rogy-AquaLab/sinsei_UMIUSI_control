@@ -16,8 +16,8 @@ def generate_launch_description():
                 PathJoinSubstitution([FindExecutable(name='xacro')]),
                 ' ',
                 LaunchConfiguration('robot_description_file'),
-                ' thruster_mode:=',
-                LaunchConfiguration('thruster_mode'),
+                ' thruster_driver_type:=',
+                LaunchConfiguration('thruster_driver_type'),
                 ' vesc1_id:=',
                 LaunchConfiguration('vesc1_id'),
                 ' vesc2_id:=',
@@ -104,7 +104,11 @@ def generate_launch_description():
                 output='both',
                 parameters=[
                     LaunchConfiguration('controllers_param_file'),
-                    {'thruster_mode': LaunchConfiguration('thruster_mode')},
+                    {
+                        'thruster_driver_type': LaunchConfiguration(
+                            'thruster_driver_type'
+                        )
+                    },
                 ],
             ),
             Node(

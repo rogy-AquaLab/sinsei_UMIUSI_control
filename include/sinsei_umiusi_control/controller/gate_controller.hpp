@@ -22,7 +22,7 @@
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
 #include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
-#include "sinsei_umiusi_control/util/thruster_mode.hpp"
+#include "sinsei_umiusi_control/util/thruster_driver_type.hpp"
 #include "sinsei_umiusi_msgs/msg/headlights_output.hpp"
 #include "sinsei_umiusi_msgs/msg/high_power_circuit_info.hpp"
 #include "sinsei_umiusi_msgs/msg/imu_state.hpp"
@@ -120,7 +120,7 @@ class GateController : public controller_interface::ControllerInterface {
     Input input;
     Output output;
 
-    sinsei_umiusi_control::util::ThrusterMode thruster_mode;
+    sinsei_umiusi_control::util::ThrusterDriverType thruster_driver_type;
 
     sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer command_interface_data;
     sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer state_interface_data;

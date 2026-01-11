@@ -2,11 +2,11 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
 
   <xacro:macro name="can"
-    params="thruster_mode vesc1_id vesc2_id vesc3_id vesc4_id period_led_tape_per_thrusters">
+    params="thruster_driver_type vesc1_id vesc2_id vesc3_id vesc4_id period_led_tape_per_thrusters">
     <ros2_control name="can" type="system" is_async="true">
       <hardware>
         <plugin>sinsei_umiusi_control/hardware/Can</plugin>
-        <param name="thruster_mode">${thruster_mode}</param>
+        <param name="thruster_driver_type">${thruster_driver_type}</param>
         <param name="vesc1_id">${vesc1_id}</param>
         <param name="vesc2_id">${vesc2_id}</param>
         <param name="vesc3_id">${vesc3_id}</param>
@@ -48,7 +48,7 @@
         </gpio>
       </xacro:macro>
 
-      <xacro:if value="${thruster_mode == 'can'}">
+      <xacro:if value="${thruster_driver_type == 'can'}">
         <xacro:thruster id="1" />
         <xacro:thruster id="2" />
         <xacro:thruster id="3" />

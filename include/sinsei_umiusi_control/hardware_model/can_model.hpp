@@ -14,7 +14,7 @@
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
 #include "sinsei_umiusi_control/state/main_power.hpp"
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
-#include "sinsei_umiusi_control/util/thruster_mode.hpp"
+#include "sinsei_umiusi_control/util/thruster_driver_type.hpp"
 
 namespace sinsei_umiusi_control::hardware_model {
 
@@ -68,11 +68,11 @@ class CanModel {
         cmd::led_tape::Color && led_tape_color) -> WriteCommand;
 
   public:
-    util::ThrusterMode thruster_mode;
+    util::ThrusterDriverType thruster_driver_type;
 
     CanModel(
         std::shared_ptr<interface::Can> can, std::array<int, 4> vesc_ids,
-        size_t period_led_tape_per_thrusters, util::ThrusterMode thruster_mode);
+        size_t period_led_tape_per_thrusters, util::ThrusterDriverType thruster_driver_type);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_destroy() -> tl::expected<void, std::string>;
     auto on_read() const

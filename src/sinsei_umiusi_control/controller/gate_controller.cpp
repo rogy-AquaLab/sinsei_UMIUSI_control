@@ -39,7 +39,7 @@ auto GateController::state_interface_configuration() const
 }
 
 auto GateController::on_init() -> controller_interface::CallbackReturn {
-    this->get_node()->declare_parameter("thruster_mode", "unknown");
+    this->get_node()->declare_parameter("thruster_driver_type", "unknown");
 
     this->output.cmd = GateController::Output::Command{};
     this->input.state = GateController::Input::State{};
@@ -49,13 +49,16 @@ auto GateController::on_init() -> controller_interface::CallbackReturn {
 
 auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_state*/)
     -> controller_interface::CallbackReturn {
-    const auto mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
-    const auto mode_res = util::get_mode_from_str(mode_str);
-    if (!mode_res) {
-        RCLCPP_ERROR(this->get_node()->get_logger(), "Invalid thruster mode: %s", mode_str.c_str());
+    const auto driver_type_str =
+        this->get_node()->get_parameter("thruster_driver_type").as_string();
+    const auto driver_type_res = util::get_driver_type_from_str(driver_type_str);
+    if (!driver_type_res) {
+        RCLCPP_ERROR(
+            this->get_node()->get_logger(), "Invalid thruster driver type: %s",
+            driver_type_str.c_str());
         return controller_interface::CallbackReturn::ERROR;
     }
-    this->thruster_mode = mode_res.value();
+    this->thruster_driver_type = driver_type_res.value();
 
     constexpr std::string_view THRUSTER_SUFFIX[4] = {"_lf", "_lb", "_rb", "_rf"};
 
@@ -151,7 +154,7 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                 tc_prefix + "servo/angle", to_interface_data_ptr(this->input.state.servo_angles[i]),
                 sizeof(this->input.state.servo_angles[i]));
 
-            if (this->thruster_mode == util::ThrusterMode::Can) {
+            if (this->thruster_driver_type == util::ThrusterDriverType::Can) {
                 this->state_interface_data.emplace_back(
                     tc_prefix + "thruster/esc/voltage",
                     to_interface_data_ptr(this->input.state.esc_voltages[i]),
@@ -167,7 +170,7 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                 this->state_interface_data.emplace_back(
                     ac_prefix + "esc/rpm", to_interface_data_ptr(this->input.state.esc_rpms[i]),
                     sizeof(this->input.state.esc_rpms[i]));
-            } else if (this->thruster_mode == util::ThrusterMode::Direct) {
+            } else if (this->thruster_driver_type == util::ThrusterDriverType::Direct) {
                 this->state_interface_data.emplace_back(
                     tc_prefix + "thruster_direct/esc/health",
                     to_interface_data_ptr(this->input.state.esc_direct_healthes[i]),

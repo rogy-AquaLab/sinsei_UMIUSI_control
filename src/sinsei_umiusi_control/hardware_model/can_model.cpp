@@ -4,7 +4,7 @@
 #include <string>
 #include <tuple>
 
-#include "sinsei_umiusi_control/util/thruster_mode.hpp"
+#include "sinsei_umiusi_control/util/thruster_driver_type.hpp"
 
 using namespace sinsei_umiusi_control::hardware_model;
 
@@ -82,7 +82,7 @@ auto CanModel::update_and_generate_command(
 
 CanModel::CanModel(
     std::shared_ptr<interface::Can> can, std::array<int, 4> vesc_ids,
-    size_t period_led_tape_per_thrusters, util::ThrusterMode thruster_mode)
+    size_t period_led_tape_per_thrusters, util::ThrusterDriverType thruster_driver_type)
 : can(can),
   vesc_models{{
       can::VescModel(vesc_ids[0]),
@@ -92,7 +92,7 @@ CanModel::CanModel(
   }},
   last_main_power_enabled{false},
   period_led_tape_per_thrusters{period_led_tape_per_thrusters},
-  thruster_mode(thruster_mode) {}
+  thruster_driver_type(thruster_driver_type) {}
 
 auto CanModel::on_init() -> tl::expected<void, std::string> {
     const auto res = this->can->init("can0");
@@ -147,11 +147,11 @@ auto CanModel::on_read() const
             continue;
         }
 
-        // `thruster_mode`が`Direct`の時は、VESCからのフレームを無視する
-        if (this->thruster_mode == util::ThrusterMode::Direct) {
+        // `thruster_driver_type`が`Direct`の時は、VESCからのフレームを無視する
+        if (this->thruster_driver_type == util::ThrusterDriverType::Direct) {
             return tl::make_unexpected(
                 "Received CAN frame from VESC " + vesc_id +
-                " but thruster mode is Direct, so ignored.");
+                " but thruster driver type is Direct, so ignored.");
         }
 
         switch (packet_status_opt.value().index()) {

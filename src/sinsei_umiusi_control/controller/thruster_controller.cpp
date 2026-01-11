@@ -12,7 +12,7 @@
 #include "sinsei_umiusi_control/controller/logic/thruster/linear_acceleration.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
-#include "sinsei_umiusi_control/util/thruster_mode.hpp"
+#include "sinsei_umiusi_control/util/thruster_driver_type.hpp"
 
 using namespace sinsei_umiusi_control::controller;
 
@@ -50,9 +50,9 @@ auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
     using rcl_interfaces::msg::ParameterDescriptor;
 
     this->get_node()->declare_parameter(
-        "thruster_mode", "unknown",
+        "thruster_driver_type", "unknown",
         ParameterDescriptor{}
-            .set__description("Mode of the thruster (can: CAN mode / direct: Direct mode)")
+            .set__description("Thruster driver type (can / direct)")
             .set__type(rclcpp::PARAMETER_STRING)
             .set__read_only(true)
             .set__additional_constraints("Must be one of `can` or `direct`"));
@@ -97,13 +97,14 @@ auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
 
 auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious_state*/)
     -> controller_interface::CallbackReturn {
-    const auto mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
-    const auto mode_res = util::get_mode_from_str(mode_str);
-    if (!mode_res) {
-        RCLCPP_ERROR(this->get_node()->get_logger(), "%s", mode_str.c_str());
+    const auto driver_type_str =
+        this->get_node()->get_parameter("thruster_driver_type").as_string();
+    const auto driver_type_res = util::get_driver_type_from_str(driver_type_str);
+    if (!driver_type_res) {
+        RCLCPP_ERROR(this->get_node()->get_logger(), "%s", driver_type_str.c_str());
         return controller_interface::CallbackReturn::ERROR;
     }
-    this->mode = mode_res.value();
+    this->driver_type = driver_type_res.value();
 
     this->id = static_cast<uint8_t>(this->get_node()
                                         ->get_parameter("id")
@@ -129,7 +130,7 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
     this->logic = std::make_unique<logic::thruster::LinearAcceleration>(
         duty_per_thrust, max_duty_cycle, max_duty_step_per_sec);
 
-    const auto prefix = this->mode == util::ThrusterMode::Can
+    const auto prefix = this->driver_type == util::ThrusterDriverType::Can
                             ? "thruster" + std::to_string(this->id) + "/"
                             : "thruster_direct" + std::to_string(this->id) + "/";
 
@@ -146,7 +147,7 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
         prefix + "servo/angle", util::to_interface_data_ptr(this->output.cmd.servo_angle),
         sizeof(this->output.cmd.servo_angle)));
 
-    if (this->mode == util::ThrusterMode::Can) {
+    if (this->driver_type == util::ThrusterDriverType::Can) {
         this->state_interface_data.push_back(std::make_tuple(
             prefix + "esc/rpm", util::to_interface_data_ptr(this->input.state.esc_rpm),
             sizeof(this->input.state.esc_rpm)));
@@ -157,7 +158,7 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
             prefix + "esc/water_leaked",
             util::to_interface_data_ptr(this->input.state.esc_water_leaked),
             sizeof(this->input.state.esc_water_leaked)));
-    } else if (this->mode == util::ThrusterMode::Direct) {
+    } else if (this->driver_type == util::ThrusterDriverType::Direct) {
         this->state_interface_data.push_back(std::make_tuple(
             prefix + "esc/health", util::to_interface_data_ptr(this->input.state.esc_direct_health),
             sizeof(this->input.state.esc_direct_health)));
@@ -250,7 +251,7 @@ auto ThrusterController::on_export_state_interfaces()
         // (e.g. thruster1/esc/rpm -> thruster/esc/rpm, thruster_direct1/esc/health -> thruster_direct/esc/health)
         constexpr auto CAN_OFFSET = std::size("thrusterN") - 1;  // 末尾のnull文字を除くため、-1
         constexpr auto DIRECT_OFFSET = std::size("thruster_directN") - 1;
-        const auto fixed_name = this->mode == util::ThrusterMode::Can
+        const auto fixed_name = this->driver_type == util::ThrusterDriverType::Can
                                     ? "thruster" + name.substr(CAN_OFFSET)
                                     : "thruster_direct" + name.substr(DIRECT_OFFSET);
         interfaces.emplace_back(
@@ -307,7 +308,7 @@ auto ThrusterController::update_and_write_commands(
     this->output.cmd.esc_duty_cycle.value = this->output.state.esc_duty_cycle.value;
     this->output.cmd.servo_enabled.value = this->output.state.servo_enabled.value;
     this->output.cmd.servo_angle.value = this->output.state.servo_angle.value;
-    if (this->mode == util::ThrusterMode::Direct) {
+    if (this->driver_type == util::ThrusterDriverType::Direct) {
         this->output.state.esc_direct_health = this->input.state.esc_direct_health;
         this->output.state.servo_direct_health = this->input.state.servo_direct_health;
     }
