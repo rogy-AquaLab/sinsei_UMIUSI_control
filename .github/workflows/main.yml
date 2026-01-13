@@ -195,16 +195,4 @@ jobs:
           target-ros2-distro: ${{ needs.parse-env-file.outputs.ROS_DISTRO }}
           package-name: "${{ needs.parse-env-file.outputs.PACKAGE_NAME }} sinsei_umiusi_msgs"
           vcs-repo-file-url: ./deps.repos
-          extra-cmake-args: |
-            -DCMAKE_CXX_FLAGS='-coverage' \
-            -DCMAKE_C_FLAGS='-coverage'
           coverage-result: false
-
-      - run: colcon lcov-result --build-base ros_ws/build --filter '/usr/*' '/opt/ros/*' '*/build/*' '*/test/*' --lcov-args --ignore-errors gcov,mismatch,negative
-
-      - name: Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          files: ros_ws/lcov/total_coverage.info
-          name: Coverage of sinsei_UMIUSI_control
-          token: ${{ secrets.CODECOV_TOKEN }}
