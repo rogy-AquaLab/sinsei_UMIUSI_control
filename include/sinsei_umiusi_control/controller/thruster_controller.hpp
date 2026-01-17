@@ -85,6 +85,10 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     util::ThrusterDriverType driver_type;
     // Thruster hardware component ID (1~4)
     uint8_t id;
+    // Whether to disable ESC
+    bool esc_disabled;
+    // Whether to disable servo
+    bool servo_disabled;
     // Thruster direction (true for forward, false for reverse)
     bool is_forward;
 

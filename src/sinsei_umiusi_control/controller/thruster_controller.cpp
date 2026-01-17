@@ -66,6 +66,16 @@ auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
             .set__integer_range({IntegerRange{}.set__from_value(1).set__to_value(4)})
             .set__read_only(true));
     this->get_node()->declare_parameter(
+        "esc_disabled", false,
+        ParameterDescriptor{}
+            .set__description("Whether to disable ESC")
+            .set__type(rclcpp::PARAMETER_BOOL));
+    this->get_node()->declare_parameter(
+        "servo_disabled", false,
+        ParameterDescriptor{}
+            .set__description("Whether to disable servo")
+            .set__type(rclcpp::PARAMETER_BOOL));
+    this->get_node()->declare_parameter(
         "is_forward", true,
         ParameterDescriptor{}
             .set__description("Thruster direction (true for forward, false for reverse)")
@@ -110,6 +120,13 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
     this->id = static_cast<uint8_t>(this->get_node()
                                         ->get_parameter("id")
                                         .as_int());  // パラメータで範囲に制約を設けているので安全
+
+    this->esc_disabled = this->get_node()
+                             ->get_parameter("esc_disabled")
+                             .as_bool();  // パラメータで範囲に制約を設けているので安全
+    this->servo_disabled = this->get_node()
+                               ->get_parameter("servo_disabled")
+                               .as_bool();  // パラメータで範囲に制約を設けているので安全
 
     this->is_forward = this->get_node()
                            ->get_parameter("is_forward")
@@ -190,13 +207,10 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
             this->get_node()->create_subscription<msg::ThrusterOutput>(
                 prefix + "output_" + thruster_pos, qos,
                 [this](const msg::ThrusterOutput::SharedPtr msg) {
-                    // TODO: `disabled`パラメーターの処理を追加する
-                    this->output.state.esc_mode.value = msg->runnable.esc
-                                                            ? util::ThrusterMode::Runnable
-                                                            : util::ThrusterMode::Standby;
-                    this->output.state.servo_mode.value = msg->runnable.servo
-                                                              ? util::ThrusterMode::Runnable
-                                                              : util::ThrusterMode::Standby;
+                    this->output.state.esc_mode.value =
+                        util::resolve_thruster_mode(this->esc_disabled, msg->runnable.esc);
+                    this->output.state.servo_mode.value =
+                        util::resolve_thruster_mode(this->servo_disabled, msg->runnable.servo);
                     this->output.state.esc_duty_cycle.value = msg->duty_cycle;
                     this->output.state.servo_angle.value = msg->angle;
                 });
@@ -209,42 +223,33 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                         // `thruster_output_(lf|lb|rb|rf)` が使える場合は `thruster_output_all` は使わない
                         return;
                     }
-                    // TODO: `disabled`パラメーターの処理を追加する
                     if (thruster_pos == "lf") {
-                        this->output.state.esc_mode.value = msg->lf.runnable.esc
-                                                                ? util::ThrusterMode::Runnable
-                                                                : util::ThrusterMode::Standby;
+                        this->output.state.esc_mode.value =
+                            util::resolve_thruster_mode(this->esc_disabled, msg->lf.runnable.esc);
                         this->output.state.esc_duty_cycle.value = msg->lf.duty_cycle;
-                        this->output.state.servo_mode.value = msg->lf.runnable.servo
-                                                                  ? util::ThrusterMode::Runnable
-                                                                  : util::ThrusterMode::Standby;
+                        this->output.state.servo_mode.value = util::resolve_thruster_mode(
+                            this->servo_disabled, msg->lf.runnable.servo);
                         this->output.state.servo_angle.value = msg->lf.angle;
                     } else if (thruster_pos == "lb") {
-                        this->output.state.esc_mode.value = msg->lb.runnable.esc
-                                                                ? util::ThrusterMode::Runnable
-                                                                : util::ThrusterMode::Standby;
+                        this->output.state.esc_mode.value =
+                            util::resolve_thruster_mode(this->esc_disabled, msg->lb.runnable.esc);
                         this->output.state.esc_duty_cycle.value = msg->lb.duty_cycle;
-                        this->output.state.servo_mode.value = msg->lb.runnable.servo
-                                                                  ? util::ThrusterMode::Runnable
-                                                                  : util::ThrusterMode::Standby;
+                        this->output.state.servo_mode.value = util::resolve_thruster_mode(
+                            this->servo_disabled, msg->lb.runnable.servo);
                         this->output.state.servo_angle.value = msg->lb.angle;
                     } else if (thruster_pos == "rb") {
-                        this->output.state.esc_mode.value = msg->rb.runnable.esc
-                                                                ? util::ThrusterMode::Runnable
-                                                                : util::ThrusterMode::Standby;
+                        this->output.state.esc_mode.value =
+                            util::resolve_thruster_mode(this->esc_disabled, msg->rb.runnable.esc);
                         this->output.state.esc_duty_cycle.value = msg->rb.duty_cycle;
-                        this->output.state.servo_mode.value = msg->rb.runnable.servo
-                                                                  ? util::ThrusterMode::Runnable
-                                                                  : util::ThrusterMode::Standby;
+                        this->output.state.servo_mode.value = util::resolve_thruster_mode(
+                            this->servo_disabled, msg->rb.runnable.servo);
                         this->output.state.servo_angle.value = msg->rb.angle;
                     } else if (thruster_pos == "rf") {
-                        this->output.state.esc_mode.value = msg->rf.runnable.esc
-                                                                ? util::ThrusterMode::Runnable
-                                                                : util::ThrusterMode::Standby;
+                        this->output.state.esc_mode.value =
+                            util::resolve_thruster_mode(this->esc_disabled, msg->rf.runnable.esc);
                         this->output.state.esc_duty_cycle.value = msg->rf.duty_cycle;
-                        this->output.state.servo_mode.value = msg->rf.runnable.servo
-                                                                  ? util::ThrusterMode::Runnable
-                                                                  : util::ThrusterMode::Standby;
+                        this->output.state.servo_mode.value = util::resolve_thruster_mode(
+                            this->servo_disabled, msg->rf.runnable.servo);
                         this->output.state.servo_angle.value = msg->rf.angle;
                     }
                 });
@@ -347,6 +352,19 @@ auto ThrusterController::update_and_write_commands(
             this->get_node()->get_logger(), *this->get_node()->get_clock(), DURATION,
             "Failed to set value of command interfaces");
     }
+
+    // ESCやサーボが無効化されている場合は警告を表示
+    if (this->esc_disabled) {
+        RCLCPP_WARN_ONCE(
+            this->get_node()->get_logger(),
+            "ESC is force-disabled by parameter (esc_disabled=true)");
+    }
+    if (this->servo_disabled) {
+        RCLCPP_WARN_ONCE(
+            this->get_node()->get_logger(),
+            "Servo is force-disabled by parameter (servo_disabled=true)");
+    }
+
     return controller_interface::return_type::OK;
 }
 
