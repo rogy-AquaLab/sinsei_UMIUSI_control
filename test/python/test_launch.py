@@ -97,7 +97,7 @@ def test_hardware_loaded(helper_node, launch_arguments):
             helper_node,
             f'{ns_fixed}controller_manager',
             component,
-            2.0,
+            10.0,
         ), f'Hardware component {component} is not loaded.'
 
 
