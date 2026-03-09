@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "sinsei_umiusi_control/controller/thruster_controller.hpp"
+#include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 namespace sinsei_umiusi_control::controller::logic::thruster {
 
@@ -41,14 +42,14 @@ class LinearAcceleration : public ThrusterController::Logic {
         const auto target = this->duty_per_thrust * input.cmd.esc_thrust.value;
         this->duty_cycle = std::clamp(target, min, max);
 
+        const auto & current_params = this->get_params();
+
         auto output = ThrusterController::Output{};
-        // TODO: `disabled`の処理を追加する
-        output.state.esc_mode.value = input.cmd.esc_runnable.value ? util::ThrusterMode::Runnable
-                                                                   : util::ThrusterMode::Standby;
+        output.state.esc_mode.value =
+            util::resolve_thruster_mode(current_params.esc_disabled, input.cmd.esc_runnable.value);
         output.state.esc_duty_cycle.value = this->duty_cycle;
-        output.state.servo_mode.value = input.cmd.servo_runnable.value
-                                            ? util::ThrusterMode::Runnable
-                                            : util::ThrusterMode::Standby;
+        output.state.servo_mode.value = util::resolve_thruster_mode(
+            current_params.servo_disabled, input.cmd.servo_runnable.value);
         output.state.servo_angle.value = input.cmd.servo_angle.value;
         return output;
     }

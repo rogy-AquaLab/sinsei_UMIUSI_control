@@ -69,7 +69,13 @@ class ThrusterController : public controller_interface::ChainableControllerInter
         State state;
     };
 
-    using Logic = logic::LogicInterface<Input, Output>;
+    struct LogicParams {
+        // 安全のため、setされるまではデフォルトでtrueにしておく
+        bool esc_disabled{true};
+        bool servo_disabled{true};
+    };
+
+    using Logic = logic::LogicInterface<Input, Output, LogicParams>;
 
   private:
     Input input;

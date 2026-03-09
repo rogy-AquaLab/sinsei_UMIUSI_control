@@ -33,8 +33,11 @@ inline auto get_mode_from_str(const std::string_view & str)
     return tl::make_unexpected("Invalid control mode: " + std::string(str));
 }
 
-template <typename Input, typename Output>
+template <typename Input, typename Output, typename Params = tl::monostate>
 class LogicInterface {
+  protected:
+    Params params_{};
+
   public:
     LogicInterface() = default;
     virtual ~LogicInterface() = default;
@@ -42,6 +45,9 @@ class LogicInterface {
     virtual auto control_mode() const -> ControlMode = 0;
     virtual auto init(double time, const Input & input, const Output & output) -> Output = 0;
     virtual auto update(double time, double duration, const Input & input) -> Output = 0;
+
+    virtual void set_params(const Params & params) { params_ = params; }
+    virtual auto get_params() const -> const Params & { return params_; }
 };
 
 }  // namespace sinsei_umiusi_control::controller::logic
