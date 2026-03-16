@@ -42,14 +42,12 @@ class LinearAcceleration : public ThrusterController::Logic {
         const auto target = this->duty_per_thrust * input.cmd.esc_thrust.value;
         this->duty_cycle = std::clamp(target, min, max);
 
-        const auto & current_params = this->get_params();
-
         auto output = ThrusterController::Output{};
         output.state.esc_mode.value =
-            util::resolve_thruster_mode(current_params.esc_disabled, input.cmd.esc_runnable.value);
+            util::resolve_thruster_mode(this->params.esc_disabled, input.cmd.esc_runnable.value);
         output.state.esc_duty_cycle.value = this->duty_cycle;
         output.state.servo_mode.value = util::resolve_thruster_mode(
-            current_params.servo_disabled, input.cmd.servo_runnable.value);
+            this->params.servo_disabled, input.cmd.servo_runnable.value);
         output.state.servo_angle.value = input.cmd.servo_angle.value;
         return output;
     }

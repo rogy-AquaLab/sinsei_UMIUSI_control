@@ -147,7 +147,7 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
 
     this->logic = std::make_unique<logic::thruster::LinearAcceleration>(
         duty_per_thrust, max_duty_cycle, max_duty_step_per_sec);
-    this->logic->set_params({this->esc_disabled, this->servo_disabled});
+    this->logic->params = {this->esc_disabled, this->servo_disabled};
 
     const auto prefix = this->driver_type == util::ThrusterDriverType::Can
                             ? "thruster" + std::to_string(this->id) + "/"
