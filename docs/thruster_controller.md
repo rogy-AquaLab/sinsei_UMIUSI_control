@@ -11,7 +11,7 @@
 
 | 種別 | 名称 | 説明 |
 | ---- | ---- | ---- |
-| Command In | `cmd/thruster/esc::Runnable`, `cmd/thruster/esc::Thrust`, `cmd/thruster/servo::Runnable`, `cmd/thruster/servo::Angle` | 参照インタフェースから取得。`esc::Thrust`は後段でDutyに変換される。 |
+| Command In | `cmd/thruster/esc::Runnable`, `cmd/thruster/esc::Thrust`, `cmd/thruster/servo::Runnable`, `cmd/thruster/servo::Angle` | GateControllerやAttitudeControllerから受け取る指示。`esc::Thrust`は後段でDutyに変換される。 |
 | State In (CAN) | `state/thruster/esc::Rpm`, `Voltage`, `WaterLeaked` | ドライバ種別が`can`のときのみ購読。 |
 | State In (Direct) | `state/thruster/esc::Health`, `state/thruster/servo::Health` | ドライバ種別が`direct`のときのみ購読。 |
 | Command Out | `esc/allowed`, `esc/duty_cycle`, `servo/allowed`, `servo/angle` | 実機へ書き込まれるコマンド。`*_allowed`は`ThrusterMode::Runnable`判定結果から導出。 |
