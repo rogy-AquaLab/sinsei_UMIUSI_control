@@ -69,17 +69,18 @@ class ThrusterController : public controller_interface::ChainableControllerInter
         State state;
     };
 
-    struct LogicParams {
+    struct Params {
         // 安全のため、setされるまではデフォルトでtrueにしておく
         bool esc_disabled{true};
         bool servo_disabled{true};
     };
 
-    using Logic = logic::LogicInterface<Input, Output, LogicParams>;
+    using Logic = logic::LogicInterface<Input, Output, Params>;
 
   private:
     Input input;
     Output output;
+    Params params;
 
     std::unique_ptr<Logic> logic;
 
@@ -91,10 +92,6 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     util::ThrusterDriverType driver_type;
     // Thruster hardware component ID (1~4)
     uint8_t id;
-    // Whether to disable ESC
-    bool esc_disabled;
-    // Whether to disable servo
-    bool servo_disabled;
     // Thruster direction (true for forward, false for reverse)
     bool is_forward;
 

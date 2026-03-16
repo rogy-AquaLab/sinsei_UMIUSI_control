@@ -121,12 +121,13 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                                         ->get_parameter("id")
                                         .as_int());  // パラメータで範囲に制約を設けているので安全
 
-    this->esc_disabled = this->get_node()
-                             ->get_parameter("esc_disabled")
-                             .as_bool();  // パラメータで範囲に制約を設けているので安全
-    this->servo_disabled = this->get_node()
-                               ->get_parameter("servo_disabled")
-                               .as_bool();  // パラメータで範囲に制約を設けているので安全
+    this->params = {
+        this->get_node()
+            ->get_parameter("esc_disabled")
+            .as_bool(),  // パラメータで範囲に制約を設けているので安全
+        this->get_node()
+            ->get_parameter("servo_disabled")
+            .as_bool()};  // パラメータで範囲に制約を設けているので安全
 
     this->is_forward = this->get_node()
                            ->get_parameter("is_forward")
@@ -147,7 +148,7 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
 
     this->logic = std::make_unique<logic::thruster::LinearAcceleration>(
         duty_per_thrust, max_duty_cycle, max_duty_step_per_sec);
-    this->logic->params = {this->esc_disabled, this->servo_disabled};
+    this->logic->params = this->params;
 
     const auto prefix = this->driver_type == util::ThrusterDriverType::Can
                             ? "thruster" + std::to_string(this->id) + "/"
@@ -209,9 +210,9 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                 prefix + "output_" + thruster_pos, qos,
                 [this](const msg::ThrusterOutput::SharedPtr msg) {
                     this->output.state.esc_mode.value =
-                        util::resolve_thruster_mode(this->esc_disabled, msg->runnable.esc);
-                    this->output.state.servo_mode.value =
-                        util::resolve_thruster_mode(this->servo_disabled, msg->runnable.servo);
+                        util::resolve_thruster_mode(this->params.esc_disabled, msg->runnable.esc);
+                    this->output.state.servo_mode.value = util::resolve_thruster_mode(
+                        this->params.servo_disabled, msg->runnable.servo);
                     this->output.state.esc_duty_cycle.value = msg->duty_cycle;
                     this->output.state.servo_angle.value = msg->angle;
                 });
@@ -225,32 +226,32 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                         return;
                     }
                     if (thruster_pos == "lf") {
-                        this->output.state.esc_mode.value =
-                            util::resolve_thruster_mode(this->esc_disabled, msg->lf.runnable.esc);
+                        this->output.state.esc_mode.value = util::resolve_thruster_mode(
+                            this->params.esc_disabled, msg->lf.runnable.esc);
                         this->output.state.esc_duty_cycle.value = msg->lf.duty_cycle;
                         this->output.state.servo_mode.value = util::resolve_thruster_mode(
-                            this->servo_disabled, msg->lf.runnable.servo);
+                            this->params.servo_disabled, msg->lf.runnable.servo);
                         this->output.state.servo_angle.value = msg->lf.angle;
                     } else if (thruster_pos == "lb") {
-                        this->output.state.esc_mode.value =
-                            util::resolve_thruster_mode(this->esc_disabled, msg->lb.runnable.esc);
+                        this->output.state.esc_mode.value = util::resolve_thruster_mode(
+                            this->params.esc_disabled, msg->lb.runnable.esc);
                         this->output.state.esc_duty_cycle.value = msg->lb.duty_cycle;
                         this->output.state.servo_mode.value = util::resolve_thruster_mode(
-                            this->servo_disabled, msg->lb.runnable.servo);
+                            this->params.servo_disabled, msg->lb.runnable.servo);
                         this->output.state.servo_angle.value = msg->lb.angle;
                     } else if (thruster_pos == "rb") {
-                        this->output.state.esc_mode.value =
-                            util::resolve_thruster_mode(this->esc_disabled, msg->rb.runnable.esc);
+                        this->output.state.esc_mode.value = util::resolve_thruster_mode(
+                            this->params.esc_disabled, msg->rb.runnable.esc);
                         this->output.state.esc_duty_cycle.value = msg->rb.duty_cycle;
                         this->output.state.servo_mode.value = util::resolve_thruster_mode(
-                            this->servo_disabled, msg->rb.runnable.servo);
+                            this->params.servo_disabled, msg->rb.runnable.servo);
                         this->output.state.servo_angle.value = msg->rb.angle;
                     } else if (thruster_pos == "rf") {
-                        this->output.state.esc_mode.value =
-                            util::resolve_thruster_mode(this->esc_disabled, msg->rf.runnable.esc);
+                        this->output.state.esc_mode.value = util::resolve_thruster_mode(
+                            this->params.esc_disabled, msg->rf.runnable.esc);
                         this->output.state.esc_duty_cycle.value = msg->rf.duty_cycle;
                         this->output.state.servo_mode.value = util::resolve_thruster_mode(
-                            this->servo_disabled, msg->rf.runnable.servo);
+                            this->params.servo_disabled, msg->rf.runnable.servo);
                         this->output.state.servo_angle.value = msg->rf.angle;
                     }
                 });
@@ -355,12 +356,12 @@ auto ThrusterController::update_and_write_commands(
     }
 
     // ESCやサーボが無効化されている場合は警告を表示
-    if (this->esc_disabled) {
+    if (this->params.esc_disabled) {
         RCLCPP_WARN_ONCE(
             this->get_node()->get_logger(),
             "ESC is force-disabled by parameter (esc_disabled=true)");
     }
-    if (this->servo_disabled) {
+    if (this->params.servo_disabled) {
         RCLCPP_WARN_ONCE(
             this->get_node()->get_logger(),
             "Servo is force-disabled by parameter (servo_disabled=true)");
