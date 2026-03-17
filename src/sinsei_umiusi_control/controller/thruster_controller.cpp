@@ -121,10 +121,6 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                                         ->get_parameter("id")
                                         .as_int());  // パラメータで範囲に制約を設けているので安全
 
-    this->is_forward = this->get_node()
-                           ->get_parameter("is_forward")
-                           .as_bool();  // パラメータで範囲に制約を設けているので安全
-
     const auto duty_per_thrust = this->get_node()
                                      ->get_parameter("duty_per_thrust")
                                      .as_double();  // パラメータで範囲に制約を設けているので安全
@@ -140,13 +136,17 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
 
     this->logic = std::make_unique<logic::thruster::LinearAcceleration>(
         duty_per_thrust, max_duty_cycle, max_duty_step_per_sec);
-    this->logic->params = {
+    this->logic->params.esc_disabled =
         this->get_node()
             ->get_parameter("esc_disabled")
-            .as_bool(),  // パラメータで範囲に制約を設けているので安全
+            .as_bool();  // パラメータで範囲に制約を設けているので安全
+    this->logic->params.servo_disabled =
         this->get_node()
             ->get_parameter("servo_disabled")
-            .as_bool()};  // パラメータで範囲に制約を設けているので安全
+            .as_bool();  // パラメータで範囲に制約を設けているので安全
+    this->logic->params.is_forward = this->get_node()
+                                         ->get_parameter("is_forward")
+                                         .as_bool();  // パラメータで範囲に制約を設けているので安全
 
     const auto prefix = this->driver_type == util::ThrusterDriverType::Can
                             ? "thruster" + std::to_string(this->id) + "/"
@@ -312,9 +312,6 @@ auto ThrusterController::update_reference_from_subscribers(
 auto ThrusterController::update_and_write_commands(
     const rclcpp::Time & time,
     const rclcpp::Duration & period) -> controller_interface::return_type {
-    // パラメータを取得
-    this->is_forward = this->get_node()->get_parameter("is_forward").as_bool();
-
     // 状態を取得
     auto res = util::interface_accessor::get_states_from_loaned_interfaces(
         this->state_interfaces_, this->state_interface_data);

@@ -73,6 +73,7 @@ class ThrusterController : public controller_interface::ChainableControllerInter
         // 安全のため、setされるまではデフォルトでtrueにしておく
         bool esc_disabled{true};
         bool servo_disabled{true};
+        bool is_forward{true};
     };
 
     using Logic = logic::LogicInterface<Input, Output, Params>;
@@ -91,8 +92,6 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     util::ThrusterDriverType driver_type;
     // Thruster hardware component ID (1~4)
     uint8_t id;
-    // Thruster direction (true for forward, false for reverse)
-    bool is_forward;
 
   public:
     ThrusterController() = default;

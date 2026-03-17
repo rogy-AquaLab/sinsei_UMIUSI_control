@@ -32,7 +32,7 @@
 | `thruster_driver_type` | string (`can` or `direct`) | スラスタ駆動に使用するハードウェアを切り替え。 |
 | `id` | int (1-4) | URDF上の`thruster{id}`に対応。Command/State Interface名生成に使用。 |
 | `esc_disabled`, `servo_disabled` | bool | trueの場合は常に`ThrusterMode::Disabled`で動作し、`*_allowed`をfalseに落とす。起動時は安全のためtrueで初期化され、パラメータ宣言時にfalseへ上書きされる前提。 |
-| `is_forward` | bool | 推力向きを示すフラグ。**現在は不使用。** |
+| `is_forward` | bool | 推力向きを示すフラグ。`false`にするとロジック内で推力指令を反転し、逆向きに取り付けたスラスタでも正の推力指令で前進できる。 |
 | `duty_per_thrust` | double | `LinearAcceleration`が推力[N]からDuty(無次元)へ換算する係数。 |
 | `max_duty` | double (0.0-1.0) | Dutyの絶対値上限。 |
 | `max_duty_step_per_sec` | double | 1秒あたりのDuty変化上限。周期`dt`あたりのステップ制限は `max_duty_step_per_sec * dt`。 |
