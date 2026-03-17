@@ -80,7 +80,6 @@ class ThrusterController : public controller_interface::ChainableControllerInter
   private:
     Input input;
     Output output;
-    Params params;
 
     std::unique_ptr<Logic> logic;
 
