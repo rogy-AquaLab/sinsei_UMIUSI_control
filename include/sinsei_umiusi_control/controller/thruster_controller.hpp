@@ -70,10 +70,11 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     };
 
     struct Params {
+        bool is_forward{true};
+
         // 安全のため、setされるまではデフォルトでtrueにしておく
         bool esc_disabled{true};
         bool servo_disabled{true};
-        bool is_forward{true};
     };
 
     using Logic = logic::LogicInterface<Input, Output, Params>;
