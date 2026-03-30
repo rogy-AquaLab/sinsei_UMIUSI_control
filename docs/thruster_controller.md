@@ -2,8 +2,9 @@
 
 ## TL;DR
 
-- `controller_interface::ChainableControllerInterface`を継承した1基分のスラスタ制御ノード。`thruster_controller_(lf|lb|rb|rf)`ごとに1つずつ実体化され、`params/controllers.yaml`の設定でハードウェアIDやドライバ種別を切り替える。
+- 1基分のスラスタを制御するコントローラ。`thruster_controller_(lf|lb|rb|rf)`ごとに1つずつ実体化され、`params/controllers.yaml`の設定でハードウェアIDやドライバ種別を切り替える。
 - `cmd/direct/thruster_controller/output_*`トピックからの直接指令が届く場合はそれをそのままESC/サーボに流し、パブリッシャが居ないときのみ内部ロジック(`logic::thruster::LinearAcceleration`)で推力指令を生成する。
+- `(esc|servo)_disabled`パラメータの処理については[resolve_thruster_mode](#resolve_thruster_mode)の項目を参照。
 
 ## 入出力構造
 
@@ -19,9 +20,9 @@
 
 ## 受信トピックと優先順位
 
-- 名前空間: `cmd/direct/thruster_controller/`。
-- 個別トピック: `output_lf`, `output_lb`, `output_rb`, `output_rf` (型: `ThrusterOutput`).
-- 一括トピック: `output_all` (型: `ThrusterOutputAll`).
+- 名前空間: `cmd/direct/thruster_controller/`
+- 個別トピック: `output_lf`, `output_lb`, `output_rb`, `output_rf` (型: `ThrusterOutput`)
+- 一括トピック: `output_all` (型: `ThrusterOutputAll`)
 
 各コントローラは自分の名前 (`thruster_controller_lf` など) からインデックスを切り出し、該当するトピックを購読する。`output_*`にパブリッシャが1つでも存在すれば `output_all` は無視され、より細粒度な指令を優先する。
 
@@ -31,7 +32,7 @@
 | ---------- | ------- | ---- |
 | `thruster_driver_type` | string (`can` or `direct`) | スラスタ駆動に使用するハードウェアを切り替え。 |
 | `id` | int (1-4) | URDF上の`thruster{id}`に対応。Command/State Interface名生成に使用。 |
-| `esc_disabled`, `servo_disabled` | bool | trueの場合は常に`ThrusterMode::Disabled`で動作し、`*_allowed`をfalseに落とす。起動時は安全のためtrueで初期化され、パラメータ宣言時にfalseへ上書きされる前提。 |
+| `esc_disabled`, `servo_disabled` | bool | trueの場合は常に`ThrusterMode::Disabled`で動作し、`*_allowed`をfalseに落とす。 |
 | `is_forward` | bool | 推力向きを示すフラグ。`false`にするとロジック内で推力指令を反転し、逆向きに取り付けたスラスタでも正の推力指令で前進できる。 |
 | `duty_per_thrust` | double | `LinearAcceleration`が推力[N]からDuty(無次元)へ換算する係数。 |
 | `max_duty` | double (0.0-1.0) | Dutyの絶対値上限。 |
@@ -56,11 +57,8 @@ Dutyの台形加速を行う。
 \end{aligned}
 ```
 
-ここで $F$ は`input.cmd.esc_thrust.value`に格納された推力指令、 $d_k$ は次のDuty。`servo_angle`はそのまま通過させ、`ThrusterRunnable`に加えて `esc_disabled` / `servo_disabled` を考慮して `ThrusterMode` を決定する。
+ここで $F$ は`input.cmd.esc_thrust.value`に格納された推力指令、 $d_k$ は次のDuty。
 
-## 運用メモ
+## `resolve_thruster_mode`
 
-- 4基すべて同一コンポーネントだが、`get_name()`から自分の接尾辞を推定するため、ノード名は`thruster_controller_*`である必要がある。
-- 直接指令を止めるだけで自動的にフィードフォワード制御へフォールバックするため、試験時はパブリッシャ数を確認しておくと挙動を把握しやすい。
-- `thruster_driver_type`を`direct`にするとState Interfaceが`esc/health`と`servo/health`だけになる点に注意 (RPMや電圧は得られない)。
-- `esc_disabled` / `servo_disabled` をtrueにしたままでも他コントローラからは値が見えるが、`*_allowed`がfalseのためハードウェア側は動作しない。
+`util::resolve_thruster_mode(disabled, runnable)` はThrusterController本体とLogic双方で使用されており、2つの引数をもとに`ThrusterMode`を算出するヘルパー関数。`disabled=true` のときは`ThrusterMode::Disabled` を返し、それ以外は `runnable` フラグの真偽によって `Runnable` か `Standby` を返す。
