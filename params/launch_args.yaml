@@ -171,6 +171,10 @@ launch:
       name: cameras_param_file
       default: "$(find-pkg-share $(var pkg_name))/params/cameras.yaml"
   - arg:
+      description: "Whether to launch camera nodes (set false in CI)"
+      name: enable_cameras
+      default: "true"
+  - arg:
       description: "File path for robot description"
       name: robot_description_file
       default: "$(find-pkg-share $(var pkg_name))/urdf/main.urdf.xacro"
