@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "sinsei_umiusi_control/controller/thruster_controller.hpp"
+#include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 namespace sinsei_umiusi_control::controller::logic::thruster {
 
@@ -38,13 +39,16 @@ class LinearAcceleration : public ThrusterController::Logic {
         const auto step_limit = this->max_duty_step_per_sec * duration;
         const auto min = std::max(-this->max_duty_cycle, this->duty_cycle - step_limit);
         const auto max = std::min(this->max_duty_cycle, this->duty_cycle + step_limit);
-        const auto target = this->duty_per_thrust * input.cmd.esc_thrust.value;
+        const auto sign = this->params.is_forward ? 1.0 : -1.0;
+        const auto target = sign * this->duty_per_thrust * input.cmd.esc_thrust.value;
         this->duty_cycle = std::clamp(target, min, max);
 
         auto output = ThrusterController::Output{};
-        output.state.esc_enabled.value = input.cmd.esc_enabled.value;
+        output.state.esc_mode.value =
+            util::resolve_thruster_mode(this->params.esc_disabled, input.cmd.esc_runnable.value);
         output.state.esc_duty_cycle.value = this->duty_cycle;
-        output.state.servo_enabled.value = input.cmd.servo_enabled.value;
+        output.state.servo_mode.value = util::resolve_thruster_mode(
+            this->params.servo_disabled, input.cmd.servo_runnable.value);
         output.state.servo_angle.value = input.cmd.servo_angle.value;
         return output;
     }

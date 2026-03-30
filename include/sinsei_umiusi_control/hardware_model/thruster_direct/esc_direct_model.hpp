@@ -28,7 +28,7 @@ class EscDirectModel {
     auto on_init() -> tl::expected<void, std::string>;
     auto on_read() const -> tl::expected<void, std::string>;
     auto on_write(
-        sinsei_umiusi_control::cmd::thruster::esc::Enabled && enabled,
+        sinsei_umiusi_control::cmd::thruster::esc::Allowed && allowed,
         sinsei_umiusi_control::cmd::thruster::esc::DutyCycle && duty_cycle)
         -> tl::expected<void, std::string>;
 };

@@ -3,7 +3,7 @@
 
 namespace sinsei_umiusi_control::cmd::thruster::esc {
 
-struct Enabled {
+struct Runnable {
     bool value;
 };
 struct DutyCycle {
@@ -11,6 +11,11 @@ struct DutyCycle {
 };
 struct Thrust {  // 推力
     double value;
+};
+
+// 最終的にスラスタを動かしていいかどうか
+struct Allowed {
+    bool value;
 };
 
 }  // namespace sinsei_umiusi_control::cmd::thruster::esc

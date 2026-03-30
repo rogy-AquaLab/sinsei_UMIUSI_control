@@ -11,7 +11,7 @@
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
 #include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
-#include "sinsei_umiusi_control/util/thruster_mode.hpp"
+#include "sinsei_umiusi_control/util/thruster_driver_type.hpp"
 #include "sinsei_umiusi_msgs/msg/thruster_output.hpp"
 #include "sinsei_umiusi_msgs/msg/thruster_output_all.hpp"
 
@@ -24,9 +24,9 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     struct Input {
         // Command interfaces (in)
         struct Command {
-            cmd::thruster::esc::Enabled esc_enabled;
+            cmd::thruster::esc::Runnable esc_runnable;
             cmd::thruster::esc::Thrust esc_thrust;
-            cmd::thruster::servo::Enabled servo_enabled;
+            cmd::thruster::servo::Runnable servo_runnable;
             cmd::thruster::servo::Angle servo_angle;
         };
         // State interfaces (in)
@@ -50,16 +50,16 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     struct Output {
         // Command interfaces (out)
         struct Command {
-            cmd::thruster::esc::Enabled esc_enabled;
+            cmd::thruster::esc::Allowed esc_allowed;
             cmd::thruster::esc::DutyCycle esc_duty_cycle;
-            cmd::thruster::servo::Enabled servo_enabled;
+            cmd::thruster::servo::Allowed servo_allowed;
             cmd::thruster::servo::Angle servo_angle;
         };
         // State interfaces (out)
         struct State {
-            state::thruster::esc::Enabled esc_enabled;
+            state::thruster::esc::Mode esc_mode;
             state::thruster::esc::DutyCycle esc_duty_cycle;
-            state::thruster::servo::Enabled servo_enabled;
+            state::thruster::servo::Mode servo_mode;
             state::thruster::servo::Angle servo_angle;
 
             state::thruster::esc::Health esc_direct_health;
@@ -69,7 +69,15 @@ class ThrusterController : public controller_interface::ChainableControllerInter
         State state;
     };
 
-    using Logic = logic::LogicInterface<Input, Output>;
+    struct Params {
+        bool is_forward{true};
+
+        // 安全のため、setされるまではデフォルトでtrueにしておく
+        bool esc_disabled{true};
+        bool servo_disabled{true};
+    };
+
+    using Logic = logic::LogicInterface<Input, Output, Params>;
 
   private:
     Input input;
@@ -81,12 +89,10 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     util::interface_accessor::InterfaceDataContainer state_interface_data;
     util::interface_accessor::InterfaceDataContainer ref_interface_data;
 
-    // Thruster mode (CAN or Direct)
-    util::ThrusterMode mode;
+    // Thruster driver type (CAN or Direct)
+    util::ThrusterDriverType driver_type;
     // Thruster hardware component ID (1~4)
     uint8_t id;
-    // Thruster direction (true for forward, false for reverse)
-    bool is_forward;
 
   public:
     ThrusterController() = default;

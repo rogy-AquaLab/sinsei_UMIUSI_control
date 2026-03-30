@@ -1,5 +1,6 @@
 #include "sinsei_umiusi_control/hardware/thruster_direct/servo_direct.hpp"
 
+#include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
 #include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
 #include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
@@ -100,8 +101,8 @@ auto thruster_direct::ServoDirect::write(
     const rclcpp::Duration & /*period*/) -> hardware_interface::return_type {
     auto prefix = "thruster_direct" + std::to_string(this->id) + "/";
 
-    auto enabled = util::from_interface_data<sinsei_umiusi_control::cmd::thruster::servo::Enabled>(
-        this->get_command(prefix + "servo/enabled"));
+    auto allowed = util::from_interface_data<sinsei_umiusi_control::cmd::thruster::servo::Allowed>(
+        this->get_command(prefix + "servo/allowed"));
     auto angle = util::from_interface_data<sinsei_umiusi_control::cmd::thruster::servo::Angle>(
         this->get_command(prefix + "servo/angle"));
 
@@ -117,7 +118,7 @@ auto thruster_direct::ServoDirect::write(
         return hardware_interface::return_type::OK;
     }
 
-    const auto res = this->model->on_write(std::move(enabled), std::move(angle));
+    const auto res = this->model->on_write(std::move(allowed), std::move(angle));
     if (!res) {
         this->set_state(
             prefix + "servo/health",

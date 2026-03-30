@@ -4,15 +4,16 @@
 #include <string>
 #include <tuple>
 
-#include "sinsei_umiusi_control/util/thruster_mode.hpp"
+#include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
+#include "sinsei_umiusi_control/util/thruster_driver_type.hpp"
 
 using namespace sinsei_umiusi_control::hardware_model;
 
 auto CanModel::update_and_generate_command(
     cmd::main_power::Enabled && main_power_enabled,
-    std::array<cmd::thruster::esc::Enabled, 4> && esc_enabled_flags,
+    std::array<cmd::thruster::esc::Allowed, 4> && esc_allowed_flags,
     std::array<cmd::thruster::esc::DutyCycle, 4> && esc_duty_cycles,
-    std::array<cmd::thruster::servo::Enabled, 4> && servo_enabled_flags,
+    std::array<cmd::thruster::servo::Allowed, 4> && servo_allowed_flags,
     std::array<cmd::thruster::servo::Angle, 4> && servo_angles,
     cmd::led_tape::Color && led_tape_color) -> WriteCommand {
     this->loop_times++;
@@ -24,7 +25,7 @@ auto CanModel::update_and_generate_command(
     }
 
     constexpr auto THRUSTERS_NUM = 4;        // 1 ~ 4
-    constexpr auto THRUSTER_PACKET_NUM = 4;  // esc_enabled, servo_enabled, duty_cycle, angle
+    constexpr auto THRUSTER_PACKET_NUM = 4;  // esc_allowed, servo_allowed, duty_cycle, angle
     constexpr auto THRUSTERS_TOTAL_PACKET_NUM = THRUSTERS_NUM * THRUSTER_PACKET_NUM;  // 16
 
     const auto period_led_tape_per_loop =
@@ -40,20 +41,20 @@ auto CanModel::update_and_generate_command(
         const auto packet_type =
             (this->loop_times % THRUSTERS_TOTAL_PACKET_NUM) / THRUSTER_PACKET_NUM;
         switch (packet_type) {
-            case 0: {  // esc_enabled
-                return std::forward_as_tuple(thruster_id, esc_enabled_flags[thruster_index]);
+            case 0: {  // esc_allowed
+                return std::forward_as_tuple(thruster_id, esc_allowed_flags[thruster_index]);
             }
             case 1: {  // esc_duty_cycle
-                if (!esc_enabled_flags[thruster_index].value) {
+                if (!esc_allowed_flags[thruster_index].value) {
                     break;  // ESCが無効の場合はデューティ比を送信しない
                 }
                 return std::forward_as_tuple(thruster_id, esc_duty_cycles[thruster_index]);
             }
-            case 2: {  // servo_enabled
-                return std::forward_as_tuple(thruster_id, servo_enabled_flags[thruster_index]);
+            case 2: {  // servo_allowed
+                return std::forward_as_tuple(thruster_id, servo_allowed_flags[thruster_index]);
             }
             case 3: {  // servo_angle
-                if (!servo_enabled_flags[thruster_index].value) {
+                if (!servo_allowed_flags[thruster_index].value) {
                     break;  // サーボが無効の場合は角度を送信しない
                 }
                 return std::forward_as_tuple(thruster_id, servo_angles[thruster_index]);
@@ -82,7 +83,7 @@ auto CanModel::update_and_generate_command(
 
 CanModel::CanModel(
     std::shared_ptr<interface::Can> can, std::array<int, 4> vesc_ids,
-    size_t period_led_tape_per_thrusters, util::ThrusterMode thruster_mode)
+    size_t period_led_tape_per_thrusters, util::ThrusterDriverType thruster_driver_type)
 : can(can),
   vesc_models{{
       can::VescModel(vesc_ids[0]),
@@ -92,7 +93,7 @@ CanModel::CanModel(
   }},
   last_main_power_enabled{false},
   period_led_tape_per_thrusters{period_led_tape_per_thrusters},
-  thruster_mode(thruster_mode) {}
+  thruster_driver_type(thruster_driver_type) {}
 
 auto CanModel::on_init() -> tl::expected<void, std::string> {
     const auto res = this->can->init("can0");
@@ -147,11 +148,11 @@ auto CanModel::on_read() const
             continue;
         }
 
-        // `thruster_mode`が`Direct`の時は、VESCからのフレームを無視する
-        if (this->thruster_mode == util::ThrusterMode::Direct) {
+        // `thruster_driver_type`が`Direct`の時は、VESCからのフレームを無視する
+        if (this->thruster_driver_type == util::ThrusterDriverType::Direct) {
             return tl::make_unexpected(
                 "Received CAN frame from VESC " + vesc_id +
-                " but thruster mode is Direct, so ignored.");
+                " but thruster driver type is Direct, so ignored.");
         }
 
         switch (packet_status_opt.value().index()) {
@@ -187,16 +188,16 @@ auto CanModel::on_read() const
 
 auto CanModel::on_write(
     cmd::main_power::Enabled && main_power_enabled,
-    std::array<cmd::thruster::esc::Enabled, 4> && esc_enabled_flags,
+    std::array<cmd::thruster::esc::Allowed, 4> && esc_allowed_flags,
     std::array<cmd::thruster::esc::DutyCycle, 4> && esc_duty_cycles,
-    std::array<cmd::thruster::servo::Enabled, 4> && servo_enabled_flags,
+    std::array<cmd::thruster::servo::Allowed, 4> && servo_allowed_flags,
     std::array<cmd::thruster::servo::Angle, 4> && servo_angles,
     cmd::led_tape::Color && led_tape_color) -> tl::expected<void, std::string> {
     auto command = this->update_and_generate_command(
         std::forward<decltype(main_power_enabled)>(main_power_enabled),
-        std::forward<decltype(esc_enabled_flags)>(esc_enabled_flags),
+        std::forward<decltype(esc_allowed_flags)>(esc_allowed_flags),
         std::forward<decltype(esc_duty_cycles)>(esc_duty_cycles),
-        std::forward<decltype(servo_enabled_flags)>(servo_enabled_flags),
+        std::forward<decltype(servo_allowed_flags)>(servo_allowed_flags),
         std::forward<decltype(servo_angles)>(servo_angles),
         std::forward<decltype(led_tape_color)>(led_tape_color));
 
@@ -211,26 +212,26 @@ auto CanModel::on_write(
             return tl::make_unexpected("Not implemented for main power enabled command");
         }
 
-        case 1: {  // std::tuple<ThrusterId, esc::Enabled>
-            auto & [id, esc_enabled] = std::get<1>(command);
+        case 1: {  // std::tuple<ThrusterId, EscAllowed>
+            auto & [id, esc_allowed] = std::get<1>(command);
             if (id > vesc_models.size()) {
                 return tl::make_unexpected("Invalid thruster ID: " + std::to_string(id));
             }
 
-            // TODO: `esc_enabled`の処理を実装する
-            auto _ = esc_enabled;
-            return tl::make_unexpected("Not implemented for ESC enabled command");
+            // TODO: `esc_allowed`の処理を実装する
+            auto _ = esc_allowed;
+            return tl::make_unexpected("Not implemented for ESC allowed command");
         }
 
-        case 2: {  // std::tuple<ThrusterId, ServoEnabled>
-            auto & [id, servo_enabled] = std::get<2>(command);
+        case 2: {  // std::tuple<ThrusterId, ServoAllowed>
+            auto & [id, servo_allowed] = std::get<2>(command);
             if (id > vesc_models.size()) {
                 return tl::make_unexpected("Invalid thruster ID: " + std::to_string(id));
             }
 
-            // TODO: `servo_enabled`の処理を実装する
-            const auto _ = servo_enabled;
-            return tl::make_unexpected("Not implemented for servo enabled command");
+            // TODO: `servo_allowed`の処理を実装する
+            const auto _ = servo_allowed;
+            return tl::make_unexpected("Not implemented for servo allowed command");
         }
 
         case 3: {  // std::tuple<ThrusterId, EscDutyCycle>

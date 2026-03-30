@@ -21,14 +21,14 @@ auto EscDirectModel::on_init() -> tl::expected<void, std::string> {
 auto EscDirectModel::on_read() const -> tl::expected<void, std::string> { return {}; }
 
 auto EscDirectModel::on_write(
-    sinsei_umiusi_control::cmd::thruster::esc::Enabled && enabled,
+    sinsei_umiusi_control::cmd::thruster::esc::Allowed && allowed,
     sinsei_umiusi_control::cmd::thruster::esc::DutyCycle && duty_cycle)
     -> tl::expected<void, std::string> {
     // Duty比をパルス幅に変換
     const auto center = this->center_pulse_width;
     const auto negative_radius = this->negative_pulse_width_radius;
     const auto positive_radius = this->positive_pulse_width_radius;
-    auto pulsewidth = enabled.value
+    auto pulsewidth = allowed.value
                           ? center + (duty_cycle.value < 0.0 ? negative_radius * duty_cycle.value
                                                              : positive_radius * duty_cycle.value)
                           : 0;

@@ -39,7 +39,7 @@ def generate_launch_description():
 
     print(header('Examples:'))
     print(
-        f'  {key("$ ros2 launch sinsei_umiusi_control main.yaml")} {PLAIN}{SKY}thruster_mode:=direct               {PLAIN}Run all nodes without VESCs'
+        f'  {key("$ ros2 launch sinsei_umiusi_control main.yaml")} {PLAIN}{SKY}thruster_driver_type:=direct               {PLAIN}Run all nodes without VESCs'
     )
     print(
         f'  {key("$ ros2 launch sinsei_umiusi_control main.yaml")} {PLAIN}{SKY}vesc1_id:=16 vesc2_id:=32           {PLAIN}Run all nodes, remapping VESC IDs'

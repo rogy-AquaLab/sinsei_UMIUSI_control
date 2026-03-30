@@ -1,12 +1,15 @@
 #include "sinsei_umiusi_control/controller/gate_controller.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <rclcpp/logging.hpp>
 #include <rclcpp_lifecycle/state.hpp>
 #include <string>
 
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
+#include "sinsei_umiusi_msgs/msg/thruster_mode.hpp"
+#include "sinsei_umiusi_msgs/msg/thruster_runnable_all.hpp"
 
 using namespace sinsei_umiusi_control::controller;
 
@@ -39,7 +42,7 @@ auto GateController::state_interface_configuration() const
 }
 
 auto GateController::on_init() -> controller_interface::CallbackReturn {
-    this->get_node()->declare_parameter("thruster_mode", "unknown");
+    this->get_node()->declare_parameter("thruster_driver_type", "unknown");
 
     this->output.cmd = GateController::Output::Command{};
     this->input.state = GateController::Input::State{};
@@ -49,13 +52,16 @@ auto GateController::on_init() -> controller_interface::CallbackReturn {
 
 auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_state*/)
     -> controller_interface::CallbackReturn {
-    const auto mode_str = this->get_node()->get_parameter("thruster_mode").as_string();
-    const auto mode_res = util::get_mode_from_str(mode_str);
-    if (!mode_res) {
-        RCLCPP_ERROR(this->get_node()->get_logger(), "Invalid thruster mode: %s", mode_str.c_str());
+    const auto driver_type_str =
+        this->get_node()->get_parameter("thruster_driver_type").as_string();
+    const auto driver_type_res = util::get_driver_type_from_str(driver_type_str);
+    if (!driver_type_res) {
+        RCLCPP_ERROR(
+            this->get_node()->get_logger(), "Invalid thruster driver type: %s",
+            driver_type_str.c_str());
         return controller_interface::CallbackReturn::ERROR;
     }
-    this->thruster_mode = mode_res.value();
+    this->thruster_driver_type = driver_type_res.value();
 
     constexpr std::string_view THRUSTER_SUFFIX[4] = {"_lf", "_lb", "_rb", "_rf"};
 
@@ -136,22 +142,20 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
             const auto tc_prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
 
             this->state_interface_data.emplace_back(
-                tc_prefix + "esc/enabled",
-                to_interface_data_ptr(this->input.state.esc_enabled_flags[i]),
-                sizeof(this->input.state.esc_enabled_flags[i]));
+                tc_prefix + "esc/mode", to_interface_data_ptr(this->input.state.esc_modes[i]),
+                sizeof(this->input.state.esc_modes[i]));
             this->state_interface_data.emplace_back(
                 tc_prefix + "esc/duty_cycle",
                 to_interface_data_ptr(this->input.state.esc_duty_cycles[i]),
                 sizeof(this->input.state.esc_duty_cycles[i]));
             this->state_interface_data.emplace_back(
-                tc_prefix + "servo/enabled",
-                to_interface_data_ptr(this->input.state.servo_enabled_flags[i]),
-                sizeof(this->input.state.servo_enabled_flags[i]));
+                tc_prefix + "servo/mode", to_interface_data_ptr(this->input.state.servo_modes[i]),
+                sizeof(this->input.state.servo_modes[i]));
             this->state_interface_data.emplace_back(
                 tc_prefix + "servo/angle", to_interface_data_ptr(this->input.state.servo_angles[i]),
                 sizeof(this->input.state.servo_angles[i]));
 
-            if (this->thruster_mode == util::ThrusterMode::Can) {
+            if (this->thruster_driver_type == util::ThrusterDriverType::Can) {
                 this->state_interface_data.emplace_back(
                     tc_prefix + "thruster/esc/voltage",
                     to_interface_data_ptr(this->input.state.esc_voltages[i]),
@@ -167,7 +171,7 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                 this->state_interface_data.emplace_back(
                     ac_prefix + "esc/rpm", to_interface_data_ptr(this->input.state.esc_rpms[i]),
                     sizeof(this->input.state.esc_rpms[i]));
-            } else if (this->thruster_mode == util::ThrusterMode::Direct) {
+            } else if (this->thruster_driver_type == util::ThrusterDriverType::Direct) {
                 this->state_interface_data.emplace_back(
                     tc_prefix + "thruster_direct/esc/health",
                     to_interface_data_ptr(this->input.state.esc_direct_healthes[i]),
@@ -213,18 +217,18 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                     this->output.cmd.low_beam_enabled_ref.value = input->low_beam_enabled;
                     this->output.cmd.ir_enabled_ref.value = input->ir_enabled;
                 });
-        this->input.sub.thruster_enabled_all_subscriber =
-            this->get_node()->create_subscription<msg::ThrusterEnabledAll>(
-                cmd_prefix + "thruster_enabled_all", qos,
-                [this](const msg::ThrusterEnabledAll::SharedPtr input) {
-                    this->output.cmd.esc_enabled_ref[0].value = input->lf.esc;
-                    this->output.cmd.esc_enabled_ref[1].value = input->lb.esc;
-                    this->output.cmd.esc_enabled_ref[2].value = input->rb.esc;
-                    this->output.cmd.esc_enabled_ref[3].value = input->rf.esc;
-                    this->output.cmd.servo_enabled_ref[0].value = input->lf.servo;
-                    this->output.cmd.servo_enabled_ref[1].value = input->lb.servo;
-                    this->output.cmd.servo_enabled_ref[2].value = input->rb.servo;
-                    this->output.cmd.servo_enabled_ref[3].value = input->rf.servo;
+        this->input.sub.thruster_runnable_all_subscriber =
+            this->get_node()->create_subscription<msg::ThrusterRunnableAll>(
+                cmd_prefix + "thruster_runnable_all", qos,
+                [this](const msg::ThrusterRunnableAll::SharedPtr input) {
+                    this->output.cmd.esc_runnable_refs[0].value = input->lf.esc;
+                    this->output.cmd.esc_runnable_refs[1].value = input->lb.esc;
+                    this->output.cmd.esc_runnable_refs[2].value = input->rb.esc;
+                    this->output.cmd.esc_runnable_refs[3].value = input->rf.esc;
+                    this->output.cmd.servo_runnable_refs[0].value = input->lf.servo;
+                    this->output.cmd.servo_runnable_refs[1].value = input->lb.servo;
+                    this->output.cmd.servo_runnable_refs[2].value = input->rb.servo;
+                    this->output.cmd.servo_runnable_refs[3].value = input->rf.servo;
                 });
         this->input.sub.target_subscriber = this->get_node()->create_subscription<msg::Target>(
             cmd_prefix + "target", qos, [this](const msg::Target::SharedPtr input) {
@@ -289,12 +293,13 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
             const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
 
             this->command_interface_data.push_back(std::make_tuple(
-                prefix + "esc/enabled", to_interface_data_ptr(this->output.cmd.esc_enabled_ref[i]),
-                sizeof(this->output.cmd.esc_enabled_ref[i])));
+                prefix + "esc/runnable",
+                to_interface_data_ptr(this->output.cmd.esc_runnable_refs[i]),
+                sizeof(this->output.cmd.esc_runnable_refs[i])));
             this->command_interface_data.push_back(std::make_tuple(
-                prefix + "servo/enabled",
-                to_interface_data_ptr(this->output.cmd.servo_enabled_ref[i]),
-                sizeof(this->output.cmd.servo_enabled_ref[i])));
+                prefix + "servo/runnable",
+                to_interface_data_ptr(this->output.cmd.servo_runnable_refs[i]),
+                sizeof(this->output.cmd.servo_runnable_refs[i])));
         }
 
         // Publishers
@@ -346,50 +351,42 @@ auto GateController::update(
             .set__temperature(this->input.state.imu_temperature.value));
     this->output.pub.thruster_state_all_publisher->publish(
         msg::ThrusterStateAll()
-            .set__lf(
-                msg::ThrusterState()
-                    .set__output(
-                        msg::ThrusterOutput()
-                            .set__enabled(
-                                msg::ThrusterEnabled()
-                                    .set__esc(this->input.state.esc_enabled_flags[0].value)
-                                    .set__servo(this->input.state.servo_enabled_flags[0].value))
-                            .set__duty_cycle(this->input.state.esc_duty_cycles[0].value)
-                            .set__angle(this->input.state.servo_angles[0].value))
-                    .set__rpm(this->input.state.esc_rpms[0].value))
-            .set__lb(
-                msg::ThrusterState()
-                    .set__output(
-                        msg::ThrusterOutput()
-                            .set__enabled(
-                                msg::ThrusterEnabled()
-                                    .set__esc(this->input.state.esc_enabled_flags[1].value)
-                                    .set__servo(this->input.state.servo_enabled_flags[1].value))
-                            .set__duty_cycle(this->input.state.esc_duty_cycles[1].value)
-                            .set__angle(this->input.state.servo_angles[1].value))
-                    .set__rpm(this->input.state.esc_rpms[1].value))
-            .set__rb(
-                msg::ThrusterState()
-                    .set__output(
-                        msg::ThrusterOutput()
-                            .set__enabled(
-                                msg::ThrusterEnabled()
-                                    .set__esc(this->input.state.esc_enabled_flags[2].value)
-                                    .set__servo(this->input.state.servo_enabled_flags[2].value))
-                            .set__duty_cycle(this->input.state.esc_duty_cycles[2].value)
-                            .set__angle(this->input.state.servo_angles[2].value))
-                    .set__rpm(this->input.state.esc_rpms[2].value))
-            .set__rf(
-                msg::ThrusterState()
-                    .set__output(
-                        msg::ThrusterOutput()
-                            .set__enabled(
-                                msg::ThrusterEnabled()
-                                    .set__esc(this->input.state.esc_enabled_flags[3].value)
-                                    .set__servo(this->input.state.servo_enabled_flags[3].value))
-                            .set__duty_cycle(this->input.state.esc_duty_cycles[3].value)
-                            .set__angle(this->input.state.servo_angles[3].value))
-                    .set__rpm(this->input.state.esc_rpms[3].value)));
+            .set__lf(msg::ThrusterState()
+                         .set__mode(msg::ThrusterMode()
+                                        .set__esc(static_cast<int8_t>(
+                                            this->input.state.esc_modes[0].value))
+                                        .set__servo(static_cast<int8_t>(
+                                            this->input.state.servo_modes[0].value)))
+                         .set__duty_cycle(this->input.state.esc_duty_cycles[0].value)
+                         .set__angle(this->input.state.servo_angles[0].value)
+                         .set__rpm(this->input.state.esc_rpms[0].value))
+            .set__lb(msg::ThrusterState()
+                         .set__mode(msg::ThrusterMode()
+                                        .set__esc(static_cast<int8_t>(
+                                            this->input.state.esc_modes[1].value))
+                                        .set__servo(static_cast<int8_t>(
+                                            this->input.state.servo_modes[1].value)))
+                         .set__duty_cycle(this->input.state.esc_duty_cycles[1].value)
+                         .set__angle(this->input.state.servo_angles[1].value)
+                         .set__rpm(this->input.state.esc_rpms[1].value))
+            .set__rb(msg::ThrusterState()
+                         .set__mode(msg::ThrusterMode()
+                                        .set__esc(static_cast<int8_t>(
+                                            this->input.state.esc_modes[2].value))
+                                        .set__servo(static_cast<int8_t>(
+                                            this->input.state.servo_modes[2].value)))
+                         .set__duty_cycle(this->input.state.esc_duty_cycles[2].value)
+                         .set__angle(this->input.state.servo_angles[2].value)
+                         .set__rpm(this->input.state.esc_rpms[2].value))
+            .set__rf(msg::ThrusterState()
+                         .set__mode(msg::ThrusterMode()
+                                        .set__esc(static_cast<int8_t>(
+                                            this->input.state.esc_modes[3].value))
+                                        .set__servo(static_cast<int8_t>(
+                                            this->input.state.servo_modes[3].value)))
+                         .set__duty_cycle(this->input.state.esc_duty_cycles[3].value)
+                         .set__angle(this->input.state.servo_angles[3].value)
+                         .set__rpm(this->input.state.esc_rpms[3].value)));
     this->output.pub.low_power_circuit_info_publisher->publish(
         msg::LowPowerCircuitInfo()
             .set__can(

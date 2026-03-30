@@ -1,33 +1,22 @@
-#ifndef SINSEI_UMIUSI_CONTROL_UTIL_THRUSTER_MODE_HPP
-#define SINSEI_UMIUSI_CONTROL_UTIL_THRUSTER_MODE_HPP
+#ifndef SINSEI_UMIUSI_CONTROL_UTIL_THRUSTER_MDOE_HPP
+#define SINSEI_UMIUSI_CONTROL_UTIL_THRUSTER_MDOE_HPP
 
-#include <rcpputils/tl_expected/expected.hpp>
-#include <string>
+#include <cstdint>
 
 namespace sinsei_umiusi_control::util {
 
-enum class ThrusterMode { Can, Direct };
+enum class ThrusterMode : int8_t {
+    Disabled = -1,
+    Standby = 0,
+    Runnable = 1,
+};
 
-inline auto get_mode_from_str(const std::string_view & str)
-    -> tl::expected<ThrusterMode, std::string> {
-    if (str == "can") {
-        return ThrusterMode::Can;
-    } else if (str == "direct") {
-        return ThrusterMode::Direct;
-    } else {
-        return tl::make_unexpected("Invalid thruster mode: " + std::string(str));
+inline auto resolve_thruster_mode(bool disabled, bool runnable) {
+    if (disabled) {
+        return util::ThrusterMode::Disabled;
     }
-}
-
-inline auto get_mode_from_str(std::string_view && str) -> tl::expected<ThrusterMode, std::string> {
-    if (str == "can") {
-        return ThrusterMode::Can;
-    } else if (str == "direct") {
-        return ThrusterMode::Direct;
-    } else {
-        return tl::make_unexpected("Invalid thruster mode: " + std::string(str));
-    }
-}
+    return runnable ? util::ThrusterMode::Runnable : util::ThrusterMode::Standby;
+};
 
 }  // namespace sinsei_umiusi_control::util
 
