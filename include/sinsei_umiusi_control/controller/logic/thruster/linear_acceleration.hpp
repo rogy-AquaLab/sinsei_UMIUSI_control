@@ -39,8 +39,8 @@ class LinearAcceleration : public ThrusterController::Logic {
         const auto step_limit = this->max_duty_step_per_sec * duration;
         const auto min = std::max(-this->max_duty_cycle, this->duty_cycle - step_limit);
         const auto max = std::min(this->max_duty_cycle, this->duty_cycle + step_limit);
-        const auto direction = this->params.is_forward ? 1.0 : -1.0;
-        const auto target = direction * this->duty_per_thrust * input.cmd.esc_thrust.value;
+        const auto sign = this->params.is_forward ? 1.0 : -1.0;
+        const auto target = sign * this->duty_per_thrust * input.cmd.esc_thrust.value;
         this->duty_cycle = std::clamp(target, min, max);
 
         auto output = ThrusterController::Output{};
