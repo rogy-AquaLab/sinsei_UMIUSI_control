@@ -159,7 +159,7 @@ jobs:
       - name: Replace paths in compile_commands.json
         run: |
           sed -i "${{ env.SED_ARG }}" ros_ws/build/compile_commands.json
-          echo "Replaced ROS working directory in compile_commands.json" && cat build/compile_commands.json
+          echo "Replaced ROS working directory in compile_commands.json" && cat ros_ws/build/compile_commands.json
 
       - name: C++ Lint
         id: cpp-lint
@@ -217,8 +217,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sudo rosdep init || true
+          SOURCES_FILE=/etc/ros/rosdep/sources.list.d/20-default.list
+          if [ ! -f "$SOURCES_FILE" ]; then
+            sudo rosdep init
+          fi
           rosdep update
+          sudo -E rosdep fix-permissions || true
+          sudo -E rosdep update
           sudo rosdep install --from-paths src --ignore-src -r -y --rosdistro ${{ needs.parse-env-file.outputs.ROS_DISTRO }}
 
       - name: Download Build Artifacts
