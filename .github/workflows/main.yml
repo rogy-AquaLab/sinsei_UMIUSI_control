@@ -99,6 +99,8 @@ jobs:
           package-name: "${{ needs.parse-env-file.outputs.PACKAGE_NAME }} sinsei_umiusi_msgs"
           vcs-repo-file-url: ./deps.repos
           skip-tests: true
+          coverage-result: false
+          no-symlink-install: true
 
       - name: Upload ROS C++ libraries
         uses: actions/upload-artifact@v4
@@ -108,11 +110,15 @@ jobs:
             /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/include
             /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/src
 
-      - name: Upload Build results (`build` directory)
+      - name: Upload Colcon workspace
         uses: actions/upload-artifact@v4
         with:
-          name: colcon-build-results-build
-          path: ros_ws/build
+          name: colcon-workspace
+          path: |
+            ros_ws/build
+            ros_ws/install
+            ros_ws/log
+          if-no-files-found: error
 
   cpp-lint:
     name: C++ Lint
@@ -140,11 +146,11 @@ jobs:
           path: /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}
           merge-multiple: true
 
-      - name: Download Colcon Build results (`build` directory)
+      - name: Download Colcon workspace
         uses: actions/download-artifact@v4
         with:
-          name: colcon-build-results-build
-          path: build
+          name: colcon-workspace
+          path: .
 
       - name: Replace ROS working directory with current one
         run: |
@@ -173,15 +179,14 @@ jobs:
 
   colcon-test:
     name: Colcon Test
-    needs: [parse-env-file]
+    needs: [parse-env-file, colcon-build]
     runs-on: ubuntu-latest
     container:
       image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
+
     steps:
-      - name: Checkout install script
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          sparse-checkout: .docker/scripts
 
       - name: Install can-utils
         run: sudo apt-get install -y can-utils
@@ -189,10 +194,21 @@ jobs:
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
 
-      - name: Colcon Test
-        uses: ros-tooling/action-ros-ci@v0.4
+      - name: Download Colcon workspace
+        uses: actions/download-artifact@v4
         with:
-          target-ros2-distro: ${{ needs.parse-env-file.outputs.ROS_DISTRO }}
-          package-name: "${{ needs.parse-env-file.outputs.PACKAGE_NAME }} sinsei_umiusi_msgs"
-          vcs-repo-file-url: ./deps.repos
-          coverage-result: false
+          name: colcon-workspace
+          path: ros_ws
+
+      - name: Colcon Test
+        working-directory: ros_ws
+        shell: bash
+        run: |
+          set -euxo pipefail
+          source /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/setup.bash
+          source install/setup.bash
+          colcon test \
+            --event-handlers=console_direct+ \
+            --packages-select ${{ needs.parse-env-file.outputs.PACKAGE_NAME }} sinsei_umiusi_msgs
+          colcon test-result --all
+          colcon test-result --verbose
