@@ -137,7 +137,7 @@ jobs:
         run: sudo apt-get install -y can-utils
 
       - name: Install pigpio
-        run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
+        run: chmod +x ros_ws/src/${{ github.event.repository.name }}/.docker/scripts/install-pigpio.sh && sudo ros_ws/src/${{ github.event.repository.name }}/.docker/scripts/install-pigpio.sh
 
       - name: Download ROS C++ libraries
         uses: actions/download-artifact@v4
@@ -193,6 +193,34 @@ jobs:
         with:
           path: ros_ws/src/${{ github.event.repository.name }}
 
+      - name: Install system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y can-utils python3-vcstool python3-rosdep
+
+      - name: Install pigpio
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ros_ws/src/${{ github.event.repository.name }}/.docker/scripts/install-pigpio.sh
+          sudo ros_ws/src/${{ github.event.repository.name }}/.docker/scripts/install-pigpio.sh
+
+      - name: Import workspace dependencies
+        working-directory: ros_ws
+        shell: bash
+        run: vcs import src < src/${{ github.event.repository.name }}/deps.repos
+
+      - name: Install ROS package dependencies
+        working-directory: ros_ws
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo rosdep init || true
+          rosdep update
+          sudo rosdep install --from-paths src --ignore-src -r -y --rosdistro ${{ needs.parse-env-file.outputs.ROS_DISTRO }}
+
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -202,6 +230,42 @@ jobs:
       - name: Extract Build Artifacts
         shell: bash
         run: tar -xzf build-artifacts.tar.gz -C ros_ws
+
+      - name: Mirror source path from build job
+        working-directory: ros_ws
+        shell: bash
+        env:
+          REPO_DIR: ${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          HASH_DIR=$(python3 - <<'PY'
+import os
+import pathlib
+import re
+
+repo = os.environ["REPO_DIR"]
+pattern = re.compile(rf"ros_ws/src/([^/]+)/{re.escape(repo)}")
+
+for ctest in pathlib.Path("build").rglob("CTestTestfile.cmake"):
+    text = ctest.read_text()
+    match = pattern.search(text)
+    if match:
+        print(match.group(1))
+        break
+PY
+)
+          if [ -z "$HASH_DIR" ] || [ "$HASH_DIR" = "$REPO_DIR" ]; then
+            echo "No alternate source layout detected (hash='$HASH_DIR')."
+            exit 0
+          fi
+          mkdir -p "src/$HASH_DIR"
+          TARGET="src/$HASH_DIR/$REPO_DIR"
+          if [ -e "$TARGET" ]; then
+            echo "Target $TARGET already exists"
+          else
+            ln -s "../$REPO_DIR" "$TARGET"
+            ls -l "src/$HASH_DIR"
+          fi
 
       - name: Run Colcon Test
         working-directory: ros_ws
