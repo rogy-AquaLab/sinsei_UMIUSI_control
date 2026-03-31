@@ -187,12 +187,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          path: repo
 
       - name: Install can-utils
         run: sudo apt-get install -y can-utils
 
       - name: Install pigpio
-        run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
+        run: chmod +x ./repo/.docker/scripts/install-pigpio.sh && sudo ./repo/.docker/scripts/install-pigpio.sh
 
       - name: Download Colcon workspace
         uses: actions/download-artifact@v4
@@ -200,15 +202,31 @@ jobs:
           name: colcon-workspace
           path: ros_ws
 
-      - name: Colcon Test
+      - name: Prepare source space for colcon package discovery
+        shell: bash
+        run: |
+          set -exo pipefail
+          mkdir -p ros_ws/src
+          ln -s "${GITHUB_WORKSPACE}/repo" "ros_ws/src/${GITHUB_REPOSITORY#*/}"
+
+      - name: Run Colcon Test
         working-directory: ros_ws
         shell: bash
         run: |
           set -exo pipefail
+          
+          echo "::group::Source ROS environment"
           source /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/setup.bash
           source install/setup.bash
+          echo "::endgroup::"
+
+          echo "::group::Run tests"
           colcon test \
             --event-handlers=console_direct+ \
             --packages-select ${{ needs.parse-env-file.outputs.PACKAGE_NAME }} sinsei_umiusi_msgs
+          echo "::endgroup::"
+
+          echo "::group::Show test results"
           colcon test-result --all
           colcon test-result --verbose
+          echo "::endgroup::"
