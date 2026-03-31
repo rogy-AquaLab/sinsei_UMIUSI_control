@@ -204,7 +204,7 @@ jobs:
         working-directory: ros_ws
         shell: bash
         run: |
-          set -euxo pipefail
+          set -exo pipefail
           source /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/setup.bash
           source install/setup.bash
           colcon test \
