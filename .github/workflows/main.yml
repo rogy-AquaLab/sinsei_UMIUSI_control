@@ -110,14 +110,15 @@ jobs:
             /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/include
             /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/src
 
-      - name: Upload Colcon workspace
+      - name: Archive build and install artifacts
+        shell: bash
+        run: tar -czf build-artifacts.tar.gz -C ros_ws build install
+
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: colcon-workspace
-          path: |
-            ros_ws/build
-            ros_ws/install
-            ros_ws/log
+          name: build-artifacts
+          path: build-artifacts.tar.gz
           if-no-files-found: error
 
   cpp-lint:
@@ -125,13 +126,12 @@ jobs:
     needs: [parse-env-file, colcon-build]
     runs-on: ubuntu-latest
     env:
-      SED_ARG_1: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/[0-9a-z]*/${{ github.event.repository.name }}|${{ github.workspace }}|g
-      SED_ARG_2: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/build|${{ github.workspace }}/build|g
+      SED_ARG: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws|${{ github.workspace }}/ros_ws|g
     steps:
-      - name: Checkout install script
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          sparse-checkout: .docker/scripts
+          path: ros_ws/src/${{ github.event.repository.name }}
 
       - name: Install can-utils
         run: sudo apt-get install -y can-utils
@@ -146,16 +146,19 @@ jobs:
           path: /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}
           merge-multiple: true
 
-      - name: Download Colcon workspace
+      - name: Download Build Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: colcon-workspace
+          name: build-artifacts
           path: .
 
-      - name: Replace ROS working directory with current one
+      - name: Extract Build Artifacts
+        shell: bash
+        run: tar -xzf build-artifacts.tar.gz -C ros_ws
+
+      - name: Replace paths in compile_commands.json
         run: |
-          sed -i '${{ env.SED_ARG_1 }}' build/compile_commands.json ; \
-          sed -i '${{ env.SED_ARG_2 }}' build/compile_commands.json ; \
+          sed -i "${{ env.SED_ARG }}" ros_ws/build/compile_commands.json
           echo "Replaced ROS working directory in compile_commands.json" && cat build/compile_commands.json
 
       - name: C++ Lint
@@ -168,8 +171,8 @@ jobs:
           version: 18
           style: file
           tidy-checks: ""
-          database: build
-          ignore: ./.github | ./build | ./install | ./log
+          database: ros_ws/build
+          ignore: "ros_ws/build|ros_ws/install|.github"
           step-summary: true
           files-changed-only: false
 
@@ -188,45 +191,33 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          path: repo
+          path: ros_ws/src/${{ github.event.repository.name }}
 
-      - name: Install can-utils
-        run: sudo apt-get install -y can-utils
-
-      - name: Install pigpio
-        run: chmod +x ./repo/.docker/scripts/install-pigpio.sh && sudo ./repo/.docker/scripts/install-pigpio.sh
-
-      - name: Download Colcon workspace
+      - name: Download Build Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: colcon-workspace
-          path: ros_ws
+          name: build-artifacts
+          path: .
 
-      - name: Prepare source space for colcon package discovery
+      - name: Extract Build Artifacts
         shell: bash
-        run: |
-          set -exo pipefail
-          mkdir -p ros_ws/src
-          ln -s "${GITHUB_WORKSPACE}/repo" "ros_ws/src/${GITHUB_REPOSITORY#*/}"
+        run: tar -xzf build-artifacts.tar.gz -C ros_ws
 
       - name: Run Colcon Test
         working-directory: ros_ws
         shell: bash
         run: |
-          set -exo pipefail
-          
-          echo "::group::Source ROS environment"
           source /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/setup.bash
           source install/setup.bash
-          echo "::endgroup::"
-
-          echo "::group::Run tests"
           colcon test \
             --event-handlers=console_direct+ \
             --packages-select ${{ needs.parse-env-file.outputs.PACKAGE_NAME }} sinsei_umiusi_msgs
-          echo "::endgroup::"
 
-          echo "::group::Show test results"
-          colcon test-result --all
-          colcon test-result --verbose
-          echo "::endgroup::"
+      - name: Show Colcon Test Result
+        if: always()
+        working-directory: ros_ws
+        shell: bash
+        run: |
+          source /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/setup.bash
+          source install/setup.bash
+          colcon test-result --all --verbose
