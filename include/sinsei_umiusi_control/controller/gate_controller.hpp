@@ -22,7 +22,7 @@
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
 #include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
-#include "sinsei_umiusi_control/util/thruster_mode.hpp"
+#include "sinsei_umiusi_control/util/thruster_driver_type.hpp"
 #include "sinsei_umiusi_msgs/msg/headlights_output.hpp"
 #include "sinsei_umiusi_msgs/msg/high_power_circuit_info.hpp"
 #include "sinsei_umiusi_msgs/msg/imu_state.hpp"
@@ -32,7 +32,7 @@
 #include "sinsei_umiusi_msgs/msg/main_power_enabled.hpp"
 #include "sinsei_umiusi_msgs/msg/main_power_output.hpp"
 #include "sinsei_umiusi_msgs/msg/target.hpp"
-#include "sinsei_umiusi_msgs/msg/thruster_enabled_all.hpp"
+#include "sinsei_umiusi_msgs/msg/thruster_runnable_all.hpp"
 #include "sinsei_umiusi_msgs/msg/thruster_state_all.hpp"
 
 namespace sinsei_umiusi_control::controller {
@@ -50,14 +50,13 @@ class GateController : public controller_interface::ControllerInterface {
             sinsei_umiusi_control::state::imu::Quaternion imu_quaternion;
             sinsei_umiusi_control::state::imu::Acceleration imu_acceleration;
             sinsei_umiusi_control::state::imu::AngularVelocity imu_angular_velocity;
-            std::array<sinsei_umiusi_control::state::thruster::esc::Enabled, 4> esc_enabled_flags;
+            std::array<sinsei_umiusi_control::state::thruster::esc::Mode, 4> esc_modes;
             std::array<sinsei_umiusi_control::state::thruster::esc::DutyCycle, 4> esc_duty_cycles;
             std::array<sinsei_umiusi_control::state::thruster::esc::Rpm, 4> esc_rpms;
             std::array<sinsei_umiusi_control::state::thruster::esc::Voltage, 4> esc_voltages;
             std::array<sinsei_umiusi_control::state::thruster::esc::WaterLeaked, 4>
                 esc_water_leaked_flags;
-            std::array<sinsei_umiusi_control::state::thruster::servo::Enabled, 4>
-                servo_enabled_flags;
+            std::array<sinsei_umiusi_control::state::thruster::servo::Mode, 4> servo_modes;
             std::array<sinsei_umiusi_control::state::thruster::servo::Angle, 4> servo_angles;
             std::array<sinsei_umiusi_control::state::thruster::esc::Health, 4> esc_direct_healthes;
             std::array<sinsei_umiusi_control::state::thruster::servo::Health, 4>
@@ -75,8 +74,8 @@ class GateController : public controller_interface::ControllerInterface {
                 main_power_output_subscriber;
             rclcpp::Subscription<sinsei_umiusi_msgs::msg::HeadlightsOutput>::SharedPtr
                 headlights_output_subscriber;
-            rclcpp::Subscription<sinsei_umiusi_msgs::msg::ThrusterEnabledAll>::SharedPtr
-                thruster_enabled_all_subscriber;
+            rclcpp::Subscription<sinsei_umiusi_msgs::msg::ThrusterRunnableAll>::SharedPtr
+                thruster_runnable_all_subscriber;
             rclcpp::Subscription<sinsei_umiusi_msgs::msg::LedTapeOutput>::SharedPtr
                 led_tape_output_subscriber;
             rclcpp::Subscription<sinsei_umiusi_msgs::msg::Target>::SharedPtr target_subscriber;
@@ -93,8 +92,9 @@ class GateController : public controller_interface::ControllerInterface {
             sinsei_umiusi_control::cmd::headlights::LowBeamEnabled low_beam_enabled_ref;
             sinsei_umiusi_control::cmd::headlights::IrEnabled ir_enabled_ref;
 
-            std::array<sinsei_umiusi_control::cmd::thruster::esc::Enabled, 4> esc_enabled_ref;
-            std::array<sinsei_umiusi_control::cmd::thruster::servo::Enabled, 4> servo_enabled_ref;
+            std::array<sinsei_umiusi_control::cmd::thruster::esc::Runnable, 4> esc_runnable_refs;
+            std::array<sinsei_umiusi_control::cmd::thruster::servo::Runnable, 4>
+                servo_runnable_refs;
 
             sinsei_umiusi_control::cmd::led_tape::Color led_tape_color_ref;
             sinsei_umiusi_control::cmd::attitude::Orientation target_orientation_ref;
@@ -120,7 +120,7 @@ class GateController : public controller_interface::ControllerInterface {
     Input input;
     Output output;
 
-    sinsei_umiusi_control::util::ThrusterMode thruster_mode;
+    sinsei_umiusi_control::util::ThrusterDriverType thruster_driver_type;
 
     sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer command_interface_data;
     sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer state_interface_data;

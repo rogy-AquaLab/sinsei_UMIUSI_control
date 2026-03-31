@@ -3,7 +3,7 @@
 
   <xacro:macro name="sinsei_umiusi_control"
     params="
-      thruster_mode
+      thruster_driver_type
       high_beam_pin
       low_beam_pin
       ir_pin
@@ -51,14 +51,14 @@
     <xacro:include filename="sinsei_umiusi_control/headlights.urdf.xacro" />
 
     <xacro:can
-      thruster_mode="${thruster_mode}"
+      thruster_driver_type="${thruster_driver_type}"
       vesc1_id="${vesc1_id}"
       vesc2_id="${vesc2_id}"
       vesc3_id="${vesc3_id}"
       vesc4_id="${vesc4_id}"
       period_led_tape_per_thrusters="${period_led_tape_per_thrusters}"
     />
-    <xacro:if value="${thruster_mode == 'direct'}">
+    <xacro:if value="${thruster_driver_type == 'direct'}">
       <xacro:thruster_direct
         esc1_pin="${esc_direct1_pin}"
         esc2_pin="${esc_direct2_pin}"

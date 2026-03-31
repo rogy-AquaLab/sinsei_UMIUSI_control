@@ -7,6 +7,7 @@
 #include <rcpputils/tl_expected/expected.hpp>
 
 #include "gmock/gmock.h"
+#include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 
 namespace succmd = sinsei_umiusi_control::cmd;
@@ -27,7 +28,7 @@ constexpr int VESC_ID_2 = 2;
 constexpr int VESC_ID_3 = 3;
 constexpr int VESC_ID_4 = 4;
 constexpr size_t PERIOD_LED_TAPE_PER_THRUSTERS = 1;
-constexpr util::ThrusterMode THRUSTER_MODE = util::ThrusterMode::Can;
+constexpr util::ThrusterDriverType THRUSTER_DRIVER_TYPE = util::ThrusterDriverType::Can;
 
 #define VESC_IDS \
     { VESC_ID_1, VESC_ID_2, VESC_ID_3, VESC_ID_4 }
@@ -39,7 +40,8 @@ TEST(CanModelTest, CanModelOnInitTest) {
 
     EXPECT_CALL(*can, init(_)).Times(1).WillOnce(Return(tl::expected<void, std::string>{}));
 
-    auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_MODE);
+    auto can_model =
+        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
     auto result = can_model.on_init();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
@@ -49,7 +51,8 @@ TEST(CanModelTest, CanModelOnDestroyTest) {
 
     EXPECT_CALL(*can, close()).Times(1).WillOnce(Return(tl::expected<void, std::string>{}));
 
-    auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_MODE);
+    auto can_model =
+        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
     auto result = can_model.on_destroy();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
@@ -65,18 +68,19 @@ TEST(CanModelTest, CanModelCanModeOnWriteTest) {
         .WillOnce(Return(tl::expected<void, std::string>{}));
 
     // FIXME: 内部状態が変化するので、何回か`on_write`を呼び出してテストする必要がある。(実装が終わったら修正)
-    auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_MODE);
+    auto can_model =
+        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
     auto result = can_model.on_write(
         succmd::main_power::Enabled{false},
-        std::array<succmd::thruster::esc::Enabled, 4>{
-            succmd::thruster::esc::Enabled{false}, succmd::thruster::esc::Enabled{false},
-            succmd::thruster::esc::Enabled{false}, succmd::thruster::esc::Enabled{false}},
+        std::array<succmd::thruster::esc::Allowed, 4>{
+            succmd::thruster::esc::Allowed{false}, succmd::thruster::esc::Allowed{false},
+            succmd::thruster::esc::Allowed{false}, succmd::thruster::esc::Allowed{false}},
         std::array<succmd::thruster::esc::DutyCycle, 4>{
             succmd::thruster::esc::DutyCycle{1.0f}, succmd::thruster::esc::DutyCycle{0.0f},
             succmd::thruster::esc::DutyCycle{0.0f}, succmd::thruster::esc::DutyCycle{0.0f}},
-        std::array<succmd::thruster::servo::Enabled, 4>{
-            succmd::thruster::servo::Enabled{false}, succmd::thruster::servo::Enabled{false},
-            succmd::thruster::servo::Enabled{false}, succmd::thruster::servo::Enabled{false}},
+        std::array<succmd::thruster::servo::Allowed, 4>{
+            succmd::thruster::servo::Allowed{false}, succmd::thruster::servo::Allowed{false},
+            succmd::thruster::servo::Allowed{false}, succmd::thruster::servo::Allowed{false}},
         std::array<succmd::thruster::servo::Angle, 4>{
             succmd::thruster::servo::Angle{0.0f}, succmd::thruster::servo::Angle{0.0f},
             succmd::thruster::servo::Angle{0.0f}, succmd::thruster::servo::Angle{0.0f}},
@@ -100,7 +104,8 @@ TEST(CanModelTest, CanModelDirectModeOnWriteTest) {
         .Times(/*1*/ 0)
         .WillOnce(Return(tl::expected<void, std::string>{}));
 
-    auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_MODE);
+    auto can_model =
+        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
     auto result = can_model.on_write(
         succmd::main_power::Enabled{DUMMY_MAIN_POWER_ENABLED}, succmd::led_tape::Color{
                                                                    DUMMY_LED_TAPE_COLOR_R,

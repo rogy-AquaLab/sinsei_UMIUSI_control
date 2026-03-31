@@ -1,5 +1,6 @@
 #include "sinsei_umiusi_control/hardware/thruster_direct/esc_direct.hpp"
 
+#include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
 #include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
@@ -116,8 +117,8 @@ auto thruster_direct::EscDirect::write(
     const rclcpp::Duration & /*period*/) -> hardware_interface::return_type {
     auto prefix = "thruster_direct" + std::to_string(this->id) + "/";
 
-    auto enabled = util::from_interface_data<sinsei_umiusi_control::cmd::thruster::esc::Enabled>(
-        this->get_command(prefix + "esc/enabled"));
+    auto allowed = util::from_interface_data<sinsei_umiusi_control::cmd::thruster::esc::Allowed>(
+        this->get_command(prefix + "esc/allowed"));
     auto duty_cycle =
         util::from_interface_data<sinsei_umiusi_control::cmd::thruster::esc::DutyCycle>(
             this->get_command(prefix + "esc/duty_cycle"));
@@ -133,7 +134,7 @@ auto thruster_direct::EscDirect::write(
         return hardware_interface::return_type::OK;
     }
 
-    const auto res = this->model->on_write(std::move(enabled), std::move(duty_cycle));
+    const auto res = this->model->on_write(std::move(allowed), std::move(duty_cycle));
     if (!res) {
         this->set_state(
             prefix + "esc/health", util::to_interface_data(state::thruster::esc::Health{false}));

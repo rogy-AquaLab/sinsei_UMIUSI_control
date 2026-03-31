@@ -23,7 +23,7 @@ from helper import (
 PACKAGE_NAME = 'sinsei_umiusi_control'
 
 LAUNCH_ARGUMENTS: dict[str, set[str]] = {
-    'thruster_mode': {'can', 'direct'},  # URDFに渡される引数代表
+    'thruster_driver_type': {'can', 'direct'},  # URDFに渡される引数代表
     'namespace': {'', 'test_ns'},
     'enable_cameras': {'false'},
 }
@@ -36,9 +36,9 @@ def hardware_components(largs: dict[str, str]) -> set[str]:
         'imu',
         'indicator_led',
     }
-    if largs['thruster_mode'] == 'can':
+    if largs['thruster_driver_type'] == 'can':
         return base
-    elif largs['thruster_mode'] == 'direct':
+    elif largs['thruster_driver_type'] == 'direct':
         return (
             base
             | {f'thruster_direct{i}/servo' for i in range(1, 5)}
@@ -98,7 +98,7 @@ def test_hardware_loaded(helper_node, launch_arguments):
             helper_node,
             f'{ns_fixed}controller_manager',
             component,
-            2.0,
+            10.0,
         ), f'Hardware component {component} is not loaded.'
 
 

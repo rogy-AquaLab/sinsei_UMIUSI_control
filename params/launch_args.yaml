@@ -1,8 +1,8 @@
 launch:
   # Hardware dependent parameters
   - arg:
-      description: "Thruster manipulation mode (can / direct)"
-      name: thruster_mode
+      description: "Thruster driver type (can / direct)"
+      name: thruster_driver_type
       default: "can"
 
   - arg:
@@ -43,7 +43,7 @@ launch:
       name: period_led_tape_per_thrusters
       default: "10"
 
-  # only used when `thruster_mode` is set to `direct`
+  # only used when `thruster_driver_type` is set to `direct`
   - arg:
       description: "GPIO pin number for ESC 1 (corresponds to thruster 1)"
       name: esc_direct1_pin

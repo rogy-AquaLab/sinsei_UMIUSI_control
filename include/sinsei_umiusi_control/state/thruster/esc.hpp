@@ -1,10 +1,12 @@
 #ifndef SINSEI_UMIUSI_CONTROL_STATE_THRUSTER_ESC_HPP
 #define SINSEI_UMIUSI_CONTROL_STATE_THRUSTER_ESC_HPP
 
+#include "sinsei_umiusi_control/util/thruster_mode.hpp"
+
 namespace sinsei_umiusi_control::state::thruster::esc {
 
-struct Enabled {
-    bool value;
+struct Mode {
+    util::ThrusterMode value;
 };
 struct DutyCycle {
     double value;
