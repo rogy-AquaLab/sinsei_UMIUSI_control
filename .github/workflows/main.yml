@@ -239,21 +239,21 @@ jobs:
         run: |
           set -euo pipefail
           HASH_DIR=$(python3 - <<'PY'
-import os
-import pathlib
-import re
+          import os
+          import pathlib
+          import re
 
-repo = os.environ["REPO_DIR"]
-pattern = re.compile(rf"ros_ws/src/([^/]+)/{re.escape(repo)}")
+          repo = os.environ["REPO_DIR"]
+          pattern = re.compile(rf"ros_ws/src/([^/]+)/{re.escape(repo)}")
 
-for ctest in pathlib.Path("build").rglob("CTestTestfile.cmake"):
-    text = ctest.read_text()
-    match = pattern.search(text)
-    if match:
-        print(match.group(1))
-        break
-PY
-)
+          for ctest in pathlib.Path("build").rglob("CTestTestfile.cmake"):
+              text = ctest.read_text()
+              match = pattern.search(text)
+              if match:
+                  print(match.group(1))
+                  break
+          PY
+          )
           if [ -z "$HASH_DIR" ] || [ "$HASH_DIR" = "$REPO_DIR" ]; then
             echo "No alternate source layout detected (hash='$HASH_DIR')."
             exit 0
