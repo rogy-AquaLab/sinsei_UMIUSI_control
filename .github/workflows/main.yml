@@ -169,7 +169,7 @@ jobs:
           style: file
           tidy-checks: ""
           database: build
-          ignore: ./.github | ./build
+          ignore: ./.github | ./build | ./install | ./log
           step-summary: true
           files-changed-only: false
 
