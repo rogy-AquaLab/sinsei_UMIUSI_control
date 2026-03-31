@@ -25,6 +25,7 @@ PACKAGE_NAME = 'sinsei_umiusi_control'
 LAUNCH_ARGUMENTS: dict[str, set[str]] = {
     'thruster_mode': {'can', 'direct'},  # URDFに渡される引数代表
     'namespace': {'', 'test_ns'},
+    'enable_cameras': {'false'},
 }
 
 
