@@ -33,12 +33,6 @@ endif()
 # for clang-tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# serach for pigpio library
-find_library(PIGPIO_LIBRARY pigpiod_if2)
-if(NOT PIGPIO_LIBRARY)
-  message(FATAL_ERROR "pigpiod_if2 library not found. Please install pigpio.")
-endif()
-
 # search for Eigen3
 find_package(Eigen3)
 if(NOT Eigen3_FOUND)
@@ -62,11 +56,8 @@ ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   src/${PROJECT_NAME}/hardware_model/can/vesc_model.cpp
   src/${PROJECT_NAME}/hardware_model/imu/bno055_model.cpp
 
-  src/${PROJECT_NAME}/hardware_model/impl/pigpio.cpp
+  src/${PROJECT_NAME}/hardware_model/impl/mock_gpio.cpp
   src/${PROJECT_NAME}/hardware_model/impl/linux_can.cpp
-)
-target_link_libraries(${PROJECT_NAME}_hardware
-  ${PIGPIO_LIBRARY}
 )
 target_include_directories(${PROJECT_NAME}_hardware
   PRIVATE

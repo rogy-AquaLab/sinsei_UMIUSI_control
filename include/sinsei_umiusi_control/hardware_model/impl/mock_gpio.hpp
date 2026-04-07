@@ -1,34 +1,14 @@
-#ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_IMPL_PIGPIO_HPP
-#define SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_IMPL_PIGPIO_HPP
+#ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_IMPL_MOCK_GPIO_HPP
+#define SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_IMPL_MOCK_GPIO_HPP
 
-#include <cstddef>
-#include <optional>
-#include <rcpputils/tl_expected/expected.hpp>
 #include <vector>
 
 #include "sinsei_umiusi_control/hardware_model/interface/gpio.hpp"
 
 namespace sinsei_umiusi_control::hardware_model::impl {
 
-class Pigpio : public interface::Gpio {
+class MockGpio : public interface::Gpio {
   public:
-    using Pin = interface::Gpio::Pin;
-    using Addr = interface::Gpio::Addr;
-    using Error = interface::Gpio::Error;
-
-    static constexpr uint32_t I2C_BUS = 1;
-
-  private:
-    int pi;
-
-    std::optional<uint32_t> i2c_handle = std::nullopt;
-    uint32_t i2c_address;
-
-  public:
-    // 失敗しうるので注意
-    Pigpio();
-    ~Pigpio();
-
     auto set_mode_output(const std::vector<Pin> & pins) -> tl::expected<void, Error> override;
     auto set_mode_input(const std::vector<Pin> & pins) -> tl::expected<void, Error> override;
     auto write_digital(const Pin & pin, bool && enabled) -> tl::expected<void, Error> override;
@@ -44,8 +24,12 @@ class Pigpio : public interface::Gpio {
     auto i2c_read_byte_data(const Addr & reg) const -> tl::expected<std::byte, Error> override;
     auto i2c_read_block_data(const Addr & reg, std::byte * buffer, const size_t length) const
         -> tl::expected<void, Error> override;
+
+  private:
+    bool i2c_opened_ = false;
+    Addr current_i2c_address_ = 0;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::impl
 
-#endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_IMPL_PIGPIO_HPP
+#endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_IMPL_MOCK_GPIO_HPP
