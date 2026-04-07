@@ -18,9 +18,6 @@ RUN apt-get update && apt-get install -y \
     lld-18 \
     sccache
 
-# Install pigpio
-RUN /tmp/scripts/install-pigpio.sh
-
 # Install editorconfig-checker
 RUN /tmp/scripts/install-ec.sh
 
