@@ -18,9 +18,6 @@ RUN apt-get update && apt-get install -y \
     lld-18 \
     sccache
 
-# Install can-utils
-RUN apt-get install -y can-utils
-
 # Install pigpio
 RUN /tmp/scripts/install-pigpio.sh
 
