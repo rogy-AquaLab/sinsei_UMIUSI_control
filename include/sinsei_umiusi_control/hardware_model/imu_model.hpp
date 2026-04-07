@@ -5,7 +5,7 @@
 #include <rcpputils/tl_expected/expected.hpp>
 
 #include "sinsei_umiusi_control/hardware_model/imu/bno055_model.hpp"
-#include "sinsei_umiusi_control/hardware_model/interface/gpio.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/i2c.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 
 namespace sinsei_umiusi_control::hardware_model {
@@ -15,7 +15,7 @@ class ImuModel {
     imu::Bno055Model bno055_model;
 
   public:
-    ImuModel(std::unique_ptr<interface::Gpio> gpio);
+    ImuModel(std::unique_ptr<interface::I2c> i2c);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_destroy() -> tl::expected<void, std::string>;
     auto on_read() -> tl::expected<

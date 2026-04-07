@@ -1,6 +1,6 @@
 #include "sinsei_umiusi_control/hardware/imu.hpp"
 
-#include "sinsei_umiusi_control/hardware_model/impl/mock_gpio.hpp"
+#include "sinsei_umiusi_control/hardware_model/impl/mock_i2c.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
@@ -25,7 +25,7 @@ auto Imu::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SensorInterface::on_init(params);
 
-    this->model.emplace(std::make_unique<sinsei_umiusi_control::hardware_model::impl::MockGpio>());
+    this->model.emplace(std::make_unique<sinsei_umiusi_control::hardware_model::impl::MockI2c>());
 
     auto res = this->model->on_init();
     if (!res) {

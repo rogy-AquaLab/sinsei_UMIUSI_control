@@ -57,6 +57,7 @@ ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   src/${PROJECT_NAME}/hardware_model/imu/bno055_model.cpp
 
   src/${PROJECT_NAME}/hardware_model/impl/mock_gpio.cpp
+  src/${PROJECT_NAME}/hardware_model/impl/mock_i2c.cpp
   src/${PROJECT_NAME}/hardware_model/impl/linux_can.cpp
 )
 target_include_directories(${PROJECT_NAME}_hardware

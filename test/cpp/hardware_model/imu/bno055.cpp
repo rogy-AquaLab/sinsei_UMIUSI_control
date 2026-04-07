@@ -6,9 +6,9 @@
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 
-#include "mock/gpio.hpp"
+#include "mock/i2c.hpp"
 #include "sinsei_umiusi_control/hardware_model/imu/bno055_model.hpp"
-#include "sinsei_umiusi_control/hardware_model/interface/gpio.hpp"
+#include "sinsei_umiusi_control/hardware_model/interface/i2c.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
 
 using namespace sinsei_umiusi_control::hardware_model;
@@ -59,43 +59,43 @@ static constexpr auto QUAT_SCALE = 1.0 / (1 << 14);
 TEST(Bno055ModelBeginTest, success) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
     // Activate I2C bus
-    EXPECT_CALL(*gpio, i2c_open(ADDRESS))
+    EXPECT_CALL(*gpio, open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Read chip ID
-    EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
+    EXPECT_CALL(*gpio, read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<std::byte, interface::GpioError>(std::byte{ID})));
+        .WillOnce(Return(tl::expected<std::byte, interface::I2cError>(std::byte{ID})));
     // Set operation mode to CONFIG
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
+    EXPECT_CALL(*gpio, write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Trigger reset
-    EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
+    EXPECT_CALL(*gpio, write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Wait for reboot (while the chip ID is read again)
-    EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
-        .WillOnce(Return(tl::expected<std::byte, interface::GpioError>{std::byte{ID}}));
+    EXPECT_CALL(*gpio, read_byte_data(CHIP_ID_ADDR))
+        .WillOnce(Return(tl::expected<std::byte, interface::I2cError>{std::byte{ID}}));
     // Set power mode to NORMAL
-    EXPECT_CALL(*gpio, i2c_write_byte_data(PWR_MODE_ADDR, std::byte{POWER_MODE_NORMAL}))
+    EXPECT_CALL(*gpio, write_byte_data(PWR_MODE_ADDR, std::byte{POWER_MODE_NORMAL}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Set page ID to 0
-    EXPECT_CALL(*gpio, i2c_write_byte_data(PAGE_ID_ADDR, std::byte{0x0}))
+    EXPECT_CALL(*gpio, write_byte_data(PAGE_ID_ADDR, std::byte{0x0}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Clear SYS_TRIGGER
-    EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x0}))
+    EXPECT_CALL(*gpio, write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x0}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Set operation mode to NDOF
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_NDOF}))
+    EXPECT_CALL(*gpio, write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_NDOF}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
 
     auto bno055_model = imu::Bno055Model(std::move(gpio));
     auto result = bno055_model.begin();
@@ -104,12 +104,12 @@ TEST(Bno055ModelBeginTest, success) {
 }
 
 TEST(Bno055ModelBeginTest, fail_on_open) {
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
     // Activate I2C bus -> FAIL!
-    EXPECT_CALL(*gpio, i2c_open(ADDRESS))
+    EXPECT_CALL(*gpio, open(ADDRESS))
         .Times(AtLeast(1))
-        .WillRepeatedly(Return(tl::make_unexpected(interface::GpioError::I2cOpenFailed)));
+        .WillRepeatedly(Return(tl::make_unexpected(interface::I2cError::OpenFailed)));
 
     auto bno055_model = imu::Bno055Model(std::move(gpio));
     auto result = bno055_model.begin();
@@ -120,15 +120,15 @@ TEST(Bno055ModelBeginTest, fail_on_open) {
 TEST(Bno055ModelBeginTest, fail_on_read_chip_id) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
     // Activate I2C bus
-    EXPECT_CALL(*gpio, i2c_open(ADDRESS))
+    EXPECT_CALL(*gpio, open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
-    EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
+    EXPECT_CALL(*gpio, read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::make_unexpected(interface::GpioError::I2cReadFailed)));
+        .WillOnce(Return(tl::make_unexpected(interface::I2cError::ReadFailed)));
 
     auto bno055_model = imu::Bno055Model(std::move(gpio));
     auto result = bno055_model.begin();
@@ -139,16 +139,16 @@ TEST(Bno055ModelBeginTest, fail_on_read_chip_id) {
 TEST(Bno055ModelBeginTest, fail_on_wrong_chip_id) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
     // Activate I2C bus
-    EXPECT_CALL(*gpio, i2c_open(ADDRESS))
+    EXPECT_CALL(*gpio, open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Read chip ID -> FAIL!
-    EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
+    EXPECT_CALL(*gpio, read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<std::byte, interface::GpioError>(std::byte{ID + 1})));
+        .WillOnce(Return(tl::expected<std::byte, interface::I2cError>(std::byte{ID + 1})));
 
     auto bno055_model = imu::Bno055Model(std::move(gpio));
     auto result = bno055_model.begin();
@@ -159,20 +159,20 @@ TEST(Bno055ModelBeginTest, fail_on_wrong_chip_id) {
 TEST(Bno055ModelBeginTest, fail_on_set_opr_mode_config) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
     // Activate I2C bus
-    EXPECT_CALL(*gpio, i2c_open(ADDRESS))
+    EXPECT_CALL(*gpio, open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Read chip ID
-    EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
+    EXPECT_CALL(*gpio, read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<std::byte, interface::GpioError>(std::byte{ID})));
+        .WillOnce(Return(tl::expected<std::byte, interface::I2cError>(std::byte{ID})));
     // Set operation mode to CONFIG -> FAIL!
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
+    EXPECT_CALL(*gpio, write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(interface::GpioError::I2cWriteFailed)));
+        .WillOnce(Return(tl::make_unexpected(interface::I2cError::WriteFailed)));
 
     auto bno055_model = imu::Bno055Model(std::move(gpio));
     auto result = bno055_model.begin();
@@ -183,24 +183,24 @@ TEST(Bno055ModelBeginTest, fail_on_set_opr_mode_config) {
 TEST(Bno055ModelBeginTest, fail_on_trigger_reset) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
     // Activate I2C bus
-    EXPECT_CALL(*gpio, i2c_open(ADDRESS))
+    EXPECT_CALL(*gpio, open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Read chip ID
-    EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
+    EXPECT_CALL(*gpio, read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<std::byte, interface::GpioError>(std::byte{ID})));
+        .WillOnce(Return(tl::expected<std::byte, interface::I2cError>(std::byte{ID})));
     // Set operation mode to CONFIG
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
+    EXPECT_CALL(*gpio, write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Trigger reset -> FAIL!
-    EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
+    EXPECT_CALL(*gpio, write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(interface::GpioError::I2cWriteFailed)));
+        .WillOnce(Return(tl::make_unexpected(interface::I2cError::WriteFailed)));
 
     auto bno055_model = imu::Bno055Model(std::move(gpio));
     auto result = bno055_model.begin();
@@ -211,28 +211,28 @@ TEST(Bno055ModelBeginTest, fail_on_trigger_reset) {
 TEST(Bno055ModelBeginTest, fail_on_wait_for_reboot) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
     // Activate I2C bus
-    EXPECT_CALL(*gpio, i2c_open(ADDRESS))
+    EXPECT_CALL(*gpio, open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Read chip ID
-    EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
+    EXPECT_CALL(*gpio, read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<std::byte, interface::GpioError>(std::byte{ID})));
+        .WillOnce(Return(tl::expected<std::byte, interface::I2cError>(std::byte{ID})));
     // Set operation mode to CONFIG
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
+    EXPECT_CALL(*gpio, write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Trigger reset
-    EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
+    EXPECT_CALL(*gpio, write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Wait for reboot (while the chip ID is read again) -> FAIL!
-    EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
+    EXPECT_CALL(*gpio, read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillRepeatedly(Return(tl::expected<std::byte, interface::GpioError>(std::byte{ID + 1})));
+        .WillRepeatedly(Return(tl::expected<std::byte, interface::I2cError>(std::byte{ID + 1})));
 
     auto bno055_model = imu::Bno055Model(std::move(gpio));
     auto result = bno055_model.begin();
@@ -243,31 +243,31 @@ TEST(Bno055ModelBeginTest, fail_on_wait_for_reboot) {
 TEST(Bno055ModelBeginTest, fail_on_set_power_mode_normal) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
     // Activate I2C bus
-    EXPECT_CALL(*gpio, i2c_open(ADDRESS))
+    EXPECT_CALL(*gpio, open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Read chip ID
-    EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
+    EXPECT_CALL(*gpio, read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<std::byte, interface::GpioError>(std::byte{ID})));
+        .WillOnce(Return(tl::expected<std::byte, interface::I2cError>(std::byte{ID})));
     // Set operation mode to CONFIG
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
+    EXPECT_CALL(*gpio, write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Trigger reset
-    EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
+    EXPECT_CALL(*gpio, write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Wait for reboot (while the chip ID is read again)
-    EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
-        .WillOnce(Return(tl::expected<std::byte, interface::GpioError>{std::byte{ID}}));
+    EXPECT_CALL(*gpio, read_byte_data(CHIP_ID_ADDR))
+        .WillOnce(Return(tl::expected<std::byte, interface::I2cError>{std::byte{ID}}));
     // Set power mode to NORMAL -> FAIL!
-    EXPECT_CALL(*gpio, i2c_write_byte_data(PWR_MODE_ADDR, std::byte{POWER_MODE_NORMAL}))
+    EXPECT_CALL(*gpio, write_byte_data(PWR_MODE_ADDR, std::byte{POWER_MODE_NORMAL}))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(interface::GpioError::I2cWriteFailed)));
+        .WillOnce(Return(tl::make_unexpected(interface::I2cError::WriteFailed)));
 
     auto bno055_model = imu::Bno055Model(std::move(gpio));
     auto result = bno055_model.begin();
@@ -278,35 +278,35 @@ TEST(Bno055ModelBeginTest, fail_on_set_power_mode_normal) {
 TEST(Bno055ModelBeginTest, fail_on_set_page_id) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
     // Activate I2C bus
-    EXPECT_CALL(*gpio, i2c_open(ADDRESS))
+    EXPECT_CALL(*gpio, open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Read chip ID
-    EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
+    EXPECT_CALL(*gpio, read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<std::byte, interface::GpioError>(std::byte{ID})));
+        .WillOnce(Return(tl::expected<std::byte, interface::I2cError>(std::byte{ID})));
     // Set operation mode to CONFIG
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
+    EXPECT_CALL(*gpio, write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Trigger reset
-    EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
+    EXPECT_CALL(*gpio, write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Wait for reboot (while the chip ID is read again)
-    EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
-        .WillOnce(Return(tl::expected<std::byte, interface::GpioError>{std::byte{ID}}));
+    EXPECT_CALL(*gpio, read_byte_data(CHIP_ID_ADDR))
+        .WillOnce(Return(tl::expected<std::byte, interface::I2cError>{std::byte{ID}}));
     // Set power mode to NORMAL
-    EXPECT_CALL(*gpio, i2c_write_byte_data(PWR_MODE_ADDR, std::byte{POWER_MODE_NORMAL}))
+    EXPECT_CALL(*gpio, write_byte_data(PWR_MODE_ADDR, std::byte{POWER_MODE_NORMAL}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Set page ID to 0 -> FAIL!
-    EXPECT_CALL(*gpio, i2c_write_byte_data(PAGE_ID_ADDR, std::byte{0x0}))
+    EXPECT_CALL(*gpio, write_byte_data(PAGE_ID_ADDR, std::byte{0x0}))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(interface::GpioError::I2cWriteFailed)));
+        .WillOnce(Return(tl::make_unexpected(interface::I2cError::WriteFailed)));
 
     auto bno055_model = imu::Bno055Model(std::move(gpio));
     auto result = bno055_model.begin();
@@ -317,39 +317,39 @@ TEST(Bno055ModelBeginTest, fail_on_set_page_id) {
 TEST(Bno055ModelBeginTest, fail_on_clear_sys_trigger) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
     // Activate I2C bus
-    EXPECT_CALL(*gpio, i2c_open(ADDRESS))
+    EXPECT_CALL(*gpio, open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Read chip ID
-    EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
+    EXPECT_CALL(*gpio, read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<std::byte, interface::GpioError>(std::byte{ID})));
+        .WillOnce(Return(tl::expected<std::byte, interface::I2cError>(std::byte{ID})));
     // Set operation mode to CONFIG
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
+    EXPECT_CALL(*gpio, write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Trigger reset
-    EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
+    EXPECT_CALL(*gpio, write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Wait for reboot (while the chip ID is read again)
-    EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
-        .WillOnce(Return(tl::expected<std::byte, interface::GpioError>{std::byte{ID}}));
+    EXPECT_CALL(*gpio, read_byte_data(CHIP_ID_ADDR))
+        .WillOnce(Return(tl::expected<std::byte, interface::I2cError>{std::byte{ID}}));
     // Set power mode to NORMAL
-    EXPECT_CALL(*gpio, i2c_write_byte_data(PWR_MODE_ADDR, std::byte{POWER_MODE_NORMAL}))
+    EXPECT_CALL(*gpio, write_byte_data(PWR_MODE_ADDR, std::byte{POWER_MODE_NORMAL}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Set page ID to 0
-    EXPECT_CALL(*gpio, i2c_write_byte_data(PAGE_ID_ADDR, std::byte{0x0}))
+    EXPECT_CALL(*gpio, write_byte_data(PAGE_ID_ADDR, std::byte{0x0}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Clear SYS_TRIGGER -> FAIL!
-    EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x0}))
+    EXPECT_CALL(*gpio, write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x0}))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(interface::GpioError::I2cWriteFailed)));
+        .WillOnce(Return(tl::make_unexpected(interface::I2cError::WriteFailed)));
 
     auto bno055_model = imu::Bno055Model(std::move(gpio));
     auto result = bno055_model.begin();
@@ -360,43 +360,43 @@ TEST(Bno055ModelBeginTest, fail_on_clear_sys_trigger) {
 TEST(Bno055ModelBeginTest, fail_on_set_opr_mode_ndof) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
     // Activate I2C bus
-    EXPECT_CALL(*gpio, i2c_open(ADDRESS))
+    EXPECT_CALL(*gpio, open(ADDRESS))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Read chip ID
-    EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
+    EXPECT_CALL(*gpio, read_byte_data(CHIP_ID_ADDR))
         .Times(AtLeast(1))
-        .WillOnce(Return(tl::expected<std::byte, interface::GpioError>(std::byte{ID})));
+        .WillOnce(Return(tl::expected<std::byte, interface::I2cError>(std::byte{ID})));
     // Set operation mode to CONFIG
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
+    EXPECT_CALL(*gpio, write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_CONFIG}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Trigger reset
-    EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
+    EXPECT_CALL(*gpio, write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x20}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Wait for reboot (while the chip ID is read again)
-    EXPECT_CALL(*gpio, i2c_read_byte_data(CHIP_ID_ADDR))
-        .WillOnce(Return(tl::expected<std::byte, interface::GpioError>{std::byte{ID}}));
+    EXPECT_CALL(*gpio, read_byte_data(CHIP_ID_ADDR))
+        .WillOnce(Return(tl::expected<std::byte, interface::I2cError>{std::byte{ID}}));
     // Set power mode to NORMAL
-    EXPECT_CALL(*gpio, i2c_write_byte_data(PWR_MODE_ADDR, std::byte{POWER_MODE_NORMAL}))
+    EXPECT_CALL(*gpio, write_byte_data(PWR_MODE_ADDR, std::byte{POWER_MODE_NORMAL}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Set page ID to 0
-    EXPECT_CALL(*gpio, i2c_write_byte_data(PAGE_ID_ADDR, std::byte{0x0}))
+    EXPECT_CALL(*gpio, write_byte_data(PAGE_ID_ADDR, std::byte{0x0}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Clear SYS_TRIGGER
-    EXPECT_CALL(*gpio, i2c_write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x0}))
+    EXPECT_CALL(*gpio, write_byte_data(SYS_TRIGGER_ADDR, std::byte{0x0}))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, interface::GpioError>{}));
+        .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
     // Set operation mode to NDOF -> FAIL!
-    EXPECT_CALL(*gpio, i2c_write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_NDOF}))
+    EXPECT_CALL(*gpio, write_byte_data(OPR_MODE_ADDR, std::byte{OPERATION_MODE_NDOF}))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(interface::GpioError::I2cWriteFailed)));
+        .WillOnce(Return(tl::make_unexpected(interface::I2cError::WriteFailed)));
 
     auto bno055_model = imu::Bno055Model(std::move(gpio));
     auto result = bno055_model.begin();
@@ -405,7 +405,7 @@ TEST(Bno055ModelBeginTest, fail_on_set_opr_mode_ndof) {
 }
 
 TEST(Bno055ModelGetAccelerationTest, success) {
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
     constexpr std::byte MOCK_DATA[6] = {std::byte{0x00}, std::byte{0x10},
                                         std::byte{0x00}, std::byte{0x20},
@@ -426,11 +426,11 @@ TEST(Bno055ModelGetAccelerationTest, success) {
             (std::to_integer<int16_t>(MOCK_DATA[5]) << 8)) *
             ACCEL_SCALE};
 
-    EXPECT_CALL(*gpio, i2c_read_block_data(ACCEL_ADDR, _, _))
+    EXPECT_CALL(*gpio, read_block_data(ACCEL_ADDR, _, _))
         .Times(1)
         .WillOnce(DoAll(
             testing::SetArrayArgument<1>(MOCK_DATA, MOCK_DATA + 6),
-            Return(tl::expected<void, interface::GpioError>{})));
+            Return(tl::expected<void, interface::I2cError>{})));
 
     auto bno055_model = imu::Bno055Model{std::move(gpio)};
     const auto result = bno055_model.get_acceleration();
@@ -442,11 +442,11 @@ TEST(Bno055ModelGetAccelerationTest, success) {
 }
 
 TEST(Bno055ModelGetAccelerationTest, fail_on_get_vector) {
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
-    EXPECT_CALL(*gpio, i2c_read_block_data(ACCEL_ADDR, testing::NotNull(), 6))
+    EXPECT_CALL(*gpio, read_block_data(ACCEL_ADDR, testing::NotNull(), 6))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(interface::GpioError::I2cReadFailed)));
+        .WillOnce(Return(tl::make_unexpected(interface::I2cError::ReadFailed)));
 
     auto bno055_model = imu::Bno055Model{std::move(gpio)};
     const auto result = bno055_model.get_acceleration();
@@ -455,17 +455,17 @@ TEST(Bno055ModelGetAccelerationTest, fail_on_get_vector) {
 }
 
 TEST(Bno055ModelGetAngularVelocity, success) {
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
     constexpr std::byte MOCK_DATA[6] = {std::byte{0x00}, std::byte{0x10},
                                         std::byte{0x00}, std::byte{0x20},
                                         std::byte{0x00}, std::byte{0x30}};  // Example data
 
-    EXPECT_CALL(*gpio, i2c_read_block_data(ANGVEL_ADDR, _, _))
+    EXPECT_CALL(*gpio, read_block_data(ANGVEL_ADDR, _, _))
         .Times(1)
         .WillOnce(DoAll(
             testing::SetArrayArgument<1>(MOCK_DATA, MOCK_DATA + 6),
-            Return(tl::expected<void, interface::GpioError>{})));
+            Return(tl::expected<void, interface::I2cError>{})));
 
     const auto expected_angular_vel = state::imu::AngularVelocity{
         static_cast<double>(
@@ -491,15 +491,15 @@ TEST(Bno055ModelGetAngularVelocity, success) {
 }
 
 TEST(Bno055ModelGetTempTest, success) {
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
     constexpr auto MOCK_DATA = std::byte{0x12};
     const auto expected_temp =
         state::imu::Temperature{std::to_integer<int8_t>(MOCK_DATA & std::byte{0x7F})};
 
-    EXPECT_CALL(*gpio, i2c_read_byte_data(TEMP_ADDR))
+    EXPECT_CALL(*gpio, read_byte_data(TEMP_ADDR))
         .Times(1)
-        .WillOnce(Return(tl::expected<std::byte, interface::GpioError>{MOCK_DATA}));
+        .WillOnce(Return(tl::expected<std::byte, interface::I2cError>{MOCK_DATA}));
 
     auto bno055_model = imu::Bno055Model{std::move(gpio)};
     const auto result = bno055_model.get_temp();
@@ -509,11 +509,11 @@ TEST(Bno055ModelGetTempTest, success) {
 }
 
 TEST(Bno055ModelGetTempTest, fail_on_get_temperature) {
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
-    EXPECT_CALL(*gpio, i2c_read_byte_data(TEMP_ADDR))
+    EXPECT_CALL(*gpio, read_byte_data(TEMP_ADDR))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(interface::GpioError::I2cReadFailed)));
+        .WillOnce(Return(tl::make_unexpected(interface::I2cError::ReadFailed)));
 
     auto bno055_model = imu::Bno055Model(std::move(gpio));
     auto result = bno055_model.get_temp();
@@ -522,7 +522,7 @@ TEST(Bno055ModelGetTempTest, fail_on_get_temperature) {
 }
 
 TEST(Bno055ModelGetQuatTest, success) {
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
     constexpr std::byte MOCK_DATA[8] = {std::byte{0x00}, std::byte{0x10}, std::byte{0x00},
                                         std::byte{0x20}, std::byte{0x00}, std::byte{0x30},
@@ -547,11 +547,11 @@ TEST(Bno055ModelGetQuatTest, success) {
             (std::to_integer<int16_t>(MOCK_DATA[7]) << 8)) *
             QUAT_SCALE};
 
-    EXPECT_CALL(*gpio, i2c_read_block_data(QUAT_ADDR, _, _))
+    EXPECT_CALL(*gpio, read_block_data(QUAT_ADDR, _, _))
         .Times(1)
         .WillOnce(DoAll(
             testing::SetArrayArgument<1>(MOCK_DATA, MOCK_DATA + 8),
-            Return(tl::expected<void, interface::GpioError>{})));
+            Return(tl::expected<void, interface::I2cError>{})));
 
     auto bno055_model = imu::Bno055Model{std::move(gpio)};
     const auto result = bno055_model.get_quat();
@@ -564,11 +564,11 @@ TEST(Bno055ModelGetQuatTest, success) {
 }
 
 TEST(Bno055ModelGetQuatTest, fail_on_get_quaternion) {
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::I2c>();
 
-    EXPECT_CALL(*gpio, i2c_read_block_data(QUAT_ADDR, _, _))
+    EXPECT_CALL(*gpio, read_block_data(QUAT_ADDR, _, _))
         .Times(1)
-        .WillOnce(Return(tl::make_unexpected(interface::GpioError::I2cReadFailed)));
+        .WillOnce(Return(tl::make_unexpected(interface::I2cError::ReadFailed)));
 
     auto bno055_model = imu::Bno055Model(std::move(gpio));
     auto result = bno055_model.get_quat();
