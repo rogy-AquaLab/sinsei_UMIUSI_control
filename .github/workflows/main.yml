@@ -72,9 +72,6 @@ jobs:
         with:
           sparse-checkout: .docker/scripts
 
-      - name: Install can-utils
-        run: sudo apt-get install -y can-utils
-
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
 
@@ -126,9 +123,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           sparse-checkout: .docker/scripts
-
-      - name: Install can-utils
-        run: sudo apt-get install -y can-utils
 
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
@@ -182,9 +176,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           sparse-checkout: .docker/scripts
-
-      - name: Install can-utils
-        run: sudo apt-get install -y can-utils
 
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
