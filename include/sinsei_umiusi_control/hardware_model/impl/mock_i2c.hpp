@@ -11,9 +11,12 @@ class MockI2c : public interface::I2c {
     auto close() -> tl::expected<void, Error> override;
     auto write_byte(std::byte && value) -> tl::expected<void, Error> override;
     auto read_byte() const -> tl::expected<std::byte, Error> override;
-    auto write_byte_data(const Addr & reg, std::byte && value) -> tl::expected<void, Error> override;
+    auto write_byte_data(const Addr & reg, std::byte && value)
+        -> tl::expected<void, Error> override;
     auto read_byte_data(const Addr & reg) const -> tl::expected<std::byte, Error> override;
     auto read_block_data(const Addr & reg, std::byte * buffer, const size_t length) const
+        -> tl::expected<void, Error> override;
+    auto transfer(const std::vector<interface::I2cMessage> & msgs)
         -> tl::expected<void, Error> override;
 
   private:

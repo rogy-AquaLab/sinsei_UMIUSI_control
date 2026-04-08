@@ -18,6 +18,14 @@ enum class I2cError {
     UnknownError,
 };
 
+enum class I2cDirection { Read, Write };
+
+struct I2cMessage {
+    I2cDirection direction;
+    std::byte * data;
+    size_t length;
+};
+
 inline auto i2c_error_to_string(const I2cError & error) -> std::string {
     switch (error) {
         case I2cError::NotOpen:
@@ -49,11 +57,12 @@ class I2c {
     virtual auto close() -> tl::expected<void, Error> = 0;
     virtual auto write_byte(std::byte && value) -> tl::expected<void, Error> = 0;
     virtual auto read_byte() const -> tl::expected<std::byte, Error> = 0;
-    virtual auto write_byte_data(const Addr & reg, std::byte && value) -> tl::expected<void, Error> =
-        0;
+    virtual auto write_byte_data(const Addr & reg, std::byte && value)
+        -> tl::expected<void, Error> = 0;
     virtual auto read_byte_data(const Addr & reg) const -> tl::expected<std::byte, Error> = 0;
     virtual auto read_block_data(const Addr & reg, std::byte * buffer, const size_t length) const
         -> tl::expected<void, Error> = 0;
+    virtual auto transfer(const std::vector<I2cMessage> & msgs) -> tl::expected<void, Error> = 0;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::interface

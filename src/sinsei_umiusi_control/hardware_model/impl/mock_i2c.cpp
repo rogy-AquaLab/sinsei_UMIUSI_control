@@ -60,4 +60,23 @@ auto MockI2c::read_block_data(const Addr & reg, std::byte * buffer, const size_t
     return {};
 }
 
+auto MockI2c::transfer(const std::vector<interface::I2cMessage> & msgs)
+    -> tl::expected<void, Error> {
+    if (!this->opened_) {
+        return tl::unexpected(Error::NotOpen);
+    }
+    for (const auto & msg : msgs) {
+        if (msg.length == 0) {
+            continue;
+        }
+        if (msg.data == nullptr) {
+            return tl::unexpected(Error::UnknownError);
+        }
+        if (msg.direction == interface::I2cDirection::Read) {
+            std::memset(msg.data, 0x00, msg.length);
+        }
+    }
+    return {};
+}
+
 }  // namespace sinsei_umiusi_control::hardware_model::impl
