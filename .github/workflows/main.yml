@@ -114,9 +114,6 @@ jobs:
       SED_ARG_1: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/[0-9a-z]*/${{ github.event.repository.name }}|${{ github.workspace }}|g
       SED_ARG_2: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/build|${{ github.workspace }}/build|g
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Download ROS C++ libraries
         uses: actions/download-artifact@v4
         with:
