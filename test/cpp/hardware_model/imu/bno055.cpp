@@ -1,8 +1,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 
@@ -14,7 +16,6 @@
 using namespace sinsei_umiusi_control::hardware_model;
 
 using ::testing::AtLeast;
-using ::testing::DoAll;
 using ::testing::InSequence;
 using ::testing::Return;
 
@@ -404,174 +405,96 @@ TEST(Bno055ModelBeginTest, fail_on_set_opr_mode_ndof) {
     ASSERT_FALSE(result);
 }
 
-TEST(Bno055ModelGetAccelerationTest, success) {
+TEST(Bno055ModelReadMeasurementsTest, success) {
     auto gpio = std::make_unique<mock::I2c>();
 
-    constexpr std::byte MOCK_DATA[6] = {std::byte{0x00}, std::byte{0x10},
-                                        std::byte{0x00}, std::byte{0x20},
-                                        std::byte{0x00}, std::byte{0x30}};  // Example data
+    static constexpr size_t FRAME_LENGTH = TEMP_ADDR - ANGVEL_ADDR + 1;
+    auto mock_data = std::array<std::byte, FRAME_LENGTH>{};
 
-    // LSB, MSBの順で値を合成
-    const auto expected_accel = state::imu::Acceleration{
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[0]) |
-            (std::to_integer<int16_t>(MOCK_DATA[1]) << 8)) *
-            ACCEL_SCALE,
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[2]) |
-            (std::to_integer<int16_t>(MOCK_DATA[3]) << 8)) *
-            ACCEL_SCALE,
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[4]) |
-            (std::to_integer<int16_t>(MOCK_DATA[5]) << 8)) *
-            ACCEL_SCALE};
+    const auto write_s16 = [&mock_data](size_t offset, int16_t value) {
+        const auto raw = static_cast<uint16_t>(value);
+        mock_data[offset] = std::byte{static_cast<uint8_t>(raw & 0xFF)};
+        mock_data[offset + 1] = std::byte{static_cast<uint8_t>((raw >> 8) & 0xFF)};
+    };
 
-    EXPECT_CALL(*gpio, read_block_data(ACCEL_ADDR, _, _))
+    constexpr auto OFFSET_QUAT = static_cast<size_t>(QUAT_ADDR - ANGVEL_ADDR);
+    constexpr auto OFFSET_LINEAR_ACCEL = static_cast<size_t>(ACCEL_ADDR - ANGVEL_ADDR);
+    constexpr auto OFFSET_TEMP = static_cast<size_t>(TEMP_ADDR - ANGVEL_ADDR);
+
+    constexpr int16_t GYRO_X_RAW = 0x0100;
+    constexpr int16_t GYRO_Y_RAW = 0x0200;
+    constexpr int16_t GYRO_Z_RAW = -0x0100;
+    write_s16(0, GYRO_X_RAW);
+    write_s16(2, GYRO_Y_RAW);
+    write_s16(4, GYRO_Z_RAW);
+
+    constexpr int16_t QUAT_W_RAW = 0x1000;
+    constexpr int16_t QUAT_X_RAW = 0x0800;
+    constexpr int16_t QUAT_Y_RAW = -0x0400;
+    constexpr int16_t QUAT_Z_RAW = 0x0200;
+    write_s16(OFFSET_QUAT + 0, QUAT_W_RAW);
+    write_s16(OFFSET_QUAT + 2, QUAT_X_RAW);
+    write_s16(OFFSET_QUAT + 4, QUAT_Y_RAW);
+    write_s16(OFFSET_QUAT + 6, QUAT_Z_RAW);
+
+    constexpr int16_t ACCEL_X_RAW = 0x0064;
+    constexpr int16_t ACCEL_Y_RAW = -0x00C8;
+    constexpr int16_t ACCEL_Z_RAW = 0x012C;
+    write_s16(OFFSET_LINEAR_ACCEL + 0, ACCEL_X_RAW);
+    write_s16(OFFSET_LINEAR_ACCEL + 2, ACCEL_Y_RAW);
+    write_s16(OFFSET_LINEAR_ACCEL + 4, ACCEL_Z_RAW);
+
+    constexpr auto TEMP_RAW = std::byte{0x82};
+    mock_data[OFFSET_TEMP] = TEMP_RAW;
+
+    EXPECT_CALL(*gpio, transfer(_))
         .Times(1)
-        .WillOnce(DoAll(
-            testing::SetArrayArgument<1>(MOCK_DATA, MOCK_DATA + 6),
-            Return(tl::expected<void, interface::I2cError>{})));
+        .WillOnce(testing::Invoke([&mock_data](const std::vector<interface::I2cMessage> & msgs) {
+            EXPECT_EQ(msgs.size(), 2U);
+            EXPECT_EQ(msgs[0].direction, interface::I2cDirection::Write);
+            EXPECT_EQ(msgs[0].length, 1U);
+            EXPECT_EQ(msgs[1].direction, interface::I2cDirection::Read);
+            EXPECT_EQ(msgs[1].length, mock_data.size());
+            std::memcpy(msgs[1].data, mock_data.data(), mock_data.size());
+            return tl::expected<void, interface::I2cError>{};
+        }));
 
     auto bno055_model = imu::Bno055Model{std::move(gpio)};
-    const auto result = bno055_model.get_acceleration();
+    const auto result = bno055_model.read_measurements();
 
     ASSERT_TRUE(result);
-    EXPECT_EQ(result.value().x, expected_accel.x);
-    EXPECT_EQ(result.value().y, expected_accel.y);
-    EXPECT_EQ(result.value().z, expected_accel.z);
-}
+    const auto measurements = result.value();
 
-TEST(Bno055ModelGetAccelerationTest, fail_on_get_vector) {
-    auto gpio = std::make_unique<mock::I2c>();
+    EXPECT_DOUBLE_EQ(
+        measurements.angular_velocity.x, static_cast<double>(GYRO_X_RAW) * ANGVEL_SCALE);
+    EXPECT_DOUBLE_EQ(
+        measurements.angular_velocity.y, static_cast<double>(GYRO_Y_RAW) * ANGVEL_SCALE);
+    EXPECT_DOUBLE_EQ(
+        measurements.angular_velocity.z, static_cast<double>(GYRO_Z_RAW) * ANGVEL_SCALE);
 
-    EXPECT_CALL(*gpio, read_block_data(ACCEL_ADDR, testing::NotNull(), 6))
-        .Times(1)
-        .WillOnce(Return(tl::make_unexpected(interface::I2cError::ReadFailed)));
+    EXPECT_DOUBLE_EQ(measurements.quaternion.x, static_cast<double>(QUAT_W_RAW) * QUAT_SCALE);
+    EXPECT_DOUBLE_EQ(measurements.quaternion.y, static_cast<double>(QUAT_X_RAW) * QUAT_SCALE);
+    EXPECT_DOUBLE_EQ(measurements.quaternion.z, static_cast<double>(QUAT_Y_RAW) * QUAT_SCALE);
+    EXPECT_DOUBLE_EQ(measurements.quaternion.w, static_cast<double>(QUAT_Z_RAW) * QUAT_SCALE);
 
-    auto bno055_model = imu::Bno055Model{std::move(gpio)};
-    const auto result = bno055_model.get_acceleration();
+    EXPECT_DOUBLE_EQ(measurements.acceleration.x, static_cast<double>(ACCEL_X_RAW) * ACCEL_SCALE);
+    EXPECT_DOUBLE_EQ(measurements.acceleration.y, static_cast<double>(ACCEL_Y_RAW) * ACCEL_SCALE);
+    EXPECT_DOUBLE_EQ(measurements.acceleration.z, static_cast<double>(ACCEL_Z_RAW) * ACCEL_SCALE);
 
-    ASSERT_FALSE(result);
-}
-
-TEST(Bno055ModelGetAngularVelocity, success) {
-    auto gpio = std::make_unique<mock::I2c>();
-
-    constexpr std::byte MOCK_DATA[6] = {std::byte{0x00}, std::byte{0x10},
-                                        std::byte{0x00}, std::byte{0x20},
-                                        std::byte{0x00}, std::byte{0x30}};  // Example data
-
-    EXPECT_CALL(*gpio, read_block_data(ANGVEL_ADDR, _, _))
-        .Times(1)
-        .WillOnce(DoAll(
-            testing::SetArrayArgument<1>(MOCK_DATA, MOCK_DATA + 6),
-            Return(tl::expected<void, interface::I2cError>{})));
-
-    const auto expected_angular_vel = state::imu::AngularVelocity{
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[0]) |
-            (std::to_integer<int16_t>(MOCK_DATA[1]) << 8)) *
-            ANGVEL_SCALE,
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[2]) |
-            (std::to_integer<int16_t>(MOCK_DATA[3]) << 8)) *
-            ANGVEL_SCALE,
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[4]) |
-            (std::to_integer<int16_t>(MOCK_DATA[5]) << 8)) *
-            ANGVEL_SCALE};
-
-    auto bno055_model = imu::Bno055Model{std::move(gpio)};
-    const auto result = bno055_model.get_angular_velocity();
-
-    ASSERT_TRUE(result);
-    EXPECT_EQ(result.value().x, expected_angular_vel.x);
-    EXPECT_EQ(result.value().y, expected_angular_vel.y);
-    EXPECT_EQ(result.value().z, expected_angular_vel.z);
-}
-
-TEST(Bno055ModelGetTempTest, success) {
-    auto gpio = std::make_unique<mock::I2c>();
-
-    constexpr auto MOCK_DATA = std::byte{0x12};
     const auto expected_temp =
-        state::imu::Temperature{std::to_integer<int8_t>(MOCK_DATA & std::byte{0x7F})};
-
-    EXPECT_CALL(*gpio, read_byte_data(TEMP_ADDR))
-        .Times(1)
-        .WillOnce(Return(tl::expected<std::byte, interface::I2cError>{MOCK_DATA}));
-
-    auto bno055_model = imu::Bno055Model{std::move(gpio)};
-    const auto result = bno055_model.get_temp();
-
-    ASSERT_TRUE(result);
-    ASSERT_EQ(result.value().value, expected_temp.value);
+        static_cast<int8_t>(std::to_integer<uint8_t>(TEMP_RAW & std::byte{0x7F}));
+    EXPECT_EQ(measurements.temperature.value, expected_temp);
 }
 
-TEST(Bno055ModelGetTempTest, fail_on_get_temperature) {
+TEST(Bno055ModelReadMeasurementsTest, fail_on_transfer) {
     auto gpio = std::make_unique<mock::I2c>();
 
-    EXPECT_CALL(*gpio, read_byte_data(TEMP_ADDR))
+    EXPECT_CALL(*gpio, transfer(_))
         .Times(1)
         .WillOnce(Return(tl::make_unexpected(interface::I2cError::ReadFailed)));
 
     auto bno055_model = imu::Bno055Model(std::move(gpio));
-    auto result = bno055_model.get_temp();
-
-    ASSERT_FALSE(result);
-}
-
-TEST(Bno055ModelGetQuatTest, success) {
-    auto gpio = std::make_unique<mock::I2c>();
-
-    constexpr std::byte MOCK_DATA[8] = {std::byte{0x00}, std::byte{0x10}, std::byte{0x00},
-                                        std::byte{0x20}, std::byte{0x00}, std::byte{0x30},
-                                        std::byte{0x00}, std::byte{0x40}};  // Example data
-
-    // LSB, MSBの順で値を合成
-    const auto expected_quat = state::imu::Quaternion{
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[0]) |
-            (std::to_integer<int16_t>(MOCK_DATA[1]) << 8)) *
-            QUAT_SCALE,
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[2]) |
-            (std::to_integer<int16_t>(MOCK_DATA[3]) << 8)) *
-            QUAT_SCALE,
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[4]) |
-            (std::to_integer<int16_t>(MOCK_DATA[5]) << 8)) *
-            QUAT_SCALE,
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[6]) |
-            (std::to_integer<int16_t>(MOCK_DATA[7]) << 8)) *
-            QUAT_SCALE};
-
-    EXPECT_CALL(*gpio, read_block_data(QUAT_ADDR, _, _))
-        .Times(1)
-        .WillOnce(DoAll(
-            testing::SetArrayArgument<1>(MOCK_DATA, MOCK_DATA + 8),
-            Return(tl::expected<void, interface::I2cError>{})));
-
-    auto bno055_model = imu::Bno055Model{std::move(gpio)};
-    const auto result = bno055_model.get_quat();
-
-    ASSERT_TRUE(result);
-    EXPECT_EQ(result.value().x, expected_quat.x);
-    EXPECT_EQ(result.value().y, expected_quat.y);
-    EXPECT_EQ(result.value().z, expected_quat.z);
-    EXPECT_EQ(result.value().w, expected_quat.w);
-}
-
-TEST(Bno055ModelGetQuatTest, fail_on_get_quaternion) {
-    auto gpio = std::make_unique<mock::I2c>();
-
-    EXPECT_CALL(*gpio, read_block_data(QUAT_ADDR, _, _))
-        .Times(1)
-        .WillOnce(Return(tl::make_unexpected(interface::I2cError::ReadFailed)));
-
-    auto bno055_model = imu::Bno055Model(std::move(gpio));
-    auto result = bno055_model.get_quat();
+    auto result = bno055_model.read_measurements();
 
     ASSERT_FALSE(result);
 }

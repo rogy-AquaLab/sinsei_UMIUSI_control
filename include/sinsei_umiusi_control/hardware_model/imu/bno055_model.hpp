@@ -108,25 +108,6 @@ class Bno055Model {
 
     enum class VectorType { Accelerometer, Magnetometer, Gyroscope, Euler, LinearAccel, Gravity };
 
-    constexpr auto get_address(VectorType type) -> interface::I2c::Addr {
-        switch (type) {
-            case VectorType::Accelerometer:
-                return ACCEL_DATA_X_LSB_ADDR;
-            case VectorType::Magnetometer:
-                return MAG_DATA_X_LSB_ADDR;
-            case VectorType::Gyroscope:
-                return GYRO_DATA_X_LSB_ADDR;
-            case VectorType::Euler:
-                return EULER_DATA_H_LSB_ADDR;
-            case VectorType::LinearAccel:
-                return LINEAR_ACCEL_DATA_X_LSB_ADDR;
-            case VectorType::Gravity:
-                return GRAVITY_DATA_X_LSB_ADDR;
-            default:
-                return 0;  // unreachable
-        }
-    }
-
     constexpr auto get_scale(VectorType type) -> double {
         switch (type) {
             case VectorType::Magnetometer:  // 1uT = 16 LSB
@@ -144,24 +125,21 @@ class Bno055Model {
         }
     }
 
-    using Vector3 = std::tuple<double, double, double>;
-
-    auto get_vector(VectorType type) -> tl::expected<Vector3, std::string>;
-
   public:
     Bno055Model(std::unique_ptr<interface::I2c> i2c);
+
+    struct Measurements {
+        state::imu::Quaternion quaternion;
+        state::imu::Acceleration acceleration;
+        state::imu::AngularVelocity angular_velocity;
+        state::imu::Temperature temperature;
+    };
 
     auto begin() -> tl::expected<void, std::string>;
 
     auto close() -> tl::expected<void, std::string>;
 
-    auto get_temp() -> tl::expected<state::imu::Temperature, std::string>;
-
-    auto get_quat() -> tl::expected<state::imu::Quaternion, std::string>;
-
-    auto get_acceleration() -> tl::expected<state::imu::Acceleration, std::string>;
-
-    auto get_angular_velocity() -> tl::expected<state::imu::AngularVelocity, std::string>;
+    auto read_measurements() -> tl::expected<Measurements, std::string>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::imu

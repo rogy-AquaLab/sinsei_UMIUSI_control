@@ -1,5 +1,6 @@
 #include "sinsei_umiusi_control/hardware_model/imu/bno055_model.hpp"
 
+#include <array>
 #include <chrono>
 #include <rclcpp/rclcpp.hpp>
 
@@ -111,19 +112,6 @@ auto imu::Bno055Model::begin() -> tl::expected<void, std::string> {
     return {};
 }
 
-auto imu::Bno055Model::get_temp() -> tl::expected<state::imu::Temperature, std::string> {
-    const auto res =
-        this->i2c->read_byte_data(TEMP_ADDR).map_error(interface::i2c_error_to_string);
-    if (!res) {
-        return tl::make_unexpected("I2C read error: " + res.error());
-    }
-    const auto temp_raw = res.value();
-    // 取得した温度が「正しい温度 ± 128」となっている場合があるため補正する
-    const auto fixed_temp = temp_raw & std::byte{0x7F};
-
-    return state::imu::Temperature{static_cast<int8_t>(fixed_temp)};
-}
-
 auto imu::Bno055Model::close() -> tl::expected<void, std::string> {
     auto res = this->i2c->close().map_error(interface::i2c_error_to_string);
     if (!res) {
@@ -132,66 +120,55 @@ auto imu::Bno055Model::close() -> tl::expected<void, std::string> {
     return {};
 }
 
-// ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.cpp#L401
-auto imu::Bno055Model::get_vector(VectorType type) -> tl::expected<Vector3, std::string> {
-    const auto addr = this->get_address(type);
-    auto buffer = std::array<std::byte, 6>{};
+auto imu::Bno055Model::read_measurements() -> tl::expected<Measurements, std::string> {
+    static constexpr auto FRAME_START = GYRO_DATA_X_LSB_ADDR;
+    static constexpr size_t FRAME_LENGTH = TEMP_ADDR - FRAME_START + 1;
 
-    auto res = this->i2c->read_block_data(addr, buffer.data(), buffer.size())
-                   .map_error(interface::i2c_error_to_string);
+    static constexpr size_t OFFSET_GYRO = 0;
+    static constexpr size_t OFFSET_QUAT = QUATERNION_DATA_W_LSB_ADDR - FRAME_START;
+    static constexpr size_t OFFSET_LINEAR_ACCEL = LINEAR_ACCEL_DATA_X_LSB_ADDR - FRAME_START;
+    static constexpr size_t OFFSET_TEMP = TEMP_ADDR - FRAME_START;
+
+    auto address_buffer =
+        std::array<std::byte, 1>{std::byte{static_cast<uint8_t>(FRAME_START & 0xFF)}};
+    auto read_buffer = std::array<std::byte, FRAME_LENGTH>{};
+
+    const std::vector<interface::I2cMessage> messages = {
+        {interface::I2cDirection::Write, address_buffer.data(), address_buffer.size()},
+        {interface::I2cDirection::Read, read_buffer.data(), read_buffer.size()}};
+
+    auto res = this->i2c->transfer(messages).map_error(interface::i2c_error_to_string);
     if (!res) {
-        return tl::make_unexpected("I2C read error: " + res.error());
+        return tl::make_unexpected("I2C transfer error: " + res.error());
     }
 
-    const auto x_raw = to_s16(buffer[0], buffer[1]);
-    const auto y_raw = to_s16(buffer[2], buffer[3]);
-    const auto z_raw = to_s16(buffer[4], buffer[5]);
+    const auto read_s16 = [&read_buffer](size_t offset) -> int16_t {
+        return to_s16(read_buffer[offset], read_buffer[offset + 1]);
+    };
 
-    const auto scale = this->get_scale(type);
-    return Vector3{
-        static_cast<double>(x_raw) * scale, static_cast<double>(y_raw) * scale,
-        static_cast<double>(z_raw) * scale};
-}
+    const auto gyro_scale = this->get_scale(VectorType::Gyroscope);
+    const auto angular_velocity = state::imu::AngularVelocity{
+        static_cast<double>(read_s16(OFFSET_GYRO + 0)) * gyro_scale,
+        static_cast<double>(read_s16(OFFSET_GYRO + 2)) * gyro_scale,
+        static_cast<double>(read_s16(OFFSET_GYRO + 4)) * gyro_scale};
 
-// ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.cpp#L466
-auto imu::Bno055Model::get_quat() -> tl::expected<state::imu::Quaternion, std::string> {
-    auto buffer = std::array<std::byte, 8>{};
+    constexpr double QUAT_SCALE = 1.0 / (1 << 14);
+    const auto quaternion = state::imu::Quaternion{
+        static_cast<double>(read_s16(OFFSET_QUAT + 0)) * QUAT_SCALE,
+        static_cast<double>(read_s16(OFFSET_QUAT + 2)) * QUAT_SCALE,
+        static_cast<double>(read_s16(OFFSET_QUAT + 4)) * QUAT_SCALE,
+        static_cast<double>(read_s16(OFFSET_QUAT + 6)) * QUAT_SCALE};
 
-    auto res =
-        this->i2c->read_block_data(QUATERNION_DATA_W_LSB_ADDR, buffer.data(), buffer.size())
-            .map_error(interface::i2c_error_to_string);
-    if (!res) {
-        return tl::make_unexpected("I2C read error: " + res.error());
-    }
+    const auto accel_scale = this->get_scale(VectorType::LinearAccel);
+    const auto acceleration = state::imu::Acceleration{
+        static_cast<double>(read_s16(OFFSET_LINEAR_ACCEL + 0)) * accel_scale,
+        static_cast<double>(read_s16(OFFSET_LINEAR_ACCEL + 2)) * accel_scale,
+        static_cast<double>(read_s16(OFFSET_LINEAR_ACCEL + 4)) * accel_scale};
 
-    const int16_t w_raw = to_s16(buffer[0], buffer[1]);
-    const int16_t x_raw = to_s16(buffer[2], buffer[3]);
-    const int16_t y_raw = to_s16(buffer[4], buffer[5]);
-    const int16_t z_raw = to_s16(buffer[6], buffer[7]);
+    const auto temp_raw = read_buffer[OFFSET_TEMP];
+    // 取得した温度が「正しい温度 ± 128」となっている場合があるため補正する
+    const auto fixed_temp = temp_raw & std::byte{0x7F};
+    const auto temperature = state::imu::Temperature{static_cast<int8_t>(fixed_temp)};
 
-    constexpr double SCALE = 1.0 / (1 << 14);
-
-    return state::imu::Quaternion{
-        static_cast<double>(w_raw) * SCALE, static_cast<double>(x_raw) * SCALE,
-        static_cast<double>(y_raw) * SCALE, static_cast<double>(z_raw) * SCALE};
-}
-
-auto imu::Bno055Model::get_acceleration() -> tl::expected<state::imu::Acceleration, std::string> {
-    // BNO055内で重力加速度を除いてある線形加速度を使用
-    const auto res = this->get_vector(VectorType::LinearAccel);
-    if (!res) {
-        return tl::make_unexpected(res.error());
-    }
-    const auto [x, y, z] = res.value();
-    return state::imu::Acceleration{x, y, z};
-}
-
-auto imu::Bno055Model::get_angular_velocity()
-    -> tl::expected<state::imu::AngularVelocity, std::string> {
-    const auto res = this->get_vector(VectorType::Gyroscope);
-    if (!res) {
-        return tl::make_unexpected(res.error());
-    }
-    const auto [x, y, z] = res.value();
-    return state::imu::AngularVelocity{x, y, z};
+    return Measurements{quaternion, acceleration, angular_velocity, temperature};
 }
