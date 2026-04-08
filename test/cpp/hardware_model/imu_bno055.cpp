@@ -9,9 +9,8 @@
 #include <string>
 
 #include "mock/i2c.hpp"
-#include "sinsei_umiusi_control/hardware_model/imu/bno055_model.hpp"
+#include "sinsei_umiusi_control/hardware_model/imu_model.hpp"
 #include "sinsei_umiusi_control/hardware_model/interface/i2c.hpp"
-#include "sinsei_umiusi_control/state/imu.hpp"
 
 using namespace sinsei_umiusi_control::hardware_model;
 
@@ -25,39 +24,38 @@ constexpr auto _ = ::testing::_;
 
 }
 
-namespace sinsei_umiusi_control::test::hardware_model::bno055 {
+namespace sinsei_umiusi_control::test::hardware_model::imu_bno055 {
 
-static constexpr auto ADDRESS = ::sinsei_umiusi_control::hardware_model::imu::Bno055Model::ADDRESS;
-static constexpr auto ID = ::sinsei_umiusi_control::hardware_model::imu::Bno055Model::ID;
+static constexpr auto ADDRESS = ::sinsei_umiusi_control::hardware_model::ImuModel::ADDRESS;
+static constexpr auto ID = ::sinsei_umiusi_control::hardware_model::ImuModel::ID;
 static constexpr auto CHIP_ID_ADDR =
-    ::sinsei_umiusi_control::hardware_model::imu::Bno055Model::CHIP_ID_ADDR;
+    ::sinsei_umiusi_control::hardware_model::ImuModel::CHIP_ID_ADDR;
 static constexpr auto OPR_MODE_ADDR =
-    ::sinsei_umiusi_control::hardware_model::imu::Bno055Model::OPR_MODE_ADDR;
+    ::sinsei_umiusi_control::hardware_model::ImuModel::OPR_MODE_ADDR;
 static constexpr auto SYS_TRIGGER_ADDR =
-    ::sinsei_umiusi_control::hardware_model::imu::Bno055Model::SYS_TRIGGER_ADDR;
+    ::sinsei_umiusi_control::hardware_model::ImuModel::SYS_TRIGGER_ADDR;
 static constexpr auto PWR_MODE_ADDR =
-    ::sinsei_umiusi_control::hardware_model::imu::Bno055Model::PWR_MODE_ADDR;
+    ::sinsei_umiusi_control::hardware_model::ImuModel::PWR_MODE_ADDR;
 static constexpr auto PAGE_ID_ADDR =
-    ::sinsei_umiusi_control::hardware_model::imu::Bno055Model::PAGE_ID_ADDR;
+    ::sinsei_umiusi_control::hardware_model::ImuModel::PAGE_ID_ADDR;
 static constexpr auto OPERATION_MODE_CONFIG =
-    ::sinsei_umiusi_control::hardware_model::imu::Bno055Model::OPERATION_MODE_CONFIG;
+    ::sinsei_umiusi_control::hardware_model::ImuModel::OPERATION_MODE_CONFIG;
 static constexpr auto OPERATION_MODE_NDOF =
-    ::sinsei_umiusi_control::hardware_model::imu::Bno055Model::OPERATION_MODE_NDOF;
+    ::sinsei_umiusi_control::hardware_model::ImuModel::OPERATION_MODE_NDOF;
 static constexpr auto POWER_MODE_NORMAL =
-    ::sinsei_umiusi_control::hardware_model::imu::Bno055Model::POWER_MODE_NORMAL;
+    ::sinsei_umiusi_control::hardware_model::ImuModel::POWER_MODE_NORMAL;
 static constexpr auto ACCEL_ADDR =
-    ::sinsei_umiusi_control::hardware_model::imu::Bno055Model::LINEAR_ACCEL_DATA_X_LSB_ADDR;
+    ::sinsei_umiusi_control::hardware_model::ImuModel::LINEAR_ACCEL_DATA_X_LSB_ADDR;
 static constexpr auto ANGVEL_ADDR =
-    ::sinsei_umiusi_control::hardware_model::imu::Bno055Model::GYRO_DATA_X_LSB_ADDR;
-static constexpr auto TEMP_ADDR =
-    ::sinsei_umiusi_control::hardware_model::imu::Bno055Model::TEMP_ADDR;
+    ::sinsei_umiusi_control::hardware_model::ImuModel::GYRO_DATA_X_LSB_ADDR;
+static constexpr auto TEMP_ADDR = ::sinsei_umiusi_control::hardware_model::ImuModel::TEMP_ADDR;
 static constexpr auto QUAT_ADDR =
-    ::sinsei_umiusi_control::hardware_model::imu::Bno055Model::QUATERNION_DATA_W_LSB_ADDR;
+    ::sinsei_umiusi_control::hardware_model::ImuModel::QUATERNION_DATA_W_LSB_ADDR;
 static constexpr auto ACCEL_SCALE = 1.0 / 100.0;
 static constexpr auto ANGVEL_SCALE = 1.0 / 16.0;
 static constexpr auto QUAT_SCALE = 1.0 / (1 << 14);
 
-TEST(Bno055ModelBeginTest, success) {
+TEST(ImuModelBeginTest, success) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
     auto gpio = std::make_unique<mock::I2c>();
@@ -98,13 +96,13 @@ TEST(Bno055ModelBeginTest, success) {
         .Times(1)
         .WillOnce(Return(tl::expected<void, interface::I2cError>{}));
 
-    auto bno055_model = imu::Bno055Model(std::move(gpio));
-    auto result = bno055_model.begin();
+    auto imu_model = ImuModel(std::move(gpio));
+    auto result = imu_model.on_init();
 
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
 
-TEST(Bno055ModelBeginTest, fail_on_open) {
+TEST(ImuModelBeginTest, fail_on_open) {
     auto gpio = std::make_unique<mock::I2c>();
 
     // Activate I2C bus -> FAIL!
@@ -112,13 +110,13 @@ TEST(Bno055ModelBeginTest, fail_on_open) {
         .Times(AtLeast(1))
         .WillRepeatedly(Return(tl::make_unexpected(interface::I2cError::OpenFailed)));
 
-    auto bno055_model = imu::Bno055Model(std::move(gpio));
-    auto result = bno055_model.begin();
+    auto imu_model = ImuModel(std::move(gpio));
+    auto result = imu_model.on_init();
 
     ASSERT_FALSE(result);
 }
 
-TEST(Bno055ModelBeginTest, fail_on_read_chip_id) {
+TEST(ImuModelBeginTest, fail_on_read_chip_id) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
     auto gpio = std::make_unique<mock::I2c>();
@@ -131,13 +129,13 @@ TEST(Bno055ModelBeginTest, fail_on_read_chip_id) {
         .Times(AtLeast(1))
         .WillOnce(Return(tl::make_unexpected(interface::I2cError::ReadFailed)));
 
-    auto bno055_model = imu::Bno055Model(std::move(gpio));
-    auto result = bno055_model.begin();
+    auto imu_model = ImuModel(std::move(gpio));
+    auto result = imu_model.on_init();
 
     ASSERT_FALSE(result);
 }
 
-TEST(Bno055ModelBeginTest, fail_on_wrong_chip_id) {
+TEST(ImuModelBeginTest, fail_on_wrong_chip_id) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
     auto gpio = std::make_unique<mock::I2c>();
@@ -151,13 +149,13 @@ TEST(Bno055ModelBeginTest, fail_on_wrong_chip_id) {
         .Times(AtLeast(1))
         .WillOnce(Return(tl::expected<std::byte, interface::I2cError>(std::byte{ID + 1})));
 
-    auto bno055_model = imu::Bno055Model(std::move(gpio));
-    auto result = bno055_model.begin();
+    auto imu_model = ImuModel(std::move(gpio));
+    auto result = imu_model.on_init();
 
     ASSERT_FALSE(result);
 }
 
-TEST(Bno055ModelBeginTest, fail_on_set_opr_mode_config) {
+TEST(ImuModelBeginTest, fail_on_set_opr_mode_config) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
     auto gpio = std::make_unique<mock::I2c>();
@@ -175,13 +173,13 @@ TEST(Bno055ModelBeginTest, fail_on_set_opr_mode_config) {
         .Times(1)
         .WillOnce(Return(tl::make_unexpected(interface::I2cError::WriteFailed)));
 
-    auto bno055_model = imu::Bno055Model(std::move(gpio));
-    auto result = bno055_model.begin();
+    auto imu_model = ImuModel(std::move(gpio));
+    auto result = imu_model.on_init();
 
     ASSERT_FALSE(result);
 }
 
-TEST(Bno055ModelBeginTest, fail_on_trigger_reset) {
+TEST(ImuModelBeginTest, fail_on_trigger_reset) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
     auto gpio = std::make_unique<mock::I2c>();
@@ -203,13 +201,13 @@ TEST(Bno055ModelBeginTest, fail_on_trigger_reset) {
         .Times(1)
         .WillOnce(Return(tl::make_unexpected(interface::I2cError::WriteFailed)));
 
-    auto bno055_model = imu::Bno055Model(std::move(gpio));
-    auto result = bno055_model.begin();
+    auto imu_model = ImuModel(std::move(gpio));
+    auto result = imu_model.on_init();
 
     ASSERT_FALSE(result);
 }
 
-TEST(Bno055ModelBeginTest, fail_on_wait_for_reboot) {
+TEST(ImuModelBeginTest, fail_on_wait_for_reboot) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
     auto gpio = std::make_unique<mock::I2c>();
@@ -235,13 +233,13 @@ TEST(Bno055ModelBeginTest, fail_on_wait_for_reboot) {
         .Times(AtLeast(1))
         .WillRepeatedly(Return(tl::expected<std::byte, interface::I2cError>(std::byte{ID + 1})));
 
-    auto bno055_model = imu::Bno055Model(std::move(gpio));
-    auto result = bno055_model.begin();
+    auto imu_model = ImuModel(std::move(gpio));
+    auto result = imu_model.on_init();
 
     ASSERT_FALSE(result);
 }
 
-TEST(Bno055ModelBeginTest, fail_on_set_power_mode_normal) {
+TEST(ImuModelBeginTest, fail_on_set_power_mode_normal) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
     auto gpio = std::make_unique<mock::I2c>();
@@ -270,13 +268,13 @@ TEST(Bno055ModelBeginTest, fail_on_set_power_mode_normal) {
         .Times(1)
         .WillOnce(Return(tl::make_unexpected(interface::I2cError::WriteFailed)));
 
-    auto bno055_model = imu::Bno055Model(std::move(gpio));
-    auto result = bno055_model.begin();
+    auto imu_model = ImuModel(std::move(gpio));
+    auto result = imu_model.on_init();
 
     ASSERT_FALSE(result);
 }
 
-TEST(Bno055ModelBeginTest, fail_on_set_page_id) {
+TEST(ImuModelBeginTest, fail_on_set_page_id) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
     auto gpio = std::make_unique<mock::I2c>();
@@ -309,13 +307,13 @@ TEST(Bno055ModelBeginTest, fail_on_set_page_id) {
         .Times(1)
         .WillOnce(Return(tl::make_unexpected(interface::I2cError::WriteFailed)));
 
-    auto bno055_model = imu::Bno055Model(std::move(gpio));
-    auto result = bno055_model.begin();
+    auto imu_model = ImuModel(std::move(gpio));
+    auto result = imu_model.on_init();
 
     ASSERT_FALSE(result);
 }
 
-TEST(Bno055ModelBeginTest, fail_on_clear_sys_trigger) {
+TEST(ImuModelBeginTest, fail_on_clear_sys_trigger) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
     auto gpio = std::make_unique<mock::I2c>();
@@ -352,13 +350,13 @@ TEST(Bno055ModelBeginTest, fail_on_clear_sys_trigger) {
         .Times(1)
         .WillOnce(Return(tl::make_unexpected(interface::I2cError::WriteFailed)));
 
-    auto bno055_model = imu::Bno055Model(std::move(gpio));
-    auto result = bno055_model.begin();
+    auto imu_model = ImuModel(std::move(gpio));
+    auto result = imu_model.on_init();
 
     ASSERT_FALSE(result);
 }
 
-TEST(Bno055ModelBeginTest, fail_on_set_opr_mode_ndof) {
+TEST(ImuModelBeginTest, fail_on_set_opr_mode_ndof) {
     auto _ = InSequence{};  // Ensure calls are made in the expected order
 
     auto gpio = std::make_unique<mock::I2c>();
@@ -399,13 +397,13 @@ TEST(Bno055ModelBeginTest, fail_on_set_opr_mode_ndof) {
         .Times(1)
         .WillOnce(Return(tl::make_unexpected(interface::I2cError::WriteFailed)));
 
-    auto bno055_model = imu::Bno055Model(std::move(gpio));
-    auto result = bno055_model.begin();
+    auto imu_model = ImuModel(std::move(gpio));
+    auto result = imu_model.on_init();
 
     ASSERT_FALSE(result);
 }
 
-TEST(Bno055ModelReadMeasurementsTest, success) {
+TEST(ImuModelReadMeasurementsTest, success) {
     auto gpio = std::make_unique<mock::I2c>();
 
     static constexpr size_t FRAME_LENGTH = TEMP_ADDR - ANGVEL_ADDR + 1;
@@ -459,44 +457,41 @@ TEST(Bno055ModelReadMeasurementsTest, success) {
             return tl::expected<void, interface::I2cError>{};
         }));
 
-    auto bno055_model = imu::Bno055Model{std::move(gpio)};
-    const auto result = bno055_model.read_measurements();
+    auto imu_model = ImuModel{std::move(gpio)};
+    const auto result = imu_model.on_read();
 
     ASSERT_TRUE(result);
-    const auto measurements = result.value();
+    const auto [quaternion, acceleration, angular_velocity, temperature] = result.value();
 
-    EXPECT_DOUBLE_EQ(
-        measurements.angular_velocity.x, static_cast<double>(GYRO_X_RAW) * ANGVEL_SCALE);
-    EXPECT_DOUBLE_EQ(
-        measurements.angular_velocity.y, static_cast<double>(GYRO_Y_RAW) * ANGVEL_SCALE);
-    EXPECT_DOUBLE_EQ(
-        measurements.angular_velocity.z, static_cast<double>(GYRO_Z_RAW) * ANGVEL_SCALE);
+    EXPECT_DOUBLE_EQ(angular_velocity.x, static_cast<double>(GYRO_X_RAW) * ANGVEL_SCALE);
+    EXPECT_DOUBLE_EQ(angular_velocity.y, static_cast<double>(GYRO_Y_RAW) * ANGVEL_SCALE);
+    EXPECT_DOUBLE_EQ(angular_velocity.z, static_cast<double>(GYRO_Z_RAW) * ANGVEL_SCALE);
 
-    EXPECT_DOUBLE_EQ(measurements.quaternion.x, static_cast<double>(QUAT_W_RAW) * QUAT_SCALE);
-    EXPECT_DOUBLE_EQ(measurements.quaternion.y, static_cast<double>(QUAT_X_RAW) * QUAT_SCALE);
-    EXPECT_DOUBLE_EQ(measurements.quaternion.z, static_cast<double>(QUAT_Y_RAW) * QUAT_SCALE);
-    EXPECT_DOUBLE_EQ(measurements.quaternion.w, static_cast<double>(QUAT_Z_RAW) * QUAT_SCALE);
+    EXPECT_DOUBLE_EQ(quaternion.x, static_cast<double>(QUAT_W_RAW) * QUAT_SCALE);
+    EXPECT_DOUBLE_EQ(quaternion.y, static_cast<double>(QUAT_X_RAW) * QUAT_SCALE);
+    EXPECT_DOUBLE_EQ(quaternion.z, static_cast<double>(QUAT_Y_RAW) * QUAT_SCALE);
+    EXPECT_DOUBLE_EQ(quaternion.w, static_cast<double>(QUAT_Z_RAW) * QUAT_SCALE);
 
-    EXPECT_DOUBLE_EQ(measurements.acceleration.x, static_cast<double>(ACCEL_X_RAW) * ACCEL_SCALE);
-    EXPECT_DOUBLE_EQ(measurements.acceleration.y, static_cast<double>(ACCEL_Y_RAW) * ACCEL_SCALE);
-    EXPECT_DOUBLE_EQ(measurements.acceleration.z, static_cast<double>(ACCEL_Z_RAW) * ACCEL_SCALE);
+    EXPECT_DOUBLE_EQ(acceleration.x, static_cast<double>(ACCEL_X_RAW) * ACCEL_SCALE);
+    EXPECT_DOUBLE_EQ(acceleration.y, static_cast<double>(ACCEL_Y_RAW) * ACCEL_SCALE);
+    EXPECT_DOUBLE_EQ(acceleration.z, static_cast<double>(ACCEL_Z_RAW) * ACCEL_SCALE);
 
     const auto expected_temp =
         static_cast<int8_t>(std::to_integer<uint8_t>(TEMP_RAW & std::byte{0x7F}));
-    EXPECT_EQ(measurements.temperature.value, expected_temp);
+    EXPECT_EQ(temperature.value, expected_temp);
 }
 
-TEST(Bno055ModelReadMeasurementsTest, fail_on_transfer) {
+TEST(ImuModelReadMeasurementsTest, fail_on_transfer) {
     auto gpio = std::make_unique<mock::I2c>();
 
     EXPECT_CALL(*gpio, transfer(_))
         .Times(1)
         .WillOnce(Return(tl::make_unexpected(interface::I2cError::ReadFailed)));
 
-    auto bno055_model = imu::Bno055Model(std::move(gpio));
-    auto result = bno055_model.read_measurements();
+    auto imu_model = ImuModel(std::move(gpio));
+    auto result = imu_model.on_read();
 
     ASSERT_FALSE(result);
 }
 
-}  // namespace sinsei_umiusi_control::test::hardware_model::bno055
+}  // namespace sinsei_umiusi_control::test::hardware_model::imu_bno055

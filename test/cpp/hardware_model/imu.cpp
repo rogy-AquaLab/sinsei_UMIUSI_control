@@ -56,9 +56,9 @@ TEST(ImuModelTest, OnReadSuccess) {
     auto mock_i2c = std::make_unique<sinsei_umiusi_control::test::mock::I2c>();
 
     static constexpr auto START_ADDR =
-        sinsei_umiusi_control::hardware_model::imu::Bno055Model::GYRO_DATA_X_LSB_ADDR;
+        sinsei_umiusi_control::hardware_model::ImuModel::GYRO_DATA_X_LSB_ADDR;
     static constexpr auto END_ADDR =
-        sinsei_umiusi_control::hardware_model::imu::Bno055Model::TEMP_ADDR;
+        sinsei_umiusi_control::hardware_model::ImuModel::TEMP_ADDR;
     static constexpr size_t FRAME_LENGTH = END_ADDR - START_ADDR + 1;
 
     auto mock_data = std::array<std::byte, FRAME_LENGTH>{};
@@ -68,10 +68,10 @@ TEST(ImuModelTest, OnReadSuccess) {
         mock_data[offset + 1] = std::byte{static_cast<uint8_t>((raw >> 8) & 0xFF)};
     };
     const auto offset_quat = static_cast<size_t>(
-        sinsei_umiusi_control::hardware_model::imu::Bno055Model::QUATERNION_DATA_W_LSB_ADDR -
+        sinsei_umiusi_control::hardware_model::ImuModel::QUATERNION_DATA_W_LSB_ADDR -
         START_ADDR);
     const auto offset_linear_accel = static_cast<size_t>(
-        sinsei_umiusi_control::hardware_model::imu::Bno055Model::LINEAR_ACCEL_DATA_X_LSB_ADDR -
+        sinsei_umiusi_control::hardware_model::ImuModel::LINEAR_ACCEL_DATA_X_LSB_ADDR -
         START_ADDR);
     const auto offset_temp = static_cast<size_t>(END_ADDR - START_ADDR);
 
@@ -110,7 +110,7 @@ TEST(ImuModelTest, OnReadSuccess) {
     const auto res = imu_model.on_read();
 
     ASSERT_TRUE(res);
-    // NOTE: 値の中身については`imu/bno055_model.cpp`のテストケースで確認
+    // NOTE: 値の中身については`imu_bno055.cpp`のテストケースで確認
 }
 
 TEST(ImuModelTest, OnDestroySuccess) {
