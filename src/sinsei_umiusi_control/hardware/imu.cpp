@@ -1,7 +1,10 @@
 #include "sinsei_umiusi_control/hardware/imu.hpp"
 
-#include "sinsei_umiusi_control/hardware_model/impl/mock_i2c.hpp"
+#include <memory>
+
+#include "sinsei_umiusi_control/hardware_model/impl/linux_i2c.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
+#include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
 using namespace sinsei_umiusi_control::hardware;
@@ -25,7 +28,15 @@ auto Imu::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SensorInterface::on_init(params);
 
-    this->model.emplace(std::make_unique<sinsei_umiusi_control::hardware_model::impl::MockI2c>());
+    const auto device_path =
+        util::find_param(params.hardware_info.hardware_parameters, "i2c_device");
+    if (!device_path) {
+        RCLCPP_ERROR(
+            this->get_logger(), "Parameter 'i2c_device' not found in hardware parameters.");
+        return hardware_interface::CallbackReturn::ERROR;
+    }
+
+    this->model.emplace(std::make_unique<hardware_model::impl::LinuxI2c>(device_path.value()));
 
     auto res = this->model->on_init();
     if (!res) {

@@ -41,6 +41,7 @@
       vesc3_id
       vesc4_id
       period_led_tape_per_thrusters
+      imu_i2c_device
       mock
     ">
 
@@ -90,7 +91,7 @@
         servo4_max_pulse_width="${servo_direct4_max_pulse_width}"
       />
     </xacro:if>
-    <xacro:imu />
+    <xacro:imu i2c_device="${imu_i2c_device}" />
     <xacro:headlights
       high_beam_pin="${high_beam_pin}"
       low_beam_pin="${low_beam_pin}"

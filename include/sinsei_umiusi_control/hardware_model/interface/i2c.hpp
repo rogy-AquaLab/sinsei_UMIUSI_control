@@ -8,61 +8,56 @@
 
 namespace sinsei_umiusi_control::hardware_model::interface {
 
-enum class I2cError {
-    NotOpen,
-    BadBus,
-    BadAddress,
-    OpenFailed,
-    WriteFailed,
-    ReadFailed,
-    UnknownError,
+// 意味が異なるのに型が似ている概念が多いためNewTypeを定義して区別する
+struct I2cDeviceAddr {
+    uint16_t value;
+};
+struct I2cRegisterAddr {
+    std::byte value;
 };
 
 enum class I2cDirection { Read, Write };
 
-struct I2cMessage {
-    I2cDirection direction;
+struct I2cBufferView {
     std::byte * data;
     size_t length;
 };
 
-inline auto i2c_error_to_string(const I2cError & error) -> std::string {
-    switch (error) {
-        case I2cError::NotOpen:
-            return "I2C not open";
-        case I2cError::BadBus:
-            return "I2C bad bus";
-        case I2cError::BadAddress:
-            return "I2C bad address";
-        case I2cError::OpenFailed:
-            return "I2C open failed";
-        case I2cError::WriteFailed:
-            return "I2C write failed";
-        case I2cError::ReadFailed:
-            return "I2C read failed";
-        default:
-            return "Unknown error";
-    }
-}
+struct I2cMessage {
+    using Flags = uint16_t;
+
+    I2cDeviceAddr address;
+    I2cDirection direction;
+    I2cBufferView buffer;
+    Flags flags;
+};
 
 class I2c {
   public:
-    using Addr = uint32_t;
-    using Error = I2cError;
-
     I2c() = default;
     virtual ~I2c() = default;
 
-    virtual auto open(const Addr & address) -> tl::expected<void, Error> = 0;
-    virtual auto close() -> tl::expected<void, Error> = 0;
-    virtual auto write_byte(std::byte && value) -> tl::expected<void, Error> = 0;
-    virtual auto read_byte() const -> tl::expected<std::byte, Error> = 0;
-    virtual auto write_byte_data(const Addr & reg, std::byte && value)
-        -> tl::expected<void, Error> = 0;
-    virtual auto read_byte_data(const Addr & reg) const -> tl::expected<std::byte, Error> = 0;
-    virtual auto read_block_data(const Addr & reg, std::byte * buffer, const size_t length) const
-        -> tl::expected<void, Error> = 0;
-    virtual auto transfer(const std::vector<I2cMessage> & msgs) -> tl::expected<void, Error> = 0;
+    virtual auto open() -> tl::expected<void, std::string> = 0;
+    virtual auto close() -> tl::expected<void, std::string> = 0;
+
+    virtual auto transfer(const I2cMessage * msgs, std::size_t size)
+        -> tl::expected<void, std::string> = 0;
+
+    auto write_reg(I2cDeviceAddr addr, I2cRegisterAddr reg, std::byte value)
+        -> tl::expected<void, std::string> {
+        std::byte data[] = {reg.value, value};
+        I2cMessage msg{addr, I2cDirection::Write, {data, 2}, 0};
+        return transfer(&msg, 1);
+    }
+
+    auto read_reg(I2cDeviceAddr addr, I2cRegisterAddr reg, I2cBufferView buffer)
+        -> tl::expected<void, std::string> {
+        std::byte reg_addr[] = {reg.value};
+        I2cMessage msgs[2] = {
+            {addr, I2cDirection::Write, {reinterpret_cast<std::byte *>(reg_addr), 1}, 0},
+            {addr, I2cDirection::Read, buffer, 0}};
+        return transfer(msgs, 2);
+    }
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::interface
