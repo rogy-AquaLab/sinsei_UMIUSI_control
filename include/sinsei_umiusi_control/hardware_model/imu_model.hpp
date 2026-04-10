@@ -22,10 +22,10 @@ class ImuModel {
     static constexpr uint8_t ID{0xA0};
 
     /* Page id register definition */
-    static constexpr interface::I2cRegisterAddr PAGE_ID_ADDR{std::byte{07}};
+    static constexpr interface::I2cRegisterAddr PAGE_ID_ADDR{std::byte{0x07}};
 
     /* PAGE0 REGISTER DEFINITION START*/
-    static constexpr interface::I2cRegisterAddr CHIP_ID_ADDR{std::byte{00}};
+    static constexpr interface::I2cRegisterAddr CHIP_ID_ADDR{std::byte{0x00}};
 
     /* Accel data registers */
     static constexpr interface::I2cRegisterAddr ACCEL_DATA_X_LSB_ADDR{std::byte{0x08}};
@@ -60,22 +60,22 @@ class ImuModel {
     static constexpr interface::I2cRegisterAddr EULER_DATA_P_MSB_ADDR{std::byte{0x1F}};
 
     /* Quaternion data registers */
-    static constexpr interface::I2cRegisterAddr QUATERNION_DATA_W_LSB_ADDR{std::byte{0x14}};
-    static constexpr interface::I2cRegisterAddr QUATERNION_DATA_W_MSB_ADDR{std::byte{0x15}};
-    static constexpr interface::I2cRegisterAddr QUATERNION_DATA_X_LSB_ADDR{std::byte{0x16}};
-    static constexpr interface::I2cRegisterAddr QUATERNION_DATA_X_MSB_ADDR{std::byte{0x17}};
-    static constexpr interface::I2cRegisterAddr QUATERNION_DATA_Y_LSB_ADDR{std::byte{0x18}};
-    static constexpr interface::I2cRegisterAddr QUATERNION_DATA_Y_MSB_ADDR{std::byte{0x19}};
-    static constexpr interface::I2cRegisterAddr QUATERNION_DATA_Z_LSB_ADDR{std::byte{0x1A}};
-    static constexpr interface::I2cRegisterAddr QUATERNION_DATA_Z_MSB_ADDR{std::byte{0x1B}};
+    static constexpr interface::I2cRegisterAddr QUATERNION_DATA_W_LSB_ADDR{std::byte{0x20}};
+    static constexpr interface::I2cRegisterAddr QUATERNION_DATA_W_MSB_ADDR{std::byte{0x21}};
+    static constexpr interface::I2cRegisterAddr QUATERNION_DATA_X_LSB_ADDR{std::byte{0x22}};
+    static constexpr interface::I2cRegisterAddr QUATERNION_DATA_X_MSB_ADDR{std::byte{0x23}};
+    static constexpr interface::I2cRegisterAddr QUATERNION_DATA_Y_LSB_ADDR{std::byte{0x24}};
+    static constexpr interface::I2cRegisterAddr QUATERNION_DATA_Y_MSB_ADDR{std::byte{0x25}};
+    static constexpr interface::I2cRegisterAddr QUATERNION_DATA_Z_LSB_ADDR{std::byte{0x26}};
+    static constexpr interface::I2cRegisterAddr QUATERNION_DATA_Z_MSB_ADDR{std::byte{0x27}};
 
     /* Linear acceleration data registers */
-    static constexpr interface::I2cRegisterAddr LINEAR_ACCEL_DATA_X_LSB_ADDR{std::byte{0x1C}};
-    static constexpr interface::I2cRegisterAddr LINEAR_ACCEL_DATA_X_MSB_ADDR{std::byte{0x1D}};
-    static constexpr interface::I2cRegisterAddr LINEAR_ACCEL_DATA_Y_LSB_ADDR{std::byte{0x1E}};
-    static constexpr interface::I2cRegisterAddr LINEAR_ACCEL_DATA_Y_MSB_ADDR{std::byte{0x1F}};
-    static constexpr interface::I2cRegisterAddr LINEAR_ACCEL_DATA_Z_LSB_ADDR{std::byte{0x20}};
-    static constexpr interface::I2cRegisterAddr LINEAR_ACCEL_DATA_Z_MSB_ADDR{std::byte{0x21}};
+    static constexpr interface::I2cRegisterAddr LINEAR_ACCEL_DATA_X_LSB_ADDR{std::byte{0x28}};
+    static constexpr interface::I2cRegisterAddr LINEAR_ACCEL_DATA_X_MSB_ADDR{std::byte{0x29}};
+    static constexpr interface::I2cRegisterAddr LINEAR_ACCEL_DATA_Y_LSB_ADDR{std::byte{0x2A}};
+    static constexpr interface::I2cRegisterAddr LINEAR_ACCEL_DATA_Y_MSB_ADDR{std::byte{0x2B}};
+    static constexpr interface::I2cRegisterAddr LINEAR_ACCEL_DATA_Z_LSB_ADDR{std::byte{0x2C}};
+    static constexpr interface::I2cRegisterAddr LINEAR_ACCEL_DATA_Z_MSB_ADDR{std::byte{0x2D}};
 
     /* Gravity data registers */
     static constexpr interface::I2cRegisterAddr GRAVITY_DATA_X_LSB_ADDR{std::byte{0x2E}};
@@ -86,7 +86,7 @@ class ImuModel {
     static constexpr interface::I2cRegisterAddr GRAVITY_DATA_Z_MSB_ADDR{std::byte{0x33}};
 
     /* Temperature data register */
-    static constexpr interface::I2cRegisterAddr TEMP_ADDR{std::byte{0x22}};
+    static constexpr interface::I2cRegisterAddr TEMP_ADDR{std::byte{0x34}};
 
     /* Mode registers */
     static constexpr interface::I2cRegisterAddr OPR_MODE_ADDR{std::byte{0x3D}};
