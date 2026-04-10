@@ -133,10 +133,8 @@ auto ImuModel::on_read() -> tl::expected<
         static_cast<double>(read_s16(OFFSET_LINEAR_ACCEL + 2)) * LINEAR_ACCEL_SCALE,
         static_cast<double>(read_s16(OFFSET_LINEAR_ACCEL + 4)) * LINEAR_ACCEL_SCALE};
 
-    const auto temp_raw = read_buffer[OFFSET_TEMP];
-    // 取得した温度が「正しい温度 ± 128」となっている場合があるため補正する
-    const auto fixed_temp = temp_raw & std::byte{0x7F};
-    const auto temperature = state::imu::Temperature{static_cast<int8_t>(fixed_temp)};
+    const auto temperature =
+        state::imu::Temperature{std::to_integer<int8_t>(read_buffer[OFFSET_TEMP])};
 
     return std::make_tuple(quaternion, acceleration, angular_velocity, temperature);
 }
