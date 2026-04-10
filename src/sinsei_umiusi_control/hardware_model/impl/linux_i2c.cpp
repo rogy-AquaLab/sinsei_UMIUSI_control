@@ -39,12 +39,12 @@ auto LinuxI2c::open() -> tl::expected<void, std::string> {
         return tl::make_unexpected("I2C bus is already open");
     }
 
-    this->fd = ::open(this->device_path.c_str(), O_RDWR);
-    if (!this->fd) {
-        this->fd.reset();
+    auto res = ::open(this->device_path.c_str(), O_RDWR);
+    if (res < 0) {
         return tl::make_unexpected(
             "Failed to open I2C device " + this->device_path + ": " + std::string(strerror(errno)));
     }
+    this->fd = res;
 
     return {};
 }
