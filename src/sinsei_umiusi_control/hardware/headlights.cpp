@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
+#include "sinsei_umiusi_control/hardware_model/impl/mock_gpio.hpp"
 #include "sinsei_umiusi_control/state/headlights.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
@@ -13,7 +13,7 @@ auto Headlights::on_init(const hardware_interface::HardwareComponentInterfacePar
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SystemInterface::on_init(params);
 
-    auto gpio = std::make_unique<hardware_model::impl::Pigpio>();
+    auto gpio = std::make_unique<sinsei_umiusi_control::hardware_model::impl::MockGpio>();
 
     // ピン番号をパラメーターから取得
     const auto high_beam_pin_num_str =

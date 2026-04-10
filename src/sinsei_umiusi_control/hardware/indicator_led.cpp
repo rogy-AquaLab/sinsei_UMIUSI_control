@@ -1,6 +1,6 @@
 #include "sinsei_umiusi_control/hardware/indicator_led.hpp"
 
-#include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
+#include "sinsei_umiusi_control/hardware_model/impl/mock_gpio.hpp"
 #include "sinsei_umiusi_control/state/indicator_led.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
@@ -11,7 +11,7 @@ auto IndicatorLed::on_init(const hardware_interface::HardwareComponentInterfaceP
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SystemInterface::on_init(params);
 
-    auto gpio = std::make_unique<sinsei_umiusi_control::hardware_model::impl::Pigpio>();
+    auto gpio = std::make_unique<sinsei_umiusi_control::hardware_model::impl::MockGpio>();
 
     // ピン番号をパラメーターから取得
     const auto led_pin_num_str = util::find_param(params.hardware_info.hardware_parameters, "pin");
