@@ -121,10 +121,11 @@ auto ImuModel::on_read() -> tl::expected<
 
     constexpr auto QUAT_SCALE = 1.0 / (1 << 14);
     const auto quaternion = state::imu::Quaternion{
-        static_cast<double>(read_s16(OFFSET_QUAT + 0)) * QUAT_SCALE,
-        static_cast<double>(read_s16(OFFSET_QUAT + 2)) * QUAT_SCALE,
-        static_cast<double>(read_s16(OFFSET_QUAT + 4)) * QUAT_SCALE,
-        static_cast<double>(read_s16(OFFSET_QUAT + 6)) * QUAT_SCALE};
+        static_cast<double>(read_s16(OFFSET_QUAT + 2)) * QUAT_SCALE,  // x
+        static_cast<double>(read_s16(OFFSET_QUAT + 4)) * QUAT_SCALE,  // y
+        static_cast<double>(read_s16(OFFSET_QUAT + 6)) * QUAT_SCALE,  // z
+        static_cast<double>(read_s16(OFFSET_QUAT + 0)) * QUAT_SCALE   // w
+    };
 
     const auto LINEAR_ACCEL_SCALE = 1.0 / 100.0;
     const auto acceleration = state::imu::Acceleration{
