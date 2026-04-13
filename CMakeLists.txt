@@ -103,9 +103,6 @@ if(BUILD_TESTING)
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/cpp>
   )
-  ament_auto_add_gmock(test_util
-    test/cpp/util.cpp
-  )
 endif()
 
 ament_auto_package(

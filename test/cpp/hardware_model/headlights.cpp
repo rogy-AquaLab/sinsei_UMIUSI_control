@@ -39,7 +39,7 @@ TEST(HeadlightsModelOnInitTest, all) {
 
     EXPECT_CALL(*gpio, set_mode_output(_))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
+        .WillOnce(Return(tl::expected<void, std::string>()));
 
     auto headlights_model =
         suchm::HeadlightsModel(std::move(gpio), HIGH_BEAM_PIN, LOW_BEAM_PIN, IR_PIN);
@@ -60,7 +60,7 @@ TEST_P(HeadlightsModelOnWriteTest, all) {
         case 1:  // High beam error
             EXPECT_CALL(*gpio, write_digital(HIGH_BEAM_PIN, std::move(high_beam_enabled)))
                 .Times(1)
-                .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::UnknownError)));
+                .WillOnce(Return(tl::make_unexpected(std::string("Unknown error"))));
             EXPECT_CALL(*gpio, write_digital(LOW_BEAM_PIN, std::move(low_beam_enabled))).Times(1);
             EXPECT_CALL(*gpio, write_digital(IR_PIN, std::move(ir_enabled))).Times(1);
             break;
@@ -68,14 +68,14 @@ TEST_P(HeadlightsModelOnWriteTest, all) {
             EXPECT_CALL(*gpio, write_digital(HIGH_BEAM_PIN, std::move(high_beam_enabled))).Times(1);
             EXPECT_CALL(*gpio, write_digital(LOW_BEAM_PIN, std::move(low_beam_enabled)))
                 .Times(1)
-                .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::UnknownError)));
+                .WillOnce(Return(tl::make_unexpected(std::string("Unknown error"))));
             EXPECT_CALL(*gpio, write_digital(IR_PIN, std::move(ir_enabled))).Times(1);
             break;
         case 3:  // IR error
             EXPECT_CALL(*gpio, write_digital(HIGH_BEAM_PIN, std::move(high_beam_enabled))).Times(1);
             EXPECT_CALL(*gpio, write_digital(IR_PIN, std::move(ir_enabled)))
                 .Times(1)
-                .WillOnce(Return(tl::make_unexpected(suchm::interface::GpioError::UnknownError)));
+                .WillOnce(Return(tl::make_unexpected(std::string("Unknown error"))));
             EXPECT_CALL(*gpio, write_digital(LOW_BEAM_PIN, std::move(low_beam_enabled))).Times(1);
             break;
         case 0:  // No error

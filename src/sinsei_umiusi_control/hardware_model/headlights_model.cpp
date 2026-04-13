@@ -13,8 +13,7 @@ HeadlightsModel::HeadlightsModel(
 : gpio(std::move(gpio)), high_beam_pin(high_beam_pin), low_beam_pin(low_beam_pin), ir_pin(ir_pin) {}
 
 auto HeadlightsModel::on_init() -> tl::expected<void, std::string> {
-    return this->gpio->set_mode_output({this->high_beam_pin, this->low_beam_pin, this->ir_pin})
-        .map_error(interface::gpio_error_to_string);
+    return this->gpio->set_mode_output({this->high_beam_pin, this->low_beam_pin, this->ir_pin});
 }
 
 auto HeadlightsModel::on_read() const -> tl::expected<void, std::string> { return {}; }
@@ -24,14 +23,10 @@ auto HeadlightsModel::on_write(
     cmd::headlights::LowBeamEnabled && low_beam_enabled,
     cmd::headlights::IrEnabled && ir_enabled) -> tl::expected<void, std::string> {
     const auto res_high =
-        this->gpio
-            ->write_digital(std::move(this->high_beam_pin), std::move(high_beam_enabled.value))
-            .map_error(interface::gpio_error_to_string);
+        this->gpio->write_digital(std::move(this->high_beam_pin), std::move(high_beam_enabled.value));
     const auto res_low =
-        this->gpio->write_digital(this->low_beam_pin, std::move(low_beam_enabled.value))
-            .map_error(interface::gpio_error_to_string);
-    const auto res_ir = this->gpio->write_digital(this->ir_pin, std::move(ir_enabled.value))
-                            .map_error(interface::gpio_error_to_string);
+        this->gpio->write_digital(this->low_beam_pin, std::move(low_beam_enabled.value));
+    const auto res_ir = this->gpio->write_digital(this->ir_pin, std::move(ir_enabled.value));
 
     if (res_high && res_low && res_ir) {
         return {};
