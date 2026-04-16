@@ -107,20 +107,22 @@ auto ImuModel::on_read() -> tl::expected<
         return to_s16(read_buffer[offset], read_buffer[offset + 1]);
     };
 
-    const size_t OFFSET_GYRO = 0;
-    const size_t OFFSET_QUAT = std::to_integer<size_t>(QUATERNION_DATA_W_LSB_ADDR.value) -
-                               std::to_integer<size_t>(FRAME_START);
-    const size_t OFFSET_LINEAR_ACCEL = std::to_integer<size_t>(LINEAR_ACCEL_DATA_X_LSB_ADDR.value) -
-                                       std::to_integer<size_t>(FRAME_START);
-    const size_t OFFSET_TEMP =
+    static constexpr size_t OFFSET_GYRO = 0;
+    static constexpr size_t OFFSET_QUAT =
+        std::to_integer<size_t>(QUATERNION_DATA_W_LSB_ADDR.value) -
+        std::to_integer<size_t>(FRAME_START);
+    static constexpr size_t OFFSET_LINEAR_ACCEL =
+        std::to_integer<size_t>(LINEAR_ACCEL_DATA_X_LSB_ADDR.value) -
+        std::to_integer<size_t>(FRAME_START);
+    static constexpr size_t OFFSET_TEMP =
         std::to_integer<size_t>(TEMP_ADDR.value) - std::to_integer<size_t>(FRAME_START);
 
-    const auto GYRO_SCALE = 1.0 / 16.0;
+    static constexpr auto GYRO_SCALE = 1.0 / 16.0;
     const auto angular_velocity = state::imu::AngularVelocity{
         read_s16(OFFSET_GYRO + 0) * GYRO_SCALE, read_s16(OFFSET_GYRO + 2) * GYRO_SCALE,
         read_s16(OFFSET_GYRO + 4) * GYRO_SCALE};
 
-    constexpr auto QUAT_SCALE = 1.0 / (1 << 14);
+    static constexpr auto QUAT_SCALE = 1.0 / (1 << 14);
     const auto quaternion = state::imu::Quaternion{
         static_cast<double>(read_s16(OFFSET_QUAT + 2)) * QUAT_SCALE,  // x
         static_cast<double>(read_s16(OFFSET_QUAT + 4)) * QUAT_SCALE,  // y
@@ -128,7 +130,7 @@ auto ImuModel::on_read() -> tl::expected<
         static_cast<double>(read_s16(OFFSET_QUAT + 0)) * QUAT_SCALE   // w
     };
 
-    const auto LINEAR_ACCEL_SCALE = 1.0 / 100.0;
+    static constexpr auto LINEAR_ACCEL_SCALE = 1.0 / 100.0;
     const auto acceleration = state::imu::Acceleration{
         static_cast<double>(read_s16(OFFSET_LINEAR_ACCEL + 0)) * LINEAR_ACCEL_SCALE,
         static_cast<double>(read_s16(OFFSET_LINEAR_ACCEL + 2)) * LINEAR_ACCEL_SCALE,
