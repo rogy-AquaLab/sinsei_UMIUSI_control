@@ -63,10 +63,19 @@ auto ImuModel::on_init() -> tl::expected<void, std::string> {
     rclcpp::sleep_for(50ms);
 
     // ノーマルパワーモードに設定
-    this->i2c->write_reg(BNO055_ADDR, PWR_MODE_ADDR, POWER_MODE_NORMAL);
+    res = this->i2c->write_reg(BNO055_ADDR, PWR_MODE_ADDR, POWER_MODE_NORMAL);
+    if (!res) {
+        return tl::make_unexpected("Failed to set NORMAL power mode: " + res.error());
+    }
     rclcpp::sleep_for(10ms);
-    this->i2c->write_reg(BNO055_ADDR, PAGE_ID_ADDR, std::byte{0x00});
-    this->i2c->write_reg(BNO055_ADDR, SYS_TRIGGER_ADDR, std::byte{0x00});
+    res = this->i2c->write_reg(BNO055_ADDR, PAGE_ID_ADDR, std::byte{0x00});
+    if (!res) {
+        return tl::make_unexpected("Failed to set PAGE_ID to 0: " + res.error());
+    }
+    res = this->i2c->write_reg(BNO055_ADDR, SYS_TRIGGER_ADDR, std::byte{0x00});
+    if (!res) {
+        return tl::make_unexpected("Failed to clear SYS_TRIGGER: " + res.error());
+    }
     rclcpp::sleep_for(10ms);
 
     // NDOFモードに設定
