@@ -1,7 +1,7 @@
 #include "sinsei_umiusi_control/hardware/thruster_direct/servo_direct.hpp"
 
 #include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
-#include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
+#include "sinsei_umiusi_control/hardware_model/impl/mock_gpio.hpp"
 #include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
@@ -13,7 +13,7 @@ auto thruster_direct::ServoDirect::on_init(
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SystemInterface::on_init(params);
 
-    auto gpio = std::make_unique<sinsei_umiusi_control::hardware_model::impl::Pigpio>();
+    auto gpio = std::make_unique<sinsei_umiusi_control::hardware_model::impl::MockGpio>();
 
     // ID、ピン番号、パルス幅の最小値/最大値をパラメーターから取得
     const auto id_str = util::find_param(params.hardware_info.hardware_parameters, "id");

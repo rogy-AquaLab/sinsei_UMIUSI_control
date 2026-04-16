@@ -42,6 +42,10 @@ launch:
       description: "LED tape's operation period per thrusters' operation period"
       name: period_led_tape_per_thrusters
       default: "10"
+  - arg:
+      description: "I2C device path for the BNO055 IMU"
+      name: imu_i2c_device
+      default: "/dev/i2c-1"
 
   # only used when `thruster_driver_type` is set to `direct`
   - arg:

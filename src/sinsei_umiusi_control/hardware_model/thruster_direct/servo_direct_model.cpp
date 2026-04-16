@@ -14,8 +14,7 @@ ServoDirectModel::ServoDirectModel(
   max_pulse_width(max_pulse_width) {}
 
 auto ServoDirectModel::on_init() -> tl::expected<void, std::string> {
-    return this->gpio->set_mode_output({this->servo_pin})
-        .map_error(interface::gpio_error_to_string);
+    return this->gpio->set_mode_output({this->servo_pin});
 }
 
 auto ServoDirectModel::on_read() const -> tl::expected<void, std::string> { return {}; }
@@ -30,6 +29,5 @@ auto ServoDirectModel::on_write(
     auto pulsewidth = allowed.value ? min + (max - min) * (angle.value + 90.0) / 180.0 : 0;
     return this->gpio
         ->write_pwm_pulsewidth(
-            this->servo_pin, static_cast<interface::Gpio::PulseWidth>(pulsewidth))
-        .map_error(interface::gpio_error_to_string);
+            this->servo_pin, static_cast<interface::Gpio::PulseWidth>(pulsewidth));
 }

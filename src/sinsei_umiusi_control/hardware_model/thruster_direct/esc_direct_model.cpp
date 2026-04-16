@@ -15,7 +15,7 @@ EscDirectModel::EscDirectModel(
   positive_pulse_width_radius(positive_pulse_width_radius) {}
 
 auto EscDirectModel::on_init() -> tl::expected<void, std::string> {
-    return this->gpio->set_mode_output({this->esc_pin}).map_error(interface::gpio_error_to_string);
+    return this->gpio->set_mode_output({this->esc_pin});
 }
 
 auto EscDirectModel::on_read() const -> tl::expected<void, std::string> { return {}; }
@@ -33,6 +33,5 @@ auto EscDirectModel::on_write(
                                                              : positive_radius * duty_cycle.value)
                           : 0;
     return this->gpio
-        ->write_pwm_pulsewidth(this->esc_pin, static_cast<interface::Gpio::PulseWidth>(pulsewidth))
-        .map_error(interface::gpio_error_to_string);
+        ->write_pwm_pulsewidth(this->esc_pin, static_cast<interface::Gpio::PulseWidth>(pulsewidth));
 }

@@ -11,13 +11,12 @@ IndicatorLedModel::IndicatorLedModel(
 : gpio(std::move(gpio)), led_pin(led_pin) {}
 
 auto IndicatorLedModel::on_init() -> tl::expected<void, std::string> {
-    return this->gpio->set_mode_output({this->led_pin}).map_error(interface::gpio_error_to_string);
+    return this->gpio->set_mode_output({this->led_pin});
 }
 
 auto IndicatorLedModel::on_read() const -> tl::expected<void, std::string> { return {}; }
 
 auto IndicatorLedModel::on_write(sinsei_umiusi_control::cmd::indicator_led::Enabled && enabled)
     -> tl::expected<void, std::string> {
-    return this->gpio->write_digital(this->led_pin, std::move(enabled.value))
-        .map_error(interface::gpio_error_to_string);
+    return this->gpio->write_digital(this->led_pin, std::move(enabled.value));
 }

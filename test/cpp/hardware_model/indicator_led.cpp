@@ -34,7 +34,7 @@ TEST(IndicatorLedModelOnInitTest, all) {
     auto gpio = std::make_unique<mock::Gpio>();
     EXPECT_CALL(*gpio, set_mode_output(_))
         .Times(1)
-        .WillOnce(Return(tl::expected<void, suchm::interface::GpioError>()));
+        .WillOnce(Return(tl::expected<void, std::string>()));
 
     auto indicator_led_model = suchm::IndicatorLedModel(std::move(gpio), LED_PIN);
     auto result = indicator_led_model.on_init();
