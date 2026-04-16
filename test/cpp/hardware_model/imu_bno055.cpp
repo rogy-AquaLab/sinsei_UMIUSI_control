@@ -26,8 +26,8 @@ constexpr auto _ = ::testing::_;
 
 namespace sinsei_umiusi_control::test::hardware_model::imu_bno055 {
 
-static constexpr auto ADDRESS = ::sinsei_umiusi_control::hardware_model::ImuModel::ADDRESS;
-static constexpr auto ID = ::sinsei_umiusi_control::hardware_model::ImuModel::ID;
+static constexpr auto BNO055_ADDR = ::sinsei_umiusi_control::hardware_model::ImuModel::BNO055_ADDR;
+static constexpr auto BNO055_ID = ::sinsei_umiusi_control::hardware_model::ImuModel::BNO055_ID;
 static constexpr auto CHIP_ID_ADDR =
     ::sinsei_umiusi_control::hardware_model::ImuModel::CHIP_ID_ADDR;
 static constexpr auto OPR_MODE_ADDR =
