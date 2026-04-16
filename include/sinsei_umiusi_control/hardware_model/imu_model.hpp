@@ -18,8 +18,8 @@ class ImuModel {
     using DeviceAddr = interface::I2cDeviceAddr;
     using RegisterAddr = interface::I2cRegisterAddr;
 
-    static constexpr interface::I2cDeviceAddr ADDRESS{0x28};
-    static constexpr uint8_t ID{0xA0};
+    static constexpr interface::I2cDeviceAddr BNO055_ADDR{0x28};
+    static constexpr uint8_t BNO055_ID{0xA0};
 
     /* Page id register definition */
     static constexpr interface::I2cRegisterAddr PAGE_ID_ADDR{std::byte{0x07}};
