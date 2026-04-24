@@ -4,7 +4,7 @@
 #include <memory>
 #include <stdexcept>
 
-namespace sinsei_umiusi_control {
+using namespace sinsei_umiusi_control;
 
 GstCameraNode::GstCameraNode() : Node("gst_camera_node") {
     this->declare_parameter<std::string>("pipeline", "");
@@ -63,7 +63,7 @@ GstCameraNode::~GstCameraNode() {
     }
 }
 
-void GstCameraNode::initialize_gstreamer_once() {
+auto GstCameraNode::initialize_gstreamer_once() -> void {
     static const bool initialized = []() {
         gst_init(nullptr, nullptr);
         return true;
@@ -71,7 +71,7 @@ void GstCameraNode::initialize_gstreamer_once() {
     (void)initialized;
 }
 
-void GstCameraNode::poll_bus() {
+auto GstCameraNode::poll_bus() -> void {
     while (true) {
         auto * message = gst_bus_pop(this->bus);
         if (!message) {
@@ -107,9 +107,7 @@ void GstCameraNode::poll_bus() {
     }
 }
 
-}  // namespace sinsei_umiusi_control
-
-int main(int argc, char ** argv) {
+auto main(int argc, char ** argv) -> int {
     rclcpp::init(argc, argv);
     try {
         auto node = std::make_shared<sinsei_umiusi_control::GstCameraNode>();
