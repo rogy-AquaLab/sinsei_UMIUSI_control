@@ -33,15 +33,15 @@ launch:
           gate_controller
           --param-file $(var controllers_param_file)
     - node:
-        pkg: "camera_ros"
-        exec: "camera_node"
+        pkg: "$(var pkg_name)"
+        exec: "gst_camera_node"
         name: "pi_camera"
         if: "$(var enable_cameras)"
         param:
         - from: "$(var cameras_param_file)"
     - node:
-        pkg: "camera_ros"
-        exec: "camera_node"
+        pkg: "$(var pkg_name)"
+        exec: "gst_camera_node"
         name: "usb_camera"
         if: "$(var enable_cameras)"
         param:
