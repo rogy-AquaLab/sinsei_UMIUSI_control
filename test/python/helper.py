@@ -1,10 +1,6 @@
 from collections.abc import Iterator
-from threading import Thread
 
 import itertools
-
-import rclpy
-from rclpy.node import Node
 
 
 def generate_arguments_list(
@@ -47,15 +43,3 @@ def display_arguments_list(
 ) -> str:
     """Display the arguments list in a readable format."""
     return ', '.join(f'{key}="{value}"' for key, value in args)
-
-
-class HelperNode(Node):
-    """A test node that can be used in tests."""
-
-    def __init__(self, name: str = 'test_node'):
-        super().__init__(name)
-
-    def start(self):
-        """Spin the node."""
-        self._ros_spin_thread = Thread(target=rclpy.spin, args=(self,))
-        self._ros_spin_thread.start()

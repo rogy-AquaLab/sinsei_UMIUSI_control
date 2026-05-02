@@ -1,6 +1,7 @@
 import os
 
 import rclpy
+from rclpy.node import Node
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import FrontendLaunchDescriptionSource
@@ -121,7 +122,7 @@ def launch_arguments(request):
 def helper_node():
     """Fixture to provide a helper node."""
     rclpy.init()
-    node = HelperNode()
-    node.start()
+    node = Node('test_node')
     yield node
+    node.destroy_node()
     rclpy.shutdown()
