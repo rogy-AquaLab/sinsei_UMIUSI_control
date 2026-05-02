@@ -97,7 +97,7 @@ if(BUILD_TESTING)
 
   ament_add_pytest_test(
     pytest test/python
-    TIMEOUT 420
+    TIMEOUT 180
   )
   ament_auto_add_gmock(test_hardware_model
     test/cpp/hardware_model/headlights.cpp
