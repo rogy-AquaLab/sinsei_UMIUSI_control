@@ -178,6 +178,11 @@ jobs:
         with:
           sparse-checkout: .docker/scripts
 
+      - name: Upgrade apt packages in ROS container
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y
+
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
 
