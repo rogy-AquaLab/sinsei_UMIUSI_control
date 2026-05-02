@@ -8,9 +8,11 @@ from launch.launch_description_sources import FrontendLaunchDescriptionSource
 from ament_index_python import get_package_share_directory
 
 from controller_manager.hardware_spawner import list_hardware_components
-from controller_manager.test_utils import check_node_running, check_controllers_running
+from controller_manager.controller_manager_services import list_controllers
+from controller_manager.test_utils import check_node_running
 
 import pytest
+import time
 
 import launch_pytest
 
@@ -60,6 +62,58 @@ def controllers(largs: dict[str, str]) -> set[str]:
     return base
 
 
+def wait_for_controllers_active(
+    helper_node: Node,
+    controller_manager_name: str,
+    expected: set[str],
+    timeout: float,
+):
+    """Wait until all expected controllers are reported as active."""
+    start = time.time()
+    while time.time() - start < timeout:
+        controllers = list_controllers(helper_node, controller_manager_name, 5.0).controller
+        states = {controller.name: controller.state for controller in controllers}
+        active = {
+            name for name in expected
+            if states.get(name) == 'active'
+        }
+        if active == expected:
+            return
+        time.sleep(0.1)
+
+    missing = sorted(expected - active)
+    raise AssertionError(
+        f'Controller(s) not active: {missing}. Last observed states: {states}'
+    )
+
+
+def wait_for_hardware_loaded(
+    helper_node: Node,
+    controller_manager_name: str,
+    expected: set[str],
+    timeout: float,
+):
+    """Wait until all expected hardware components are listed."""
+    start = time.time()
+    while time.time() - start < timeout:
+        loaded = {
+            component.name
+            for component in list_hardware_components(
+                helper_node,
+                controller_manager_name,
+                10.0,
+            ).component
+        }
+        if expected <= loaded:
+            return
+        time.sleep(0.1)
+
+    missing = sorted(expected - loaded)
+    raise AssertionError(
+        f'Hardware component(s) {missing} are not loaded. Last observed: {sorted(loaded)}'
+    )
+
+
 @launch_pytest.fixture
 def generate_launch_description(launch_arguments: dict[str, str]):
     """Fixture to generate launch description."""
@@ -90,20 +144,8 @@ def test_hardware_loaded(helper_node, launch_arguments):
     """Test if the hardware is loaded."""
     components = hardware_components(launch_arguments)
     ns = launch_arguments.get('namespace', '')
-    ns_fixed = f'{ns}/' if ns != '' else ''
-
-    loaded_components = {
-        component.name
-        for component in list_hardware_components(
-            helper_node,
-            f'{ns_fixed}controller_manager',
-            10.0,
-        ).component
-    }
-    missing_components = components - loaded_components
-    assert not missing_components, (
-        f'Hardware component(s) {missing_components} are not loaded.'
-    )
+    controller_manager_name = f'{ns}/controller_manager' if ns else 'controller_manager'
+    wait_for_hardware_loaded(helper_node, controller_manager_name, components, 120)
 
 
 @pytest.mark.launch(fixture=generate_launch_description)
@@ -111,7 +153,8 @@ def test_controllers_running(helper_node, launch_arguments):
     """Test if the controllers are running."""
     cnames = controllers(launch_arguments)
     ns = launch_arguments.get('namespace', '')
-    check_controllers_running(helper_node, cnames, ns, 'active', 120)
+    controller_manager_name = f'{ns}/controller_manager' if ns else 'controller_manager'
+    wait_for_controllers_active(helper_node, controller_manager_name, cnames, 120)
 
 
 @pytest.fixture(
