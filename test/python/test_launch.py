@@ -1,20 +1,20 @@
 import os
-
-import rclpy
-from rclpy.node import Node
-from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import FrontendLaunchDescriptionSource
-from ament_index_python import get_package_share_directory
-
-from controller_manager.hardware_spawner import list_hardware_components
-from controller_manager.controller_manager_services import list_controllers
-from controller_manager.test_utils import check_node_running
-
-import pytest
 import time
 
 import launch_pytest
+import pytest
+import rclpy
+from ament_index_python import get_package_share_directory
+from controller_manager.controller_manager_services import (
+    ServiceNotFoundError,
+    list_controllers,
+)
+from controller_manager.hardware_spawner import list_hardware_components
+from controller_manager.test_utils import check_node_running
+from launch import LaunchDescription
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import FrontendLaunchDescriptionSource
+from rclpy.node import Node
 
 from helper import (
     generate_arguments_list,
@@ -70,20 +70,28 @@ def wait_for_controllers_active(
 ):
     """Wait until all expected controllers are reported as active."""
     start = time.time()
+    active: set[str] = set()
+    states: dict[str, str] = {}
+    last_error: Exception | None = None
     while time.time() - start < timeout:
-        controllers = list_controllers(helper_node, controller_manager_name, 5.0).controller
+        try:
+            controllers = list_controllers(
+                helper_node, controller_manager_name, 5.0
+            ).controller
+        except ServiceNotFoundError as error:
+            last_error = error
+            time.sleep(0.1)
+            continue
         states = {controller.name: controller.state for controller in controllers}
-        active = {
-            name for name in expected
-            if states.get(name) == 'active'
-        }
+        active = {name for name in expected if states.get(name) == 'active'}
         if active == expected:
             return
         time.sleep(0.1)
 
     missing = sorted(expected - active)
     raise AssertionError(
-        f'Controller(s) not active: {missing}. Last observed states: {states}'
+        f'Controller(s) not active: {missing}. '
+        f'Last observed states: {states}. Last service error: {last_error}'
     )
 
 
@@ -95,22 +103,30 @@ def wait_for_hardware_loaded(
 ):
     """Wait until all expected hardware components are listed."""
     start = time.time()
+    loaded: set[str] = set()
+    last_error: Exception | None = None
     while time.time() - start < timeout:
-        loaded = {
-            component.name
-            for component in list_hardware_components(
-                helper_node,
-                controller_manager_name,
-                10.0,
-            ).component
-        }
+        try:
+            loaded = {
+                component.name
+                for component in list_hardware_components(
+                    helper_node,
+                    controller_manager_name,
+                    10.0,
+                ).component
+            }
+        except ServiceNotFoundError as error:
+            last_error = error
+            time.sleep(0.1)
+            continue
         if expected <= loaded:
             return
         time.sleep(0.1)
 
     missing = sorted(expected - loaded)
     raise AssertionError(
-        f'Hardware component(s) {missing} are not loaded. Last observed: {sorted(loaded)}'
+        f'Hardware component(s) {missing} are not loaded. '
+        f'Last observed: {sorted(loaded)}. Last service error: {last_error}'
     )
 
 
