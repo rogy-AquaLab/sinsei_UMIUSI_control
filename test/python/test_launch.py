@@ -7,7 +7,7 @@ from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import FrontendLaunchDescriptionSource
 from ament_index_python import get_package_share_directory
 
-from controller_manager.hardware_spawner import is_hardware_component_loaded
+from controller_manager.hardware_spawner import list_hardware_components
 from controller_manager.test_utils import check_node_running, check_controllers_running
 
 import pytest
@@ -92,13 +92,18 @@ def test_hardware_loaded(helper_node, launch_arguments):
     ns = launch_arguments.get('namespace', '')
     ns_fixed = f'{ns}/' if ns != '' else ''
 
-    for component in components:
-        assert is_hardware_component_loaded(
+    loaded_components = {
+        component.name
+        for component in list_hardware_components(
             helper_node,
             f'{ns_fixed}controller_manager',
-            component,
             10.0,
-        ), f'Hardware component {component} is not loaded.'
+        ).component
+    }
+    missing_components = components - loaded_components
+    assert not missing_components, (
+        f'Hardware component(s) {missing_components} are not loaded.'
+    )
 
 
 @pytest.mark.launch(fixture=generate_launch_description)

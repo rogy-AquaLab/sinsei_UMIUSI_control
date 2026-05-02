@@ -2,6 +2,7 @@ from collections.abc import Iterator
 
 import itertools
 
+
 def generate_arguments_list(
     # {A: {a, b}, B: {c, d}, ...}
     args: dict[str, set[str]],
