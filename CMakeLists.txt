@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(sinsei_umiusi_control)
 
+include(FindPkgConfig)
+
 # find dependencies
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
@@ -45,6 +47,8 @@ if(NOT Eigen3_FOUND)
   message(FATAL_ERROR "Eigen3 not found. Please install Eigen3.")
 endif()
 
+pkg_check_modules(GSTREAMER REQUIRED IMPORTED_TARGET gstreamer-1.0)
+
 ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   src/${PROJECT_NAME}/hardware/can.cpp
   src/${PROJECT_NAME}/hardware/headlights.cpp
@@ -86,6 +90,17 @@ target_include_directories(${PROJECT_NAME}_controller
 )
 ament_target_dependencies(${PROJECT_NAME}_controller
   sinsei_umiusi_msgs
+)
+
+ament_auto_add_executable(gst_camera_node
+  src/${PROJECT_NAME}/camera/gst_camera_node.cpp
+)
+target_link_libraries(gst_camera_node
+  PkgConfig::GSTREAMER
+)
+target_include_directories(gst_camera_node
+  PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
 pluginlib_export_plugin_description_file(hardware_interface plugin/umiusi_hardware_plugin.xml)
@@ -139,6 +154,7 @@ if(CLANG_EXE AND LLD_EXE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
   target_link_options(${PROJECT_NAME}_hardware PRIVATE -fuse-ld=lld)
   target_link_options(${PROJECT_NAME}_controller PRIVATE -fuse-ld=lld)
+  target_link_options(gst_camera_node PRIVATE -fuse-ld=lld)
 else()
   set(CMAKE_C_COMPILER gcc)
   set(CMAKE_CXX_COMPILER g++)
