@@ -14,8 +14,8 @@ class GstCameraNode final : public rclcpp::Node {
     auto poll_bus() -> void;
 
     std::string pipeline_description;
-    GstElement * pipeline = nullptr;
-    GstBus * bus = nullptr;
+    ::GstElement * pipeline = nullptr;
+    ::GstBus * bus = nullptr;
     rclcpp::TimerBase::SharedPtr bus_poll_timer;
 
   public:
