@@ -8,9 +8,8 @@
 
 namespace sinsei_umiusi_control {
 
-class GstCameraNode final : public rclcpp::Node {
+class GstCameraNode : public rclcpp::Node {
   private:
-    static auto initialize_gstreamer_once() -> void;
     auto poll_bus() -> void;
 
     std::string pipeline_description;

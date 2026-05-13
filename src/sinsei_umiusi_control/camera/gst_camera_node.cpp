@@ -6,10 +6,22 @@
 
 using namespace sinsei_umiusi_control;
 
+namespace {
+
+auto initialize_gstreamer_once() -> void {
+    static const bool initialized = []() {
+        ::gst_init(nullptr, nullptr);
+        return true;
+    }();
+    (void)initialized;
+}
+
+}  // namespace
+
 GstCameraNode::GstCameraNode() : Node("gst_camera_node") {
     this->declare_parameter<std::string>("pipeline", "");
 
-    this->initialize_gstreamer_once();
+    initialize_gstreamer_once();
 
     this->pipeline_description = this->get_parameter("pipeline").as_string();
     if (this->pipeline_description.empty()) {
@@ -61,14 +73,6 @@ GstCameraNode::~GstCameraNode() {
         ::gst_object_unref(this->pipeline);
         this->pipeline = nullptr;
     }
-}
-
-auto GstCameraNode::initialize_gstreamer_once() -> void {
-    static const bool initialized = []() {
-        ::gst_init(nullptr, nullptr);
-        return true;
-    }();
-    (void)initialized;
 }
 
 auto GstCameraNode::poll_bus() -> void {
