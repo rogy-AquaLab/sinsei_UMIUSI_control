@@ -25,7 +25,7 @@ GstCameraNode::GstCameraNode() : Node("gst_camera_node") {
 
     this->pipeline_description = this->get_parameter("pipeline").as_string();
     if (this->pipeline_description.empty()) {
-        throw std::invalid_argument("Pipeline parameter must not be empty.");
+        throw std::runtime_error("Pipeline parameter must not be empty.");
     }
     RCLCPP_INFO(
         this->get_logger(), "Starting GStreamer pipeline: %s", this->pipeline_description.c_str());
@@ -116,7 +116,7 @@ auto main(int argc, char ** argv) -> int {
     try {
         auto node = std::make_shared<sinsei_umiusi_control::GstCameraNode>();
         rclcpp::spin(node);
-    } catch (const std::exception & exception) {
+    } catch (const std::runtime_error & exception) {
         RCLCPP_FATAL(
             rclcpp::get_logger("gst_camera_node"), "Failed to start GStreamer camera node: %s",
             exception.what());
