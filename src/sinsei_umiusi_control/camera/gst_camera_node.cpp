@@ -6,22 +6,8 @@
 
 using namespace sinsei_umiusi_control;
 
-namespace {
-
-auto initialize_gstreamer_once() -> void {
-    static const bool initialized = []() {
-        ::gst_init(nullptr, nullptr);
-        return true;
-    }();
-    (void)initialized;
-}
-
-}  // namespace
-
 GstCameraNode::GstCameraNode() : Node("gst_camera_node") {
     this->declare_parameter<std::string>("pipeline", "");
-
-    initialize_gstreamer_once();
 
     this->pipeline_description = this->get_parameter("pipeline").as_string();
     if (this->pipeline_description.empty()) {
@@ -112,6 +98,17 @@ auto GstCameraNode::poll_bus() -> void {
 }
 
 auto main(int argc, char ** argv) -> int {
+    ::GError * init_error = nullptr;
+    if (!::gst_init_check(&argc, &argv, &init_error)) {
+        RCLCPP_FATAL(
+            rclcpp::get_logger("gst_camera_node"), "Failed to initialize GStreamer: %s",
+            init_error ? init_error->message : "Unknown error");
+        if (init_error) {
+            ::g_error_free(init_error);
+        }
+        return 1;
+    }
+
     rclcpp::init(argc, argv);
     try {
         auto node = std::make_shared<sinsei_umiusi_control::GstCameraNode>();
