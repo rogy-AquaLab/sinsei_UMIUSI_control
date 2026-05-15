@@ -59,7 +59,7 @@ auto GstCameraNode::stop_pipeline() noexcept -> void {
     this->pipeline.reset();
 }
 
-auto GstCameraNode::handle_bus_message(const Glib::RefPtr<Gst::Message> & message) -> bool {
+auto GstCameraNode::check_bus_message(const Glib::RefPtr<Gst::Message> & message) -> bool {
     switch (message->get_message_type()) {
         case Gst::MESSAGE_ERROR: {
             const auto error_message =
@@ -96,7 +96,7 @@ auto GstCameraNode::bus_loop() -> void {
         }
 
         const auto message = Glib::wrap(message_raw, false);
-        if (!this->handle_bus_message(message)) {
+        if (!this->check_bus_message(message)) {
             this->stop_requested.store(true);
             this->stop_pipeline();
             rclcpp::shutdown();
