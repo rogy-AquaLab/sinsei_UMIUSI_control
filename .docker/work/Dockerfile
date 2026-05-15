@@ -16,7 +16,8 @@ RUN apt-get update && apt-get install -y \
     clang-tidy-18 \
     lld \
     lld-18 \
-    sccache
+    sccache \
+    libgstreamermm-1.0-dev
 
 # Install pigpio
 RUN /tmp/scripts/install-pigpio.sh

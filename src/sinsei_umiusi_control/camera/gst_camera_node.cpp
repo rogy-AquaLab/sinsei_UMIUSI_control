@@ -1,121 +1,115 @@
 #include "sinsei_umiusi_control/camera/gst_camera_node.hpp"
 
-#include <chrono>
-#include <memory>
 #include <stdexcept>
+
+using namespace std::chrono_literals;
 
 using namespace sinsei_umiusi_control;
 
 GstCameraNode::GstCameraNode() : Node("gst_camera_node") {
     this->declare_parameter<std::string>("pipeline", "");
 
-    this->pipeline_description = this->get_parameter("pipeline").as_string();
-    if (this->pipeline_description.empty()) {
+    const auto pipeline_description = this->get_parameter("pipeline").as_string();
+    if (pipeline_description.empty()) {
         throw std::runtime_error("Pipeline parameter must not be empty.");
     }
     RCLCPP_INFO(
-        this->get_logger(), "Starting GStreamer pipeline: %s", this->pipeline_description.c_str());
+        this->get_logger(), "Starting GStreamer pipeline: %s", pipeline_description.c_str());
 
-    ::GError * parse_error = nullptr;
-    this->pipeline = ::gst_parse_launch(this->pipeline_description.c_str(), &parse_error);
-    if (parse_error) {
-        const auto error_message = std::string{parse_error->message};
-        ::g_error_free(parse_error);
-        if (this->pipeline) {
-            ::gst_object_unref(this->pipeline);
-            this->pipeline = nullptr;
-        }
-        throw std::runtime_error("Failed to parse GStreamer pipeline: " + error_message);
-    }
+    this->init_pipeline(pipeline_description);
+
+    this->timer = this->create_wall_timer(100ms, std::bind(&GstCameraNode::timer_callback, this));
+}
+
+GstCameraNode::~GstCameraNode() {
+    this->timer.reset();
+    this->stop_pipeline();
+}
+
+auto GstCameraNode::init_pipeline(const std::string & pipeline_description) -> void {
+    this->pipeline = Gst::Parse::launch(pipeline_description);
     if (!this->pipeline) {
         throw std::runtime_error("Failed to parse GStreamer pipeline.");
     }
 
-    this->bus = ::gst_element_get_bus(this->pipeline);
+    this->bus = this->pipeline->get_bus();
     if (!this->bus) {
+        this->stop_pipeline();
         throw std::runtime_error("Failed to get GStreamer bus.");
     }
 
-    const auto res = ::gst_element_set_state(this->pipeline, ::GST_STATE_PLAYING);
-    if (res == ::GST_STATE_CHANGE_FAILURE) {
+    const auto res = this->pipeline->set_state(Gst::STATE_PLAYING);
+    if (res == Gst::STATE_CHANGE_FAILURE) {
+        this->stop_pipeline();
         throw std::runtime_error("Failed to start GStreamer pipeline.");
     }
-
-    constexpr auto POLL_INTERVAL_MS = 100;
-    this->bus_poll_timer = this->create_wall_timer(
-        std::chrono::milliseconds(POLL_INTERVAL_MS), [this]() { this->poll_bus(); });
 }
 
-GstCameraNode::~GstCameraNode() {
-    this->bus_poll_timer.reset();
-    if (this->pipeline) {
-        ::gst_element_set_state(this->pipeline, ::GST_STATE_NULL);
+auto GstCameraNode::stop_pipeline() noexcept -> void {
+    this->bus.reset();
+
+    if (!this->pipeline) {
+        return;
     }
-    if (this->bus) {
-        ::gst_object_unref(this->bus);
-        this->bus = nullptr;
-    }
-    if (this->pipeline) {
-        ::gst_object_unref(this->pipeline);
-        this->pipeline = nullptr;
+
+    this->pipeline->set_state(Gst::STATE_NULL);
+    this->pipeline.reset();
+}
+
+auto GstCameraNode::handle_bus_message(const Glib::RefPtr<Gst::Message> & message) -> bool {
+    switch (message->get_message_type()) {
+        case Gst::MESSAGE_ERROR: {
+            const auto error_message =
+                Gst::wrap_msg_derived<Gst::MessageError>(message->gobj(), true);
+            const auto error = error_message->parse_error();
+            const auto debug = error_message->parse_debug();
+            RCLCPP_ERROR(
+                this->get_logger(), "\n  GStreamer pipeline error: %s%s%s", error.what().c_str(),
+                debug.empty() ? "" : "\n  debug: ", debug.c_str());
+            return false;
+        }
+        case Gst::MESSAGE_EOS:
+            RCLCPP_WARN(this->get_logger(), "GStreamer pipeline reached EOS.");
+            return false;
+        default:
+            return true;
     }
 }
 
-auto GstCameraNode::poll_bus() -> void {
+auto GstCameraNode::timer_callback() -> void {
+    if (!this->bus) {
+        return;
+    }
+
     while (true) {
-        auto * message = ::gst_bus_pop(this->bus);
+        const auto message = this->bus->pop();
         if (!message) {
             return;
         }
-
-        switch (GST_MESSAGE_TYPE(message)) {
-            case ::GST_MESSAGE_ERROR: {
-                ::GError * error = nullptr;
-                ::gchar * debug = nullptr;
-                ::gst_message_parse_error(message, &error, &debug);
-                RCLCPP_ERROR(
-                    this->get_logger(), "\n  GStreamer pipeline error: %s%s%s",
-                    error ? error->message : "Unknown error", debug ? "\n  debug: " : "",
-                    debug ? debug : "");
-                if (error) {
-                    ::g_error_free(error);
-                }
-                if (debug) {
-                    ::g_free(debug);
-                }
-                ::gst_message_unref(message);
-                throw std::runtime_error("GStreamer pipeline reported an error.");
-            }
-            case ::GST_MESSAGE_EOS:
-                RCLCPP_WARN(this->get_logger(), "GStreamer pipeline reached EOS.");
-                ::gst_message_unref(message);
-                return;
-            default:
-                ::gst_message_unref(message);
-                break;
+        if (!this->handle_bus_message(message)) {
+            this->timer.reset();
+            this->stop_pipeline();
+            rclcpp::shutdown();
+            return;
         }
     }
 }
 
 auto main(int argc, char ** argv) -> int {
-    ::GError * init_error = nullptr;
-    if (!::gst_init_check(&argc, &argv, &init_error)) {
-        RCLCPP_FATAL(
-            rclcpp::get_logger("gst_camera_node"), "Failed to initialize GStreamer: %s",
-            init_error ? init_error->message : "Unknown error");
-        if (init_error) {
-            ::g_error_free(init_error);
-        }
-        return 1;
-    }
-
-    rclcpp::init(argc, argv);
     try {
+        Gst::init(argc, argv);
+        rclcpp::init(argc, argv);
+
         auto node = std::make_shared<sinsei_umiusi_control::GstCameraNode>();
         rclcpp::spin(node);
-    } catch (const std::runtime_error & exception) {
+    } catch (const Glib::Error & error) {
         RCLCPP_FATAL(
-            rclcpp::get_logger("gst_camera_node"), "Failed to start GStreamer camera node: %s",
+            rclcpp::get_logger("gst_camera_node"), "GStreamer error: %s", error.what().c_str());
+        rclcpp::shutdown();
+        return 1;
+    } catch (const std::exception & exception) {
+        RCLCPP_FATAL(
+            rclcpp::get_logger("gst_camera_node"), "Unhandled exception in gst_camera_node: %s",
             exception.what());
         rclcpp::shutdown();
         return 1;

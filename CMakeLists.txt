@@ -47,7 +47,7 @@ if(NOT Eigen3_FOUND)
   message(FATAL_ERROR "Eigen3 not found. Please install Eigen3.")
 endif()
 
-pkg_check_modules(GSTREAMER REQUIRED IMPORTED_TARGET gstreamer-1.0)
+pkg_check_modules(GSTREAMERMM REQUIRED IMPORTED_TARGET gstreamermm-1.0)
 
 ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   src/${PROJECT_NAME}/hardware/can.cpp
@@ -96,11 +96,12 @@ ament_auto_add_executable(gst_camera_node
   src/${PROJECT_NAME}/camera/gst_camera_node.cpp
 )
 target_link_libraries(gst_camera_node
-  PkgConfig::GSTREAMER
+  PkgConfig::GSTREAMERMM
 )
 target_include_directories(gst_camera_node
   PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    ${GSTREAMERMM_INCLUDE_DIRS}
 )
 
 pluginlib_export_plugin_description_file(hardware_interface plugin/umiusi_hardware_plugin.xml)
