@@ -2,8 +2,6 @@
 
 #include <stdexcept>
 
-using namespace std::chrono_literals;
-
 using namespace sinsei_umiusi_control;
 
 GstCameraNode::GstCameraNode() : Node("gst_camera_node") {
@@ -17,12 +15,17 @@ GstCameraNode::GstCameraNode() : Node("gst_camera_node") {
         this->get_logger(), "Starting GStreamer pipeline: %s", pipeline_description.c_str());
 
     this->init_pipeline(pipeline_description);
-
-    this->timer = this->create_wall_timer(100ms, std::bind(&GstCameraNode::timer_callback, this));
+    this->bus_thread = std::thread(&GstCameraNode::bus_loop, this);
 }
 
 GstCameraNode::~GstCameraNode() {
-    this->timer.reset();
+    this->stop_requested.store(true);
+    if (this->bus) {
+        this->bus->set_flushing(true);
+    }
+    if (this->bus_thread.joinable()) {
+        this->bus_thread.join();
+    }
     this->stop_pipeline();
 }
 
@@ -76,18 +79,25 @@ auto GstCameraNode::handle_bus_message(const Glib::RefPtr<Gst::Message> & messag
     }
 }
 
-auto GstCameraNode::timer_callback() -> void {
-    if (!this->bus) {
+auto GstCameraNode::bus_loop() -> void {
+    const auto bus = this->bus;
+    if (!bus) {
         return;
     }
 
-    while (true) {
-        const auto message = this->bus->pop();
-        if (!message) {
-            return;
+    constexpr auto terminal_messages =
+        static_cast<GstMessageType>(GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
+
+    while (!this->stop_requested.load()) {
+        const auto message_raw =
+            gst_bus_timed_pop_filtered(bus->gobj(), GST_CLOCK_TIME_NONE, terminal_messages);
+        if (!message_raw) {
+            continue;
         }
+
+        const auto message = Glib::wrap(message_raw, false);
         if (!this->handle_bus_message(message)) {
-            this->timer.reset();
+            this->stop_requested.store(true);
             this->stop_pipeline();
             rclcpp::shutdown();
             return;
