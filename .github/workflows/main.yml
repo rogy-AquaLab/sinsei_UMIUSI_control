@@ -75,7 +75,7 @@ jobs:
 
       - name: Install GStreamer C++ development package
         run: |
-          sudo apt-get install -y libgstreamermm-1.0-dev
+          sudo apt-get update && sudo apt-get install -y libgstreamermm-1.0-dev
 
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
@@ -131,7 +131,7 @@ jobs:
 
       - name: Install GStreamer C++ development package
         run: |
-          sudo apt-get install -y libgstreamermm-1.0-dev
+          sudo apt-get update && sudo apt-get install -y libgstreamermm-1.0-dev
 
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
@@ -188,7 +188,7 @@ jobs:
 
       - name: Install GStreamer C++ development package
         run: |
-          sudo apt-get install -y libgstreamermm-1.0-dev
+          sudo apt-get update && sudo apt-get install -y libgstreamermm-1.0-dev
 
       - name: Upgrade apt packages in ROS container
         run: |
