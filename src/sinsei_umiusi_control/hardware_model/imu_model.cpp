@@ -4,7 +4,7 @@
 
 using namespace sinsei_umiusi_control::hardware_model;
 
-ImuModel::ImuModel(std::unique_ptr<interface::Gpio> gpio) : bno055_model(std::move(gpio)) {}
+ImuModel::ImuModel(std::unique_ptr<interface::I2c> i2c) : bno055_model(std::move(i2c)) {}
 
 auto ImuModel::on_init() -> tl::expected<void, std::string> {
     auto res = this->bno055_model.begin();
