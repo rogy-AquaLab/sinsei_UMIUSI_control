@@ -58,6 +58,7 @@ auto imu::Bno055Model::begin() -> tl::expected<void, std::string> {
     if (!res) {
         return tl::make_unexpected("Failed to set BNO055 to CONFIG mode: " + res.error());
     }
+    rclcpp::sleep_for(20ms);
 
     res = this->write_reg(SYS_TRIGGER_ADDR, std::byte{0x20});
     if (!res) {
