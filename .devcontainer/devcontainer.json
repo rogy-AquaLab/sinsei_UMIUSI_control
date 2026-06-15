@@ -36,7 +36,7 @@
         },
         "clangd.path": "clangd-18",
         "clangd.arguments": [
-          "--compile-commands-dir=${workspaceFolder}/build"
+          "--compile-commands-dir=${workspaceFolder}/../../build/sinsei_umiusi_control"
         ],
         "clangd.fallbackFlags": [
           "-std=c99",

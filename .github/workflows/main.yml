@@ -73,6 +73,10 @@ jobs:
         with:
           sparse-checkout: .docker/scripts
 
+      - name: Install GStreamer C++ development package
+        run: |
+          sudo apt-get update && sudo apt-get install -y libgstreamermm-1.0-dev
+
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
 
@@ -124,6 +128,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           sparse-checkout: .docker/scripts
+
+      - name: Install GStreamer C++ development package
+        run: |
+          sudo apt-get update && sudo apt-get install -y libgstreamermm-1.0-dev
 
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
@@ -178,10 +186,14 @@ jobs:
         with:
           sparse-checkout: .docker/scripts
 
+      - name: Install GStreamer C++ development package
+        run: |
+          sudo apt-get update && sudo apt-get install -y libgstreamermm-1.0-dev
+
       - name: Upgrade apt packages in ROS container
         run: |
-          apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y
+          sudo apt-get update
+          DEBIAN_FRONTEND=noninteractive sudo apt-get dist-upgrade -y
 
       - name: Install pigpio
         run: chmod +x ./.docker/scripts/install-pigpio.sh && sudo ./.docker/scripts/install-pigpio.sh
