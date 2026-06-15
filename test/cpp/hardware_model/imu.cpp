@@ -71,7 +71,7 @@ TEST(ImuModelTest, OnInitSuccess) {
     EXPECT_CALL(*mock_i2c, open()).WillOnce(Return(tl::expected<void, std::string>{}));
     EXPECT_CALL(*mock_i2c, transfer(testing::_, testing::_))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
-            return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
+            return return_chip_id(msgs, size, std::byte{Bno055Model::CHIP_ID});
         }))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
             expect_write_reg(
@@ -83,7 +83,7 @@ TEST(ImuModelTest, OnInitSuccess) {
             return tl::expected<void, std::string>{};
         }))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
-            return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
+            return return_chip_id(msgs, size, std::byte{Bno055Model::CHIP_ID});
         }))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
             expect_write_reg(

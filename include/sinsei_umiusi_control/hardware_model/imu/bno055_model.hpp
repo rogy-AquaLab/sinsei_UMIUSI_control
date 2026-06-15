@@ -22,7 +22,7 @@ class Bno055Model {
         state::imu::Temperature>;
 
     static constexpr DeviceAddr ADDRESS{0x28};
-    static constexpr uint8_t ID{0xA0};
+    static constexpr uint8_t CHIP_ID{0xA0};
 
     /* Page id register definition */
     static constexpr RegisterAddr PAGE_ID_ADDR{std::byte{0x07}};
@@ -130,6 +130,8 @@ class Bno055Model {
     auto write_reg(RegisterAddr reg, std::byte value) -> tl::expected<void, std::string>;
     auto read_reg(RegisterAddr reg, interface::I2cBufferView buffer)
         -> tl::expected<void, std::string>;
+
+    auto validate_id() -> tl::expected<void, std::string>;
 
   public:
     explicit Bno055Model(std::unique_ptr<interface::I2c> i2c);

@@ -70,7 +70,7 @@ auto expect_init_writes_until_reboot(
     std::size_t call_index) -> tl::expected<void, std::string> {
     switch (call_index) {
         case 0:
-            return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
+            return return_chip_id(msgs, size, std::byte{Bno055Model::CHIP_ID});
         case 1:
             expect_write_reg(
                 msgs, size, Bno055Model::OPR_MODE_ADDR, Bno055Model::OPERATION_MODE_CONFIG);
@@ -79,7 +79,7 @@ auto expect_init_writes_until_reboot(
             expect_write_reg(msgs, size, Bno055Model::SYS_TRIGGER_ADDR, std::byte{0x20});
             return {};
         case 3:
-            return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
+            return return_chip_id(msgs, size, std::byte{Bno055Model::CHIP_ID});
         default:
             return tl::make_unexpected("unexpected init call");
     }
@@ -95,7 +95,7 @@ TEST(Bno055ModelBeginTest, success) {
     EXPECT_CALL(*i2c, open()).WillOnce(Return(tl::expected<void, std::string>{}));
     EXPECT_CALL(*i2c, transfer(_, _))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
-            return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
+            return return_chip_id(msgs, size, std::byte{Bno055Model::CHIP_ID});
         }))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
             expect_write_reg(
@@ -107,7 +107,7 @@ TEST(Bno055ModelBeginTest, success) {
             return tl::expected<void, std::string>{};
         }))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
-            return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
+            return return_chip_id(msgs, size, std::byte{Bno055Model::CHIP_ID});
         }))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
             expect_write_reg(
@@ -169,7 +169,8 @@ TEST(Bno055ModelBeginTest, fail_on_wrong_chip_id) {
     EXPECT_CALL(*i2c, transfer(_, _))
         .Times(2)
         .WillRepeatedly(Invoke([](const I2cMessage * msgs, std::size_t size) {
-            return return_chip_id(msgs, size, std::byte{static_cast<uint8_t>(Bno055Model::ID + 1)});
+            return return_chip_id(
+                msgs, size, std::byte{static_cast<uint8_t>(Bno055Model::CHIP_ID + 1)});
         }));
 
     auto bno055_model = Bno055Model(std::move(i2c));
@@ -184,7 +185,7 @@ TEST(Bno055ModelBeginTest, fail_on_set_opr_mode_config) {
     EXPECT_CALL(*i2c, open()).WillOnce(Return(tl::expected<void, std::string>{}));
     EXPECT_CALL(*i2c, transfer(_, _))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
-            return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
+            return return_chip_id(msgs, size, std::byte{Bno055Model::CHIP_ID});
         }))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
             expect_write_reg(
@@ -204,7 +205,7 @@ TEST(Bno055ModelBeginTest, fail_on_trigger_reset) {
     EXPECT_CALL(*i2c, open()).WillOnce(Return(tl::expected<void, std::string>{}));
     EXPECT_CALL(*i2c, transfer(_, _))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
-            return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
+            return return_chip_id(msgs, size, std::byte{Bno055Model::CHIP_ID});
         }))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
             expect_write_reg(
@@ -229,7 +230,7 @@ TEST(Bno055ModelBeginTest, fail_on_wait_for_reboot) {
     EXPECT_CALL(*i2c, transfer(_, _))
         .Times(103)
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
-            return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
+            return return_chip_id(msgs, size, std::byte{Bno055Model::CHIP_ID});
         }))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
             expect_write_reg(
