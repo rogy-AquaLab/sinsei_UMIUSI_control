@@ -1,6 +1,7 @@
 #include "sinsei_umiusi_control/hardware_model/imu/bno055_model.hpp"
 
 #include <array>
+#include <boost/math/constants/constants.hpp>
 #include <chrono>
 #include <rclcpp/rclcpp.hpp>
 
@@ -137,7 +138,9 @@ auto imu::Bno055Model::read() -> tl::expected<ReadResult, std::string> {
         return tl::make_unexpected("I2C read error: " + res.error());
     }
 
-    constexpr auto GYRO_SCALE = 1.0 / 16.0;
+    // rad/sに変換
+    constexpr auto PI = boost::math::constants::pi<double>();
+    constexpr auto GYRO_SCALE = (PI / 180.0) / 16.0;
     const auto angular_velocity = state::imu::AngularVelocity{
         static_cast<double>(to_s16(&buffer[OFFSET_GYRO + 0])) * GYRO_SCALE,
         static_cast<double>(to_s16(&buffer[OFFSET_GYRO + 2])) * GYRO_SCALE,
