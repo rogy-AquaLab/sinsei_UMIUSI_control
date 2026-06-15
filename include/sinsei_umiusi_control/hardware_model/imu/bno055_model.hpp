@@ -101,10 +101,10 @@ class Bno055Model {
   private:
     std::unique_ptr<interface::I2c> i2c;
 
+    // 2バイト（LSB、MSB）を結合して符号付き16ビット整数（int16_t）に変換
     static inline auto to_s16(std::byte lsb, std::byte msb) -> int16_t {
-        const auto raw =
-            static_cast<uint16_t>(std::to_integer<uint8_t>(lsb)) |
-            (static_cast<uint16_t>(std::to_integer<uint8_t>(msb)) << 8);
+        const auto raw = static_cast<uint16_t>(std::to_integer<uint8_t>(lsb)) |
+                         (static_cast<uint16_t>(std::to_integer<uint8_t>(msb)) << 8);
         return static_cast<int16_t>(raw);
     }
 
@@ -125,22 +125,24 @@ class Bno055Model {
             case VectorType::Gravity:
                 return GRAVITY_DATA_X_LSB_ADDR;
             default:
-                return RegisterAddr{std::byte{0x00}};
+                return RegisterAddr{std::byte{0x00}};  // unreachable
         }
     }
 
     constexpr auto get_scale(VectorType type) -> double {
         switch (type) {
-            case VectorType::Magnetometer:
-            case VectorType::Gyroscope:
-            case VectorType::Euler:
+            case VectorType::Magnetometer:  // 1uT = 16 LSB
+            case VectorType::Gyroscope:     // 1dps = 16 LSB
+            case VectorType::Euler:         // 1 degree = 16 LSB
                 return 1.0 / 16.0;
-            case VectorType::Accelerometer:
-            case VectorType::LinearAccel:
-            case VectorType::Gravity:
+
+            case VectorType::Accelerometer:  // 1m/s^2 = 100 LSB
+            case VectorType::LinearAccel:    // 1m/s^2 = 100 LSB
+            case VectorType::Gravity:        // 1m/s^2 = 100 LSB
                 return 1.0 / 100.0;
+
             default:
-                return 0.0;
+                return 0.0;  // unreachable
         }
     }
 
