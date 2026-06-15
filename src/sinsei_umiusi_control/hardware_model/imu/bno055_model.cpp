@@ -75,21 +75,22 @@ auto imu::Bno055Model::begin() -> tl::expected<void, std::string> {
 
     // BNO055が再起動するまで待機
     rclcpp::sleep_for(30ms);
-    constexpr int TIMEOUT_MS = 1000;
-    constexpr int WAIT_INTERVAL_MS = 10;
+    constexpr auto TIMEOUT = 1000ms;
+    constexpr auto WAIT_INTERVAL = 10ms;
     bool timeout = true;
-    for (int time = 0; time < TIMEOUT_MS; time += WAIT_INTERVAL_MS) {
+    for (int time = 0; time < TIMEOUT.count(); time += WAIT_INTERVAL.count()) {
         // 正常にBNO055が起動したことを確認
-        auto res = this->validate_id();
+        res = this->validate_id();
         if (res.has_value()) {
             timeout = false;
             break;
         }
-        rclcpp::sleep_for(std::chrono::milliseconds(WAIT_INTERVAL_MS));
+        rclcpp::sleep_for(WAIT_INTERVAL);
     }
     if (timeout) {
         return tl::make_unexpected(
-            "BNO055 did not restart within timeout period (" + std::to_string(TIMEOUT_MS) + " ms)");
+            "BNO055 did not restart within timeout period (" + std::to_string(TIMEOUT.count()) +
+            " ms)");
     }
     rclcpp::sleep_for(50ms);
 
