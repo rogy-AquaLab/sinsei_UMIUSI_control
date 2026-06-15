@@ -2,6 +2,8 @@
 #define SINSEI_UMIUSI_CONTROL_hardware_model_IMU_BNO055_MODEL_HPP
 
 #include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <memory>
 #include <tuple>
 
@@ -15,6 +17,9 @@ class Bno055Model {
   public:
     using DeviceAddr = interface::I2cDeviceAddr;
     using RegisterAddr = interface::I2cRegisterAddr;
+    using ReadResult = std::tuple<
+        state::imu::Quaternion, state::imu::Acceleration, state::imu::AngularVelocity,
+        state::imu::Temperature>;
 
     static constexpr DeviceAddr ADDRESS{0x28};
     static constexpr uint8_t ID{0xA0};
@@ -98,67 +103,40 @@ class Bno055Model {
     /** BNO055 power settings */
     static constexpr std::byte POWER_MODE_NORMAL{0x00};
 
+    /* 一括読み出しに使用するレジスタ */
+    static constexpr RegisterAddr FRAME_START{GYRO_DATA_X_LSB_ADDR};
+    static constexpr size_t FRAME_LENGTH =
+        std::to_integer<size_t>(TEMP_ADDR.value) - std::to_integer<size_t>(FRAME_START.value) + 1;
+    static constexpr size_t OFFSET_GYRO = 0;
+    static constexpr size_t OFFSET_QUAT =
+        std::to_integer<size_t>(QUATERNION_DATA_W_LSB_ADDR.value) -
+        std::to_integer<size_t>(FRAME_START.value);
+    static constexpr size_t OFFSET_LINEAR_ACCEL =
+        std::to_integer<size_t>(LINEAR_ACCEL_DATA_X_LSB_ADDR.value) -
+        std::to_integer<size_t>(FRAME_START.value);
+    static constexpr size_t OFFSET_TEMP =
+        std::to_integer<size_t>(TEMP_ADDR.value) - std::to_integer<size_t>(FRAME_START.value);
+
   private:
     std::unique_ptr<interface::I2c> i2c;
 
-    // 2バイト（LSB、MSB）を結合して符号付き16ビット整数（int16_t）に変換
-    static inline auto to_s16(std::byte lsb, std::byte msb) -> int16_t {
-        const auto raw = static_cast<uint16_t>(std::to_integer<uint8_t>(lsb)) |
-                         (static_cast<uint16_t>(std::to_integer<uint8_t>(msb)) << 8);
+    // 連続する2バイト（LSB、MSB）から符号付き16ビット整数（int16_t）を復元
+    static inline auto to_s16(const std::byte * bytes) -> int16_t {
+        const auto raw = static_cast<uint16_t>(std::to_integer<uint8_t>(bytes[0])) |
+                         (static_cast<uint16_t>(std::to_integer<uint8_t>(bytes[1])) << 8);
         return static_cast<int16_t>(raw);
     }
 
-    enum class VectorType { Accelerometer, Magnetometer, Gyroscope, Euler, LinearAccel, Gravity };
-
-    constexpr auto get_address(VectorType type) -> RegisterAddr {
-        switch (type) {
-            case VectorType::Accelerometer:
-                return ACCEL_DATA_X_LSB_ADDR;
-            case VectorType::Magnetometer:
-                return MAG_DATA_X_LSB_ADDR;
-            case VectorType::Gyroscope:
-                return GYRO_DATA_X_LSB_ADDR;
-            case VectorType::Euler:
-                return EULER_DATA_H_LSB_ADDR;
-            case VectorType::LinearAccel:
-                return LINEAR_ACCEL_DATA_X_LSB_ADDR;
-            case VectorType::Gravity:
-                return GRAVITY_DATA_X_LSB_ADDR;
-            default:
-                return RegisterAddr{std::byte{0x00}};  // unreachable
-        }
-    }
-
-    constexpr auto get_scale(VectorType type) -> double {
-        switch (type) {
-            case VectorType::Magnetometer:  // 1uT = 16 LSB
-            case VectorType::Gyroscope:     // 1dps = 16 LSB
-            case VectorType::Euler:         // 1 degree = 16 LSB
-                return 1.0 / 16.0;
-
-            case VectorType::Accelerometer:  // 1m/s^2 = 100 LSB
-            case VectorType::LinearAccel:    // 1m/s^2 = 100 LSB
-            case VectorType::Gravity:        // 1m/s^2 = 100 LSB
-                return 1.0 / 100.0;
-
-            default:
-                return 0.0;  // unreachable
-        }
-    }
-
-    using Vector3 = std::tuple<double, double, double>;
-
-    auto get_vector(VectorType type) -> tl::expected<Vector3, std::string>;
+    auto write_reg(RegisterAddr reg, std::byte value) -> tl::expected<void, std::string>;
+    auto read_reg(RegisterAddr reg, interface::I2cBufferView buffer)
+        -> tl::expected<void, std::string>;
 
   public:
     explicit Bno055Model(std::unique_ptr<interface::I2c> i2c);
 
     auto begin() -> tl::expected<void, std::string>;
     auto close() -> tl::expected<void, std::string>;
-    auto get_temp() -> tl::expected<state::imu::Temperature, std::string>;
-    auto get_quat() -> tl::expected<state::imu::Quaternion, std::string>;
-    auto get_acceleration() -> tl::expected<state::imu::Acceleration, std::string>;
-    auto get_angular_velocity() -> tl::expected<state::imu::AngularVelocity, std::string>;
+    auto read() -> tl::expected<ReadResult, std::string>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::imu

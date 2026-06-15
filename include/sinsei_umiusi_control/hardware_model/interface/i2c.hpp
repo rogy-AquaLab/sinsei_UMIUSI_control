@@ -42,22 +42,6 @@ class I2c {
 
     virtual auto transfer(const I2cMessage * msgs, std::size_t size)
         -> tl::expected<void, std::string> = 0;
-
-    auto write_reg(I2cDeviceAddr addr, I2cRegisterAddr reg, std::byte value)
-        -> tl::expected<void, std::string> {
-        std::byte data[] = {reg.value, value};
-        I2cMessage msg{addr, I2cDirection::Write, {data, 2}, 0};
-        return transfer(&msg, 1);
-    }
-
-    auto read_reg(I2cDeviceAddr addr, I2cRegisterAddr reg, I2cBufferView buffer)
-        -> tl::expected<void, std::string> {
-        std::byte reg_addr[] = {reg.value};
-        I2cMessage msgs[2] = {
-            {addr, I2cDirection::Write, {reinterpret_cast<std::byte *>(reg_addr), 1}, 0},
-            {addr, I2cDirection::Read, buffer, 0}};
-        return transfer(msgs, 2);
-    }
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::interface

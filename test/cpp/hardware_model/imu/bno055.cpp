@@ -1,6 +1,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -23,10 +24,6 @@ namespace {
 using sinsei_umiusi_control::hardware_model::imu::Bno055Model;
 using sinsei_umiusi_control::hardware_model::interface::I2cDirection;
 using sinsei_umiusi_control::hardware_model::interface::I2cMessage;
-
-constexpr auto ACCEL_SCALE = 1.0 / 100.0;
-constexpr auto ANGVEL_SCALE = 1.0 / 16.0;
-constexpr auto QUAT_SCALE = 1.0 / (1 << 14);
 constexpr auto _ = ::testing::_;
 
 auto expect_write_reg(
@@ -44,8 +41,8 @@ auto expect_write_reg(
 
 auto expect_read_reg(
     const I2cMessage * msgs, std::size_t size,
-    sinsei_umiusi_control::hardware_model::interface::I2cRegisterAddr reg, std::size_t read_size)
-    -> void {
+    sinsei_umiusi_control::hardware_model::interface::I2cRegisterAddr reg,
+    std::size_t read_size) -> void {
     ASSERT_NE(msgs, nullptr);
     ASSERT_EQ(size, 2U);
     EXPECT_EQ(msgs[0].address.value, Bno055Model::ADDRESS.value);
@@ -64,9 +61,13 @@ auto return_chip_id(const I2cMessage * msgs, std::size_t size, std::byte value)
     return {};
 }
 
+auto expect_read_frame(const I2cMessage * msgs, std::size_t size) -> void {
+    expect_read_reg(msgs, size, Bno055Model::FRAME_START, Bno055Model::FRAME_LENGTH);
+}
+
 auto expect_init_writes_until_reboot(
-    const I2cMessage * msgs, std::size_t size, std::size_t call_index)
-    -> tl::expected<void, std::string> {
+    const I2cMessage * msgs, std::size_t size,
+    std::size_t call_index) -> tl::expected<void, std::string> {
     switch (call_index) {
         case 0:
             return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
@@ -93,10 +94,9 @@ TEST(Bno055ModelBeginTest, success) {
 
     EXPECT_CALL(*i2c, open()).WillOnce(Return(tl::expected<void, std::string>{}));
     EXPECT_CALL(*i2c, transfer(_, _))
-        .WillOnce(Invoke(
-            [](const I2cMessage * msgs, std::size_t size) {
-                return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
-            }))
+        .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
+            return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
+        }))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
             expect_write_reg(
                 msgs, size, Bno055Model::OPR_MODE_ADDR, Bno055Model::OPERATION_MODE_CONFIG);
@@ -106,10 +106,9 @@ TEST(Bno055ModelBeginTest, success) {
             expect_write_reg(msgs, size, Bno055Model::SYS_TRIGGER_ADDR, std::byte{0x20});
             return tl::expected<void, std::string>{};
         }))
-        .WillOnce(Invoke(
-            [](const I2cMessage * msgs, std::size_t size) {
-                return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
-            }))
+        .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
+            return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
+        }))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
             expect_write_reg(
                 msgs, size, Bno055Model::PWR_MODE_ADDR, Bno055Model::POWER_MODE_NORMAL);
@@ -170,8 +169,7 @@ TEST(Bno055ModelBeginTest, fail_on_wrong_chip_id) {
     EXPECT_CALL(*i2c, transfer(_, _))
         .Times(2)
         .WillRepeatedly(Invoke([](const I2cMessage * msgs, std::size_t size) {
-            return return_chip_id(
-                msgs, size, std::byte{static_cast<uint8_t>(Bno055Model::ID + 1)});
+            return return_chip_id(msgs, size, std::byte{static_cast<uint8_t>(Bno055Model::ID + 1)});
         }));
 
     auto bno055_model = Bno055Model(std::move(i2c));
@@ -185,10 +183,9 @@ TEST(Bno055ModelBeginTest, fail_on_set_opr_mode_config) {
 
     EXPECT_CALL(*i2c, open()).WillOnce(Return(tl::expected<void, std::string>{}));
     EXPECT_CALL(*i2c, transfer(_, _))
-        .WillOnce(Invoke(
-            [](const I2cMessage * msgs, std::size_t size) {
-                return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
-            }))
+        .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
+            return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
+        }))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
             expect_write_reg(
                 msgs, size, Bno055Model::OPR_MODE_ADDR, Bno055Model::OPERATION_MODE_CONFIG);
@@ -206,10 +203,9 @@ TEST(Bno055ModelBeginTest, fail_on_trigger_reset) {
 
     EXPECT_CALL(*i2c, open()).WillOnce(Return(tl::expected<void, std::string>{}));
     EXPECT_CALL(*i2c, transfer(_, _))
-        .WillOnce(Invoke(
-            [](const I2cMessage * msgs, std::size_t size) {
-                return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
-            }))
+        .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
+            return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
+        }))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
             expect_write_reg(
                 msgs, size, Bno055Model::OPR_MODE_ADDR, Bno055Model::OPERATION_MODE_CONFIG);
@@ -232,10 +228,9 @@ TEST(Bno055ModelBeginTest, fail_on_wait_for_reboot) {
     EXPECT_CALL(*i2c, open()).WillOnce(Return(tl::expected<void, std::string>{}));
     EXPECT_CALL(*i2c, transfer(_, _))
         .Times(103)
-        .WillOnce(Invoke(
-            [](const I2cMessage * msgs, std::size_t size) {
-                return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
-            }))
+        .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
+            return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
+        }))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
             expect_write_reg(
                 msgs, size, Bno055Model::OPR_MODE_ADDR, Bno055Model::OPERATION_MODE_CONFIG);
@@ -396,182 +391,64 @@ TEST(Bno055ModelBeginTest, fail_on_set_opr_mode_ndof) {
     ASSERT_FALSE(result);
 }
 
-TEST(Bno055ModelGetAccelerationTest, success) {
+TEST(Bno055ModelReadTest, success) {
     auto i2c = std::make_unique<mock::I2c>();
 
-    constexpr std::byte MOCK_DATA[6] = {std::byte{0x00}, std::byte{0x10}, std::byte{0x00},
-                                        std::byte{0x20}, std::byte{0x00}, std::byte{0x30}};
+    auto read_buffer = std::array<std::byte, Bno055Model::FRAME_LENGTH>{};
+    constexpr std::byte MOCK_DATA_GYRO[6] = {std::byte{0x00}, std::byte{0x10}, std::byte{0x00},
+                                             std::byte{0x20}, std::byte{0x00}, std::byte{0x30}};
+    constexpr std::byte MOCK_DATA_QUAT[8] = {std::byte{0x00}, std::byte{0x40}, std::byte{0x00},
+                                             std::byte{0x30}, std::byte{0x00}, std::byte{0x20},
+                                             std::byte{0x00}, std::byte{0x10}};
+    constexpr std::byte MOCK_DATA_ACCEL[6] = {std::byte{0x00}, std::byte{0x64}, std::byte{0x00},
+                                              std::byte{0xC8}, std::byte{0x01}, std::byte{0x2C}};
+    constexpr auto MOCK_TEMP = std::byte{0x85};
 
-    const auto expected_accel = state::imu::Acceleration{
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[0]) |
-            (std::to_integer<int16_t>(MOCK_DATA[1]) << 8)) *
-            ACCEL_SCALE,
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[2]) |
-            (std::to_integer<int16_t>(MOCK_DATA[3]) << 8)) *
-            ACCEL_SCALE,
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[4]) |
-            (std::to_integer<int16_t>(MOCK_DATA[5]) << 8)) *
-            ACCEL_SCALE};
+    std::memcpy(
+        read_buffer.data() + Bno055Model::OFFSET_GYRO, MOCK_DATA_GYRO, sizeof(MOCK_DATA_GYRO));
+    std::memcpy(
+        read_buffer.data() + Bno055Model::OFFSET_QUAT, MOCK_DATA_QUAT, sizeof(MOCK_DATA_QUAT));
+    std::memcpy(
+        read_buffer.data() + Bno055Model::OFFSET_LINEAR_ACCEL, MOCK_DATA_ACCEL,
+        sizeof(MOCK_DATA_ACCEL));
+    read_buffer[Bno055Model::OFFSET_TEMP] = MOCK_TEMP;
 
     EXPECT_CALL(*i2c, transfer(_, _))
         .WillOnce(Invoke([&](const I2cMessage * msgs, std::size_t size) {
-            expect_read_reg(msgs, size, Bno055Model::LINEAR_ACCEL_DATA_X_LSB_ADDR, 6U);
-            std::memcpy(msgs[1].buffer.data, MOCK_DATA, sizeof(MOCK_DATA));
+            expect_read_frame(msgs, size);
+            std::memcpy(msgs[1].buffer.data, read_buffer.data(), read_buffer.size());
             return tl::expected<void, std::string>{};
         }));
 
     auto bno055_model = Bno055Model{std::move(i2c)};
-    const auto result = bno055_model.get_acceleration();
+    const auto result = bno055_model.read();
 
     ASSERT_TRUE(result);
-    EXPECT_EQ(result.value().x, expected_accel.x);
-    EXPECT_EQ(result.value().y, expected_accel.y);
-    EXPECT_EQ(result.value().z, expected_accel.z);
+    const auto & [quaternion, acceleration, angular_velocity, temperature] = result.value();
+    EXPECT_EQ(quaternion.x, 0.75);
+    EXPECT_EQ(quaternion.y, 0.5);
+    EXPECT_EQ(quaternion.z, 0.25);
+    EXPECT_EQ(quaternion.w, 1.0);
+    EXPECT_EQ(acceleration.x, 256.0);
+    EXPECT_EQ(acceleration.y, -143.36);
+    EXPECT_EQ(acceleration.z, 112.65);
+    EXPECT_EQ(angular_velocity.x, 256.0);
+    EXPECT_EQ(angular_velocity.y, 512.0);
+    EXPECT_EQ(angular_velocity.z, 768.0);
+    EXPECT_EQ(temperature.value, -123);
 }
 
-TEST(Bno055ModelGetAccelerationTest, fail_on_get_vector) {
+TEST(Bno055ModelReadTest, fail_on_read_frame) {
     auto i2c = std::make_unique<mock::I2c>();
 
     EXPECT_CALL(*i2c, transfer(_, _))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
-            expect_read_reg(msgs, size, Bno055Model::LINEAR_ACCEL_DATA_X_LSB_ADDR, 6U);
+            expect_read_frame(msgs, size);
             return tl::make_unexpected("read failed");
         }));
 
     auto bno055_model = Bno055Model{std::move(i2c)};
-    const auto result = bno055_model.get_acceleration();
-
-    ASSERT_FALSE(result);
-}
-
-TEST(Bno055ModelGetAngularVelocity, success) {
-    auto i2c = std::make_unique<mock::I2c>();
-
-    constexpr std::byte MOCK_DATA[6] = {std::byte{0x00}, std::byte{0x10}, std::byte{0x00},
-                                        std::byte{0x20}, std::byte{0x00}, std::byte{0x30}};
-
-    EXPECT_CALL(*i2c, transfer(_, _))
-        .WillOnce(Invoke([&](const I2cMessage * msgs, std::size_t size) {
-            expect_read_reg(msgs, size, Bno055Model::GYRO_DATA_X_LSB_ADDR, 6U);
-            std::memcpy(msgs[1].buffer.data, MOCK_DATA, sizeof(MOCK_DATA));
-            return tl::expected<void, std::string>{};
-        }));
-
-    const auto expected_angular_vel = state::imu::AngularVelocity{
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[0]) |
-            (std::to_integer<int16_t>(MOCK_DATA[1]) << 8)) *
-            ANGVEL_SCALE,
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[2]) |
-            (std::to_integer<int16_t>(MOCK_DATA[3]) << 8)) *
-            ANGVEL_SCALE,
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[4]) |
-            (std::to_integer<int16_t>(MOCK_DATA[5]) << 8)) *
-            ANGVEL_SCALE};
-
-    auto bno055_model = Bno055Model{std::move(i2c)};
-    const auto result = bno055_model.get_angular_velocity();
-
-    ASSERT_TRUE(result);
-    EXPECT_EQ(result.value().x, expected_angular_vel.x);
-    EXPECT_EQ(result.value().y, expected_angular_vel.y);
-    EXPECT_EQ(result.value().z, expected_angular_vel.z);
-}
-
-TEST(Bno055ModelGetTempTest, success) {
-    auto i2c = std::make_unique<mock::I2c>();
-
-    constexpr auto MOCK_DATA = std::byte{0x12};
-    const auto expected_temp =
-        state::imu::Temperature{std::to_integer<int8_t>(MOCK_DATA & std::byte{0x7F})};
-
-    EXPECT_CALL(*i2c, transfer(_, _))
-        .WillOnce(Invoke([&](const I2cMessage * msgs, std::size_t size) {
-            expect_read_reg(msgs, size, Bno055Model::TEMP_ADDR, 1U);
-            msgs[1].buffer.data[0] = MOCK_DATA;
-            return tl::expected<void, std::string>{};
-        }));
-
-    auto bno055_model = Bno055Model{std::move(i2c)};
-    const auto result = bno055_model.get_temp();
-
-    ASSERT_TRUE(result);
-    ASSERT_EQ(result.value().value, expected_temp.value);
-}
-
-TEST(Bno055ModelGetTempTest, fail_on_get_temperature) {
-    auto i2c = std::make_unique<mock::I2c>();
-
-    EXPECT_CALL(*i2c, transfer(_, _))
-        .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
-            expect_read_reg(msgs, size, Bno055Model::TEMP_ADDR, 1U);
-            return tl::make_unexpected("read failed");
-        }));
-
-    auto bno055_model = Bno055Model(std::move(i2c));
-    auto result = bno055_model.get_temp();
-
-    ASSERT_FALSE(result);
-}
-
-TEST(Bno055ModelGetQuatTest, success) {
-    auto i2c = std::make_unique<mock::I2c>();
-
-    constexpr std::byte MOCK_DATA[8] = {std::byte{0x00}, std::byte{0x10}, std::byte{0x00},
-                                        std::byte{0x20}, std::byte{0x00}, std::byte{0x30},
-                                        std::byte{0x00}, std::byte{0x40}};
-
-    const auto expected_quat = state::imu::Quaternion{
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[0]) |
-            (std::to_integer<int16_t>(MOCK_DATA[1]) << 8)) *
-            QUAT_SCALE,
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[2]) |
-            (std::to_integer<int16_t>(MOCK_DATA[3]) << 8)) *
-            QUAT_SCALE,
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[4]) |
-            (std::to_integer<int16_t>(MOCK_DATA[5]) << 8)) *
-            QUAT_SCALE,
-        static_cast<double>(
-            std::to_integer<int16_t>(MOCK_DATA[6]) |
-            (std::to_integer<int16_t>(MOCK_DATA[7]) << 8)) *
-            QUAT_SCALE};
-
-    EXPECT_CALL(*i2c, transfer(_, _))
-        .WillOnce(Invoke([&](const I2cMessage * msgs, std::size_t size) {
-            expect_read_reg(msgs, size, Bno055Model::QUATERNION_DATA_W_LSB_ADDR, 8U);
-            std::memcpy(msgs[1].buffer.data, MOCK_DATA, sizeof(MOCK_DATA));
-            return tl::expected<void, std::string>{};
-        }));
-
-    auto bno055_model = Bno055Model{std::move(i2c)};
-    const auto result = bno055_model.get_quat();
-
-    ASSERT_TRUE(result);
-    EXPECT_EQ(result.value().x, expected_quat.x);
-    EXPECT_EQ(result.value().y, expected_quat.y);
-    EXPECT_EQ(result.value().z, expected_quat.z);
-    EXPECT_EQ(result.value().w, expected_quat.w);
-}
-
-TEST(Bno055ModelGetQuatTest, fail_on_get_quaternion) {
-    auto i2c = std::make_unique<mock::I2c>();
-
-    EXPECT_CALL(*i2c, transfer(_, _))
-        .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
-            expect_read_reg(msgs, size, Bno055Model::QUATERNION_DATA_W_LSB_ADDR, 8U);
-            return tl::make_unexpected("read failed");
-        }));
-
-    auto bno055_model = Bno055Model(std::move(i2c));
-    auto result = bno055_model.get_quat();
+    const auto result = bno055_model.read();
 
     ASSERT_FALSE(result);
 }

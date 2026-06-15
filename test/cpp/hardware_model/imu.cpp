@@ -19,8 +19,8 @@ using ::testing::Return;
 
 namespace {
 
-using sinsei_umiusi_control::hardware_model::imu::Bno055Model;
 using sinsei_umiusi_control::hardware_model::ImuModel;
+using sinsei_umiusi_control::hardware_model::imu::Bno055Model;
 using sinsei_umiusi_control::hardware_model::interface::I2cDirection;
 using sinsei_umiusi_control::hardware_model::interface::I2cMessage;
 
@@ -39,8 +39,8 @@ auto expect_write_reg(
 
 auto expect_read_reg(
     const I2cMessage * msgs, std::size_t size,
-    sinsei_umiusi_control::hardware_model::interface::I2cRegisterAddr reg, std::size_t read_size)
-    -> void {
+    sinsei_umiusi_control::hardware_model::interface::I2cRegisterAddr reg,
+    std::size_t read_size) -> void {
     ASSERT_NE(msgs, nullptr);
     ASSERT_EQ(size, 2U);
     EXPECT_EQ(msgs[0].address.value, Bno055Model::ADDRESS.value);
@@ -59,6 +59,10 @@ auto return_chip_id(const I2cMessage * msgs, std::size_t size, std::byte value)
     return {};
 }
 
+auto expect_read_frame(const I2cMessage * msgs, std::size_t size) -> void {
+    expect_read_reg(msgs, size, Bno055Model::FRAME_START, Bno055Model::FRAME_LENGTH);
+}
+
 }  // namespace
 
 TEST(ImuModelTest, OnInitSuccess) {
@@ -66,10 +70,9 @@ TEST(ImuModelTest, OnInitSuccess) {
 
     EXPECT_CALL(*mock_i2c, open()).WillOnce(Return(tl::expected<void, std::string>{}));
     EXPECT_CALL(*mock_i2c, transfer(testing::_, testing::_))
-        .WillOnce(Invoke(
-            [](const I2cMessage * msgs, std::size_t size) {
-                return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
-            }))
+        .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
+            return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
+        }))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
             expect_write_reg(
                 msgs, size, Bno055Model::OPR_MODE_ADDR, Bno055Model::OPERATION_MODE_CONFIG);
@@ -79,10 +82,9 @@ TEST(ImuModelTest, OnInitSuccess) {
             expect_write_reg(msgs, size, Bno055Model::SYS_TRIGGER_ADDR, std::byte{0x20});
             return tl::expected<void, std::string>{};
         }))
-        .WillOnce(Invoke(
-            [](const I2cMessage * msgs, std::size_t size) {
-                return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
-            }))
+        .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
+            return return_chip_id(msgs, size, std::byte{Bno055Model::ID});
+        }))
         .WillOnce(Invoke([](const I2cMessage * msgs, std::size_t size) {
             expect_write_reg(
                 msgs, size, Bno055Model::PWR_MODE_ADDR, Bno055Model::POWER_MODE_NORMAL);
@@ -122,32 +124,29 @@ TEST(ImuModelTest, OnInitFailOnI2cOpen) {
 TEST(ImuModelTest, OnReadSuccess) {
     auto mock_i2c = std::make_unique<mock::I2c>();
 
+    auto read_buffer = std::array<std::byte, Bno055Model::FRAME_LENGTH>{};
     constexpr std::byte MOCK_DATA_QUAT[8] = {std::byte{0x00}, std::byte{0x10}, std::byte{0x00},
                                              std::byte{0x20}, std::byte{0x00}, std::byte{0x30},
                                              std::byte{0x00}, std::byte{0x40}};
-    constexpr std::byte MOCK_DATA_VEC[6] = {std::byte{0x00}, std::byte{0x64}, std::byte{0x00},
-                                            std::byte{0xC8}, std::byte{0x01}, std::byte{0x2C}};
-    constexpr auto MOCK_TEMP = std::byte{0x03};
+    constexpr std::byte MOCK_DATA_GYRO[6] = {std::byte{0x00}, std::byte{0x64}, std::byte{0x00},
+                                             std::byte{0xC8}, std::byte{0x01}, std::byte{0x2C}};
+    constexpr std::byte MOCK_DATA_ACCEL[6] = {std::byte{0x10}, std::byte{0x00}, std::byte{0x20},
+                                              std::byte{0x00}, std::byte{0x30}, std::byte{0x00}};
+    constexpr auto MOCK_TEMP = std::byte{0x83};
+
+    std::memcpy(
+        read_buffer.data() + Bno055Model::OFFSET_GYRO, MOCK_DATA_GYRO, sizeof(MOCK_DATA_GYRO));
+    std::memcpy(
+        read_buffer.data() + Bno055Model::OFFSET_QUAT, MOCK_DATA_QUAT, sizeof(MOCK_DATA_QUAT));
+    std::memcpy(
+        read_buffer.data() + Bno055Model::OFFSET_LINEAR_ACCEL, MOCK_DATA_ACCEL,
+        sizeof(MOCK_DATA_ACCEL));
+    read_buffer[Bno055Model::OFFSET_TEMP] = MOCK_TEMP;
 
     EXPECT_CALL(*mock_i2c, transfer(testing::_, testing::_))
         .WillOnce(Invoke([&](const I2cMessage * msgs, std::size_t size) {
-            expect_read_reg(msgs, size, Bno055Model::QUATERNION_DATA_W_LSB_ADDR, 8U);
-            std::memcpy(msgs[1].buffer.data, MOCK_DATA_QUAT, sizeof(MOCK_DATA_QUAT));
-            return tl::expected<void, std::string>{};
-        }))
-        .WillOnce(Invoke([&](const I2cMessage * msgs, std::size_t size) {
-            expect_read_reg(msgs, size, Bno055Model::LINEAR_ACCEL_DATA_X_LSB_ADDR, 6U);
-            std::memcpy(msgs[1].buffer.data, MOCK_DATA_VEC, sizeof(MOCK_DATA_VEC));
-            return tl::expected<void, std::string>{};
-        }))
-        .WillOnce(Invoke([&](const I2cMessage * msgs, std::size_t size) {
-            expect_read_reg(msgs, size, Bno055Model::GYRO_DATA_X_LSB_ADDR, 6U);
-            std::memcpy(msgs[1].buffer.data, MOCK_DATA_VEC, sizeof(MOCK_DATA_VEC));
-            return tl::expected<void, std::string>{};
-        }))
-        .WillOnce(Invoke([&](const I2cMessage * msgs, std::size_t size) {
-            expect_read_reg(msgs, size, Bno055Model::TEMP_ADDR, 1U);
-            msgs[1].buffer.data[0] = MOCK_TEMP;
+            expect_read_frame(msgs, size);
+            std::memcpy(msgs[1].buffer.data, read_buffer.data(), read_buffer.size());
             return tl::expected<void, std::string>{};
         }));
 
