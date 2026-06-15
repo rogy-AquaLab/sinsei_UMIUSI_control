@@ -6,17 +6,20 @@
 
 using namespace std::chrono_literals;
 
-namespace sinsei_umiusi_control::hardware_model::imu {
+using namespace sinsei_umiusi_control::hardware_model;
 
-Bno055Model::Bno055Model(std::unique_ptr<interface::I2c> i2c) : i2c(std::move(i2c)) {}
+// ref: https://github.com/adafruit/Adafruit_BNO055/blob/1b1af09/Adafruit_BNO055.cpp
 
-auto Bno055Model::write_reg(RegisterAddr reg, std::byte value) -> tl::expected<void, std::string> {
+imu::Bno055Model::Bno055Model(std::unique_ptr<interface::I2c> i2c) : i2c(std::move(i2c)) {}
+
+auto imu::Bno055Model::write_reg(RegisterAddr reg, std::byte value)
+    -> tl::expected<void, std::string> {
     std::byte data[] = {reg.value, value};
     interface::I2cMessage msg{ADDRESS, interface::I2cDirection::Write, {data, 2}, 0};
     return this->i2c->transfer(&msg, 1);
 }
 
-auto Bno055Model::read_reg(RegisterAddr reg, interface::I2cBufferView buffer)
+auto imu::Bno055Model::read_reg(RegisterAddr reg, interface::I2cBufferView buffer)
     -> tl::expected<void, std::string> {
     std::byte reg_addr[] = {reg.value};
     interface::I2cMessage msgs[2] = {
@@ -25,7 +28,7 @@ auto Bno055Model::read_reg(RegisterAddr reg, interface::I2cBufferView buffer)
     return this->i2c->transfer(msgs, 2);
 }
 
-auto Bno055Model::begin() -> tl::expected<void, std::string> {
+auto imu::Bno055Model::begin() -> tl::expected<void, std::string> {
     auto res = this->i2c->open();
     if (!res) {
         return tl::make_unexpected("Failed to open I2C bus for BNO055: " + res.error());
@@ -105,7 +108,7 @@ auto Bno055Model::begin() -> tl::expected<void, std::string> {
     return {};
 }
 
-auto Bno055Model::close() -> tl::expected<void, std::string> {
+auto imu::Bno055Model::close() -> tl::expected<void, std::string> {
     auto res = this->i2c->close();
     if (!res) {
         return tl::make_unexpected("Failed to close I2C bus: " + res.error());
@@ -113,7 +116,7 @@ auto Bno055Model::close() -> tl::expected<void, std::string> {
     return {};
 }
 
-auto Bno055Model::read() -> tl::expected<ReadResult, std::string> {
+auto imu::Bno055Model::read() -> tl::expected<ReadResult, std::string> {
     auto buffer = std::array<std::byte, FRAME_LENGTH>{};
     const auto res = this->read_reg(FRAME_START, {buffer.data(), buffer.size()});
     if (!res) {
@@ -143,5 +146,3 @@ auto Bno055Model::read() -> tl::expected<ReadResult, std::string> {
 
     return ReadResult{quaternion, acceleration, angular_velocity, temperature};
 }
-
-}  // namespace sinsei_umiusi_control::hardware_model::imu
