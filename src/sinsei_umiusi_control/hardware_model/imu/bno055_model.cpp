@@ -2,7 +2,6 @@
 
 #include <array>
 #include <boost/math/constants/constants.hpp>
-#include <chrono>
 #include <rclcpp/rclcpp.hpp>
 
 using namespace std::chrono_literals;
@@ -45,24 +44,31 @@ auto imu::Bno055Model::validate_id() -> tl::expected<void, std::string> {
     return {};
 }
 
-auto imu::Bno055Model::begin() -> tl::expected<void, std::string> {
-    auto res = this->i2c->open();
-    if (!res) {
-        return tl::make_unexpected("Failed to open I2C bus for BNO055: " + res.error());
+auto imu::Bno055Model::wait_for_device_ready(
+    int max_attempts, std::chrono::milliseconds retry_interval) -> tl::expected<void, std::string> {
+    if (max_attempts <= 0) {
+        return tl::make_unexpected("max_attempts must be positive");
     }
 
-    // 正しいデバイスであることを確認
-    res = this->validate_id();
-    if (!res) {
-        rclcpp::sleep_for(1000ms);
-        res = this->validate_id();
-        if (!res) {
-            return tl::make_unexpected("BNO055 device verification failed: " + res.error());
+    std::string last_error;
+
+    for (int i = 1; i <= max_attempts; ++i) {
+        const auto res = this->validate_id();
+        if (res) {
+            return {};
+        }
+        last_error = res.error();
+        if (i < max_attempts) {
+            rclcpp::sleep_for(retry_interval);
         }
     }
+    return tl::make_unexpected(
+        "device was not ready after " + std::to_string(max_attempts) + " attempts: " + last_error);
+}
 
+auto imu::Bno055Model::reset_device() -> tl::expected<void, std::string> {
     // コンフィグモードに移行（デフォルトでコンフィグモードだが念のため）
-    res = this->write_reg(OPR_MODE_ADDR, OPERATION_MODE_CONFIG);
+    auto res = this->write_reg(OPR_MODE_ADDR, OPERATION_MODE_CONFIG);
     if (!res) {
         return tl::make_unexpected("Failed to set BNO055 to CONFIG mode: " + res.error());
     }
@@ -73,30 +79,26 @@ auto imu::Bno055Model::begin() -> tl::expected<void, std::string> {
     if (!res) {
         return tl::make_unexpected("Failed to trigger BNO055 reset: " + res.error());
     }
+    rclcpp::sleep_for(30ms);
 
     // BNO055が再起動するまで待機
-    rclcpp::sleep_for(30ms);
-    constexpr auto TIMEOUT = 1000ms;
-    constexpr auto WAIT_INTERVAL = 10ms;
-    bool timeout = true;
-    for (int time = 0; time < TIMEOUT.count(); time += WAIT_INTERVAL.count()) {
-        // 正常にBNO055が起動したことを確認
-        res = this->validate_id();
-        if (res.has_value()) {
-            timeout = false;
-            break;
-        }
-        rclcpp::sleep_for(WAIT_INTERVAL);
-    }
-    if (timeout) {
+    constexpr auto RESET_TIMEOUT = 1000ms;
+    constexpr auto RESET_WAIT_INTERVAL = 10ms;
+    constexpr auto RESET_VERIFY_ATTEMPTS = static_cast<int>(RESET_TIMEOUT / RESET_WAIT_INTERVAL);
+    res = this->wait_for_device_ready(RESET_VERIFY_ATTEMPTS, RESET_WAIT_INTERVAL);
+    if (!res) {
         return tl::make_unexpected(
-            "BNO055 did not restart within timeout period (" + std::to_string(TIMEOUT.count()) +
-            " ms)");
+            "BNO055 did not restart within timeout period (" +
+            std::to_string(RESET_TIMEOUT.count()) + " ms): " + res.error());
     }
-    rclcpp::sleep_for(50ms);
 
+    rclcpp::sleep_for(50ms);
+    return {};
+}
+
+auto imu::Bno055Model::configure_device() -> tl::expected<void, std::string> {
     // ノーマルパワーモードに設定
-    res = this->write_reg(PWR_MODE_ADDR, POWER_MODE_NORMAL);
+    auto res = this->write_reg(PWR_MODE_ADDR, POWER_MODE_NORMAL);
     if (!res) {
         return tl::make_unexpected("Failed to set BNO055 to NORMAL power mode: " + res.error());
     }
@@ -119,6 +121,31 @@ auto imu::Bno055Model::begin() -> tl::expected<void, std::string> {
         return tl::make_unexpected("Failed to set BNO055 to NDOF mode: " + res.error());
     }
     rclcpp::sleep_for(20ms);
+
+    return {};
+}
+
+auto imu::Bno055Model::begin() -> tl::expected<void, std::string> {
+    auto res = this->i2c->open();
+    if (!res) {
+        return tl::make_unexpected("Failed to open I2C bus for BNO055: " + res.error());
+    }
+
+    // 正しいデバイスであることを確認
+    res = this->wait_for_device_ready(2, 100ms);
+    if (!res) {
+        return tl::make_unexpected("Failed to verify BNO055 device: " + res.error());
+    }
+
+    res = this->reset_device();
+    if (!res) {
+        return tl::make_unexpected("Failed to reset BNO055 device: " + res.error());
+    }
+
+    res = this->configure_device();
+    if (!res) {
+        return tl::make_unexpected("Failed to configure BNO055 device: " + res.error());
+    }
 
     return {};
 }

@@ -1,6 +1,7 @@
 #ifndef SINSEI_UMIUSI_CONTROL_hardware_model_IMU_BNO055_MODEL_HPP
 #define SINSEI_UMIUSI_CONTROL_hardware_model_IMU_BNO055_MODEL_HPP
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -132,6 +133,11 @@ class Bno055Model {
         -> tl::expected<void, std::string>;
 
     auto validate_id() -> tl::expected<void, std::string>;
+
+    auto wait_for_device_ready(int max_attempts, std::chrono::milliseconds retry_interval)
+        -> tl::expected<void, std::string>;
+    auto reset_device() -> tl::expected<void, std::string>;
+    auto configure_device() -> tl::expected<void, std::string>;
 
   public:
     explicit Bno055Model(std::unique_ptr<interface::I2c> i2c);
