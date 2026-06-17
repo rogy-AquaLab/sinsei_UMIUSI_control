@@ -9,56 +9,55 @@ using namespace sinsei_umiusi_control::hardware_model;
 
 can::VescModel::VescModel(can::VescModel::Id id) : id(id) {}
 
-auto can::VescModel::make_frame(
-    VescSimpleCommandID && command_id,
-    interface::CanFrame::Data && data) const -> interface::CanFrame {
+auto can::VescModel::make_frame(VescSimpleCommandID command_id, interface::CanFrame::Data && data)
+    const -> interface::CanFrame {
     const auto id =
         (static_cast<interface::CanFrame::Id>(command_id) & 0xFF) << 8 | (this->id & 0xFF);
     return interface::CanFrame{
-        std::move(id),    // id
+        id,               // id
         4,                // len
         std::move(data),  // data
         true,             // is_extended
     };
 }
 
-auto can::VescModel::make_duty_frame(double && duty) const
+auto can::VescModel::make_duty_frame(double duty) const
     -> tl::expected<interface::CanFrame, std::string> {
     if (duty < -1.0 || duty > 1.0) {
         return tl::make_unexpected(
             "Duty must be between -1.0 and 1.0 (duty: " + std::to_string(duty) + ")");
     }
-    auto && scaled_duty = static_cast<int32_t>(std::move(duty) * SET_DUTY_SCALE);
-    auto && bytes = util::to_bytes_be(std::move(scaled_duty));
+    const auto scaled_duty = static_cast<int32_t>(duty * SET_DUTY_SCALE);
+    auto bytes = util::to_bytes_be(scaled_duty);
     return this->make_frame(VescSimpleCommandID::CAN_PACKET_SET_DUTY, std::move(bytes));
 }
 
-auto can::VescModel::make_rpm_frame(int8_t && rpm) const
+auto can::VescModel::make_rpm_frame(int8_t rpm) const
     -> tl::expected<interface::CanFrame, std::string> {
-    auto && scaled_rpm = static_cast<int32_t>(std::move(rpm) * SET_RPM_SCALE);
-    auto && bytes = util::to_bytes_be(std::move(scaled_rpm));
+    const auto scaled_rpm = static_cast<int32_t>(rpm * SET_RPM_SCALE);
+    auto bytes = util::to_bytes_be(scaled_rpm);
     return this->make_frame(VescSimpleCommandID::CAN_PACKET_SET_RPM, std::move(bytes));
 }
 
-auto can::VescModel::make_servo_frame(double && value) const
+auto can::VescModel::make_servo_frame(double value) const
     -> tl::expected<interface::CanFrame, std::string> {
     if (value < 0.0 || value > 1.0) {
         return tl::make_unexpected(
             "Servo value must be between 0.0 and 1.0 (value: " + std::to_string(value) + ")");
     }
-    auto && scaled_value = static_cast<int32_t>(std::move(value) * SET_SERVO_SCALE);
-    auto && bytes = util::to_bytes_be(std::move(scaled_value));
+    const auto scaled_value = static_cast<int32_t>(value * SET_SERVO_SCALE);
+    auto bytes = util::to_bytes_be(scaled_value);
     return this->make_frame(VescSimpleCommandID::CAN_PACKET_SET_SERVO, std::move(bytes));
 }
 
-auto can::VescModel::make_servo_angle_frame(double && deg) const
+auto can::VescModel::make_servo_angle_frame(double deg) const
     -> tl::expected<interface::CanFrame, std::string> {
     // -90.0 ~ 90.0度の角度を0.0 ~ 1.0に変換
     if (deg < -90.0 || deg > 90.0) {
         return tl::make_unexpected(
             "Servo angle must be between -90.0 ~ 90.0 degrees (deg: " + std::to_string(deg) + ")");
     }
-    return this->make_servo_frame((std::move(deg) + 90.0) / 180.0);
+    return this->make_servo_frame((deg + 90.0) / 180.0);
 }
 
 auto can::VescModel::id_matches(const interface::CanFrame & frame) const -> bool {
@@ -78,13 +77,13 @@ auto can::VescModel::get_packet_status(const interface::CanFrame & frame) const
             std::to_string(frame.len) + ")");
     }
 
-    const auto cmd_id = (frame.id >> 8) & 0xFF;
+    const auto cmd_id = static_cast<uint32_t>((frame.id >> 8) & 0xFF);
 
     switch (cmd_id) {
         case PacketStatus::ID: {
-            auto && scaled_erpm = util::to_int32_be(frame.data);
-            auto && scaled_current = util::to_int16_be<4>(frame.data);
-            auto && scaled_duty = util::to_int16_be<6>(frame.data);
+            const auto scaled_erpm = util::to_int32_be(frame.data);
+            const auto scaled_current = util::to_int16_be<4>(frame.data);
+            const auto scaled_duty = util::to_int16_be<6>(frame.data);
             if (!scaled_erpm || !scaled_current || !scaled_duty) {
                 return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS");
             }
@@ -95,8 +94,8 @@ auto can::VescModel::get_packet_status(const interface::CanFrame & frame) const
             };
         }
         case PacketStatus2::ID: {
-            auto && scaled_amp_hour = util::to_int32_be(frame.data);
-            auto && scaled_amp_hour_charge = util::to_int32_be<4>(frame.data);
+            const auto scaled_amp_hour = util::to_int32_be(frame.data);
+            const auto scaled_amp_hour_charge = util::to_int32_be<4>(frame.data);
             if (!scaled_amp_hour || !scaled_amp_hour_charge) {
                 return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_2");
             }
@@ -107,8 +106,8 @@ auto can::VescModel::get_packet_status(const interface::CanFrame & frame) const
             };
         }
         case PacketStatus3::ID: {
-            auto && scaled_watt_hour = util::to_int32_be(frame.data);
-            auto && scaled_watt_hour_charge = util::to_int32_be<4>(frame.data);
+            const auto scaled_watt_hour = util::to_int32_be(frame.data);
+            const auto scaled_watt_hour_charge = util::to_int32_be<4>(frame.data);
             if (!scaled_watt_hour || !scaled_watt_hour_charge) {
                 return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_3");
             }
@@ -119,10 +118,10 @@ auto can::VescModel::get_packet_status(const interface::CanFrame & frame) const
             };
         }
         case PacketStatus4::ID: {
-            auto && scaled_temp_fet = util::to_int16_be(frame.data);
-            auto && scaled_temp_motor = util::to_int16_be<2>(frame.data);
-            auto && scaled_current_in = util::to_int16_be<4>(frame.data);
-            auto && scaled_pid_pos = util::to_int16_be<6>(frame.data);
+            const auto scaled_temp_fet = util::to_int16_be(frame.data);
+            const auto scaled_temp_motor = util::to_int16_be<2>(frame.data);
+            const auto scaled_current_in = util::to_int16_be<4>(frame.data);
+            const auto scaled_pid_pos = util::to_int16_be<6>(frame.data);
             if (!scaled_temp_fet || !scaled_temp_motor || !scaled_current_in || !scaled_pid_pos) {
                 return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_4");
             }
@@ -134,8 +133,8 @@ auto can::VescModel::get_packet_status(const interface::CanFrame & frame) const
             };
         }
         case PacketStatus5::ID: {
-            auto && scaled_tachometer = util::to_int32_be(frame.data);
-            auto && scaled_volts_in = util::to_int16_be<4>(frame.data);
+            const auto scaled_tachometer = util::to_int32_be(frame.data);
+            const auto scaled_volts_in = util::to_int16_be<4>(frame.data);
             if (!scaled_tachometer || !scaled_volts_in) {
                 return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_5");
             }
@@ -145,10 +144,10 @@ auto can::VescModel::get_packet_status(const interface::CanFrame & frame) const
             };
         }
         case PacketStatus6::ID: {
-            auto && scaled_adc1 = util::to_int16_be(frame.data);
-            auto && scaled_adc2 = util::to_int16_be<2>(frame.data);
-            auto && scaled_adc3 = util::to_int16_be<4>(frame.data);
-            auto && scaled_ppm = util::to_int16_be<6>(frame.data);
+            const auto scaled_adc1 = util::to_int16_be(frame.data);
+            const auto scaled_adc2 = util::to_int16_be<2>(frame.data);
+            const auto scaled_adc3 = util::to_int16_be<4>(frame.data);
+            const auto scaled_ppm = util::to_int16_be<6>(frame.data);
             if (!scaled_adc1 || !scaled_adc2 || !scaled_adc3 || !scaled_ppm) {
                 return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_6");
             }
