@@ -214,9 +214,8 @@ auto Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period
             }
 
             const auto res = this->model->on_write(
-                std::move(main_power_enabled), std::move(esc_allowed_flags),
-                std::move(esc_duty_cycles), std::move(servo_allowed_flags), std::move(servo_angles),
-                std::move(led_tape_color));
+                main_power_enabled, esc_allowed_flags, esc_duty_cycles, servo_allowed_flags,
+                servo_angles, led_tape_color);
             if (!res) {
                 constexpr auto DURATION = 3000;  // ms
                 RCLCPP_ERROR_THROTTLE(
@@ -229,8 +228,7 @@ auto Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period
 
         case util::ThrusterDriverType::
             Direct: {  // this->thruster_driver_type == util::ThrusterDriverType::Direct
-            const auto res =
-                this->model->on_write(std::move(main_power_enabled), std::move(led_tape_color));
+            const auto res = this->model->on_write(main_power_enabled, led_tape_color);
             if (!res) {
                 constexpr auto DURATION = 3000;  // ms
                 RCLCPP_ERROR_THROTTLE(

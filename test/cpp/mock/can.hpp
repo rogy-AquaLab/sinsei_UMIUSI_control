@@ -16,7 +16,7 @@ class Can : public sinsei_umiusi_control::hardware_model::interface::Can {
     MOCK_METHOD0(close, tl::expected<void, std::string>());
     MOCK_METHOD1(
         send_frame, tl::expected<void, std::string>(
-                        sinsei_umiusi_control::hardware_model::interface::CanFrame && frame));
+                        const sinsei_umiusi_control::hardware_model::interface::CanFrame & frame));
     MOCK_METHOD0(
         recv_frame,
         tl::expected<sinsei_umiusi_control::hardware_model::interface::CanFrame, std::string>());

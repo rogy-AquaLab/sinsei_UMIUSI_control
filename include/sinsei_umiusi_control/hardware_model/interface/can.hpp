@@ -28,7 +28,7 @@ class Can {
 
     virtual auto init(const std::string_view ifname) -> tl::expected<void, std::string> = 0;
     virtual auto close() -> tl::expected<void, std::string> = 0;
-    virtual auto send_frame(CanFrame && frame) -> tl::expected<void, std::string> = 0;
+    virtual auto send_frame(const CanFrame & frame) -> tl::expected<void, std::string> = 0;
     virtual auto recv_frame() -> tl::expected<CanFrame, std::string> = 0;
 };
 
