@@ -82,6 +82,11 @@ auto LinuxI2c::transfer(const interface::I2cMessage * msgs, std::size_t size)
     if (res < 0) {
         return tl::make_unexpected("I2C transfer failed: " + std::string(strerror(errno)));
     }
+    if (res != static_cast<int>(size)) {
+        return tl::make_unexpected(
+            "I2C transfer incomplete: expected " + std::to_string(size) + " messages, but only " +
+            std::to_string(res) + " were transferred");
+    }
 
     return {};
 }
