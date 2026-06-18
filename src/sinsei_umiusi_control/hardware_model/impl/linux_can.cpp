@@ -62,6 +62,14 @@ auto impl::LinuxCan::close() -> tl::expected<void, std::string> {
 }
 
 auto impl::LinuxCan::init(const std::string_view ifname) -> tl::expected<void, std::string> {
+    if (ifname.empty()) {
+        return tl::make_unexpected("CAN interface name is empty");
+    }
+    if (ifname.size() >= IFNAMSIZ) {
+        this->close();  // Reset the socket descriptor on error
+        return tl::make_unexpected("CAN interface name is too long: " + std::string(ifname));
+    }
+
     // Create a socket
     this->sock = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
     if (this->sock < 0) {
@@ -71,7 +79,8 @@ auto impl::LinuxCan::init(const std::string_view ifname) -> tl::expected<void, s
 
     // Interface request (name -> if_index mapping)
     struct ifreq ifr {};
-    std::strncpy(ifr.ifr_name, ifname.data(), IFNAMSIZ - 1);
+    std::memcpy(ifr.ifr_name, ifname.data(), ifname.size());
+    ifr.ifr_name[ifname.size()] = '\0';
     auto res = ::ioctl(this->sock.value(), SIOCGIFINDEX, &ifr);
     if (res < 0) {
         this->close();  // Reset the socket descriptor on error
