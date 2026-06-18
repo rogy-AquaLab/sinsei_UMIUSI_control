@@ -7,13 +7,19 @@
 #include <unistd.h>
 
 #include <cstring>
+#include <limits>
 #include <vector>
 
 using namespace sinsei_umiusi_control::hardware_model;
 
 namespace {
 
-auto to_linux_i2c_msg(const interface::I2cMessage & msg) -> i2c_msg {
+auto to_linux_i2c_msg(const interface::I2cMessage & msg) -> tl::expected<i2c_msg, std::string> {
+    if (msg.buffer.length > std::numeric_limits<uint16_t>::max()) {
+        return tl::make_unexpected(
+            "I2C message length exceeds kernel limit: " + std::to_string(msg.buffer.length));
+    }
+
     i2c_msg linux_msg{};
     linux_msg.addr = msg.address.value;
     linux_msg.flags = (msg.direction == interface::I2cDirection::Read) ? I2C_M_RD : 0;
@@ -71,7 +77,11 @@ auto LinuxI2c::transfer(const interface::I2cMessage * msgs, std::size_t size)
     std::vector<i2c_msg> linux_msgs;
     linux_msgs.reserve(size);
     for (std::size_t i = 0; i < size; ++i) {
-        linux_msgs.push_back(to_linux_i2c_msg(msgs[i]));
+        const auto linux_msg = to_linux_i2c_msg(msgs[i]);
+        if (!linux_msg) {
+            return tl::make_unexpected(linux_msg.error());
+        }
+        linux_msgs.push_back(*linux_msg);
     }
 
     i2c_rdwr_ioctl_data ioctl_data{};
