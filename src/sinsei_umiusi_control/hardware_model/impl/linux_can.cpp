@@ -71,7 +71,6 @@ auto impl::LinuxCan::init(const std::string_view ifname) -> tl::expected<void, s
         return tl::make_unexpected("CAN interface name is empty");
     }
     if (ifname.size() >= IFNAMSIZ) {
-        this->close();  // Reset the socket descriptor on error
         return tl::make_unexpected("CAN interface name is too long: " + std::string(ifname));
     }
 
