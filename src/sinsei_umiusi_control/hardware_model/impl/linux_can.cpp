@@ -16,7 +16,12 @@ using namespace sinsei_umiusi_control::hardware_model;
 
 namespace {
 
-auto _to_linux_can_frame(const interface::CanFrame & frame) -> can_frame {
+auto _to_linux_can_frame(const interface::CanFrame & frame)
+    -> tl::expected<can_frame, std::string> {
+    if (frame.len > CAN_MAX_DLEN) {
+        return tl::make_unexpected("len exceeds maximum allowed CAN data length");
+    }
+
     can_frame linux_can_frame{};
     if (frame.is_extended) {
         linux_can_frame.can_id = (frame.id & CAN_EFF_MASK) | CAN_EFF_FLAG;  // Extended frame ID
@@ -109,10 +114,6 @@ auto impl::LinuxCan::send_linux_can_frame(const can_frame & frame)
         return tl::make_unexpected("CAN socket is not initialized");
     }
 
-    if (frame.len > CAN_MAX_DLEN) {
-        return tl::make_unexpected("len exceeds maximum allowed CAN data length");
-    }
-
     // Send the CAN frame
     const auto bytes_to_write = sizeof(frame);
     const auto bytes_written = ::write(this->sock.value(), &frame, bytes_to_write);
@@ -172,8 +173,11 @@ auto impl::LinuxCan::recv_linux_can_frame() -> tl::expected<can_frame, std::stri
 
 auto impl::LinuxCan::send_frame(const interface::CanFrame & frame)
     -> tl::expected<void, std::string> {
-    auto linux_can_frame = _to_linux_can_frame(frame);
-    return this->send_linux_can_frame(linux_can_frame);
+    auto linux_can_frame_res = _to_linux_can_frame(frame);
+    if (!linux_can_frame_res) {
+        return tl::make_unexpected(linux_can_frame_res.error());
+    }
+    return this->send_linux_can_frame(linux_can_frame_res.value());
 }
 
 auto impl::LinuxCan::recv_frame() -> tl::expected<CanFrame, std::string> {
