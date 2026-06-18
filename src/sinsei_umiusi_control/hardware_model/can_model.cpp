@@ -115,16 +115,21 @@ auto CanModel::on_destroy() -> tl::expected<void, std::string> {
 
 auto CanModel::on_read() const
     -> tl::expected<
-        std::variant<
+        std::optional<std::variant<
             std::tuple<size_t, state::thruster::esc::Rpm>,
             std::tuple<size_t, state::thruster::esc::Voltage>,
             std::tuple<size_t, state::thruster::esc::WaterLeaked>,
             state::main_power::BatteryCurrent, state::main_power::BatteryVoltage,
-            state::main_power::Temperature, state::main_power::WaterLeaked>,
+            state::main_power::Temperature, state::main_power::WaterLeaked>>,
         std::string> {
-    const auto frame = this->can->recv_frame();
-    if (!frame) {
-        return tl::make_unexpected("Failed to receive CAN frame: " + frame.error());
+    const auto frame_res = this->can->recv_frame();
+    if (!frame_res) {
+        return tl::make_unexpected("Failed to receive CAN frame: " + frame_res.error());
+    }
+    const auto & frame_opt = frame_res.value();
+    if (!frame_opt) {
+        // CANフレームが受信されなかった場合は異常とみなす
+        return tl::make_unexpected("No CAN frame received within the timeout period");
     }
 
     // フレームを各モデルに渡していく
@@ -136,7 +141,7 @@ auto CanModel::on_read() const
     for (size_t i = 0; i < 4; ++i) {
         const auto vesc_id = std::to_string(i + 1);
 
-        const auto packet_status_res = this->vesc_models[i].get_packet_status(frame.value());
+        const auto packet_status_res = this->vesc_models[i].get_packet_status(frame_opt.value());
         if (!packet_status_res) {
             error_message += "    VESC " + vesc_id + ": " + packet_status_res.error() + "\n";
             continue;
@@ -182,7 +187,7 @@ auto CanModel::on_read() const
 
     // すべてのモデルでフレームを処理できなかった場合はエラー
     return tl::make_unexpected(
-        "Failed to handle CAN frame \"" + std::to_string(frame.value().id) +
+        "Failed to handle CAN frame \"" + std::to_string(frame_opt.value().id) +
         "\" in all models: \n" + error_message);
 }
 

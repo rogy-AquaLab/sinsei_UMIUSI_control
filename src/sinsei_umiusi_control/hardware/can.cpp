@@ -126,9 +126,13 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
             res.error().c_str());
         return hardware_interface::return_type::OK;
     }
+    if (!res.value()) {
+        this->set_state("can/health", util::to_interface_data(state::can::Health{true}));
+        return hardware_interface::return_type::OK;
+    }
     this->set_state("can/health", util::to_interface_data(state::can::Health{true}));
 
-    auto variant = res.value();
+    auto variant = res.value().value();
 
     switch (variant.index()) {
         case 0: {  // Rpm

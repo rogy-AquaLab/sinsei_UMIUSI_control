@@ -19,7 +19,8 @@ class Can : public sinsei_umiusi_control::hardware_model::interface::Can {
                         const sinsei_umiusi_control::hardware_model::interface::CanFrame & frame));
     MOCK_METHOD0(
         recv_frame,
-        tl::expected<sinsei_umiusi_control::hardware_model::interface::CanFrame, std::string>());
+        tl::expected<std::optional<sinsei_umiusi_control::hardware_model::interface::CanFrame>,
+                     std::string>());
 };
 
 }  // namespace sinsei_umiusi_control::test::mock

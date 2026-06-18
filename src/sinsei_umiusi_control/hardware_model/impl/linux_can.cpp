@@ -129,7 +129,7 @@ auto impl::LinuxCan::send_linux_can_frame(const can_frame & frame)
     return {};
 }
 
-auto impl::LinuxCan::recv_linux_can_frame() -> tl::expected<can_frame, std::string> {
+auto impl::LinuxCan::recv_linux_can_frame() -> tl::expected<std::optional<can_frame>, std::string> {
     if (!this->sock) {
         return tl::make_unexpected("CAN socket is not initialized");
     }
@@ -151,7 +151,7 @@ auto impl::LinuxCan::recv_linux_can_frame() -> tl::expected<can_frame, std::stri
     if (res < 0) {
         return tl::make_unexpected("select() failed: " + std::string(strerror(errno)));
     } else if (res == 0) {
-        return tl::make_unexpected("No data available on CAN socket within timeout period");
+        return std::nullopt;
     }
 
     // Read the CAN frame from the socket
@@ -179,7 +179,13 @@ auto impl::LinuxCan::send_frame(const interface::CanFrame & frame)
     return this->send_linux_can_frame(linux_can_frame_res.value());
 }
 
-auto impl::LinuxCan::recv_frame() -> tl::expected<CanFrame, std::string> {
-    return this->recv_linux_can_frame().map(
-        [](const can_frame & linux_can_frame) { return _from_linux_can_frame(linux_can_frame); });
+auto impl::LinuxCan::recv_frame() -> tl::expected<std::optional<CanFrame>, std::string> {
+    const auto linux_can_frame_res = this->recv_linux_can_frame();
+    if (!linux_can_frame_res) {
+        return tl::make_unexpected(linux_can_frame_res.error());
+    }
+    if (!linux_can_frame_res.value()) {
+        return std::nullopt;
+    }
+    return _from_linux_can_frame(linux_can_frame_res.value().value());
 }
