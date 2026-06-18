@@ -19,7 +19,7 @@ auto to_linux_i2c_msg(const interface::I2cMessage & msg) -> i2c_msg {
     linux_msg.flags = (msg.direction == interface::I2cDirection::Read) ? I2C_M_RD : 0;
     linux_msg.flags |= msg.flags;
     linux_msg.len = static_cast<uint16_t>(msg.buffer.length);
-    linux_msg.buf = reinterpret_cast<uint8_t *>(const_cast<std::byte *>(msg.buffer.data));
+    linux_msg.buf = reinterpret_cast<uint8_t *>(msg.buffer.data);
 
     return linux_msg;
 }
