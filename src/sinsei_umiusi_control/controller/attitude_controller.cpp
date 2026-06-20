@@ -79,19 +79,21 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
     constexpr std::string_view THRUSTER_SUFFIX[4] = {"_lf", "_lb", "_rb", "_rf"};
 
     for (size_t i = 0; i < 4; ++i) {
-        const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
+        const auto controller_prefix =
+            "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/";
         this->command_interface_data.push_back(std::make_tuple(
-            prefix + "esc/duty_cycle", util::to_interface_data_ptr(this->output.cmd.esc_thrusts[i]),
+            controller_prefix + "esc/duty_cycle",
+            util::to_interface_data_ptr(this->output.cmd.esc_thrusts[i]),
             sizeof(this->output.cmd.esc_thrusts[i])));
         this->command_interface_data.push_back(std::make_tuple(
-            prefix + "servo/angle", util::to_interface_data_ptr(this->output.cmd.servo_angles[i]),
+            controller_prefix + "servo/angle",
+            util::to_interface_data_ptr(this->output.cmd.servo_angles[i]),
             sizeof(this->output.cmd.servo_angles[i])));
-    }
 
-    for (size_t i = 0; i < 4; ++i) {
-        const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
+        const auto thruster_prefix = controller_prefix + "thruster/";
         this->state_interface_data.push_back(std::make_tuple(
-            prefix + "esc/rpm", util::to_interface_data_ptr(this->input.state.esc_rpms[i]),
+            thruster_prefix + "esc/rpm",
+            util::to_interface_data_ptr(this->input.state.esc_rpms[i]),
             sizeof(this->input.state.esc_rpms[i])));
     }
     this->state_interface_data.push_back(std::make_tuple(
