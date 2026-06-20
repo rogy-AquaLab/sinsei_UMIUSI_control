@@ -32,7 +32,7 @@ auto can::VescModel::make_duty_frame(double duty) const
     return this->make_frame(VescSimpleCommandID::CAN_PACKET_SET_DUTY, std::move(bytes));
 }
 
-auto can::VescModel::make_rpm_frame(int8_t rpm) const
+auto can::VescModel::make_rpm_frame(int32_t rpm) const
     -> tl::expected<interface::CanFrame, std::string> {
     const auto scaled_rpm = static_cast<int32_t>(rpm * SET_RPM_SCALE);
     auto bytes = util::to_bytes_be(scaled_rpm);

@@ -135,7 +135,7 @@ class VescModel {
     VescModel(Id id);
 
     auto make_duty_frame(double duty) const -> tl::expected<interface::CanFrame, std::string>;
-    auto make_rpm_frame(int8_t rpm) const -> tl::expected<interface::CanFrame, std::string>;
+    auto make_rpm_frame(int32_t rpm) const -> tl::expected<interface::CanFrame, std::string>;
     auto make_servo_angle_frame(double deg) const -> tl::expected<interface::CanFrame, std::string>;
 
     using AnyPacketStatus = std::variant<
