@@ -92,6 +92,8 @@ def generate_launch_description():
                 LaunchConfiguration('servo_direct4_max_pulse_width'),
                 ' period_led_tape_per_thrusters:=',
                 LaunchConfiguration('period_led_tape_per_thrusters'),
+                ' imu_i2c_device:=',
+                LaunchConfiguration('imu_i2c_device'),
             ],
         ),
         value_type=str,
