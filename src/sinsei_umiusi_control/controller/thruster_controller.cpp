@@ -171,7 +171,7 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
         sizeof(this->input.cmd.servo_angle)));
 
     {
-        const auto prefix = std::string("cmd/thruster_controller/");
+        const auto prefix = std::string("cmd/direct/thruster_controller/");
         const auto thruster_pos = this->get_name().substr(std::size("thruster_controller_") - 1);
         const auto qos = rclcpp::SystemDefaultsQoS();
         this->input.sub.thruster_output =

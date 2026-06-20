@@ -23,11 +23,11 @@ All types of messages are defined in [sinsei_UMIUSI_msgs](https://github.com/rog
 
 | Topic Name                                  | Type name (URL to `.msg` file)                                                                                | Description                                                                             |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `cmd/thruster_controller/output_lf`  | [`ThrusterOutput`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterOutput.msg)       | Thruster output (`ThrusterRunnable`, ESC duty and Servo angle) for Left Front thruster  |
-| `cmd/thruster_controller/output_lb`  | [`ThrusterOutput`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterOutput.msg)       | Thruster output (`ThrusterRunnable`, ESC duty and Servo angle) for Left Back thruster   |
-| `cmd/thruster_controller/output_rb`  | [`ThrusterOutput`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterOutput.msg)       | Thruster output (`ThrusterRunnable`, ESC duty and Servo angle) for Right Back thruster  |
-| `cmd/thruster_controller/output_rf`  | [`ThrusterOutput`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterOutput.msg)       | Thruster output (`ThrusterRunnable`, ESC duty and Servo angle) for Right Front thruster |
-| `cmd/thruster_controller/output_all` | [`ThrusterOutputAll`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterOutputAll.msg) | Thruster output (`ThrusterOutput`) for each thruster                                    |
+| `cmd/direct/thruster_controller/output_lf`  | [`ThrusterOutput`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterOutput.msg)       | Thruster output (`ThrusterRunnable`, ESC duty and Servo angle) for Left Front thruster  |
+| `cmd/direct/thruster_controller/output_lb`  | [`ThrusterOutput`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterOutput.msg)       | Thruster output (`ThrusterRunnable`, ESC duty and Servo angle) for Left Back thruster   |
+| `cmd/direct/thruster_controller/output_rb`  | [`ThrusterOutput`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterOutput.msg)       | Thruster output (`ThrusterRunnable`, ESC duty and Servo angle) for Right Back thruster  |
+| `cmd/direct/thruster_controller/output_rf`  | [`ThrusterOutput`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterOutput.msg)       | Thruster output (`ThrusterRunnable`, ESC duty and Servo angle) for Right Front thruster |
+| `cmd/direct/thruster_controller/output_all` | [`ThrusterOutputAll`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterOutputAll.msg) | Thruster output (`ThrusterOutput`) for each thruster                                    |
 
 ### Published by `GateController`
 

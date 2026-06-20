@@ -3,7 +3,7 @@
 ## TL;DR
 
 - 1基分のスラスタを制御するコントローラ。`thruster_controller_(lf|lb|rb|rf)`ごとに1つずつ実体化され、`params/controllers.yaml`の設定でハードウェアIDなどを切り替える。
-- `cmd/thruster_controller/output_*`トピックからの指令が届く場合はそれをそのままESC/サーボに流し、パブリッシャが居ないときのみ内部ロジック(`logic::thruster::LinearAcceleration`)で推力指令を生成する。
+- `cmd/direct/thruster_controller/output_*`トピックからの直接指令が届く場合はそれをそのままESC/サーボに流し、パブリッシャが居ないときのみ内部ロジック(`logic::thruster::LinearAcceleration`)で推力指令を生成する。
 - `(esc|servo)_disabled`パラメータの処理については[resolve_thruster_mode](#resolve_thruster_mode)の項目を参照。
 
 ## 入出力構造
@@ -19,7 +19,7 @@
 
 ## 受信トピックと優先順位
 
-- 名前空間: `cmd/thruster_controller/`
+- 名前空間: `cmd/direct/thruster_controller/`
 - 個別トピック: `output_lf`, `output_lb`, `output_rb`, `output_rf` (型: `ThrusterOutput`)
 - 一括トピック: `output_all` (型: `ThrusterOutputAll`)
 
