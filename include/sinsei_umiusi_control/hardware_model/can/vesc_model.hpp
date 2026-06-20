@@ -104,6 +104,8 @@ class VescModel {
     using Id = uint8_t;
 
     static constexpr int STATUS_COMMAND_NUM = 6;
+    static constexpr interface::CanFrame::DataLength SIMPLE_COMMAND_FRAME_LENGTH = 4;
+    static constexpr interface::CanFrame::DataLength STATUS_FRAME_LENGTH = 8;
 
     // std::array<bool, STATUS_COMMAND_NUM> transmit_status_command;
 
