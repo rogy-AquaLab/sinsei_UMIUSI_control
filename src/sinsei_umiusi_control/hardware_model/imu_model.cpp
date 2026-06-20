@@ -127,6 +127,10 @@ auto ImuModel::configure_device() -> tl::expected<void, std::string> {
 }
 
 auto ImuModel::on_init() -> tl::expected<void, std::string> {
+    // 正常系の明示的な待機だけでも最低約140msかかる
+    // （reset_device: 20 + 30 + 50ms, configure_device: 10 + 10 + 20ms）
+    // wait_for_device_ready() は初回で成功すればsleepしない
+
     auto res = this->i2c->open();
     if (!res) {
         return tl::make_unexpected("Failed to open I2C bus for BNO055: " + res.error());
