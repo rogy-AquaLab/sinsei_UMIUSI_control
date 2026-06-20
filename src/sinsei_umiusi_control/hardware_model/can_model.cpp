@@ -128,8 +128,7 @@ auto CanModel::on_read() const
     }
     const auto & frame_opt = frame_res.value();
     if (!frame_opt) {
-        // CANフレームが受信されなかった場合は異常とみなす
-        return tl::make_unexpected("No CAN frame received within the timeout period");
+        return tl::make_unexpected("CAN read timeout: no CAN frame received within the timeout period");
     }
 
     // フレームを各モデルに渡していく
@@ -153,11 +152,11 @@ auto CanModel::on_read() const
             continue;
         }
 
-        // `thruster_driver_type`が`Direct`の時は、VESCからのフレームを無視する
+        // `thruster_driver_type`が`Direct`の時にVESCからのフレームが来たら異常とみなす
         if (this->thruster_driver_type == util::ThrusterDriverType::Direct) {
             return tl::make_unexpected(
-                "Received CAN frame from VESC " + vesc_id +
-                " but thruster driver type is Direct, so ignored.");
+                "Unexpected VESC CAN frame while thruster_driver_type is Direct (VESC " + vesc_id +
+                ")");
         }
 
         switch (packet_status_opt.value().index()) {
@@ -179,13 +178,20 @@ auto CanModel::on_read() const
                 return std::make_tuple(i, state::thruster::esc::WaterLeaked{water_leaked});
             }
             default: {
-                // 他のパケットは無視
-                break;
+                return tl::make_unexpected(
+                    "Unsupported VESC packet status variant received (VESC " + vesc_id +
+                    ", variant index: " +
+                    std::to_string(packet_status_opt.value().index()) + ")");
             }
         }
     }
 
-    // すべてのモデルでフレームを処理できなかった場合はエラー
+    if (error_message.empty()) {
+        return tl::make_unexpected(
+            "Unhandled CAN frame: no registered model accepted frame id " +
+            std::to_string(frame_opt.value().id));
+    }
+
     return tl::make_unexpected(
         "Failed to handle CAN frame \"" + std::to_string(frame_opt.value().id) +
         "\" in all models: \n" + error_message);
