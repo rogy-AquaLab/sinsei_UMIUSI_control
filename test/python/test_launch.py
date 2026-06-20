@@ -23,26 +23,19 @@ from helper import (
 PACKAGE_NAME = 'sinsei_umiusi_control'
 
 LAUNCH_ARGUMENTS: dict[str, set[str]] = {
-    'thruster_driver_type': {'can', 'direct'},  # URDFに渡される引数代表
     'enable_cameras': {'false'},
 }
 
 
 def hardware_components(largs: dict[str, str]) -> set[str]:
+    _ = largs
     base = {
         'can',
         'headlights',
         'imu',
         'indicator_led',
     }
-    if largs['thruster_driver_type'] == 'can':
-        return base
-    elif largs['thruster_driver_type'] == 'direct':
-        return (
-            base
-            | {f'thruster_direct{i}/servo' for i in range(1, 5)}
-            | {f'thruster_direct{i}/esc' for i in range(1, 5)}
-        )
+    return base
 
 
 def controllers(largs: dict[str, str]) -> set[str]:

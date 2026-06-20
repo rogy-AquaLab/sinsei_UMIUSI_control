@@ -17,7 +17,6 @@ PACKAGE_NAME = 'sinsei_umiusi_control'
 
 # '' means the parameter is not set (default value will be used)
 XACRO_ARGUMENTS: dict[str, set[str]] = {
-    'thruster_driver_type': {'', 'can', 'direct'},
     'high_beam_pin': {'', '1'},
     'low_beam_pin': {'', '1'},
     'ir_pin': {'', '1'},

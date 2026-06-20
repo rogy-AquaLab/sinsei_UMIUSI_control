@@ -20,9 +20,6 @@ struct Voltage {
 struct WaterLeaked {
     bool value;
 };
-struct Health {
-    bool is_ok;
-};
 
 }  // namespace sinsei_umiusi_control::state::thruster::esc
 

@@ -5,7 +5,6 @@
 #include <tuple>
 
 #include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
-#include "sinsei_umiusi_control/util/thruster_driver_type.hpp"
 
 using namespace sinsei_umiusi_control::hardware_model;
 
@@ -68,22 +67,9 @@ auto CanModel::update_and_generate_command(
     return led_tape_color;  // led_tape/color
 }
 
-auto CanModel::update_and_generate_command(
-    cmd::main_power::Enabled && main_power_enabled_cmd,
-    cmd::led_tape::Color && led_tape_color) -> WriteCommand {
-    this->loop_times++;
-
-    // main_power_enabled
-    if (this->last_main_power_enabled.value != main_power_enabled_cmd.value) {
-        this->last_main_power_enabled = main_power_enabled_cmd;
-        return this->last_main_power_enabled;
-    }
-    return led_tape_color;  // led_tape/color
-}
-
 CanModel::CanModel(
     std::shared_ptr<interface::Can> can, std::array<int, 4> vesc_ids,
-    size_t period_led_tape_per_thrusters, util::ThrusterDriverType thruster_driver_type)
+    size_t period_led_tape_per_thrusters)
 : can(can),
   vesc_models{{
       can::VescModel(vesc_ids[0]),
@@ -92,8 +78,7 @@ CanModel::CanModel(
       can::VescModel(vesc_ids[3]),
   }},
   last_main_power_enabled{false},
-  period_led_tape_per_thrusters{period_led_tape_per_thrusters},
-  thruster_driver_type(thruster_driver_type) {}
+  period_led_tape_per_thrusters{period_led_tape_per_thrusters} {}
 
 auto CanModel::on_init() -> tl::expected<void, std::string> {
     const auto res = this->can->init("can0");
@@ -146,13 +131,6 @@ auto CanModel::on_read() const
         if (!packet_status_opt) {
             // `Can::VescModel`では処理できないためスキップ
             continue;
-        }
-
-        // `thruster_driver_type`が`Direct`の時は、VESCからのフレームを無視する
-        if (this->thruster_driver_type == util::ThrusterDriverType::Direct) {
-            return tl::make_unexpected(
-                "Received CAN frame from VESC " + vesc_id +
-                " but thruster driver type is Direct, so ignored.");
         }
 
         switch (packet_status_opt.value().index()) {
@@ -285,13 +263,5 @@ auto CanModel::on_write(
             "Failed to send CAN frame (command type id: " + std::to_string(command.index()) +
             "): " + res.error());
     }
-    return {};
-}
-
-auto CanModel::on_write(
-    cmd::main_power::Enabled /*main_power_enabled*/,
-    cmd::led_tape::Color /*led_tape_color*/) -> tl::expected<void, std::string> {
-    // TODO: `main_power_enabled`と`led_tape_color`の処理を実装する
-    //return tl::make_unexpected("Not implemented");
     return {};
 }

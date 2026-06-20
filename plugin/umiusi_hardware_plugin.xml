@@ -9,24 +9,6 @@
     </description>
   </class>
   <class
-    name="sinsei_umiusi_control/hardware/EscDirect"
-    type="sinsei_umiusi_control::hardware::thruster_direct::EscDirect"
-    base_class_type="hardware_interface::SystemInterface"
-  >
-    <description>
-      Interface to ESC of thruster for UMIUSI
-    </description>
-  </class>
-  <class
-    name="sinsei_umiusi_control/hardware/ServoDirect"
-    type="sinsei_umiusi_control::hardware::thruster_direct::ServoDirect"
-    base_class_type="hardware_interface::SystemInterface"
-  >
-    <description>
-      Interface to servo of thruster for UMIUSI
-    </description>
-  </class>
-  <class
     name="sinsei_umiusi_control/hardware/IndicatorLed"
     type="sinsei_umiusi_control::hardware::IndicatorLed"
     base_class_type="hardware_interface::SystemInterface"

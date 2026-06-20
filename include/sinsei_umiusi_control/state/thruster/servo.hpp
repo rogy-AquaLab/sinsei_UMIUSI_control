@@ -11,9 +11,6 @@ struct Mode {
 struct Angle {
     double value;
 };
-struct Health {
-    bool is_ok;
-};
 
 }  // namespace sinsei_umiusi_control::state::thruster::servo
 

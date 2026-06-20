@@ -2,8 +2,8 @@
 
 ## TL;DR
 
-- 1基分のスラスタを制御するコントローラ。`thruster_controller_(lf|lb|rb|rf)`ごとに1つずつ実体化され、`params/controllers.yaml`の設定でハードウェアIDやドライバ種別を切り替える。
-- `cmd/direct/thruster_controller/output_*`トピックからの直接指令が届く場合はそれをそのままESC/サーボに流し、パブリッシャが居ないときのみ内部ロジック(`logic::thruster::LinearAcceleration`)で推力指令を生成する。
+- 1基分のスラスタを制御するコントローラ。`thruster_controller_(lf|lb|rb|rf)`ごとに1つずつ実体化され、`params/controllers.yaml`の設定でハードウェアIDなどを切り替える。
+- `cmd/thruster_controller/output_*`トピックからの指令が届く場合はそれをそのままESC/サーボに流し、パブリッシャが居ないときのみ内部ロジック(`logic::thruster::LinearAcceleration`)で推力指令を生成する。
 - `(esc|servo)_disabled`パラメータの処理については[resolve_thruster_mode](#resolve_thruster_mode)の項目を参照。
 
 ## 入出力構造
@@ -13,14 +13,13 @@
 | 種別 | 名称 | 説明 |
 | ---- | ---- | ---- |
 | Command In | `cmd/thruster/esc::Runnable`, `cmd/thruster/esc::Thrust`, `cmd/thruster/servo::Runnable`, `cmd/thruster/servo::Angle` | GateControllerやAttitudeControllerから受け取る指示。`esc::Thrust`は後段でDutyに変換される。 |
-| State In (CAN) | `state/thruster/esc::Rpm`, `Voltage`, `WaterLeaked` | ドライバ種別が`can`のときのみ購読。 |
-| State In (Direct) | `state/thruster/esc::Health`, `state/thruster/servo::Health` | ドライバ種別が`direct`のときのみ購読。 |
+| State In | `state/thruster/esc::Rpm`, `Voltage`, `WaterLeaked` | CANハードウェアから受け取る状態。 |
 | Command Out | `esc/allowed`, `esc/duty_cycle`, `servo/allowed`, `servo/angle` | 実機へ書き込まれるコマンド。`*_allowed`は`ThrusterMode::Runnable`判定結果から導出。 |
-| State Out | `esc/mode`, `esc/duty_cycle`, `servo/mode`, `servo/angle` (+ driver-specific health/RPM) | GateControllerやヘルスチェックノードが購読する状態量。IDを隠すため`thruster/esc/rpm`のように番号を取り除いてエクスポートされる。 |
+| State Out | `esc/mode`, `esc/duty_cycle`, `servo/mode`, `servo/angle`, `thruster/esc/rpm`, `thruster/esc/voltage`, `thruster/esc/water_leaked` | GateControllerやヘルスチェックノードが購読する状態量。IDを隠すため`thruster1/esc/rpm`のような名前は `thruster/esc/rpm` に変換してエクスポートされる。 |
 
 ## 受信トピックと優先順位
 
-- 名前空間: `cmd/direct/thruster_controller/`
+- 名前空間: `cmd/thruster_controller/`
 - 個別トピック: `output_lf`, `output_lb`, `output_rb`, `output_rf` (型: `ThrusterOutput`)
 - 一括トピック: `output_all` (型: `ThrusterOutputAll`)
 
@@ -30,7 +29,6 @@
 
 | パラメータ | 型 / 例 | 用途 |
 | ---------- | ------- | ---- |
-| `thruster_driver_type` | string (`can` or `direct`) | スラスタ駆動に使用するハードウェアを切り替え。 |
 | `id` | int (1-4) | URDF上の`thruster{id}`に対応。Command/State Interface名生成に使用。 |
 | `esc_disabled`, `servo_disabled` | bool | trueの場合は常に`ThrusterMode::Disabled`で動作し、`*_allowed`をfalseに落とす。 |
 | `is_forward` | bool | 推力向きを示すフラグ。`false`にするとロジック内で推力指令を反転し、逆向きに取り付けたスラスタでも正の推力指令で前進できる。 |

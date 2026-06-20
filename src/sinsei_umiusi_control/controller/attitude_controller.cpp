@@ -39,7 +39,6 @@ auto AttitudeController::state_interface_configuration() const
 }
 
 auto AttitudeController::on_init() -> controller_interface::CallbackReturn {
-    this->get_node()->declare_parameter("thruster_driver_type", "unknown");
     this->get_node()->declare_parameter("control_mode", "ff");
 
     this->input = AttitudeController::Input{};
@@ -50,21 +49,6 @@ auto AttitudeController::on_init() -> controller_interface::CallbackReturn {
 
 auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous_state*/)
     -> controller_interface::CallbackReturn {
-    // スラスタドライバータイプを取得
-    const auto thruster_driver_type_str =
-        this->get_node()->get_parameter("thruster_driver_type").as_string();
-    const auto thruster_driver_type_res = util::get_driver_type_from_str(thruster_driver_type_str);
-    if (!thruster_driver_type_res) {
-        RCLCPP_ERROR(
-            this->get_node()->get_logger(), "Invalid thruster driver type: %s",
-            thruster_driver_type_str.c_str());
-        return controller_interface::CallbackReturn::ERROR;
-    }
-    this->thruster_driver_type = thruster_driver_type_res.value();
-    RCLCPP_INFO(
-        this->get_node()->get_logger(), "Thruster driver type: %s",
-        thruster_driver_type_str.c_str());
-
     // コントロールモードを取得
     const auto control_mode_str = this->get_node()->get_parameter("control_mode").as_string();
     const auto control_mode_res = logic::get_mode_from_str(control_mode_str);
@@ -104,15 +88,11 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
             sizeof(this->output.cmd.servo_angles[i])));
     }
 
-    if (this->thruster_driver_type == util::ThrusterDriverType::Can) {
-        // `can`タイプのときは、RPMを取得するためのインターフェースを追加する。
-        for (size_t i = 0; i < 4; ++i) {
-            const auto prefix =
-                "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
-            this->state_interface_data.push_back(std::make_tuple(
-                prefix + "esc/rpm", util::to_interface_data_ptr(this->input.state.esc_rpms[i]),
-                sizeof(this->input.state.esc_rpms[i])));
-        }
+    for (size_t i = 0; i < 4; ++i) {
+        const auto prefix = "thruster_controller" + std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
+        this->state_interface_data.push_back(std::make_tuple(
+            prefix + "esc/rpm", util::to_interface_data_ptr(this->input.state.esc_rpms[i]),
+            sizeof(this->input.state.esc_rpms[i])));
     }
     this->state_interface_data.push_back(std::make_tuple(
         "imu/quaternion.x", util::to_interface_data_ptr(this->input.state.imu_quaternion.x),

@@ -22,7 +22,6 @@
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
 #include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
-#include "sinsei_umiusi_control/util/thruster_driver_type.hpp"
 #include "sinsei_umiusi_msgs/msg/headlights_output.hpp"
 #include "sinsei_umiusi_msgs/msg/high_power_circuit_info.hpp"
 #include "sinsei_umiusi_msgs/msg/imu_state.hpp"
@@ -58,9 +57,6 @@ class GateController : public controller_interface::ControllerInterface {
                 esc_water_leaked_flags;
             std::array<sinsei_umiusi_control::state::thruster::servo::Mode, 4> servo_modes;
             std::array<sinsei_umiusi_control::state::thruster::servo::Angle, 4> servo_angles;
-            std::array<sinsei_umiusi_control::state::thruster::esc::Health, 4> esc_direct_healthes;
-            std::array<sinsei_umiusi_control::state::thruster::servo::Health, 4>
-                servo_direct_healthes;
             sinsei_umiusi_control::state::can::Health can_health;
             sinsei_umiusi_control::state::headlights::Health headlights_health;
             sinsei_umiusi_control::state::imu::Health imu_health;
@@ -119,8 +115,6 @@ class GateController : public controller_interface::ControllerInterface {
   private:
     Input input;
     Output output;
-
-    sinsei_umiusi_control::util::ThrusterDriverType thruster_driver_type;
 
     sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer command_interface_data;
     sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer state_interface_data;

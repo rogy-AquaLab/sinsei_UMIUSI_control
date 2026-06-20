@@ -26,23 +26,6 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SystemInterface::on_init(params);
 
-    const auto driver_type_str =
-        util::find_param(params.hardware_info.hardware_parameters, "thruster_driver_type");
-    if (!driver_type_str) {
-        RCLCPP_ERROR(
-            this->get_logger(),
-            "Parameter 'thruster_driver_type' not found in hardware parameters.");
-        return hardware_interface::CallbackReturn::ERROR;
-    }
-    const auto driver_type_res = util::get_driver_type_from_str(driver_type_str.value());
-    if (!driver_type_res) {
-        RCLCPP_ERROR(
-            this->get_logger(), "Invalid thruster driver type: %s",
-            driver_type_res.error().c_str());
-        return hardware_interface::CallbackReturn::ERROR;
-    }
-    auto thruster_driver_type = driver_type_res.value();
-
     std::array<int, 4> vesc_ids;
     for (size_t i = 0; i < 4; ++i) {
         auto vesc_id_key = "vesc" + std::to_string(i + 1) + "_id";
@@ -92,8 +75,7 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     }
 
     this->model.emplace(
-        std::make_shared<hardware_model::impl::LinuxCan>(), vesc_ids, period_led_tape_per_thrusters,
-        thruster_driver_type);
+        std::make_shared<hardware_model::impl::LinuxCan>(), vesc_ids, period_led_tape_per_thrusters);
 
     auto res = this->model->on_init();
     if (!res) {
@@ -193,58 +175,35 @@ auto Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period
     auto && led_tape_color =
         util::from_interface_data<cmd::led_tape::Color>(this->get_command("led_tape/color"));
 
-    switch (this->model->thruster_driver_type) {
-        case util::ThrusterDriverType::Can: {
-            auto thruster_name = [](size_t i) { return "thruster" + std::to_string(i + 1); };
+    auto thruster_name = [](size_t i) { return "thruster" + std::to_string(i + 1); };
 
-            auto && esc_allowed_flags = std::array<cmd::thruster::esc::Allowed, 4>{};
-            auto && esc_duty_cycles = std::array<cmd::thruster::esc::DutyCycle, 4>{};
-            auto && servo_allowed_flags = std::array<cmd::thruster::servo::Allowed, 4>{};
-            auto && servo_angles = std::array<cmd::thruster::servo::Angle, 4>{};
+    auto && esc_allowed_flags = std::array<cmd::thruster::esc::Allowed, 4>{};
+    auto && esc_duty_cycles = std::array<cmd::thruster::esc::DutyCycle, 4>{};
+    auto && servo_allowed_flags = std::array<cmd::thruster::servo::Allowed, 4>{};
+    auto && servo_angles = std::array<cmd::thruster::servo::Angle, 4>{};
 
-            for (size_t i = 0; i < 4; ++i) {
-                esc_allowed_flags[i] = util::from_interface_data<cmd::thruster::esc::Allowed>(
-                    this->get_command(thruster_name(i) + "/esc/allowed"));
-                esc_duty_cycles[i] = util::from_interface_data<cmd::thruster::esc::DutyCycle>(
-                    this->get_command(thruster_name(i) + "/esc/duty_cycle"));
-                servo_allowed_flags[i] = util::from_interface_data<cmd::thruster::servo::Allowed>(
-                    this->get_command(thruster_name(i) + "/servo/allowed"));
-                servo_angles[i] = util::from_interface_data<cmd::thruster::servo::Angle>(
-                    this->get_command(thruster_name(i) + "/servo/angle"));
-            }
-
-            const auto res = this->model->on_write(
-                std::move(main_power_enabled), std::move(esc_allowed_flags),
-                std::move(esc_duty_cycles), std::move(servo_allowed_flags), std::move(servo_angles),
-                std::move(led_tape_color));
-            if (!res) {
-                constexpr auto DURATION = 3000;  // ms
-                RCLCPP_ERROR_THROTTLE(
-                    this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to write Can: %s",
-                    res.error().c_str());
-                return hardware_interface::return_type::OK;
-            }
-            break;
-        }
-
-        case util::ThrusterDriverType::
-            Direct: {  // this->thruster_driver_type == util::ThrusterDriverType::Direct
-            const auto res =
-                this->model->on_write(std::move(main_power_enabled), std::move(led_tape_color));
-            if (!res) {
-                constexpr auto DURATION = 3000;  // ms
-                RCLCPP_ERROR_THROTTLE(
-                    this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to write Can: %s",
-                    res.error().c_str());
-                return hardware_interface::return_type::OK;
-            }
-            break;
-        }
-
-        default: {
-            return hardware_interface::return_type::ERROR;  // unreachable
-        }
+    for (size_t i = 0; i < 4; ++i) {
+        esc_allowed_flags[i] = util::from_interface_data<cmd::thruster::esc::Allowed>(
+            this->get_command(thruster_name(i) + "/esc/allowed"));
+        esc_duty_cycles[i] = util::from_interface_data<cmd::thruster::esc::DutyCycle>(
+            this->get_command(thruster_name(i) + "/esc/duty_cycle"));
+        servo_allowed_flags[i] = util::from_interface_data<cmd::thruster::servo::Allowed>(
+            this->get_command(thruster_name(i) + "/servo/allowed"));
+        servo_angles[i] = util::from_interface_data<cmd::thruster::servo::Angle>(
+            this->get_command(thruster_name(i) + "/servo/angle"));
     }
+
+    const auto res = this->model->on_write(
+        std::move(main_power_enabled), std::move(esc_allowed_flags), std::move(esc_duty_cycles),
+        std::move(servo_allowed_flags), std::move(servo_angles), std::move(led_tape_color));
+    if (!res) {
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_ERROR_THROTTLE(
+            this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to write Can: %s",
+            res.error().c_str());
+        return hardware_interface::return_type::OK;
+    }
+
     return hardware_interface::return_type::OK;
 }
 
