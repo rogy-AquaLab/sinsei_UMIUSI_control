@@ -16,7 +16,12 @@ using namespace sinsei_umiusi_control::hardware_model;
 
 namespace {
 
-auto _to_linux_can_frame(interface::CanFrame && frame) -> can_frame {
+auto _to_linux_can_frame(const interface::CanFrame & frame)
+    -> tl::expected<can_frame, std::string> {
+    if (frame.len > CAN_MAX_DLEN) {
+        return tl::make_unexpected("len exceeds maximum allowed CAN data length");
+    }
+
     can_frame linux_can_frame{};
     if (frame.is_extended) {
         linux_can_frame.can_id = (frame.id & CAN_EFF_MASK) | CAN_EFF_FLAG;  // Extended frame ID
@@ -49,34 +54,50 @@ auto _from_linux_can_frame(const can_frame & linux_can_frame) -> interface::CanF
 
 impl::LinuxCan::LinuxCan() : sock(std::nullopt) {}
 
+impl::LinuxCan::~LinuxCan() { (void)this->close(); }
+
 auto impl::LinuxCan::close() -> tl::expected<void, std::string> {
     if (!this->sock) {
-        return tl::make_unexpected("Socket is not initialized");
+        return tl::make_unexpected("CAN socket is not initialized");
     }
-    auto res = ::close(this->sock.value());
+    const auto res = ::close(this->sock.value());
     if (res < 0) {
-        return tl::make_unexpected("Failed to close socket: " + std::string(strerror(errno)));
+        return tl::make_unexpected("Failed to close CAN socket: " + std::string(strerror(errno)));
     }
     sock.reset();
     return {};
 }
 
 auto impl::LinuxCan::init(const std::string_view ifname) -> tl::expected<void, std::string> {
+    if (ifname.empty()) {
+        return tl::make_unexpected("CAN interface name is empty");
+    }
+    if (ifname.size() >= IFNAMSIZ) {
+        return tl::make_unexpected("CAN interface name is too long: " + std::string(ifname));
+    }
+    if (this->sock) {
+        return tl::make_unexpected("CAN socket is already initialized");
+    }
+
+    const auto ifname_str = std::string(ifname);
+
     // Create a socket
-    this->sock = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
-    if (this->sock < 0) {
-        sock.reset();
-        return tl::make_unexpected("Failed to create CAN socket: " + std::string(strerror(errno)));
+    const auto fd = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
+    if (fd < 0) {
+        return tl::make_unexpected(
+            "Failed to create CAN socket for interface '" + ifname_str +
+            "': " + std::string(strerror(errno)));
     }
 
     // Interface request (name -> if_index mapping)
     struct ifreq ifr {};
-    std::strncpy(ifr.ifr_name, ifname.data(), IFNAMSIZ - 1);
-    auto res = ::ioctl(this->sock.value(), SIOCGIFINDEX, &ifr);
+    std::memcpy(ifr.ifr_name, ifname.data(), ifname.size());
+    auto res = ::ioctl(fd, SIOCGIFINDEX, &ifr);
     if (res < 0) {
-        this->close();  // Reset the socket descriptor on error
+        (void)::close(fd);
         return tl::make_unexpected(
-            "Failed to get interface index: " + std::string(strerror(errno)));
+            "Failed to get interface index for '" + ifname_str +
+            "': " + std::string(strerror(errno)));
     }
 
     // Set up the socket address structure
@@ -85,22 +106,22 @@ auto impl::LinuxCan::init(const std::string_view ifname) -> tl::expected<void, s
     addr.can_ifindex = ifr.ifr_ifindex;
 
     // Bind the socket to the CAN interface
-    res = ::bind(this->sock.value(), reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
+    res = ::bind(fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
     if (res < 0) {
-        this->close();  // Reset the socket descriptor on error
-        return tl::make_unexpected("Failed to bind CAN socket: " + std::string(strerror(errno)));
+        (void)::close(fd);
+        return tl::make_unexpected(
+            "Failed to bind CAN socket to interface '" + ifname_str +
+            "': " + std::string(strerror(errno)));
     }
 
+    this->sock = fd;
     return {};
 }
 
-auto impl::LinuxCan::send_linux_can_frame(can_frame && frame) -> tl::expected<void, std::string> {
+auto impl::LinuxCan::send_linux_can_frame(const can_frame & frame)
+    -> tl::expected<void, std::string> {
     if (!this->sock) {
         return tl::make_unexpected("CAN socket is not initialized");
-    }
-
-    if (frame.len > CAN_MAX_DLEN) {
-        return tl::make_unexpected("len exceeds maximum allowed CAN data length");
     }
 
     // Send the CAN frame
@@ -119,7 +140,7 @@ auto impl::LinuxCan::send_linux_can_frame(can_frame && frame) -> tl::expected<vo
     return {};
 }
 
-auto impl::LinuxCan::recv_linux_can_frame() -> tl::expected<can_frame, std::string> {
+auto impl::LinuxCan::recv_linux_can_frame() -> tl::expected<std::optional<can_frame>, std::string> {
     if (!this->sock) {
         return tl::make_unexpected("CAN socket is not initialized");
     }
@@ -141,7 +162,7 @@ auto impl::LinuxCan::recv_linux_can_frame() -> tl::expected<can_frame, std::stri
     if (res < 0) {
         return tl::make_unexpected("select() failed: " + std::string(strerror(errno)));
     } else if (res == 0) {
-        return tl::make_unexpected("No data available on CAN socket within timeout period");
+        return std::nullopt;
     }
 
     // Read the CAN frame from the socket
@@ -160,13 +181,23 @@ auto impl::LinuxCan::recv_linux_can_frame() -> tl::expected<can_frame, std::stri
     return frame;
 }
 
-auto impl::LinuxCan::send_frame(interface::CanFrame && frame) -> tl::expected<void, std::string> {
-    auto linux_can_frame = _to_linux_can_frame(std::move(frame));
-    return this->send_linux_can_frame(std::move(linux_can_frame));
+auto impl::LinuxCan::send_frame(const interface::CanFrame & frame)
+    -> tl::expected<void, std::string> {
+    const auto linux_can_frame_res = _to_linux_can_frame(frame);
+    if (!linux_can_frame_res) {
+        return tl::make_unexpected(linux_can_frame_res.error());
+    }
+    return this->send_linux_can_frame(linux_can_frame_res.value());
 }
 
-auto impl::LinuxCan::recv_frame() -> tl::expected<CanFrame, std::string> {
-    return this->recv_linux_can_frame().map([](can_frame && linux_can_frame) {
-        return _from_linux_can_frame(std::move(linux_can_frame));
-    });
+auto impl::LinuxCan::recv_frame() -> tl::expected<std::optional<CanFrame>, std::string> {
+    const auto linux_can_frame_res = this->recv_linux_can_frame();
+    if (!linux_can_frame_res) {
+        return tl::make_unexpected(linux_can_frame_res.error());
+    }
+    const auto & linux_can_frame_opt = linux_can_frame_res.value();
+    if (!linux_can_frame_opt) {
+        return std::nullopt;
+    }
+    return _from_linux_can_frame(linux_can_frame_opt.value());
 }

@@ -10,12 +10,12 @@
 using namespace sinsei_umiusi_control::hardware_model;
 
 auto CanModel::update_and_generate_command(
-    cmd::main_power::Enabled && main_power_enabled,
-    std::array<cmd::thruster::esc::Allowed, 4> && esc_allowed_flags,
-    std::array<cmd::thruster::esc::DutyCycle, 4> && esc_duty_cycles,
-    std::array<cmd::thruster::servo::Allowed, 4> && servo_allowed_flags,
-    std::array<cmd::thruster::servo::Angle, 4> && servo_angles,
-    cmd::led_tape::Color && led_tape_color) -> WriteCommand {
+    cmd::main_power::Enabled main_power_enabled,
+    std::array<cmd::thruster::esc::Allowed, 4> esc_allowed_flags,
+    std::array<cmd::thruster::esc::DutyCycle, 4> esc_duty_cycles,
+    std::array<cmd::thruster::servo::Allowed, 4> servo_allowed_flags,
+    std::array<cmd::thruster::servo::Angle, 4> servo_angles,
+    cmd::led_tape::Color led_tape_color) -> WriteCommand {
     this->loop_times++;
 
     // main_power_enabled
@@ -42,22 +42,22 @@ auto CanModel::update_and_generate_command(
             (this->loop_times % THRUSTERS_TOTAL_PACKET_NUM) / THRUSTER_PACKET_NUM;
         switch (packet_type) {
             case 0: {  // esc_allowed
-                return std::forward_as_tuple(thruster_id, esc_allowed_flags[thruster_index]);
+                return std::make_tuple(thruster_id, esc_allowed_flags[thruster_index]);
             }
             case 1: {  // esc_duty_cycle
                 if (!esc_allowed_flags[thruster_index].value) {
                     break;  // ESCが無効の場合はデューティ比を送信しない
                 }
-                return std::forward_as_tuple(thruster_id, esc_duty_cycles[thruster_index]);
+                return std::make_tuple(thruster_id, esc_duty_cycles[thruster_index]);
             }
             case 2: {  // servo_allowed
-                return std::forward_as_tuple(thruster_id, servo_allowed_flags[thruster_index]);
+                return std::make_tuple(thruster_id, servo_allowed_flags[thruster_index]);
             }
             case 3: {  // servo_angle
                 if (!servo_allowed_flags[thruster_index].value) {
                     break;  // サーボが無効の場合は角度を送信しない
                 }
-                return std::forward_as_tuple(thruster_id, servo_angles[thruster_index]);
+                return std::make_tuple(thruster_id, servo_angles[thruster_index]);
             }
             default: {
                 break;  // unreachable
@@ -69,8 +69,8 @@ auto CanModel::update_and_generate_command(
 }
 
 auto CanModel::update_and_generate_command(
-    cmd::main_power::Enabled && main_power_enabled_cmd,
-    cmd::led_tape::Color && led_tape_color) -> WriteCommand {
+    cmd::main_power::Enabled main_power_enabled_cmd,
+    cmd::led_tape::Color led_tape_color) -> WriteCommand {
     this->loop_times++;
 
     // main_power_enabled
@@ -122,9 +122,14 @@ auto CanModel::on_read() const
             state::main_power::BatteryCurrent, state::main_power::BatteryVoltage,
             state::main_power::Temperature, state::main_power::WaterLeaked>,
         std::string> {
-    const auto frame = this->can->recv_frame();
-    if (!frame) {
-        return tl::make_unexpected("Failed to receive CAN frame: " + frame.error());
+    const auto frame_res = this->can->recv_frame();
+    if (!frame_res) {
+        return tl::make_unexpected("Failed to receive CAN frame: " + frame_res.error());
+    }
+    const auto & frame_opt = frame_res.value();
+    if (!frame_opt) {
+        return tl::make_unexpected(
+            "CAN read timeout: no CAN frame received within the timeout period");
     }
 
     // フレームを各モデルに渡していく
@@ -136,7 +141,7 @@ auto CanModel::on_read() const
     for (size_t i = 0; i < 4; ++i) {
         const auto vesc_id = std::to_string(i + 1);
 
-        const auto packet_status_res = this->vesc_models[i].get_packet_status(frame.value());
+        const auto packet_status_res = this->vesc_models[i].get_packet_status(frame_opt.value());
         if (!packet_status_res) {
             error_message += "    VESC " + vesc_id + ": " + packet_status_res.error() + "\n";
             continue;
@@ -148,11 +153,11 @@ auto CanModel::on_read() const
             continue;
         }
 
-        // `thruster_driver_type`が`Direct`の時は、VESCからのフレームを無視する
+        // `thruster_driver_type`が`Direct`の時にVESCからのフレームが来たら異常とみなす
         if (this->thruster_driver_type == util::ThrusterDriverType::Direct) {
             return tl::make_unexpected(
-                "Received CAN frame from VESC " + vesc_id +
-                " but thruster driver type is Direct, so ignored.");
+                "Unexpected VESC CAN frame while thruster_driver_type is Direct (VESC " + vesc_id +
+                ")");
         }
 
         switch (packet_status_opt.value().index()) {
@@ -174,32 +179,34 @@ auto CanModel::on_read() const
                 return std::make_tuple(i, state::thruster::esc::WaterLeaked{water_leaked});
             }
             default: {
-                // 他のパケットは無視
-                break;
+                return tl::make_unexpected(
+                    "Unsupported VESC packet status variant received (VESC " + vesc_id +
+                    ", variant index: " + std::to_string(packet_status_opt.value().index()) + ")");
             }
         }
     }
 
-    // すべてのモデルでフレームを処理できなかった場合はエラー
+    if (error_message.empty()) {
+        return tl::make_unexpected(
+            "Unhandled CAN frame: no registered model accepted frame id " +
+            std::to_string(frame_opt.value().id));
+    }
+
     return tl::make_unexpected(
-        "Failed to handle CAN frame \"" + std::to_string(frame.value().id) +
+        "Failed to handle CAN frame \"" + std::to_string(frame_opt.value().id) +
         "\" in all models: \n" + error_message);
 }
 
 auto CanModel::on_write(
-    cmd::main_power::Enabled && main_power_enabled,
-    std::array<cmd::thruster::esc::Allowed, 4> && esc_allowed_flags,
-    std::array<cmd::thruster::esc::DutyCycle, 4> && esc_duty_cycles,
-    std::array<cmd::thruster::servo::Allowed, 4> && servo_allowed_flags,
-    std::array<cmd::thruster::servo::Angle, 4> && servo_angles,
-    cmd::led_tape::Color && led_tape_color) -> tl::expected<void, std::string> {
+    cmd::main_power::Enabled main_power_enabled,
+    std::array<cmd::thruster::esc::Allowed, 4> esc_allowed_flags,
+    std::array<cmd::thruster::esc::DutyCycle, 4> esc_duty_cycles,
+    std::array<cmd::thruster::servo::Allowed, 4> servo_allowed_flags,
+    std::array<cmd::thruster::servo::Angle, 4> servo_angles,
+    cmd::led_tape::Color led_tape_color) -> tl::expected<void, std::string> {
     auto command = this->update_and_generate_command(
-        std::forward<decltype(main_power_enabled)>(main_power_enabled),
-        std::forward<decltype(esc_allowed_flags)>(esc_allowed_flags),
-        std::forward<decltype(esc_duty_cycles)>(esc_duty_cycles),
-        std::forward<decltype(servo_allowed_flags)>(servo_allowed_flags),
-        std::forward<decltype(servo_angles)>(servo_angles),
-        std::forward<decltype(led_tape_color)>(led_tape_color));
+        main_power_enabled, esc_allowed_flags, esc_duty_cycles, servo_allowed_flags, servo_angles,
+        led_tape_color);
 
     auto frame = interface::CanFrame{};
 
@@ -240,8 +247,7 @@ auto CanModel::on_write(
                 return tl::make_unexpected("Invalid thruster ID: " + std::to_string(id));
             }
 
-            auto duty_frame_res =
-                vesc_models[id - 1].make_duty_frame(std::move(esc_duty_cycle.value));
+            auto duty_frame_res = vesc_models[id - 1].make_duty_frame(esc_duty_cycle.value);
             if (!duty_frame_res) {
                 return tl::make_unexpected(
                     "Failed to create duty frame for thruster " + std::to_string(id) + ": " +
@@ -257,8 +263,7 @@ auto CanModel::on_write(
                 return tl::make_unexpected("Invalid thruster ID: " + std::to_string(id));
             }
 
-            auto angle_frame_res =
-                vesc_models[id - 1].make_servo_angle_frame(std::move(servo_angle.value));
+            auto angle_frame_res = vesc_models[id - 1].make_servo_angle_frame(servo_angle.value);
             if (!angle_frame_res) {
                 return tl::make_unexpected(
                     "Failed to create servo angle frame for thruster " + std::to_string(id) + ": " +
@@ -279,7 +284,7 @@ auto CanModel::on_write(
             return tl::make_unexpected("Unknown command type in CanModel::on_write");
         }
     }
-    const auto res = this->can->send_frame(std::move(frame));
+    const auto res = this->can->send_frame(frame);
     if (!res) {
         return tl::make_unexpected(
             "Failed to send CAN frame (command type id: " + std::to_string(command.index()) +

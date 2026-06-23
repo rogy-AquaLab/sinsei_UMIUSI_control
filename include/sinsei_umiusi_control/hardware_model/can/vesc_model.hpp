@@ -104,6 +104,8 @@ class VescModel {
     using Id = uint8_t;
 
     static constexpr int STATUS_COMMAND_NUM = 6;
+    static constexpr interface::CanFrame::DataLength SIMPLE_COMMAND_FRAME_LENGTH = 4;
+    static constexpr interface::CanFrame::DataLength STATUS_FRAME_LENGTH = 8;
 
     // std::array<bool, STATUS_COMMAND_NUM> transmit_status_command;
 
@@ -123,10 +125,10 @@ class VescModel {
   private:
     Id id;
 
-    auto make_frame(VescSimpleCommandID && command_id, interface::CanFrame::Data && data) const
+    auto make_frame(VescSimpleCommandID command_id, const interface::CanFrame::Data & data) const
         -> interface::CanFrame;
 
-    auto make_servo_frame(double && value) const
+    auto make_servo_frame(double value) const
         -> tl::expected<interface::CanFrame, std::string>;  // lispBMにより実装。0 ~ 1.0
 
     auto id_matches(const interface::CanFrame & frame) const -> bool;
@@ -134,10 +136,9 @@ class VescModel {
   public:
     VescModel(Id id);
 
-    auto make_duty_frame(double && duty) const -> tl::expected<interface::CanFrame, std::string>;
-    auto make_rpm_frame(int8_t && rpm) const -> tl::expected<interface::CanFrame, std::string>;
-    auto make_servo_angle_frame(double && deg) const
-        -> tl::expected<interface::CanFrame, std::string>;
+    auto make_duty_frame(double duty) const -> tl::expected<interface::CanFrame, std::string>;
+    auto make_rpm_frame(int32_t rpm) const -> tl::expected<interface::CanFrame, std::string>;
+    auto make_servo_angle_frame(double deg) const -> tl::expected<interface::CanFrame, std::string>;
 
     using AnyPacketStatus = std::variant<
         PacketStatus, PacketStatus2, PacketStatus3, PacketStatus4, PacketStatus5, PacketStatus6>;

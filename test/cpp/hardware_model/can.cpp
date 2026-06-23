@@ -33,6 +33,16 @@ constexpr util::ThrusterDriverType THRUSTER_DRIVER_TYPE = util::ThrusterDriverTy
 #define VESC_IDS \
     { VESC_ID_1, VESC_ID_2, VESC_ID_3, VESC_ID_4 }
 
+auto make_vesc_status_frame(
+    uint8_t vesc_id, uint32_t command_id, suchm::interface::CanFrame::Data data = {}) {
+    return suchm::interface::CanFrame{
+        (static_cast<suchm::interface::CanFrame::Id>(command_id) << 8) | vesc_id,
+        8,
+        data,
+        true,
+    };
+}
+
 }  // namespace
 
 TEST(CanModelTest, CanModelOnInitTest) {
@@ -57,7 +67,83 @@ TEST(CanModelTest, CanModelOnDestroyTest) {
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
 
-// TODO: `CanModelOnReadTest`を実装する
+// TODO: `can::MainPowerModel`を追加したら、MainPowerModel向けの`on_read`テストケースも追加する
+TEST(CanModelTest, CanModelOnReadTimeoutReturnsTimeoutErrorTest) {
+    auto can = std::make_shared<Can>();
+
+    EXPECT_CALL(*can, recv_frame())
+        .Times(1)
+        .WillOnce(
+            Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{
+                std::nullopt}));
+
+    auto can_model =
+        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
+    const auto result = can_model.on_read();
+    ASSERT_FALSE(result);
+    EXPECT_EQ(result.error(), "CAN read timeout: no CAN frame received within the timeout period");
+}
+
+TEST(CanModelTest, CanModelOnReadPacketStatusReturnsRpmUpdateTest) {
+    auto can = std::make_shared<Can>();
+
+    const auto frame = make_vesc_status_frame(
+        VESC_ID_1, suchm::can::PacketStatus::ID,
+        {std::byte{0x00}, std::byte{0x00}, std::byte{0x05}, std::byte{0x78}, std::byte{0x00},
+         std::byte{0x7B}, std::byte{0x01}, std::byte{0xF4}});
+
+    EXPECT_CALL(*can, recv_frame())
+        .Times(1)
+        .WillOnce(
+            Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
+
+    auto can_model =
+        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
+    const auto result = can_model.on_read();
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
+    const auto variant = result.value();
+    ASSERT_EQ(variant.index(), 0u);
+    const auto [index, rpm] = std::get<0>(variant);
+    EXPECT_EQ(index, 0u);
+    EXPECT_DOUBLE_EQ(rpm.value, 200.0);
+}
+
+TEST(CanModelTest, CanModelOnReadUnsupportedPacketStatusReturnsErrorTest) {
+    auto can = std::make_shared<Can>();
+
+    const auto frame = make_vesc_status_frame(VESC_ID_1, suchm::can::PacketStatus2::ID);
+
+    EXPECT_CALL(*can, recv_frame())
+        .Times(1)
+        .WillOnce(
+            Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
+
+    auto can_model =
+        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
+    const auto result = can_model.on_read();
+    ASSERT_FALSE(result);
+    EXPECT_EQ(
+        result.error(),
+        "Unsupported VESC packet status variant received (VESC 1, variant index: 1)");
+}
+
+TEST(CanModelTest, CanModelOnReadUnhandledFrameReturnsErrorTest) {
+    auto can = std::make_shared<Can>();
+
+    // TODO: `can::MainPowerModel`を追加したら、このフレームがhandledになるか見直す
+    const auto frame = make_vesc_status_frame(0x21, suchm::can::PacketStatus::ID);
+
+    EXPECT_CALL(*can, recv_frame())
+        .Times(1)
+        .WillOnce(
+            Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
+
+    auto can_model =
+        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
+    const auto result = can_model.on_read();
+    ASSERT_FALSE(result);
+    EXPECT_EQ(result.error(), "Unhandled CAN frame: no registered model accepted frame id 2337");
+}
 
 TEST(CanModelTest, CanModelCanModeOnWriteTest) {
     auto can = std::make_shared<Can>();
