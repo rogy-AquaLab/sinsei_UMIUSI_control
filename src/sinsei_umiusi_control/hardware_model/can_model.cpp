@@ -115,12 +115,12 @@ auto CanModel::on_destroy() -> tl::expected<void, std::string> {
 
 auto CanModel::on_read() const
     -> tl::expected<
-        std::optional<std::variant<
+        std::variant<
             std::tuple<size_t, state::thruster::esc::Rpm>,
             std::tuple<size_t, state::thruster::esc::Voltage>,
             std::tuple<size_t, state::thruster::esc::WaterLeaked>,
             state::main_power::BatteryCurrent, state::main_power::BatteryVoltage,
-            state::main_power::Temperature, state::main_power::WaterLeaked>>,
+            state::main_power::Temperature, state::main_power::WaterLeaked>,
         std::string> {
     const auto frame_res = this->can->recv_frame();
     if (!frame_res) {
@@ -128,7 +128,8 @@ auto CanModel::on_read() const
     }
     const auto & frame_opt = frame_res.value();
     if (!frame_opt) {
-        return tl::make_unexpected("CAN read timeout: no CAN frame received within the timeout period");
+        return tl::make_unexpected(
+            "CAN read timeout: no CAN frame received within the timeout period");
     }
 
     // フレームを各モデルに渡していく
@@ -180,8 +181,7 @@ auto CanModel::on_read() const
             default: {
                 return tl::make_unexpected(
                     "Unsupported VESC packet status variant received (VESC " + vesc_id +
-                    ", variant index: " +
-                    std::to_string(packet_status_opt.value().index()) + ")");
+                    ", variant index: " + std::to_string(packet_status_opt.value().index()) + ")");
             }
         }
     }
