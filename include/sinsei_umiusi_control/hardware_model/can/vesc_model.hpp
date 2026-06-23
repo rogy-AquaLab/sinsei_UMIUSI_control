@@ -125,7 +125,7 @@ class VescModel {
   private:
     Id id;
 
-    auto make_frame(VescSimpleCommandID command_id, interface::CanFrame::Data && data) const
+    auto make_frame(VescSimpleCommandID command_id, const interface::CanFrame::Data & data) const
         -> interface::CanFrame;
 
     auto make_servo_frame(double value) const

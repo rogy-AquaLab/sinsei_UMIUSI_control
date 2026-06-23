@@ -9,14 +9,15 @@ using namespace sinsei_umiusi_control::hardware_model;
 
 can::VescModel::VescModel(can::VescModel::Id id) : id(id) {}
 
-auto can::VescModel::make_frame(VescSimpleCommandID command_id, interface::CanFrame::Data && data)
+auto can::VescModel::make_frame(
+    VescSimpleCommandID command_id, const interface::CanFrame::Data & data)
     const -> interface::CanFrame {
     const auto id =
         (static_cast<interface::CanFrame::Id>(command_id) & 0xFF) << 8 | (this->id & 0xFF);
     return interface::CanFrame{
         id,                                   // id
         SIMPLE_COMMAND_FRAME_LENGTH,          // len
-        std::move(data),  // data
+        data,                                 // data
         true,                                 // is_extended
     };
 }
@@ -29,14 +30,14 @@ auto can::VescModel::make_duty_frame(double duty) const
     }
     const auto scaled_duty = static_cast<int32_t>(duty * SET_DUTY_SCALE);
     auto bytes = util::to_bytes_be(scaled_duty);
-    return this->make_frame(VescSimpleCommandID::CAN_PACKET_SET_DUTY, std::move(bytes));
+    return this->make_frame(VescSimpleCommandID::CAN_PACKET_SET_DUTY, bytes);
 }
 
 auto can::VescModel::make_rpm_frame(int32_t rpm) const
     -> tl::expected<interface::CanFrame, std::string> {
     const auto scaled_rpm = static_cast<int32_t>(rpm * SET_RPM_SCALE);
     auto bytes = util::to_bytes_be(scaled_rpm);
-    return this->make_frame(VescSimpleCommandID::CAN_PACKET_SET_RPM, std::move(bytes));
+    return this->make_frame(VescSimpleCommandID::CAN_PACKET_SET_RPM, bytes);
 }
 
 auto can::VescModel::make_servo_frame(double value) const
@@ -47,7 +48,7 @@ auto can::VescModel::make_servo_frame(double value) const
     }
     const auto scaled_value = static_cast<int32_t>(value * SET_SERVO_SCALE);
     auto bytes = util::to_bytes_be(scaled_value);
-    return this->make_frame(VescSimpleCommandID::CAN_PACKET_SET_SERVO, std::move(bytes));
+    return this->make_frame(VescSimpleCommandID::CAN_PACKET_SET_SERVO, bytes);
 }
 
 auto can::VescModel::make_servo_angle_frame(double deg) const
