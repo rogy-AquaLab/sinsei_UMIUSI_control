@@ -54,6 +54,8 @@ auto _from_linux_can_frame(const can_frame & linux_can_frame) -> interface::CanF
 
 impl::LinuxCan::LinuxCan() : sock(std::nullopt) {}
 
+impl::LinuxCan::~LinuxCan() { (void)this->close(); }
+
 auto impl::LinuxCan::close() -> tl::expected<void, std::string> {
     if (!this->sock) {
         return tl::make_unexpected("Socket is not initialized");

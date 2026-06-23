@@ -22,6 +22,7 @@ class LinuxCan : public interface::Can {
 
   public:
     LinuxCan();
+    ~LinuxCan() override;
 
     auto init(const std::string_view ifname) -> tl::expected<void, std::string> override;
     auto close() -> tl::expected<void, std::string> override;
