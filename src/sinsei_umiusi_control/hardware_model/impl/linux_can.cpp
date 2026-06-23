@@ -84,7 +84,6 @@ auto impl::LinuxCan::init(const std::string_view ifname) -> tl::expected<void, s
     // Interface request (name -> if_index mapping)
     struct ifreq ifr {};
     std::memcpy(ifr.ifr_name, ifname.data(), ifname.size());
-    ifr.ifr_name[ifname.size()] = '\0';
     auto res = ::ioctl(this->sock.value(), SIOCGIFINDEX, &ifr);
     if (res < 0) {
         this->close();  // Reset the socket descriptor on error
