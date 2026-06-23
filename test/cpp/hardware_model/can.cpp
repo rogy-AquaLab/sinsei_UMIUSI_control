@@ -101,9 +101,7 @@ TEST(CanModelTest, CanModelOnReadPacketStatusReturnsRpmUpdateTest) {
         suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
-    ASSERT_TRUE(result.value().has_value());
-
-    const auto variant = result.value().value();
+    const auto variant = result.value();
     ASSERT_EQ(variant.index(), 0u);
     const auto [index, rpm] = std::get<0>(variant);
     EXPECT_EQ(index, 0u);
