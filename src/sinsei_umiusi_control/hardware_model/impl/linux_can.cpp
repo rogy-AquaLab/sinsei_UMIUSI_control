@@ -58,11 +58,11 @@ impl::LinuxCan::~LinuxCan() { (void)this->close(); }
 
 auto impl::LinuxCan::close() -> tl::expected<void, std::string> {
     if (!this->sock) {
-        return tl::make_unexpected("Socket is not initialized");
+        return tl::make_unexpected("CAN socket is not initialized");
     }
-    auto res = ::close(this->sock.value());
+    const auto res = ::close(this->sock.value());
     if (res < 0) {
-        return tl::make_unexpected("Failed to close socket: " + std::string(strerror(errno)));
+        return tl::make_unexpected("Failed to close CAN socket: " + std::string(strerror(errno)));
     }
     sock.reset();
     return {};
