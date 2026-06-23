@@ -171,7 +171,7 @@ auto impl::LinuxCan::recv_linux_can_frame() -> tl::expected<std::optional<can_fr
 
 auto impl::LinuxCan::send_frame(const interface::CanFrame & frame)
     -> tl::expected<void, std::string> {
-    auto linux_can_frame_res = _to_linux_can_frame(frame);
+    const auto linux_can_frame_res = _to_linux_can_frame(frame);
     if (!linux_can_frame_res) {
         return tl::make_unexpected(linux_can_frame_res.error());
     }
@@ -183,8 +183,9 @@ auto impl::LinuxCan::recv_frame() -> tl::expected<std::optional<CanFrame>, std::
     if (!linux_can_frame_res) {
         return tl::make_unexpected(linux_can_frame_res.error());
     }
-    if (!linux_can_frame_res.value()) {
+    const auto & linux_can_frame_opt = linux_can_frame_res.value();
+    if (!linux_can_frame_opt) {
         return std::nullopt;
     }
-    return _from_linux_can_frame(linux_can_frame_res.value().value());
+    return _from_linux_can_frame(linux_can_frame_opt.value());
 }
