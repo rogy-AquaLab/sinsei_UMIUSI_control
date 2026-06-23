@@ -75,22 +75,29 @@ auto impl::LinuxCan::init(const std::string_view ifname) -> tl::expected<void, s
     if (ifname.size() >= IFNAMSIZ) {
         return tl::make_unexpected("CAN interface name is too long: " + std::string(ifname));
     }
+    if (this->sock) {
+        return tl::make_unexpected("CAN socket is already initialized");
+    }
+
+    const auto ifname_str = std::string(ifname);
 
     // Create a socket
-    this->sock = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
-    if (this->sock < 0) {
-        sock.reset();
-        return tl::make_unexpected("Failed to create CAN socket: " + std::string(strerror(errno)));
+    const auto fd = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
+    if (fd < 0) {
+        return tl::make_unexpected(
+            "Failed to create CAN socket for interface '" + ifname_str +
+            "': " + std::string(strerror(errno)));
     }
 
     // Interface request (name -> if_index mapping)
     struct ifreq ifr {};
     std::memcpy(ifr.ifr_name, ifname.data(), ifname.size());
-    auto res = ::ioctl(this->sock.value(), SIOCGIFINDEX, &ifr);
+    auto res = ::ioctl(fd, SIOCGIFINDEX, &ifr);
     if (res < 0) {
-        this->close();  // Reset the socket descriptor on error
+        (void)::close(fd);
         return tl::make_unexpected(
-            "Failed to get interface index: " + std::string(strerror(errno)));
+            "Failed to get interface index for '" + ifname_str +
+            "': " + std::string(strerror(errno)));
     }
 
     // Set up the socket address structure
@@ -99,12 +106,15 @@ auto impl::LinuxCan::init(const std::string_view ifname) -> tl::expected<void, s
     addr.can_ifindex = ifr.ifr_ifindex;
 
     // Bind the socket to the CAN interface
-    res = ::bind(this->sock.value(), reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
+    res = ::bind(fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
     if (res < 0) {
-        this->close();  // Reset the socket descriptor on error
-        return tl::make_unexpected("Failed to bind CAN socket: " + std::string(strerror(errno)));
+        (void)::close(fd);
+        return tl::make_unexpected(
+            "Failed to bind CAN socket to interface '" + ifname_str +
+            "': " + std::string(strerror(errno)));
     }
 
+    this->sock = fd;
     return {};
 }
 
