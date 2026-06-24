@@ -74,8 +74,7 @@ TEST(CanModelTest, CanModelOnReadTimeoutReturnsTimeoutErrorTest) {
             Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{
                 std::nullopt}));
 
-    auto can_model =
-        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
+    auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error(), "CAN read timeout: no CAN frame received within the timeout period");
@@ -94,8 +93,7 @@ TEST(CanModelTest, CanModelOnReadPacketStatusReturnsRpmUpdateTest) {
         .WillOnce(
             Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
 
-    auto can_model =
-        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
+    auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     const auto variant = result.value();
@@ -115,8 +113,7 @@ TEST(CanModelTest, CanModelOnReadUnsupportedPacketStatusReturnsErrorTest) {
         .WillOnce(
             Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
 
-    auto can_model =
-        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
+    auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_FALSE(result);
     EXPECT_EQ(
@@ -135,8 +132,7 @@ TEST(CanModelTest, CanModelOnReadUnhandledFrameReturnsErrorTest) {
         .WillOnce(
             Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
 
-    auto can_model =
-        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
+    auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error(), "Unhandled CAN frame: no registered model accepted frame id 2337");
