@@ -17,16 +17,17 @@ class LinuxCan : public interface::Can {
 
     std::optional<FileDescriptor> sock;
 
-    auto send_linux_can_frame(can_frame && frame) -> tl::expected<void, std::string>;
-    auto recv_linux_can_frame() -> tl::expected<can_frame, std::string>;
+    auto send_linux_can_frame(const can_frame & frame) -> tl::expected<void, std::string>;
+    auto recv_linux_can_frame() -> tl::expected<std::optional<can_frame>, std::string>;
 
   public:
     LinuxCan();
+    ~LinuxCan() override;
 
     auto init(const std::string_view ifname) -> tl::expected<void, std::string> override;
     auto close() -> tl::expected<void, std::string> override;
-    auto send_frame(CanFrame && frame) -> tl::expected<void, std::string> override;
-    auto recv_frame() -> tl::expected<CanFrame, std::string> override;
+    auto send_frame(const CanFrame & frame) -> tl::expected<void, std::string> override;
+    auto recv_frame() -> tl::expected<std::optional<CanFrame>, std::string> override;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::impl

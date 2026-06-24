@@ -75,7 +75,8 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     }
 
     this->model.emplace(
-        std::make_shared<hardware_model::impl::LinuxCan>(), vesc_ids, period_led_tape_per_thrusters);
+        std::make_shared<hardware_model::impl::LinuxCan>(), vesc_ids,
+        period_led_tape_per_thrusters);
 
     auto res = this->model->on_init();
     if (!res) {
