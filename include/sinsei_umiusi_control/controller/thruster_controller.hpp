@@ -11,7 +11,6 @@
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
 #include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
-#include "sinsei_umiusi_control/util/thruster_driver_type.hpp"
 #include "sinsei_umiusi_msgs/msg/thruster_output.hpp"
 #include "sinsei_umiusi_msgs/msg/thruster_output_all.hpp"
 
@@ -34,9 +33,6 @@ class ThrusterController : public controller_interface::ChainableControllerInter
             state::thruster::esc::Rpm esc_rpm;
             state::thruster::esc::Voltage esc_voltage;
             state::thruster::esc::WaterLeaked esc_water_leaked;
-
-            state::thruster::esc::Health esc_direct_health;
-            state::thruster::servo::Health servo_direct_health;
         };
         // Subscribers for command inputs
         struct Subscriber {
@@ -61,9 +57,6 @@ class ThrusterController : public controller_interface::ChainableControllerInter
             state::thruster::esc::DutyCycle esc_duty_cycle;
             state::thruster::servo::Mode servo_mode;
             state::thruster::servo::Angle servo_angle;
-
-            state::thruster::esc::Health esc_direct_health;
-            state::thruster::servo::Health servo_direct_health;
         };
         Command cmd;
         State state;
@@ -89,8 +82,6 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     util::interface_accessor::InterfaceDataContainer state_interface_data;
     util::interface_accessor::InterfaceDataContainer ref_interface_data;
 
-    // Thruster driver type (CAN or Direct)
-    util::ThrusterDriverType driver_type;
     // Thruster hardware component ID (1~4)
     uint8_t id;
 

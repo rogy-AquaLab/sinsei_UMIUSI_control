@@ -12,7 +12,6 @@
 #include "sinsei_umiusi_control/state/imu.hpp"
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
-#include "sinsei_umiusi_control/util/thruster_driver_type.hpp"
 
 namespace sinsei_umiusi_control::controller {
 
@@ -51,8 +50,6 @@ class AttitudeController : public controller_interface::ChainableControllerInter
     Output output;
 
     std::unique_ptr<Logic> logic;
-
-    util::ThrusterDriverType thruster_driver_type;
 
     util::interface_accessor::InterfaceDataContainer command_interface_data;
     util::interface_accessor::InterfaceDataContainer state_interface_data;

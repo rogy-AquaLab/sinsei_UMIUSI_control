@@ -28,7 +28,6 @@ constexpr int VESC_ID_2 = 2;
 constexpr int VESC_ID_3 = 3;
 constexpr int VESC_ID_4 = 4;
 constexpr size_t PERIOD_LED_TAPE_PER_THRUSTERS = 1;
-constexpr util::ThrusterDriverType THRUSTER_DRIVER_TYPE = util::ThrusterDriverType::Can;
 
 #define VESC_IDS \
     { VESC_ID_1, VESC_ID_2, VESC_ID_3, VESC_ID_4 }
@@ -50,8 +49,7 @@ TEST(CanModelTest, CanModelOnInitTest) {
 
     EXPECT_CALL(*can, init(_)).Times(1).WillOnce(Return(tl::expected<void, std::string>{}));
 
-    auto can_model =
-        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
+    auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS);
     auto result = can_model.on_init();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
@@ -61,8 +59,7 @@ TEST(CanModelTest, CanModelOnDestroyTest) {
 
     EXPECT_CALL(*can, close()).Times(1).WillOnce(Return(tl::expected<void, std::string>{}));
 
-    auto can_model =
-        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
+    auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS);
     auto result = can_model.on_destroy();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
@@ -77,8 +74,7 @@ TEST(CanModelTest, CanModelOnReadTimeoutReturnsTimeoutErrorTest) {
             Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{
                 std::nullopt}));
 
-    auto can_model =
-        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
+    auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error(), "CAN read timeout: no CAN frame received within the timeout period");
@@ -97,8 +93,7 @@ TEST(CanModelTest, CanModelOnReadPacketStatusReturnsRpmUpdateTest) {
         .WillOnce(
             Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
 
-    auto can_model =
-        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
+    auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     const auto variant = result.value();
@@ -118,8 +113,7 @@ TEST(CanModelTest, CanModelOnReadUnsupportedPacketStatusReturnsErrorTest) {
         .WillOnce(
             Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
 
-    auto can_model =
-        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
+    auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_FALSE(result);
     EXPECT_EQ(
@@ -138,8 +132,7 @@ TEST(CanModelTest, CanModelOnReadUnhandledFrameReturnsErrorTest) {
         .WillOnce(
             Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
 
-    auto can_model =
-        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
+    auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error(), "Unhandled CAN frame: no registered model accepted frame id 2337");
@@ -154,8 +147,7 @@ TEST(CanModelTest, CanModelCanModeOnWriteTest) {
         .WillOnce(Return(tl::expected<void, std::string>{}));
 
     // FIXME: 内部状態が変化するので、何回か`on_write`を呼び出してテストする必要がある。(実装が終わったら修正)
-    auto can_model =
-        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
+    auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS);
     auto result = can_model.on_write(
         succmd::main_power::Enabled{false},
         std::array<succmd::thruster::esc::Allowed, 4>{
@@ -175,30 +167,6 @@ TEST(CanModelTest, CanModelCanModeOnWriteTest) {
     // FIXME: 実装が終わっていないので失敗する
     ASSERT_TRUE(!result);
     // ASSERT_TRUE(result) << std::string("Error: ") + result.error();
-}
-
-TEST(CanModelTest, CanModelDirectModeOnWriteTest) {
-    constexpr bool DUMMY_MAIN_POWER_ENABLED = true;
-    constexpr uint8_t DUMMY_LED_TAPE_COLOR_R = 255;
-    constexpr uint8_t DUMMY_LED_TAPE_COLOR_G = 0;
-    constexpr uint8_t DUMMY_LED_TAPE_COLOR_B = 0;
-
-    auto can = std::make_shared<Can>();
-
-    // FIXME: 実装が終わっていないので、`send_frame`の呼び出しがない
-    EXPECT_CALL(*can, send_frame(_))
-        .Times(/*1*/ 0)
-        .WillOnce(Return(tl::expected<void, std::string>{}));
-
-    auto can_model =
-        suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS, THRUSTER_DRIVER_TYPE);
-    auto result = can_model.on_write(
-        succmd::main_power::Enabled{DUMMY_MAIN_POWER_ENABLED}, succmd::led_tape::Color{
-                                                                   DUMMY_LED_TAPE_COLOR_R,
-                                                                   DUMMY_LED_TAPE_COLOR_G,
-                                                                   DUMMY_LED_TAPE_COLOR_B,
-                                                               });
-    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
 
 }  // namespace sinsei_umiusi_control::test::hardware_model::can

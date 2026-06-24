@@ -14,7 +14,6 @@
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
 #include "sinsei_umiusi_control/state/main_power.hpp"
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
-#include "sinsei_umiusi_control/util/thruster_driver_type.hpp"
 
 namespace sinsei_umiusi_control::hardware_model {
 
@@ -63,16 +62,10 @@ class CanModel {
         std::array<cmd::thruster::servo::Angle, 4> servo_angles,
         cmd::led_tape::Color led_tape_color) -> WriteCommand;
 
-    auto update_and_generate_command(
-        cmd::main_power::Enabled main_power_enabled,
-        cmd::led_tape::Color led_tape_color) -> WriteCommand;
-
   public:
-    util::ThrusterDriverType thruster_driver_type;
-
     CanModel(
         std::shared_ptr<interface::Can> can, std::array<int, 4> vesc_ids,
-        size_t period_led_tape_per_thrusters, util::ThrusterDriverType thruster_driver_type);
+        size_t period_led_tape_per_thrusters);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_destroy() -> tl::expected<void, std::string>;
     auto on_read() const
@@ -91,9 +84,6 @@ class CanModel {
         std::array<cmd::thruster::servo::Allowed, 4> servo_allowed_flags,
         std::array<cmd::thruster::servo::Angle, 4> servo_angles,
         cmd::led_tape::Color led_tape_color) -> tl::expected<void, std::string>;
-
-    auto on_write(cmd::main_power::Enabled main_power_enabled, cmd::led_tape::Color led_tape_color)
-        -> tl::expected<void, std::string>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model

@@ -12,7 +12,6 @@
 #include "sinsei_umiusi_control/controller/logic/thruster/linear_acceleration.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
-#include "sinsei_umiusi_control/util/thruster_driver_type.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 using namespace sinsei_umiusi_control::controller;
@@ -50,13 +49,6 @@ auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
     using rcl_interfaces::msg::IntegerRange;
     using rcl_interfaces::msg::ParameterDescriptor;
 
-    this->get_node()->declare_parameter(
-        "thruster_driver_type", "unknown",
-        ParameterDescriptor{}
-            .set__description("Thruster driver type (can / direct)")
-            .set__type(rclcpp::PARAMETER_STRING)
-            .set__read_only(true)
-            .set__additional_constraints("Must be one of `can` or `direct`"));
     this->get_node()->declare_parameter(
         "id", 1,
         ParameterDescriptor{}
@@ -108,15 +100,6 @@ auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
 
 auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious_state*/)
     -> controller_interface::CallbackReturn {
-    const auto driver_type_str =
-        this->get_node()->get_parameter("thruster_driver_type").as_string();
-    const auto driver_type_res = util::get_driver_type_from_str(driver_type_str);
-    if (!driver_type_res) {
-        RCLCPP_ERROR(this->get_node()->get_logger(), "%s", driver_type_str.c_str());
-        return controller_interface::CallbackReturn::ERROR;
-    }
-    this->driver_type = driver_type_res.value();
-
     this->id = static_cast<uint8_t>(this->get_node()
                                         ->get_parameter("id")
                                         .as_int());  // パラメータで範囲に制約を設けているので安全
@@ -148,9 +131,7 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
             ->get_parameter("servo_disabled")
             .as_bool();  // パラメータで範囲に制約を設けているので安全
 
-    const auto prefix = this->driver_type == util::ThrusterDriverType::Can
-                            ? "thruster" + std::to_string(this->id) + "/"
-                            : "thruster_direct" + std::to_string(this->id) + "/";
+    const auto prefix = "thruster" + std::to_string(this->id) + "/";
 
     this->command_interface_data.push_back(std::make_tuple(
         prefix + "esc/allowed", util::to_interface_data_ptr(this->output.cmd.esc_allowed),
@@ -165,26 +146,16 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
         prefix + "servo/angle", util::to_interface_data_ptr(this->output.cmd.servo_angle),
         sizeof(this->output.cmd.servo_angle)));
 
-    if (this->driver_type == util::ThrusterDriverType::Can) {
-        this->state_interface_data.push_back(std::make_tuple(
-            prefix + "esc/rpm", util::to_interface_data_ptr(this->input.state.esc_rpm),
-            sizeof(this->input.state.esc_rpm)));
-        this->state_interface_data.push_back(std::make_tuple(
-            prefix + "esc/voltage", util::to_interface_data_ptr(this->input.state.esc_voltage),
-            sizeof(this->input.state.esc_voltage)));
-        this->state_interface_data.push_back(std::make_tuple(
-            prefix + "esc/water_leaked",
-            util::to_interface_data_ptr(this->input.state.esc_water_leaked),
-            sizeof(this->input.state.esc_water_leaked)));
-    } else if (this->driver_type == util::ThrusterDriverType::Direct) {
-        this->state_interface_data.push_back(std::make_tuple(
-            prefix + "esc/health", util::to_interface_data_ptr(this->input.state.esc_direct_health),
-            sizeof(this->input.state.esc_direct_health)));
-        this->state_interface_data.push_back(std::make_tuple(
-            prefix + "servo/health",
-            util::to_interface_data_ptr(this->input.state.servo_direct_health),
-            sizeof(this->input.state.servo_direct_health)));
-    }
+    this->state_interface_data.push_back(std::make_tuple(
+        prefix + "esc/rpm", util::to_interface_data_ptr(this->input.state.esc_rpm),
+        sizeof(this->input.state.esc_rpm)));
+    this->state_interface_data.push_back(std::make_tuple(
+        prefix + "esc/voltage", util::to_interface_data_ptr(this->input.state.esc_voltage),
+        sizeof(this->input.state.esc_voltage)));
+    this->state_interface_data.push_back(std::make_tuple(
+        prefix + "esc/water_leaked",
+        util::to_interface_data_ptr(this->input.state.esc_water_leaked),
+        sizeof(this->input.state.esc_water_leaked)));
 
     this->ref_interface_data.push_back(std::make_tuple(
         "esc/runnable", util::to_interface_data_ptr(this->input.cmd.esc_runnable),
@@ -275,13 +246,9 @@ auto ThrusterController::on_export_state_interfaces()
     -> std::vector<hardware_interface::StateInterface> {
     auto interfaces = std::vector<hardware_interface::StateInterface>{};
     for (auto & [name, data, _] : this->state_interface_data) {
-        // Thruster ID を隠蔽する
-        // (e.g. thruster1/esc/rpm -> thruster/esc/rpm, thruster_direct1/esc/health -> thruster_direct/esc/health)
-        constexpr auto CAN_OFFSET = std::size("thrusterN") - 1;  // 末尾のnull文字を除くため、-1
-        constexpr auto DIRECT_OFFSET = std::size("thruster_directN") - 1;
-        const auto fixed_name = this->driver_type == util::ThrusterDriverType::Can
-                                    ? "thruster" + name.substr(CAN_OFFSET)
-                                    : "thruster_direct" + name.substr(DIRECT_OFFSET);
+        // Thruster ID を隠蔽する (e.g. thruster1/esc/rpm -> thruster/esc/rpm)
+        constexpr auto THRUSTER_OFFSET = std::size("thrusterN") - 1;  // 末尾のnull文字を除くため、-1
+        const auto fixed_name = "thruster" + name.substr(THRUSTER_OFFSET);
         interfaces.emplace_back(
             hardware_interface::StateInterface(this->get_node()->get_name(), fixed_name, data));
     }
@@ -335,10 +302,6 @@ auto ThrusterController::update_and_write_commands(
     this->output.cmd.servo_allowed.value =
         this->output.state.servo_mode.value == util::ThrusterMode::Runnable;
     this->output.cmd.servo_angle.value = this->output.state.servo_angle.value;
-    if (this->driver_type == util::ThrusterDriverType::Direct) {
-        this->output.state.esc_direct_health = this->input.state.esc_direct_health;
-        this->output.state.servo_direct_health = this->input.state.servo_direct_health;
-    }
 
     // コマンドを送信
     res = util::interface_accessor::set_commands_to_loaned_interfaces(
