@@ -1,6 +1,8 @@
 #include "sinsei_umiusi_control/hardware/indicator_led.hpp"
 
-#include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
+#include <string>
+
+#include "sinsei_umiusi_control/hardware_model/impl/linux_gpio.hpp"
 #include "sinsei_umiusi_control/state/indicator_led.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
@@ -11,22 +13,35 @@ auto IndicatorLed::on_init(const hardware_interface::HardwareComponentInterfaceP
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SystemInterface::on_init(params);
 
-    auto gpio = std::make_unique<sinsei_umiusi_control::hardware_model::impl::Pigpio>();
+    const auto gpiochip_device =
+        util::find_param(params.hardware_info.hardware_parameters, "gpiochip_device");
+    if (!gpiochip_device) {
+        RCLCPP_ERROR(
+            this->get_logger(), "Parameter 'gpiochip_device' not found in hardware parameters.");
+        return hardware_interface::CallbackReturn::ERROR;
+    }
+    auto gpio = std::make_unique<sinsei_umiusi_control::hardware_model::impl::LinuxGpio>(
+        gpiochip_device.value());
 
-    // ピン番号をパラメーターから取得
-    const auto led_pin_num_str = util::find_param(params.hardware_info.hardware_parameters, "pin");
-    if (!led_pin_num_str) {
-        RCLCPP_ERROR(this->get_logger(), "Parameter 'pin' not found in hardware parameters.");
+    // GPIO line offsetをパラメータから取得
+    const auto led_line_offset_str_opt =
+        util::find_param(params.hardware_info.hardware_parameters, "line_offset");
+    if (!led_line_offset_str_opt) {
+        RCLCPP_ERROR(
+            this->get_logger(), "Parameter 'line_offset' not found in hardware parameters.");
         return hardware_interface::CallbackReturn::ERROR;
     }
-    int led_pin_num;
-    try {
-        led_pin_num = std::stoi(led_pin_num_str.value());
-    } catch (const std::invalid_argument & e) {
-        RCLCPP_ERROR(this->get_logger(), "Invalid pin number: %s", e.what());
+
+    // std::stringからGpioOffsetに変換
+    auto led_line_offset_res =
+        hardware_model::interface::parse_gpio_offset(led_line_offset_str_opt.value());
+    if (!led_line_offset_res) {
+        RCLCPP_ERROR(
+            this->get_logger(), "Invalid GPIO line offset for 'line_offset' ('%s'): %s",
+            led_line_offset_str_opt.value().c_str(), led_line_offset_res.error().c_str());
         return hardware_interface::CallbackReturn::ERROR;
     }
-    this->model.emplace(std::move(gpio), led_pin_num);
+    this->model.emplace(std::move(gpio), *led_line_offset_res);
 
     const auto res = this->model->on_init();
     if (!res) {

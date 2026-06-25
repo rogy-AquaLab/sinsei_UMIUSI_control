@@ -17,10 +17,11 @@ PACKAGE_NAME = 'sinsei_umiusi_control'
 
 # '' means the parameter is not set (default value will be used)
 XACRO_ARGUMENTS: dict[str, set[str]] = {
-    'high_beam_pin': {'', '1'},
-    'low_beam_pin': {'', '1'},
-    'ir_pin': {'', '1'},
-    'indicator_led_pin': {'', '1'},
+    'gpiochip_device': {'', '/dev/gpiochip1'},
+    'high_beam_line_offset': {'', '1'},
+    'low_beam_line_offset': {'', '1'},
+    'ir_line_offset': {'', '1'},
+    'indicator_led_line_offset': {'', '1'},
 }
 
 

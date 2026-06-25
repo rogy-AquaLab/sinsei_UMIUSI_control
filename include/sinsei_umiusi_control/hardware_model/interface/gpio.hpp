@@ -3,50 +3,54 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 #include <vector>
 
+#include "sinsei_umiusi_control/util/string.hpp"
+
 namespace sinsei_umiusi_control::hardware_model::interface {
 
-enum class GpioError {
-    NotPermitted,
-    BadGpio,
-    BadLevel,
-    BadPulsewidth,
-    UnknownError,
+using GpioOffset = uint32_t;
+
+enum class GpioValue : uint8_t {
+    Inactive = 0,
+    Active = 1,
 };
 
-inline auto gpio_error_to_string(const GpioError & error) -> std::string {
-    switch (error) {
-        case GpioError::NotPermitted:
-            return "Not permitted";
-        case GpioError::BadGpio:
-            return "Bad GPIO pin specified";
-        case GpioError::BadLevel:
-            return "Bad level specified";
-        case GpioError::BadPulsewidth:
-            return "Bad pulsewidth specified";
-        default:
-            return "Unknown error";
-    }
-}
+struct GpioOutputRequest {
+    std::vector<GpioOffset> offsets;
+    std::vector<GpioValue> initial_values;
+    std::string consumer;
+};
+
+class GpioLineRequest {
+  public:
+    GpioLineRequest() = default;
+    virtual ~GpioLineRequest() = default;
+
+    virtual auto set_values(const std::vector<GpioValue> & values)
+        -> tl::expected<void, std::string> = 0;
+    virtual auto size() const noexcept -> std::size_t = 0;
+};
 
 class Gpio {
   public:
-    using Pin = uint32_t;         // GPIO pin number
-    using PulseWidth = uint16_t;  // Servo pulse width in microseconds
-    using Error = GpioError;
-
     Gpio() = default;
     virtual ~Gpio() = default;
 
-    virtual auto set_mode_output(const std::vector<Pin> & pins) -> tl::expected<void, Error> = 0;
-    virtual auto set_mode_input(const std::vector<Pin> & pins) -> tl::expected<void, Error> = 0;
-    virtual auto write_digital(const Pin & pin, bool && enabled) -> tl::expected<void, Error> = 0;
-    virtual auto write_pwm_pulsewidth(const Pin & pin, const PulseWidth && pulsewidth)
-        -> tl::expected<void, Error> = 0;
+    virtual auto request_outputs(GpioOutputRequest request)
+        -> tl::expected<std::unique_ptr<GpioLineRequest>, std::string> = 0;
 };
+
+constexpr auto to_gpio_value(const bool value) noexcept -> GpioValue {
+    return value ? GpioValue::Active : GpioValue::Inactive;
+}
+
+inline auto parse_gpio_offset(std::string_view value) -> tl::expected<GpioOffset, std::string> {
+    return util::to_number<GpioOffset>(value);
+}
 
 }  // namespace sinsei_umiusi_control::hardware_model::interface
 

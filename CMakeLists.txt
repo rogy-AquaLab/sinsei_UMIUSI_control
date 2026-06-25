@@ -35,11 +35,7 @@ endif()
 # for clang-tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# serach for pigpio library
-find_library(PIGPIO_LIBRARY pigpiod_if2)
-if(NOT PIGPIO_LIBRARY)
-  message(FATAL_ERROR "pigpiod_if2 library not found. Please install pigpio.")
-endif()
+pkg_check_modules(LIBGPIODCXX REQUIRED IMPORTED_TARGET libgpiodcxx)
 
 # search for Eigen3
 find_package(Eigen3)
@@ -61,12 +57,12 @@ ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   src/${PROJECT_NAME}/hardware_model/indicator_led_model.cpp
   src/${PROJECT_NAME}/hardware_model/can/vesc_model.cpp
 
-  src/${PROJECT_NAME}/hardware_model/impl/pigpio.cpp
+  src/${PROJECT_NAME}/hardware_model/impl/linux_gpio.cpp
   src/${PROJECT_NAME}/hardware_model/impl/linux_i2c.cpp
   src/${PROJECT_NAME}/hardware_model/impl/linux_can.cpp
 )
 target_link_libraries(${PROJECT_NAME}_hardware
-  ${PIGPIO_LIBRARY}
+  PkgConfig::LIBGPIODCXX
 )
 target_include_directories(${PROJECT_NAME}_hardware
   PRIVATE
@@ -122,9 +118,6 @@ if(BUILD_TESTING)
     PRIVATE
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/cpp>
-  )
-  ament_auto_add_gmock(test_util
-    test/cpp/util.cpp
   )
 endif()
 
