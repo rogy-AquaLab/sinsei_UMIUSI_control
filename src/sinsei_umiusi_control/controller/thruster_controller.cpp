@@ -13,7 +13,6 @@
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 #include "sinsei_umiusi_control/util/thruster_mode.hpp"
-#include "sinsei_umiusi_control/util/vector.hpp"
 
 using namespace sinsei_umiusi_control::controller;
 
@@ -21,10 +20,10 @@ namespace msg = sinsei_umiusi_msgs::msg;
 
 auto ThrusterController::command_interface_configuration() const
     -> controller_interface::InterfaceConfiguration {
-    const auto cmd_names = util::map_vector(this->command_interface_data, [](const auto & data) {
-        const auto & [name, _interface_data, _size] = data;
-        return name;
-    });
+    auto cmd_names = std::vector<std::string>{};
+    for (const auto & [name, _data, _size] : this->command_interface_data) {
+        cmd_names.push_back(name);
+    }
 
     return controller_interface::InterfaceConfiguration{
         controller_interface::interface_configuration_type::INDIVIDUAL,
@@ -34,10 +33,10 @@ auto ThrusterController::command_interface_configuration() const
 
 auto ThrusterController::state_interface_configuration() const
     -> controller_interface::InterfaceConfiguration {
-    const auto state_names = util::map_vector(this->state_interface_data, [](const auto & data) {
-        const auto & [name, _interface_data, _size] = data;
-        return name;
-    });
+    auto state_names = std::vector<std::string>{};
+    for (const auto & [name, _data, _size] : this->state_interface_data) {
+        state_names.push_back(name);
+    }
 
     return controller_interface::InterfaceConfiguration{
         controller_interface::interface_configuration_type::INDIVIDUAL,
@@ -235,10 +234,12 @@ auto ThrusterController::on_export_reference_interfaces()
     // To avoid bug in ros2 control. `reference_interfaces_` is actually not used.
     this->reference_interfaces_.resize(this->ref_interface_data.size());
 
-    return util::map_vector(this->ref_interface_data, [this](const auto & interface_data) {
-        const auto & [name, data, _size] = interface_data;
-        return hardware_interface::CommandInterface(this->get_node()->get_name(), name, data);
-    });
+    auto interfaces = std::vector<hardware_interface::CommandInterface>{};
+    for (auto & [name, data, _] : this->ref_interface_data) {
+        interfaces.emplace_back(
+            hardware_interface::CommandInterface(this->get_node()->get_name(), name, data));
+    }
+    return interfaces;
 }
 
 auto ThrusterController::on_export_state_interfaces()
