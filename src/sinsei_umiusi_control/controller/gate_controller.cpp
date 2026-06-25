@@ -8,6 +8,7 @@
 
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
+#include "sinsei_umiusi_control/util/vector.hpp"
 #include "sinsei_umiusi_msgs/msg/thruster_mode.hpp"
 #include "sinsei_umiusi_msgs/msg/thruster_runnable_all.hpp"
 
@@ -17,10 +18,10 @@ namespace msg = sinsei_umiusi_msgs::msg;
 
 auto GateController::command_interface_configuration() const
     -> controller_interface::InterfaceConfiguration {
-    auto cmd_names = std::vector<std::string>{};
-    for (const auto & [name, _data, _size] : this->command_interface_data) {
-        cmd_names.push_back(name);
-    }
+    const auto cmd_names = util::map_vector(this->command_interface_data, [](const auto & data) {
+        const auto & [name, _interface_data, _size] = data;
+        return name;
+    });
 
     return controller_interface::InterfaceConfiguration{
         controller_interface::interface_configuration_type::INDIVIDUAL,
@@ -30,10 +31,10 @@ auto GateController::command_interface_configuration() const
 
 auto GateController::state_interface_configuration() const
     -> controller_interface::InterfaceConfiguration {
-    auto state_names = std::vector<std::string>{};
-    for (const auto & [name, _data, _size] : this->state_interface_data) {
-        state_names.push_back(name);
-    }
+    const auto state_names = util::map_vector(this->state_interface_data, [](const auto & data) {
+        const auto & [name, _interface_data, _size] = data;
+        return name;
+    });
 
     return controller_interface::InterfaceConfiguration{
         controller_interface::interface_configuration_type::INDIVIDUAL,
