@@ -8,8 +8,6 @@
 #include <string>
 #include <vector>
 
-#include "sinsei_umiusi_control/util/string.hpp"
-
 namespace sinsei_umiusi_control::hardware_model::interface {
 
 using GpioOffset = uint32_t;
@@ -46,10 +44,6 @@ class Gpio {
 
 constexpr auto to_gpio_value(const bool value) noexcept -> GpioValue {
     return value ? GpioValue::Active : GpioValue::Inactive;
-}
-
-inline auto parse_gpio_offset(std::string_view value) -> tl::expected<GpioOffset, std::string> {
-    return util::to_number<GpioOffset>(value);
 }
 
 }  // namespace sinsei_umiusi_control::hardware_model::interface

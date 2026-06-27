@@ -6,6 +6,7 @@
 #include "sinsei_umiusi_control/state/indicator_led.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
+#include "sinsei_umiusi_control/util/string.hpp"
 
 using namespace sinsei_umiusi_control::hardware;
 
@@ -34,7 +35,7 @@ auto IndicatorLed::on_init(const hardware_interface::HardwareComponentInterfaceP
 
     // std::stringからGpioOffsetに変換
     auto led_line_offset_res =
-        hardware_model::interface::parse_gpio_offset(led_line_offset_str_opt.value());
+        util::to_number<hardware_model::interface::GpioOffset>(led_line_offset_str_opt.value());
     if (!led_line_offset_res) {
         RCLCPP_ERROR(
             this->get_logger(), "Invalid GPIO line offset for 'line_offset' ('%s'): %s",
