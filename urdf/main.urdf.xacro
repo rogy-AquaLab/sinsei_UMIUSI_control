@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
 
-  <xacro:arg name="high_beam_pin" default="'unknown'" />
-  <xacro:arg name="low_beam_pin" default="'unknown'" />
-  <xacro:arg name="ir_pin" default="'unknown'" />
-  <xacro:arg name="indicator_led_pin" default="'unknown'" />
+  <xacro:arg name="gpiochip_device" default="'unknown'" />
+  <xacro:arg name="high_beam_line_offset" default="'unknown'" />
+  <xacro:arg name="low_beam_line_offset" default="'unknown'" />
+  <xacro:arg name="ir_line_offset" default="'unknown'" />
+  <xacro:arg name="indicator_led_line_offset" default="'unknown'" />
   <xacro:arg name="vesc1_id" default="'unknown'" />
   <xacro:arg name="vesc2_id" default="'unknown'" />
   <xacro:arg name="vesc3_id" default="'unknown'" />
@@ -17,10 +18,11 @@
   <link name="base_link"></link>
 
   <xacro:sinsei_umiusi_control
-    high_beam_pin="$(arg high_beam_pin)"
-    low_beam_pin="$(arg low_beam_pin)"
-    ir_pin="$(arg ir_pin)"
-    indicator_led_pin="$(arg indicator_led_pin)"
+    gpiochip_device="$(arg gpiochip_device)"
+    high_beam_line_offset="$(arg high_beam_line_offset)"
+    low_beam_line_offset="$(arg low_beam_line_offset)"
+    ir_line_offset="$(arg ir_line_offset)"
+    indicator_led_line_offset="$(arg indicator_led_line_offset)"
     vesc1_id="$(arg vesc1_id)"
     vesc2_id="$(arg vesc2_id)"
     vesc3_id="$(arg vesc3_id)"

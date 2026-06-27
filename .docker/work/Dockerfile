@@ -19,9 +19,6 @@ RUN apt-get update && apt-get install -y \
     sccache \
     libgstreamermm-1.0-dev
 
-# Install pigpio
-RUN /tmp/scripts/install-pigpio.sh
-
 # Install editorconfig-checker
 RUN /tmp/scripts/install-ec.sh
 

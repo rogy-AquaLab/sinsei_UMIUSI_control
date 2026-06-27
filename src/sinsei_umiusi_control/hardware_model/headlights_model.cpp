@@ -1,20 +1,43 @@
 #include "sinsei_umiusi_control/hardware_model/headlights_model.hpp"
 
 #include <rcpputils/tl_expected/expected.hpp>
+#include <utility>
 
 #include "sinsei_umiusi_control/hardware_model/interface/gpio.hpp"
 
 using namespace sinsei_umiusi_control::hardware_model;
 
 HeadlightsModel::HeadlightsModel(
-    std::unique_ptr<interface::Gpio> gpio,
-    interface::Gpio::Pin high_beam_pin,  // NOLINT(bugprone-*) TODO: いずれ修正したい
-    interface::Gpio::Pin low_beam_pin, interface::Gpio::Pin ir_pin)
-: gpio(std::move(gpio)), high_beam_pin(high_beam_pin), low_beam_pin(low_beam_pin), ir_pin(ir_pin) {}
+    std::unique_ptr<interface::GpioChip> gpio,
+    interface::GpioOffset high_beam_line_offset,  // NOLINT(bugprone-*) TODO: いずれ修正したい
+    interface::GpioOffset low_beam_line_offset, interface::GpioOffset ir_line_offset)
+: gpio(std::move(gpio)),
+  high_beam_line_offset(high_beam_line_offset),
+  low_beam_line_offset(low_beam_line_offset),
+  ir_line_offset(ir_line_offset) {}
 
 auto HeadlightsModel::on_init() -> tl::expected<void, std::string> {
-    return this->gpio->set_mode_output({this->high_beam_pin, this->low_beam_pin, this->ir_pin})
-        .map_error(interface::gpio_error_to_string);
+    auto request = interface::GpioOutputRequest{};
+    request.offsets = {
+        this->high_beam_line_offset,
+        this->low_beam_line_offset,
+        this->ir_line_offset,
+    };
+    request.initial_values = {
+        interface::GpioValue::Inactive,
+        interface::GpioValue::Inactive,
+        interface::GpioValue::Inactive,
+    };
+    request.consumer = "sinsei_umiusi_control::HeadlightsModel";
+
+    auto gpio_request = this->gpio->request_outputs(std::move(request));
+    if (!gpio_request) {
+        return tl::make_unexpected(
+            "Failed to initialize GPIO output lines: " + gpio_request.error());
+    }
+
+    this->gpio_request = std::move(gpio_request.value());
+    return {};
 }
 
 auto HeadlightsModel::on_read() const -> tl::expected<void, std::string> { return {}; }
@@ -23,26 +46,18 @@ auto HeadlightsModel::on_write(
     cmd::headlights::HighBeamEnabled && high_beam_enabled,
     cmd::headlights::LowBeamEnabled && low_beam_enabled,
     cmd::headlights::IrEnabled && ir_enabled) -> tl::expected<void, std::string> {
-    const auto res_high =
-        this->gpio
-            ->write_digital(std::move(this->high_beam_pin), std::move(high_beam_enabled.value))
-            .map_error(interface::gpio_error_to_string);
-    const auto res_low =
-        this->gpio->write_digital(this->low_beam_pin, std::move(low_beam_enabled.value))
-            .map_error(interface::gpio_error_to_string);
-    const auto res_ir = this->gpio->write_digital(this->ir_pin, std::move(ir_enabled.value))
-                            .map_error(interface::gpio_error_to_string);
-
-    if (res_high && res_low && res_ir) {
-        return {};
+    if (!this->gpio_request) {
+        return tl::make_unexpected("GPIO lines are not initialized");
     }
 
-    const auto & msg_high = res_high ? "Success" : res_high.error();
-    const auto & msg_low = res_low ? "Success" : res_low.error();
-    const auto & msg_ir = res_ir ? "Success" : res_ir.error();
+    auto res = this->gpio_request->set_values({
+        interface::to_gpio_value(high_beam_enabled.value),
+        interface::to_gpio_value(low_beam_enabled.value),
+        interface::to_gpio_value(ir_enabled.value),
+    });
+    if (!res) {
+        return tl::make_unexpected("Failed to write GPIO values: " + res.error());
+    }
 
-    // すべてのエラーをまとめて返す
-    return tl::unexpected(
-        "Failed to write to GPIO pins:\n    High Beam: " + msg_high + "\n    Low Beam: " + msg_low +
-        "\n    IR: " + msg_ir);
+    return {};
 }

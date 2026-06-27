@@ -42,7 +42,7 @@ def generate_launch_description():
         f'  {key("$ ros2 launch sinsei_umiusi_control main.yaml")} {PLAIN}{SKY}vesc1_id:=16 vesc2_id:=32           {PLAIN}Run all nodes, remapping VESC IDs'
     )
     print(
-        f'  {key("$ ros2 launch sinsei_umiusi_control main.yaml")} {PLAIN}{SKY}high_beam_pin:=17 low_beam_pin:=27  {PLAIN}Run all nodes, remapping GPIO pins'
+        f'  {key("$ ros2 launch sinsei_umiusi_control main.yaml")} {PLAIN}{SKY}gpiochip_device:=/dev/gpiochip1 high_beam_line_offset:=17  {PLAIN}Run all nodes, remapping GPIO lines'
     )
     print(
         f'  {key("$ ros2 launch sinsei_umiusi_control gen_local_params.yaml")}                         {PLAIN}Generate local parameter files'

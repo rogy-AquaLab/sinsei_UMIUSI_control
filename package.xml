@@ -19,6 +19,7 @@
   <depend>ros2_control</depend>
   <depend>libgstreamer1.0-dev</depend>
   <depend>libgstreamer-plugins-base1.0-dev</depend>
+  <depend>libgpiod-dev</depend>
 
   <depend>sinsei_umiusi_msgs</depend>
 

@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
 
-  <xacro:macro name="indicator_led" params="pin">
+  <xacro:macro name="indicator_led" params="gpiochip_device line_offset">
     <ros2_control name="indicator_led" type="system" is_async="true">
       <hardware>
         <plugin>sinsei_umiusi_control/hardware/IndicatorLed</plugin>
-        <param name="pin">${pin}</param>
+        <param name="gpiochip_device">${gpiochip_device}</param>
+        <param name="line_offset">${line_offset}</param>
       </hardware>
 
       <gpio name="indicator_led">
