@@ -19,7 +19,8 @@ auto IndicatorLedModel::on_init() -> tl::expected<void, std::string> {
 
     auto gpio_request = this->gpio->request_outputs(std::move(request));
     if (!gpio_request) {
-        return tl::make_unexpected(gpio_request.error());
+        return tl::make_unexpected(
+            "Failed to initialize GPIO output lines: " + gpio_request.error());
     }
 
     this->gpio_request = std::move(gpio_request.value());
@@ -34,5 +35,10 @@ auto IndicatorLedModel::on_write(sinsei_umiusi_control::cmd::indicator_led::Enab
         return tl::make_unexpected("GPIO lines are not initialized");
     }
 
-    return this->gpio_request->set_values({interface::to_gpio_value(enabled.value)});
+    auto res = this->gpio_request->set_values({interface::to_gpio_value(enabled.value)});
+    if (!res) {
+        return tl::make_unexpected("Failed to write GPIO values: " + res.error());
+    }
+
+    return {};
 }

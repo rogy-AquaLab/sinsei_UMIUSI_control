@@ -28,7 +28,7 @@ auto impl::LinuxGpioLineRequest::set_gpiod_values(const std::vector<GpioValue> &
     try {
         this->lines.set_values(gpiod_values);
     } catch (const std::exception & e) {
-        return tl::make_unexpected("Failed to set GPIO line values: " + std::string(e.what()));
+        return tl::make_unexpected(std::string(e.what()));
     }
 
     return {};
@@ -68,9 +68,7 @@ auto impl::LinuxGpioChip::request_gpiod_lines(const GpioOutputRequest & request)
 
         return lines;
     } catch (const std::exception & e) {
-        return tl::make_unexpected(
-            "Failed to request GPIO output lines from '" + this->chip_path +
-            "': " + std::string(e.what()));
+        return tl::make_unexpected(std::string(e.what()));
     }
 }
 
