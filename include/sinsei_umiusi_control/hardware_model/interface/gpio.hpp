@@ -1,7 +1,6 @@
 #ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_GPIO_HPP
 #define SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_GPIO_HPP
 
-#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <rcpputils/tl_expected/expected.hpp>
@@ -30,7 +29,6 @@ class GpioLineRequest {
 
     virtual auto set_values(const std::vector<GpioValue> & values)
         -> tl::expected<void, std::string> = 0;
-    virtual auto size() const noexcept -> std::size_t = 0;
 };
 
 class GpioChip {

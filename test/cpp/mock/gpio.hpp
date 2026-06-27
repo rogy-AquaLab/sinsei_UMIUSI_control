@@ -14,7 +14,6 @@ class GpioLineRequest : public hardware_model::interface::GpioLineRequest {
     MOCK_METHOD(
         (tl::expected<void, std::string>), set_values,
         ((const std::vector<hardware_model::interface::GpioValue> & values)), (override));
-    MOCK_METHOD(std::size_t, size, (), (const, noexcept, override));
 };
 
 class GpioChip : public hardware_model::interface::GpioChip {

@@ -24,7 +24,6 @@ class LinuxGpioLineRequest : public interface::GpioLineRequest {
 
     auto set_values(const std::vector<GpioValue> & values)
         -> tl::expected<void, std::string> override;
-    auto size() const noexcept -> std::size_t override;
 };
 
 class LinuxGpioChip : public interface::GpioChip {

@@ -36,16 +36,14 @@ auto impl::LinuxGpioLineRequest::set_gpiod_values(const std::vector<GpioValue> &
 
 auto impl::LinuxGpioLineRequest::set_values(const std::vector<GpioValue> & values)
     -> tl::expected<void, std::string> {
-    if (values.size() != this->size()) {
+    if (values.size() != this->lines.size()) {
         return tl::make_unexpected(
-            "Invalid GPIO output values: expected " + std::to_string(this->size()) + ", got " +
+            "Invalid GPIO output values: expected " + std::to_string(this->lines.size()) + ", got " +
             std::to_string(values.size()));
     }
 
     return this->set_gpiod_values(values);
 }
-
-auto impl::LinuxGpioLineRequest::size() const noexcept -> std::size_t { return this->lines.size(); }
 
 impl::LinuxGpioChip::LinuxGpioChip(std::string chip_path) : chip_path(std::move(chip_path)) {}
 
