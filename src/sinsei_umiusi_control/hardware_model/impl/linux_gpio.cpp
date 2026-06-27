@@ -8,12 +8,13 @@
 
 using namespace sinsei_umiusi_control::hardware_model;
 
-impl::LinuxGpioLineRequest::LinuxGpioLineRequest(gpiod::line_bulk bulk) : bulk(std::move(bulk)) {}
+impl::LinuxGpioLineRequest::LinuxGpioLineRequest(gpiod::line_bulk lines)
+: lines(std::move(lines)) {}
 
 impl::LinuxGpioLineRequest::~LinuxGpioLineRequest() {
     try {
-        if (this->bulk) {
-            this->bulk.release();
+        if (this->lines) {
+            this->lines.release();
         }
     } catch (const std::exception &) {
         // Destructors must not throw.
@@ -25,7 +26,7 @@ auto impl::LinuxGpioLineRequest::set_gpiod_values(const std::vector<GpioValue> &
     const auto gpiod_values = util::cast_vector<int>(values);
 
     try {
-        this->bulk.set_values(gpiod_values);
+        this->lines.set_values(gpiod_values);
     } catch (const std::exception & e) {
         return tl::make_unexpected("Failed to set GPIO line values: " + std::string(e.what()));
     }
@@ -44,7 +45,7 @@ auto impl::LinuxGpioLineRequest::set_values(const std::vector<GpioValue> & value
     return this->set_gpiod_values(values);
 }
 
-auto impl::LinuxGpioLineRequest::size() const noexcept -> std::size_t { return this->bulk.size(); }
+auto impl::LinuxGpioLineRequest::size() const noexcept -> std::size_t { return this->lines.size(); }
 
 impl::LinuxGpioChip::LinuxGpioChip(std::string chip_path) : chip_path(std::move(chip_path)) {}
 
@@ -60,14 +61,14 @@ auto impl::LinuxGpioChip::request_gpiod_lines(const GpioOutputRequest & request)
 
     try {
         auto chip = gpiod::chip(this->chip_path, gpiod::chip::OPEN_BY_PATH);
-        auto bulk = chip.get_lines(request.offsets);
+        auto lines = chip.get_lines(request.offsets);
         const auto config = gpiod::line_request{consumer, gpiod::line_request::DIRECTION_OUTPUT, 0};
 
         const auto initial_values = util::cast_vector<int>(request.initial_values);
 
-        bulk.request(config, initial_values);
+        lines.request(config, initial_values);
 
-        return bulk;
+        return lines;
     } catch (const std::exception & e) {
         return tl::make_unexpected(
             "Failed to request GPIO output lines from '" + this->chip_path +

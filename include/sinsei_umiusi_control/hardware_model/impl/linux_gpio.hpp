@@ -14,12 +14,12 @@ class LinuxGpioLineRequest : public interface::GpioLineRequest {
   private:
     using GpioValue = interface::GpioValue;
 
-    gpiod::line_bulk bulk;
+    gpiod::line_bulk lines;
 
     auto set_gpiod_values(const std::vector<GpioValue> & values) -> tl::expected<void, std::string>;
 
   public:
-    explicit LinuxGpioLineRequest(gpiod::line_bulk bulk);
+    explicit LinuxGpioLineRequest(gpiod::line_bulk lines);
     ~LinuxGpioLineRequest() override;
 
     auto set_values(const std::vector<GpioValue> & values)
