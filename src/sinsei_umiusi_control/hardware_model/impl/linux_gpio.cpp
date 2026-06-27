@@ -46,11 +46,11 @@ auto impl::LinuxGpioLineRequest::set_values(const std::vector<GpioValue> & value
 
 auto impl::LinuxGpioLineRequest::size() const noexcept -> std::size_t { return this->bulk.size(); }
 
-impl::LinuxGpio::LinuxGpio(std::string chip_path) : chip_path(std::move(chip_path)) {}
+impl::LinuxGpioChip::LinuxGpioChip(std::string chip_path) : chip_path(std::move(chip_path)) {}
 
-impl::LinuxGpio::~LinuxGpio() = default;
+impl::LinuxGpioChip::~LinuxGpioChip() = default;
 
-auto impl::LinuxGpio::request_gpiod_lines(const GpioOutputRequest & request)
+auto impl::LinuxGpioChip::request_gpiod_lines(const GpioOutputRequest & request)
     -> tl::expected<gpiod::line_bulk, std::string> {
     if (this->chip_path.empty()) {
         return tl::make_unexpected("GPIO chip path is empty");
@@ -75,7 +75,7 @@ auto impl::LinuxGpio::request_gpiod_lines(const GpioOutputRequest & request)
     }
 }
 
-auto impl::LinuxGpio::request_outputs(GpioOutputRequest request)
+auto impl::LinuxGpioChip::request_outputs(GpioOutputRequest request)
     -> tl::expected<std::unique_ptr<interface::GpioLineRequest>, std::string> {
     if (request.offsets.empty()) {
         return tl::make_unexpected("GPIO output request must contain at least one line");

@@ -21,7 +21,7 @@ auto Headlights::on_init(const hardware_interface::HardwareComponentInterfacePar
             this->get_logger(), "Parameter 'gpiochip_device' not found in hardware parameters.");
         return hardware_interface::CallbackReturn::ERROR;
     }
-    auto gpio = std::make_unique<hardware_model::impl::LinuxGpio>(gpiochip_device.value());
+    auto gpio = std::make_unique<hardware_model::impl::LinuxGpioChip>(gpiochip_device.value());
 
     auto get_offset_param =
         [&](const std::string & key) -> std::optional<hardware_model::interface::GpioOffset> {

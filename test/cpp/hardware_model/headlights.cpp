@@ -12,7 +12,7 @@
 namespace succmd = sinsei_umiusi_control::cmd;
 namespace suchm = sinsei_umiusi_control::hardware_model;
 
-using sinsei_umiusi_control::test::mock::Gpio;
+using sinsei_umiusi_control::test::mock::GpioChip;
 using sinsei_umiusi_control::test::mock::GpioLineRequest;
 using testing::ByMove;
 using testing::Field;
@@ -32,7 +32,7 @@ INSTANTIATE_TEST_SUITE_P(
         ::testing::Bool(), ::testing::Bool(), ::testing::Bool(), ::testing::Values(0, 1, 2, 3)));
 
 TEST(HeadlightsModelOnInitTest, all) {
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::GpioChip>();
     auto gpio_lines = std::make_unique<mock::GpioLineRequest>();
 
     EXPECT_CALL(
@@ -63,7 +63,7 @@ TEST(HeadlightsModelOnInitTest, all) {
 TEST_P(HeadlightsModelOnWriteTest, all) {
     auto [high_beam_enabled, low_beam_enabled, ir_enabled, error] = GetParam();
 
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::GpioChip>();
     auto gpio_lines = std::make_unique<mock::GpioLineRequest>();
     auto requested_values = std::vector<suchm::interface::GpioValue>{
         suchm::interface::to_gpio_value(high_beam_enabled),

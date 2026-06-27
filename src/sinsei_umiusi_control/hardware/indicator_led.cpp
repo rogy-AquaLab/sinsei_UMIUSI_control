@@ -21,7 +21,7 @@ auto IndicatorLed::on_init(const hardware_interface::HardwareComponentInterfaceP
             this->get_logger(), "Parameter 'gpiochip_device' not found in hardware parameters.");
         return hardware_interface::CallbackReturn::ERROR;
     }
-    auto gpio = std::make_unique<sinsei_umiusi_control::hardware_model::impl::LinuxGpio>(
+    auto gpio = std::make_unique<sinsei_umiusi_control::hardware_model::impl::LinuxGpioChip>(
         gpiochip_device.value());
 
     // GPIO line offsetをパラメータから取得

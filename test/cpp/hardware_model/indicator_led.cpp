@@ -27,7 +27,7 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Values(succmd::indicator_led::Enabled{true}, succmd::indicator_led::Enabled{false}));
 
 TEST(IndicatorLedModelOnInitTest, all) {
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::GpioChip>();
     auto gpio_lines = std::make_unique<mock::GpioLineRequest>();
     EXPECT_CALL(
         *gpio,
@@ -53,7 +53,7 @@ TEST(IndicatorLedModelOnInitTest, all) {
 TEST_P(IndicatorLedModelOnWriteTest, all) {
     auto enabled = GetParam();
 
-    auto gpio = std::make_unique<mock::Gpio>();
+    auto gpio = std::make_unique<mock::GpioChip>();
     auto gpio_lines = std::make_unique<mock::GpioLineRequest>();
     EXPECT_CALL(
         *gpio_lines, set_values(testing::ElementsAre(suchm::interface::to_gpio_value(enabled.value))))

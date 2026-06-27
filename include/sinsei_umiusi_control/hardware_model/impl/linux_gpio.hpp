@@ -27,7 +27,7 @@ class LinuxGpioLineRequest : public interface::GpioLineRequest {
     auto size() const noexcept -> std::size_t override;
 };
 
-class LinuxGpio : public interface::Gpio {
+class LinuxGpioChip : public interface::GpioChip {
   private:
     using GpioOutputRequest = interface::GpioOutputRequest;
 
@@ -37,8 +37,8 @@ class LinuxGpio : public interface::Gpio {
         -> tl::expected<gpiod::line_bulk, std::string>;
 
   public:
-    explicit LinuxGpio(std::string chip_path);
-    ~LinuxGpio() override;
+    explicit LinuxGpioChip(std::string chip_path);
+    ~LinuxGpioChip() override;
 
     auto request_outputs(GpioOutputRequest request)
         -> tl::expected<std::unique_ptr<interface::GpioLineRequest>, std::string> override;

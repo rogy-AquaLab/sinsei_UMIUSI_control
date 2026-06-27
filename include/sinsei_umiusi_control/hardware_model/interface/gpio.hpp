@@ -33,10 +33,10 @@ class GpioLineRequest {
     virtual auto size() const noexcept -> std::size_t = 0;
 };
 
-class Gpio {
+class GpioChip {
   public:
-    Gpio() = default;
-    virtual ~Gpio() = default;
+    GpioChip() = default;
+    virtual ~GpioChip() = default;
 
     virtual auto request_outputs(GpioOutputRequest request)
         -> tl::expected<std::unique_ptr<GpioLineRequest>, std::string> = 0;

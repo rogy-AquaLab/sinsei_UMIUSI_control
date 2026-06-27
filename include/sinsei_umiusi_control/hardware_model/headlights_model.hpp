@@ -12,7 +12,7 @@ namespace sinsei_umiusi_control::hardware_model {
 
 class HeadlightsModel {
   private:
-    std::unique_ptr<interface::Gpio> gpio;
+    std::unique_ptr<interface::GpioChip> gpio;
     std::unique_ptr<interface::GpioLineRequest> gpio_request;
     interface::GpioOffset high_beam_line_offset;
     interface::GpioOffset low_beam_line_offset;
@@ -20,7 +20,7 @@ class HeadlightsModel {
 
   public:
     HeadlightsModel(
-        std::unique_ptr<interface::Gpio> gpio, interface::GpioOffset high_beam_line_offset,
+        std::unique_ptr<interface::GpioChip> gpio, interface::GpioOffset high_beam_line_offset,
         interface::GpioOffset low_beam_line_offset, interface::GpioOffset ir_line_offset);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_read() const -> tl::expected<void, std::string>;

@@ -17,7 +17,7 @@ class GpioLineRequest : public hardware_model::interface::GpioLineRequest {
     MOCK_METHOD(std::size_t, size, (), (const, noexcept, override));
 };
 
-class Gpio : public hardware_model::interface::Gpio {
+class GpioChip : public hardware_model::interface::GpioChip {
   public:
     using GpioLineRequestPtr = std::unique_ptr<hardware_model::interface::GpioLineRequest>;
 

@@ -8,7 +8,7 @@
 using namespace sinsei_umiusi_control::hardware_model;
 
 HeadlightsModel::HeadlightsModel(
-    std::unique_ptr<interface::Gpio> gpio,
+    std::unique_ptr<interface::GpioChip> gpio,
     interface::GpioOffset high_beam_line_offset,  // NOLINT(bugprone-*) TODO: いずれ修正したい
     interface::GpioOffset low_beam_line_offset, interface::GpioOffset ir_line_offset)
 : gpio(std::move(gpio)),

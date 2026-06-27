@@ -8,7 +8,7 @@
 using namespace sinsei_umiusi_control::hardware_model;
 
 IndicatorLedModel::IndicatorLedModel(
-    std::unique_ptr<interface::Gpio> gpio, interface::GpioOffset led_line_offset)
+    std::unique_ptr<interface::GpioChip> gpio, interface::GpioOffset led_line_offset)
 : gpio(std::move(gpio)), led_line_offset(led_line_offset) {}
 
 auto IndicatorLedModel::on_init() -> tl::expected<void, std::string> {
