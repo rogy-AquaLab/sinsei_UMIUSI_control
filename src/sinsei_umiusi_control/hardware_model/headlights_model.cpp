@@ -30,13 +30,13 @@ auto HeadlightsModel::on_init() -> tl::expected<void, std::string> {
     };
     request.consumer = "sinsei_umiusi_control::HeadlightsModel";
 
-    auto gpio_request = this->gpio->request_outputs(std::move(request));
-    if (!gpio_request) {
+    auto gpio_request_res = this->gpio->request_outputs(std::move(request));
+    if (!gpio_request_res) {
         return tl::make_unexpected(
-            "Failed to initialize GPIO output lines: " + gpio_request.error());
+            "Failed to initialize GPIO output lines: " + gpio_request_res.error());
     }
 
-    this->gpio_request = std::move(gpio_request.value());
+    this->gpio_request = std::move(gpio_request_res.value());
     return {};
 }
 
@@ -50,7 +50,7 @@ auto HeadlightsModel::on_write(
         return tl::make_unexpected("GPIO lines are not initialized");
     }
 
-    auto res = this->gpio_request->set_values({
+    const auto res = this->gpio_request->set_values({
         interface::to_gpio_value(high_beam_enabled.value),
         interface::to_gpio_value(low_beam_enabled.value),
         interface::to_gpio_value(ir_enabled.value),

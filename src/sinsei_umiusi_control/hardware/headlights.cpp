@@ -23,8 +23,9 @@ auto Headlights::on_init(const hardware_interface::HardwareComponentInterfacePar
     }
     auto gpio = std::make_unique<hardware_model::impl::LinuxGpioChip>(gpiochip_device.value());
 
-    auto get_offset_param =
-        [&](const std::string & key) -> std::optional<hardware_model::interface::GpioOffset> {
+    const auto get_offset_param =
+        [this,
+         &params](const std::string & key) -> std::optional<hardware_model::interface::GpioOffset> {
         // GPIO line offsetをパラメータから取得
         const auto str_opt = util::find_param(params.hardware_info.hardware_parameters, key);
         if (!str_opt) {
@@ -35,8 +36,7 @@ auto Headlights::on_init(const hardware_interface::HardwareComponentInterfacePar
         }
 
         // std::stringからGpioOffsetに変換
-        auto offset_res =
-            util::to_number<hardware_model::interface::GpioOffset>(str_opt.value());
+        auto offset_res = util::to_number<hardware_model::interface::GpioOffset>(str_opt.value());
         if (!offset_res) {
             RCLCPP_ERROR(
                 this->get_logger(), "Invalid GPIO line offset for '%s' ('%s'): %s", key.c_str(),
