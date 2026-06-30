@@ -34,8 +34,8 @@ auto IndicatorLed::on_init(const hardware_interface::HardwareComponentInterfaceP
     }
 
     // std::stringからGpioOffsetに変換
-    auto led_line_offset_res =
-        util::to_number<hardware_model::interface::GpioOffset>(led_line_offset_str_opt.value());
+    auto led_line_offset_res = util::from_chars_expected<hardware_model::interface::GpioOffset>(
+        led_line_offset_str_opt.value());
     if (!led_line_offset_res) {
         RCLCPP_ERROR(
             this->get_logger(), "Invalid GPIO line offset for 'line_offset' ('%s'): %s",

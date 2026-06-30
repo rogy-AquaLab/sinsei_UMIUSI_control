@@ -36,7 +36,8 @@ auto Headlights::on_init(const hardware_interface::HardwareComponentInterfacePar
         }
 
         // std::stringからGpioOffsetに変換
-        auto offset_res = util::to_number<hardware_model::interface::GpioOffset>(str_opt.value());
+        auto offset_res =
+            util::from_chars_expected<hardware_model::interface::GpioOffset>(str_opt.value());
         if (!offset_res) {
             RCLCPP_ERROR(
                 this->get_logger(), "Invalid GPIO line offset for '%s' ('%s'): %s", key.c_str(),

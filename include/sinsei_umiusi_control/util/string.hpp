@@ -8,7 +8,7 @@
 namespace sinsei_umiusi_control::util {
 
 template <typename T>
-auto to_number(std::string_view str) -> tl::expected<T, std::string> {
+auto from_chars_expected(std::string_view str) -> tl::expected<T, std::string> {
     auto value = T{};
     const auto * begin = str.data();
     const auto * end = begin + str.size();
