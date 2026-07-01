@@ -18,20 +18,24 @@ launch:
       default: "127"
 
   - arg:
-      description: "GPIO pin number for High beam headlight"
-      name: high_beam_pin
+      description: "GPIO chip device path"
+      name: gpiochip_device
+      default: "/dev/gpiochip0"
+  - arg:
+      description: "GPIO line offset for High beam headlight"
+      name: high_beam_line_offset
       default: "5"
   - arg:
-      description: "GPIO pin number for Low beam headlight"
-      name: low_beam_pin
+      description: "GPIO line offset for Low beam headlight"
+      name: low_beam_line_offset
       default: "6"
   - arg:
-      description: "GPIO pin number for IR headlight"
-      name: ir_pin
+      description: "GPIO line offset for IR headlight"
+      name: ir_line_offset
       default: "25"
   - arg:
-      description: "GPIO pin number for indicator LED"
-      name: indicator_led_pin
+      description: "GPIO line offset for indicator LED"
+      name: indicator_led_line_offset
       default: "24"
   - arg:
       description: "LED tape's operation period per thrusters' operation period"

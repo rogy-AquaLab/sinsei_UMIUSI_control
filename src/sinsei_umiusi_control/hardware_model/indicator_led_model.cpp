@@ -1,23 +1,44 @@
 #include "sinsei_umiusi_control/hardware_model/indicator_led_model.hpp"
 
 #include <rcpputils/tl_expected/expected.hpp>
+#include <utility>
 
 #include "sinsei_umiusi_control/hardware_model/interface/gpio.hpp"
 
 using namespace sinsei_umiusi_control::hardware_model;
 
 IndicatorLedModel::IndicatorLedModel(
-    std::unique_ptr<interface::Gpio> gpio, interface::Gpio::Pin led_pin)
-: gpio(std::move(gpio)), led_pin(led_pin) {}
+    std::unique_ptr<interface::GpioChip> gpio, interface::GpioOffset led_line_offset)
+: gpio(std::move(gpio)), led_line_offset(led_line_offset) {}
 
 auto IndicatorLedModel::on_init() -> tl::expected<void, std::string> {
-    return this->gpio->set_mode_output({this->led_pin}).map_error(interface::gpio_error_to_string);
+    auto request = interface::GpioOutputRequest{};
+    request.offsets = {this->led_line_offset};
+    request.initial_values = {interface::GpioValue::Inactive};
+    request.consumer = "sinsei_umiusi_control::IndicatorLedModel";
+
+    auto gpio_request_res = this->gpio->request_outputs(std::move(request));
+    if (!gpio_request_res) {
+        return tl::make_unexpected(
+            "Failed to initialize GPIO output lines: " + gpio_request_res.error());
+    }
+
+    this->gpio_request = std::move(gpio_request_res.value());
+    return {};
 }
 
 auto IndicatorLedModel::on_read() const -> tl::expected<void, std::string> { return {}; }
 
 auto IndicatorLedModel::on_write(sinsei_umiusi_control::cmd::indicator_led::Enabled && enabled)
     -> tl::expected<void, std::string> {
-    return this->gpio->write_digital(this->led_pin, std::move(enabled.value))
-        .map_error(interface::gpio_error_to_string);
+    if (!this->gpio_request) {
+        return tl::make_unexpected("GPIO lines are not initialized");
+    }
+
+    const auto res = this->gpio_request->set_values({interface::to_gpio_value(enabled.value)});
+    if (!res) {
+        return tl::make_unexpected("Failed to write GPIO values: " + res.error());
+    }
+
+    return {};
 }

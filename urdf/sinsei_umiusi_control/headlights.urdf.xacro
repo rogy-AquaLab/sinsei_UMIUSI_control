@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
 
-  <xacro:macro name="headlights" params="high_beam_pin low_beam_pin ir_pin">
+  <xacro:macro
+    name="headlights"
+    params="gpiochip_device high_beam_line_offset low_beam_line_offset ir_line_offset">
     <ros2_control name="headlights" type="system" is_async="true">
       <hardware>
         <plugin>sinsei_umiusi_control/hardware/Headlights</plugin>
-        <param name="high_beam_pin">${high_beam_pin}</param>
-        <param name="low_beam_pin">${low_beam_pin}</param>
-        <param name="ir_pin">${ir_pin}</param>
+        <param name="gpiochip_device">${gpiochip_device}</param>
+        <param name="high_beam_line_offset">${high_beam_line_offset}</param>
+        <param name="low_beam_line_offset">${low_beam_line_offset}</param>
+        <param name="ir_line_offset">${ir_line_offset}</param>
       </hardware>
 
       <gpio name="headlights">

@@ -3,10 +3,11 @@
 
   <xacro:macro name="sinsei_umiusi_control"
     params="
-      high_beam_pin
-      low_beam_pin
-      ir_pin
-      indicator_led_pin
+      gpiochip_device
+      high_beam_line_offset
+      low_beam_line_offset
+      ir_line_offset
+      indicator_led_line_offset
       vesc1_id
       vesc2_id
       vesc3_id
@@ -30,11 +31,13 @@
     />
     <xacro:imu i2c_device="${imu_i2c_device}" />
     <xacro:headlights
-      high_beam_pin="${high_beam_pin}"
-      low_beam_pin="${low_beam_pin}"
-      ir_pin="${ir_pin}" />
+      gpiochip_device="${gpiochip_device}"
+      high_beam_line_offset="${high_beam_line_offset}"
+      low_beam_line_offset="${low_beam_line_offset}"
+      ir_line_offset="${ir_line_offset}" />
     <xacro:indicator_led
-      pin="${indicator_led_pin}"
+      gpiochip_device="${gpiochip_device}"
+      line_offset="${indicator_led_line_offset}"
     />
   </xacro:macro>
 

@@ -2,10 +2,11 @@
 
 #include <memory>
 
-#include "sinsei_umiusi_control/hardware_model/impl/pigpio.hpp"
+#include "sinsei_umiusi_control/hardware_model/impl/linux_gpio.hpp"
 #include "sinsei_umiusi_control/state/headlights.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
+#include "sinsei_umiusi_control/util/string.hpp"
 
 using namespace sinsei_umiusi_control::hardware;
 
@@ -13,41 +14,48 @@ auto Headlights::on_init(const hardware_interface::HardwareComponentInterfacePar
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SystemInterface::on_init(params);
 
-    auto gpio = std::make_unique<hardware_model::impl::Pigpio>();
-
-    // ピン番号をパラメーターから取得
-    const auto high_beam_pin_num_str =
-        util::find_param(params.hardware_info.hardware_parameters, "high_beam_pin");
-    if (!high_beam_pin_num_str) {
+    const auto gpiochip_device =
+        util::find_param(params.hardware_info.hardware_parameters, "gpiochip_device");
+    if (!gpiochip_device) {
         RCLCPP_ERROR(
-            this->get_logger(), "Parameter 'high_beam_pin' not found in hardware parameters.");
+            this->get_logger(), "Parameter 'gpiochip_device' not found in hardware parameters.");
         return hardware_interface::CallbackReturn::ERROR;
     }
-    const auto low_beam_pin_num_str =
-        util::find_param(params.hardware_info.hardware_parameters, "low_beam_pin");
-    if (!low_beam_pin_num_str) {
-        RCLCPP_ERROR(
-            this->get_logger(), "Parameter 'low_beam_pin' not found in hardware parameters.");
-        return hardware_interface::CallbackReturn::ERROR;
-    }
-    const auto ir_pin_num_str =
-        util::find_param(params.hardware_info.hardware_parameters, "ir_pin");
-    if (!ir_pin_num_str) {
-        RCLCPP_ERROR(this->get_logger(), "Parameter 'ir_pin' not found in hardware parameters.");
+    auto gpio = std::make_unique<hardware_model::impl::LinuxGpioChip>(gpiochip_device.value());
+
+    const auto get_offset_param =
+        [this,
+         &params](const std::string & key) -> std::optional<hardware_model::interface::GpioOffset> {
+        // GPIO line offsetをパラメータから取得
+        const auto str_opt = util::find_param(params.hardware_info.hardware_parameters, key);
+        if (!str_opt) {
+            RCLCPP_ERROR(
+                this->get_logger(), "Parameter '%s' not found in hardware parameters.",
+                key.c_str());
+            return std::nullopt;
+        }
+
+        // std::stringからGpioOffsetに変換
+        auto offset_res =
+            util::from_chars_expected<hardware_model::interface::GpioOffset>(str_opt.value());
+        if (!offset_res) {
+            RCLCPP_ERROR(
+                this->get_logger(), "Invalid GPIO line offset for '%s' ('%s'): %s", key.c_str(),
+                str_opt.value().c_str(), offset_res.error().c_str());
+            return std::nullopt;
+        }
+        return *offset_res;
+    };
+
+    const auto high_beam_line_offset = get_offset_param("high_beam_line_offset");
+    const auto low_beam_line_offset = get_offset_param("low_beam_line_offset");
+    const auto ir_line_offset = get_offset_param("ir_line_offset");
+    if (!high_beam_line_offset || !low_beam_line_offset || !ir_line_offset) {
         return hardware_interface::CallbackReturn::ERROR;
     }
 
-    int high_beam_pin_num, low_beam_pin_num, ir_pin_num;
-    try {
-        high_beam_pin_num = std::stoi(high_beam_pin_num_str.value());
-        low_beam_pin_num = std::stoi(low_beam_pin_num_str.value());
-        ir_pin_num = std::stoi(ir_pin_num_str.value());
-    } catch (const std::invalid_argument & e) {
-        RCLCPP_ERROR(this->get_logger(), "Invalid pin number: %s", e.what());
-        return hardware_interface::CallbackReturn::ERROR;
-    }
-
-    this->model.emplace(std::move(gpio), high_beam_pin_num, low_beam_pin_num, ir_pin_num);
+    this->model.emplace(
+        std::move(gpio), *high_beam_line_offset, *low_beam_line_offset, *ir_line_offset);
 
     const auto res = this->model->on_init();
     if (!res) {
