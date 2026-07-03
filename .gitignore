@@ -12,6 +12,7 @@ __pycache__
 # VSCode
 .vscode/*
 !.vscode/tasks.json
+.cache/
 
 # Params
 local_params/*

@@ -9,8 +9,11 @@ on:
       - publish-docker-image
     paths:
       - ".docker/**"
+      - ".dockerignore"
       - ".devcontainer/**"
+      - "deps.repos"
       - "docker-compose.yml"
+      - "package.xml"
       - ".env"
       - ".github/workflows/publish-docker-image.yml"
 
@@ -63,7 +66,7 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
-          context: ./.docker
+          context: .
           file: ./.docker/work/Dockerfile
           push: true
           build-args: |

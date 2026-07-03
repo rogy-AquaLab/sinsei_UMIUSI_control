@@ -1,0 +1,9 @@
+.git
+.cache
+.pytest_cache
+.vscode
+build
+install
+log
+docs
+.DS_Store
