@@ -1,0 +1,72 @@
+name: Publish Docker Image
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      # TODO: Remove after validating image publishing from the temporary branch.
+      - publish-docker-image
+    paths:
+      - ".docker/**"
+      - ".devcontainer/**"
+      - "docker-compose.yml"
+      - ".env"
+      - ".github/workflows/publish-docker-image.yml"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: sinsei_umiusi_control
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Build And Publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve image variables
+        id: vars
+        shell: bash
+        run: |
+          source .github/workflows/scripts/parse-env-file.sh "$GITHUB_OUTPUT"
+          image_name="${REGISTRY}/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE_NAME}"
+
+          echo "image_name=${image_name}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.vars.outputs.image_name }}
+          tags: |
+            type=raw,value=${{ steps.vars.outputs.ROS_DISTRO }}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=${{ steps.vars.outputs.ROS_DISTRO }}-
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./.docker
+          file: ./.docker/work/Dockerfile
+          push: true
+          build-args: |
+            ros_distro=${{ steps.vars.outputs.ROS_DISTRO }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
