@@ -118,6 +118,8 @@ jobs:
     env:
       SED_ARG_1: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/[0-9a-z]*/${{ github.event.repository.name }}|${{ github.workspace }}|g
       SED_ARG_2: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/build|${{ github.workspace }}/build|g
+      SED_ARG_3: s|/home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/[0-9a-z]*/${{ github.event.repository.name }}|${{ github.workspace }}|g
+      SED_ARG_4: s|/home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/build|${{ github.workspace }}/build|g
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -132,6 +134,8 @@ jobs:
         run: |
           sed -i '${{ env.SED_ARG_1 }}' build/compile_commands.json ; \
           sed -i '${{ env.SED_ARG_2 }}' build/compile_commands.json ; \
+          sed -i '${{ env.SED_ARG_3 }}' build/compile_commands.json ; \
+          sed -i '${{ env.SED_ARG_4 }}' build/compile_commands.json ; \
           echo "Replaced ROS working directory in compile_commands.json" && cat build/compile_commands.json
 
       - name: C++ Lint
