@@ -152,9 +152,8 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                 sizeof(this->input.state.esc_water_leaked_flags[i]));
 
             // RPMのみ`attitude_controller`経由で取得する
-            const auto ac_prefix =
-                "attitude_controller/thruster_controller" + std::string(THRUSTER_SUFFIX[i]) +
-                "/thruster/";
+            const auto ac_prefix = "attitude_controller/thruster_controller" +
+                                   std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
             this->state_interface_data.emplace_back(
                 ac_prefix + "esc/rpm", to_interface_data_ptr(this->input.state.esc_rpms[i]),
                 sizeof(this->input.state.esc_rpms[i]));
