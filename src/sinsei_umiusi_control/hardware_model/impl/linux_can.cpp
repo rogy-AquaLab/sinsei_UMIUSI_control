@@ -54,7 +54,15 @@ auto _from_linux_can_frame(const can_frame & linux_can_frame) -> interface::CanF
 
 impl::LinuxCan::LinuxCan() : sock(std::nullopt) {}
 
-impl::LinuxCan::~LinuxCan() { (void)this->close(); }
+auto impl::LinuxCan::reset_socket() noexcept -> void {
+    if (!this->sock) {
+        return;
+    }
+    (void)::close(this->sock.value());
+    this->sock.reset();
+}
+
+impl::LinuxCan::~LinuxCan() { this->reset_socket(); }
 
 auto impl::LinuxCan::close() -> tl::expected<void, std::string> {
     if (!this->sock) {
@@ -64,7 +72,7 @@ auto impl::LinuxCan::close() -> tl::expected<void, std::string> {
     if (res < 0) {
         return tl::make_unexpected("Failed to close CAN socket: " + std::string(strerror(errno)));
     }
-    sock.reset();
+    this->sock.reset();
     return {};
 }
 

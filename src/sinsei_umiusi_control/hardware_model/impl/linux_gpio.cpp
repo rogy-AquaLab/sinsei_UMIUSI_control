@@ -16,8 +16,9 @@ impl::LinuxGpioLineRequest::~LinuxGpioLineRequest() {
         if (this->lines) {
             this->lines.release();
         }
-    } catch (const std::exception &) {
+    } catch (const std::exception & e) {
         // Destructors must not throw.
+        (void)e;
     }
 }
 
@@ -38,8 +39,8 @@ auto impl::LinuxGpioLineRequest::set_values(const std::vector<GpioValue> & value
     -> tl::expected<void, std::string> {
     if (values.size() != this->lines.size()) {
         return tl::make_unexpected(
-            "Invalid GPIO output values: expected " + std::to_string(this->lines.size()) + ", got " +
-            std::to_string(values.size()));
+            "Invalid GPIO output values: expected " + std::to_string(this->lines.size()) +
+            ", got " + std::to_string(values.size()));
     }
 
     return this->set_gpiod_values(values);
