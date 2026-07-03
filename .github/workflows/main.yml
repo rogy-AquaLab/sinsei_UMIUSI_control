@@ -64,8 +64,8 @@ jobs:
       - name: EditorConfig Check
         run: editorconfig-checker
 
-  ros-ci:
-    name: ROS CI (Build, C++ Lint, Test)
+  colcon-build:
+    name: Colcon Build
     needs: parse-env-file
     runs-on: ubuntu-latest
     container:
@@ -107,7 +107,50 @@ jobs:
             --symlink-install \
             --event-handlers console_direct+
 
-      - name: Fix paths in compile_commands.json for GitHub Actions
+      - name: Upload Build results (`build` directory)
+        uses: actions/upload-artifact@v4
+        with:
+          name: colcon-build-results-build
+          path: /home/ubuntu/ros_ws/build
+
+      - name: Upload Build results (`install` directory)
+        uses: actions/upload-artifact@v4
+        with:
+          name: colcon-build-results-install
+          path: /home/ubuntu/ros_ws/install
+
+  cpp-lint:
+    name: C++ Lint
+    needs: [parse-env-file, colcon-build]
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/rogy-aqualab/sinsei_umiusi_control:${{ needs.parse-env-file.outputs.ROS_DISTRO }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Build results (`build` directory)
+        uses: actions/download-artifact@v4
+        with:
+          name: colcon-build-results-build
+          path: /home/ubuntu/ros_ws/build
+
+      - name: Download Build results (`install` directory)
+        uses: actions/download-artifact@v4
+        with:
+          name: colcon-build-results-install
+          path: /home/ubuntu/ros_ws/install
+
+      - name: Prepare ROS workspace
+        run: |
+          rm -rf /home/ubuntu/ros_ws/src/pkg
+          ln -s "$GITHUB_WORKSPACE" /home/ubuntu/ros_ws/src/pkg
+
+      - name: Rewrite compile_commands.json paths
         run: |
           if [ -f /home/ubuntu/ros_ws/build/compile_commands.json ]; then
             sed -i "s|/home/ubuntu/ros_ws/src/pkg|$GITHUB_WORKSPACE|g" /home/ubuntu/ros_ws/build/compile_commands.json
@@ -133,11 +176,42 @@ jobs:
         if: steps.cpp-lint.outputs.checks-failed > 0
         run: echo "C++ lint checks failed ... ${{ steps.cpp-lint.outputs.checks-failed }}" && exit 1
 
+  colcon-test:
+    name: Colcon Test
+    needs: [parse-env-file, colcon-build]
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/rogy-aqualab/sinsei_umiusi_control:${{ needs.parse-env-file.outputs.ROS_DISTRO }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Build results (`build` directory)
+        uses: actions/download-artifact@v4
+        with:
+          name: colcon-build-results-build
+          path: /home/ubuntu/ros_ws/build
+
+      - name: Download Build results (`install` directory)
+        uses: actions/download-artifact@v4
+        with:
+          name: colcon-build-results-install
+          path: /home/ubuntu/ros_ws/install
+
+      - name: Prepare ROS workspace
+        run: |
+          rm -rf /home/ubuntu/ros_ws/src/pkg
+          ln -s "$GITHUB_WORKSPACE" /home/ubuntu/ros_ws/src/pkg
+
       - name: Colcon Test
         working-directory: /home/ubuntu/ros_ws
         shell: bash
         run: |
-          source install/setup.bash
+          source /home/ubuntu/ros_ws/install/setup.bash
           colcon test \
             --packages-select "${{ needs.parse-env-file.outputs.PACKAGE_NAME }}" \
             --event-handlers console_direct+
