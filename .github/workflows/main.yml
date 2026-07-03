@@ -107,17 +107,16 @@ jobs:
             --symlink-install \
             --event-handlers console_direct+
 
-      - name: Upload Build results (`build` directory)
-        uses: actions/upload-artifact@v4
-        with:
-          name: colcon-build-results-build
-          path: /home/ubuntu/ros_ws/build
+      - name: Archive Build results
+        run: |
+          tar -C /home/ubuntu/ros_ws -czf /home/ubuntu/ros_ws/colcon-build-results.tar.gz \
+            build install
 
-      - name: Upload Build results (`install` directory)
+      - name: Upload Build results
         uses: actions/upload-artifact@v4
         with:
-          name: colcon-build-results-install
-          path: /home/ubuntu/ros_ws/install
+          name: colcon-build-results
+          path: /home/ubuntu/ros_ws/colcon-build-results.tar.gz
 
   cpp-lint:
     name: C++ Lint
@@ -133,22 +132,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Build results (`build` directory)
+      - name: Download Build results
         uses: actions/download-artifact@v4
         with:
-          name: colcon-build-results-build
-          path: /home/ubuntu/ros_ws/build
-
-      - name: Download Build results (`install` directory)
-        uses: actions/download-artifact@v4
-        with:
-          name: colcon-build-results-install
-          path: /home/ubuntu/ros_ws/install
+          name: colcon-build-results
+          path: /home/ubuntu/ros_ws
 
       - name: Prepare ROS workspace
         run: |
           rm -rf /home/ubuntu/ros_ws/src/pkg
           ln -s "$GITHUB_WORKSPACE" /home/ubuntu/ros_ws/src/pkg
+
+      - name: Extract Build results
+        run: |
+          rm -rf /home/ubuntu/ros_ws/build /home/ubuntu/ros_ws/install
+          tar -C /home/ubuntu/ros_ws -xzf /home/ubuntu/ros_ws/colcon-build-results.tar.gz
 
       - name: Rewrite compile_commands.json paths
         run: |
@@ -190,22 +188,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Build results (`build` directory)
+      - name: Download Build results
         uses: actions/download-artifact@v4
         with:
-          name: colcon-build-results-build
-          path: /home/ubuntu/ros_ws/build
-
-      - name: Download Build results (`install` directory)
-        uses: actions/download-artifact@v4
-        with:
-          name: colcon-build-results-install
-          path: /home/ubuntu/ros_ws/install
+          name: colcon-build-results
+          path: /home/ubuntu/ros_ws
 
       - name: Prepare ROS workspace
         run: |
           rm -rf /home/ubuntu/ros_ws/src/pkg
           ln -s "$GITHUB_WORKSPACE" /home/ubuntu/ros_ws/src/pkg
+
+      - name: Extract Build results
+        run: |
+          rm -rf /home/ubuntu/ros_ws/build /home/ubuntu/ros_ws/install
+          tar -C /home/ubuntu/ros_ws -xzf /home/ubuntu/ros_ws/colcon-build-results.tar.gz
 
       - name: Colcon Test
         working-directory: /home/ubuntu/ros_ws
