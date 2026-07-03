@@ -99,6 +99,7 @@ jobs:
 
       - name: Colcon Build
         working-directory: /home/ubuntu/ros_ws
+        shell: bash
         run: |
           source /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/setup.bash
           colcon build \
@@ -190,6 +191,7 @@ jobs:
 
       - name: Colcon Build
         working-directory: /home/ubuntu/ros_ws
+        shell: bash
         run: |
           source /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/setup.bash
           colcon build \
@@ -199,6 +201,7 @@ jobs:
 
       - name: Colcon Test
         working-directory: /home/ubuntu/ros_ws
+        shell: bash
         run: |
           source install/setup.bash
           colcon test \
