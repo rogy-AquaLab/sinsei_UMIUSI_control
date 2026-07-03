@@ -64,8 +64,8 @@ jobs:
       - name: EditorConfig Check
         run: editorconfig-checker
 
-  colcon-build:
-    name: Colcon Build
+  ros-ci:
+    name: ROS CI (Build, C++ Lint, Test)
     needs: parse-env-file
     runs-on: ubuntu-latest
     container:
@@ -81,7 +81,7 @@ jobs:
       - name: Fetch cache
         uses: actions/cache@v4
         env:
-          prefix: ${{ runner.os }}-sccache-ros-${{ needs.parse-env-file.outputs.ROS_DISTRO }}-build
+          prefix: ${{ runner.os }}-sccache-ros-${{ needs.parse-env-file.outputs.ROS_DISTRO }}-ci
         with:
           path: /github/home/.cache/sccache
           key: ${{ env.prefix }}-${{ needs.parse-env-file.outputs.file-hash }}
@@ -107,36 +107,12 @@ jobs:
             --symlink-install \
             --event-handlers console_direct+
 
-      - name: Upload Build results (`build` directory)
-        uses: actions/upload-artifact@v4
-        with:
-          name: colcon-build-results-build
-          path: /home/ubuntu/ros_ws/build
-
-  cpp-lint:
-    name: C++ Lint
-    needs: [parse-env-file, colcon-build]
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/rogy-aqualab/sinsei_umiusi_control:${{ needs.parse-env-file.outputs.ROS_DISTRO }}
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download Colcon Build results (`build` directory)
-        uses: actions/download-artifact@v4
-        with:
-          name: colcon-build-results-build
-          path: build
-
-      - name: Replace ROS working directory with current one
+      - name: Fix paths in compile_commands.json for GitHub Actions
         run: |
-          sed -i "s|/home/ubuntu/ros_ws/src/pkg|$GITHUB_WORKSPACE|g" build/compile_commands.json
-          sed -i "s|/home/ubuntu/ros_ws/build|$GITHUB_WORKSPACE/build|g" build/compile_commands.json
-          echo "Replaced ROS working directory in compile_commands.json"
+          if [ -f /home/ubuntu/ros_ws/build/compile_commands.json ]; then
+            sed -i "s|/home/ubuntu/ros_ws/src/pkg|$GITHUB_WORKSPACE|g" /home/ubuntu/ros_ws/build/compile_commands.json
+            echo "Fixed working directory paths in compile_commands.json"
+          fi
 
       - name: C++ Lint
         id: cpp-lint
@@ -148,56 +124,14 @@ jobs:
           version: 18
           style: file
           tidy-checks: ""
-          database: build
+          database: /home/ubuntu/ros_ws/build
           ignore: ./.github | ./build
           step-summary: true
           files-changed-only: false
 
-      - name: On failed
+      - name: Check C++ Lint result
         if: steps.cpp-lint.outputs.checks-failed > 0
         run: echo "C++ lint checks failed ... ${{ steps.cpp-lint.outputs.checks-failed }}" && exit 1
-
-  colcon-test:
-    name: Colcon Test
-    needs: [parse-env-file]
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/rogy-aqualab/sinsei_umiusi_control:${{ needs.parse-env-file.outputs.ROS_DISTRO }}
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Fetch cache
-        uses: actions/cache@v4
-        env:
-          prefix: ${{ runner.os }}-sccache-ros-${{ needs.parse-env-file.outputs.ROS_DISTRO }}-test
-        with:
-          path: /github/home/.cache/sccache
-          key: ${{ env.prefix }}-${{ needs.parse-env-file.outputs.file-hash }}
-          restore-keys: ${{ env.prefix }}-
-
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.9
-        with:
-          version: "v0.7.7" # sccache version as apt package
-
-      - name: Prepare ROS workspace
-        run: |
-          rm -rf /home/ubuntu/ros_ws/src/pkg
-          ln -s "$GITHUB_WORKSPACE" /home/ubuntu/ros_ws/src/pkg
-
-      - name: Colcon Build
-        working-directory: /home/ubuntu/ros_ws
-        shell: bash
-        run: |
-          source /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/setup.bash
-          colcon build \
-            --packages-up-to "${{ needs.parse-env-file.outputs.PACKAGE_NAME }}" \
-            --symlink-install \
-            --event-handlers console_direct+
 
       - name: Colcon Test
         working-directory: /home/ubuntu/ros_ws
