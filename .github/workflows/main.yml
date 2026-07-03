@@ -116,8 +116,8 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     env:
-      SED_SRC_PATH: s|/home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/\(ros_ws/\)\?src/[0-9a-z]*/${{ github.event.repository.name }}|${{ github.workspace }}|g
-      SED_BUILD_PATH: s|/home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/\(ros_ws/\)\?build|${{ github.workspace }}/build|g
+      SED_SRC_PATH: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/[^/]*/${{ github.event.repository.name }}|${{ github.workspace }}|g
+      SED_BUILD_PATH: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/build|${{ github.workspace }}/build|g
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
