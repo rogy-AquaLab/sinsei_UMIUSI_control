@@ -115,9 +115,6 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    env:
-      SED_SRC_PATH: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/[^/]*/${{ github.event.repository.name }}|${{ github.workspace }}|g
-      SED_BUILD_PATH: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/build|${{ github.workspace }}/build|g
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -130,8 +127,8 @@ jobs:
 
       - name: Replace ROS working directory with current one
         run: |
-          sed -i '${{ env.SED_SRC_PATH }}' build/compile_commands.json ; \
-          sed -i '${{ env.SED_BUILD_PATH }}' build/compile_commands.json ; \
+          sed -i "s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/[^/]*/${{ github.event.repository.name }}|$GITHUB_WORKSPACE|g" build/compile_commands.json
+          sed -i "s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/build|$GITHUB_WORKSPACE/build|g" build/compile_commands.json
           echo "Replaced ROS working directory in compile_commands.json" && cat build/compile_commands.json
 
       - name: C++ Lint
