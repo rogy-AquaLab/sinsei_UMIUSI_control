@@ -15,10 +15,6 @@ on:
       - "docs/**"
       - "**.md"
 
-env:
-  CI_CONTAINER_REGISTRY: ghcr.io
-  CI_CONTAINER_IMAGE_NAME: rogy-aqualab/sinsei_umiusi_control
-
 permissions:
   contents: read
   packages: read
@@ -73,7 +69,7 @@ jobs:
     needs: parse-env-file
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_CONTAINER_REGISTRY }}/${{ env.CI_CONTAINER_IMAGE_NAME }}:${{ needs.parse-env-file.outputs.ROS_DISTRO }}
+      image: ghcr.io/rogy-aqualab/sinsei_umiusi_control:${{ needs.parse-env-file.outputs.ROS_DISTRO }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -115,7 +111,7 @@ jobs:
     needs: [parse-env-file, colcon-build]
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_CONTAINER_REGISTRY }}/${{ env.CI_CONTAINER_IMAGE_NAME }}:${{ needs.parse-env-file.outputs.ROS_DISTRO }}
+      image: ghcr.io/rogy-aqualab/sinsei_umiusi_control:${{ needs.parse-env-file.outputs.ROS_DISTRO }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -162,7 +158,7 @@ jobs:
     needs: [parse-env-file]
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_CONTAINER_REGISTRY }}/${{ env.CI_CONTAINER_IMAGE_NAME }}:${{ needs.parse-env-file.outputs.ROS_DISTRO }}
+      image: ghcr.io/rogy-aqualab/sinsei_umiusi_control:${{ needs.parse-env-file.outputs.ROS_DISTRO }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
