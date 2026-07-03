@@ -30,8 +30,8 @@ using I2cDirection = suchm::interface::I2cDirection;
 using I2cMessage = suchm::interface::I2cMessage;
 using I2cRegisterAddr = suchm::interface::I2cRegisterAddr;
 
-auto expect_write_reg(const I2cMessage * msgs, std::size_t size, I2cRegisterAddr reg, std::byte value)
-    -> void {
+auto expect_write_reg(
+    const I2cMessage * msgs, std::size_t size, I2cRegisterAddr reg, std::byte value) -> void {
     ASSERT_NE(msgs, nullptr);
     ASSERT_EQ(size, 1U);
     EXPECT_EQ(msgs[0].address.value, ImuModel::ADDRESS.value);
@@ -41,8 +41,8 @@ auto expect_write_reg(const I2cMessage * msgs, std::size_t size, I2cRegisterAddr
     EXPECT_EQ(msgs[0].buffer.data[1], value);
 }
 
-auto expect_read_reg(const I2cMessage * msgs, std::size_t size, I2cRegisterAddr reg, std::size_t read_size)
-    -> void {
+auto expect_read_reg(
+    const I2cMessage * msgs, std::size_t size, I2cRegisterAddr reg, std::size_t read_size) -> void {
     ASSERT_NE(msgs, nullptr);
     ASSERT_EQ(size, 2U);
     EXPECT_EQ(msgs[0].address.value, ImuModel::ADDRESS.value);
@@ -71,10 +71,11 @@ auto fail_read_chip_id_action(std::string error) {
 }
 
 auto write_reg_action(I2cRegisterAddr reg, std::byte value) {
-    return [reg, value](const I2cMessage * msgs, std::size_t size) -> tl::expected<void, std::string> {
-        expect_write_reg(msgs, size, reg, value);
-        return {};
-    };
+    return
+        [reg, value](const I2cMessage * msgs, std::size_t size) -> tl::expected<void, std::string> {
+            expect_write_reg(msgs, size, reg, value);
+            return {};
+        };
 }
 
 auto fail_write_reg_action(I2cRegisterAddr reg, std::byte value, std::string error) {
@@ -126,8 +127,7 @@ TEST(ImuModelTest, OnInitSuccess) {
         .WillOnce(Invoke(write_reg_action(ImuModel::PWR_MODE_ADDR, ImuModel::POWER_MODE_NORMAL)))
         .WillOnce(Invoke(write_reg_action(ImuModel::PAGE_ID_ADDR, std::byte{0x00})))
         .WillOnce(Invoke(write_reg_action(ImuModel::SYS_TRIGGER_ADDR, std::byte{0x00})))
-        .WillOnce(
-            Invoke(write_reg_action(ImuModel::OPR_MODE_ADDR, ImuModel::OPERATION_MODE_NDOF)));
+        .WillOnce(Invoke(write_reg_action(ImuModel::OPR_MODE_ADDR, ImuModel::OPERATION_MODE_NDOF)));
 
     auto imu_model = ImuModel{std::move(i2c)};
     const auto result = imu_model.on_init();
@@ -154,7 +154,9 @@ TEST(ImuModelTest, OnInitFailsWhenDeviceVerificationNeverSucceeds) {
     auto * i2c_raw = i2c.get();
 
     EXPECT_CALL(*i2c_raw, open()).WillOnce(Return(tl::expected<void, std::string>{}));
-    EXPECT_CALL(*i2c_raw, transfer(_, _)).Times(2).WillRepeatedly(Invoke(fail_read_chip_id_action("read failed")));
+    EXPECT_CALL(*i2c_raw, transfer(_, _))
+        .Times(2)
+        .WillRepeatedly(Invoke(fail_read_chip_id_action("read failed")));
 
     auto imu_model = ImuModel{std::move(i2c)};
     const auto result = imu_model.on_init();

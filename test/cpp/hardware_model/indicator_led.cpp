@@ -12,9 +12,9 @@
 namespace succmd = sinsei_umiusi_control::cmd;
 namespace suchm = sinsei_umiusi_control::hardware_model;
 
-using testing::Return;
 using testing::ByMove;
 using testing::Field;
+using testing::Return;
 
 namespace sinsei_umiusi_control::test::hardware_model::indicator_led {
 
@@ -30,20 +30,20 @@ TEST(IndicatorLedModelOnInitTest, all) {
     auto gpio = std::make_unique<mock::GpioChip>();
     auto gpio_lines = std::make_unique<mock::GpioLineRequest>();
     EXPECT_CALL(
-        *gpio,
-        request_outputs(testing::AllOf(
-            Field(
-                &suchm::interface::GpioOutputRequest::offsets,
-                testing::ElementsAre(LED_LINE_OFFSET)),
-            Field(
-                &suchm::interface::GpioOutputRequest::initial_values,
-                testing::ElementsAre(suchm::interface::GpioValue::Inactive)),
-            Field(
-                &suchm::interface::GpioOutputRequest::consumer,
-                testing::StrEq("sinsei_umiusi_control::IndicatorLedModel")))))
+        *gpio, request_outputs(testing::AllOf(
+                   Field(
+                       &suchm::interface::GpioOutputRequest::offsets,
+                       testing::ElementsAre(LED_LINE_OFFSET)),
+                   Field(
+                       &suchm::interface::GpioOutputRequest::initial_values,
+                       testing::ElementsAre(suchm::interface::GpioValue::Inactive)),
+                   Field(
+                       &suchm::interface::GpioOutputRequest::consumer,
+                       testing::StrEq("sinsei_umiusi_control::IndicatorLedModel")))))
         .Times(1)
-        .WillOnce(Return(ByMove(tl::expected<std::unique_ptr<suchm::interface::GpioLineRequest>, std::string>(
-            std::move(gpio_lines)))));
+        .WillOnce(Return(
+            ByMove(tl::expected<std::unique_ptr<suchm::interface::GpioLineRequest>, std::string>(
+                std::move(gpio_lines)))));
 
     auto indicator_led_model = suchm::IndicatorLedModel(std::move(gpio), LED_LINE_OFFSET);
     auto result = indicator_led_model.on_init();
@@ -56,24 +56,25 @@ TEST_P(IndicatorLedModelOnWriteTest, all) {
     auto gpio = std::make_unique<mock::GpioChip>();
     auto gpio_lines = std::make_unique<mock::GpioLineRequest>();
     EXPECT_CALL(
-        *gpio_lines, set_values(testing::ElementsAre(suchm::interface::to_gpio_value(enabled.value))))
+        *gpio_lines,
+        set_values(testing::ElementsAre(suchm::interface::to_gpio_value(enabled.value))))
         .Times(1)
         .WillOnce(Return(tl::expected<void, std::string>()));
     EXPECT_CALL(
-        *gpio,
-        request_outputs(testing::AllOf(
-            Field(
-                &suchm::interface::GpioOutputRequest::offsets,
-                testing::ElementsAre(LED_LINE_OFFSET)),
-            Field(
-                &suchm::interface::GpioOutputRequest::initial_values,
-                testing::ElementsAre(suchm::interface::GpioValue::Inactive)),
-            Field(
-                &suchm::interface::GpioOutputRequest::consumer,
-                testing::StrEq("sinsei_umiusi_control::IndicatorLedModel")))))
+        *gpio, request_outputs(testing::AllOf(
+                   Field(
+                       &suchm::interface::GpioOutputRequest::offsets,
+                       testing::ElementsAre(LED_LINE_OFFSET)),
+                   Field(
+                       &suchm::interface::GpioOutputRequest::initial_values,
+                       testing::ElementsAre(suchm::interface::GpioValue::Inactive)),
+                   Field(
+                       &suchm::interface::GpioOutputRequest::consumer,
+                       testing::StrEq("sinsei_umiusi_control::IndicatorLedModel")))))
         .Times(1)
-        .WillOnce(Return(ByMove(tl::expected<std::unique_ptr<suchm::interface::GpioLineRequest>, std::string>(
-            std::move(gpio_lines)))));
+        .WillOnce(Return(
+            ByMove(tl::expected<std::unique_ptr<suchm::interface::GpioLineRequest>, std::string>(
+                std::move(gpio_lines)))));
 
     auto indicator_led_model = suchm::IndicatorLedModel(std::move(gpio), LED_LINE_OFFSET);
     indicator_led_model.on_init();

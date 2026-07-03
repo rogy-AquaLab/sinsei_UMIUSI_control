@@ -157,6 +157,9 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
             this->set_state("main_power/water_leaked", util::to_interface_data(water_leaked));
             break;
         }
+        default: {
+            break;
+        }
     }
 
     return hardware_interface::return_type::OK;

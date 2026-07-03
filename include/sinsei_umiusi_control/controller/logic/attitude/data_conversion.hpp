@@ -1,7 +1,7 @@
 #ifndef SINSEI_UMIUSI_CONTROL_ATTITUDE_CONTROLLER_DATA_CONVERSION_HPP
 #define SINSEI_UMIUSI_CONTROL_ATTITUDE_CONTROLLER_DATA_CONVERSION_HPP
 
-#include <Eigen/Geometry>
+#include <eigen3/Eigen/Geometry>
 
 #include "sinsei_umiusi_control/cmd/attitude.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
