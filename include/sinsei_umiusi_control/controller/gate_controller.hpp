@@ -6,6 +6,9 @@
 #include <geometry_msgs/msg/vector3.hpp>
 #include <rclcpp/publisher.hpp>
 #include <rclcpp/subscription.hpp>
+#include <sensor_msgs/msg/imu.hpp>
+#include <sensor_msgs/msg/temperature.hpp>
+#include <std_msgs/msg/header.hpp>
 
 #include "sinsei_umiusi_control/cmd/attitude.hpp"
 #include "sinsei_umiusi_control/cmd/headlights.hpp"
@@ -24,7 +27,6 @@
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_msgs/msg/headlights_output.hpp"
 #include "sinsei_umiusi_msgs/msg/high_power_circuit_info.hpp"
-#include "sinsei_umiusi_msgs/msg/imu_state.hpp"
 #include "sinsei_umiusi_msgs/msg/indicator_led_output.hpp"
 #include "sinsei_umiusi_msgs/msg/led_tape_output.hpp"
 #include "sinsei_umiusi_msgs/msg/low_power_circuit_info.hpp"
@@ -98,9 +100,11 @@ class GateController : public controller_interface::ControllerInterface {
         };
         // Publishers for states
         struct Publishers {
+            rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_publisher;
+            rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr
+                imu_temperature_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::MainPowerEnabled>::SharedPtr
                 main_power_enabled_publisher;
-            rclcpp::Publisher<sinsei_umiusi_msgs::msg::ImuState>::SharedPtr imu_state_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::ThrusterStateAll>::SharedPtr
                 thruster_state_all_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::LowPowerCircuitInfo>::SharedPtr
