@@ -282,14 +282,14 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
         // Publishers
         const auto state_prefix = std::string("state/");
         const auto qos = rclcpp::SystemDefaultsQoS();
-        this->output.pub.main_power_enabled_publisher =
-            this->get_node()->create_publisher<msg::MainPowerEnabled>(
-                state_prefix + "main_power_enabled", qos);
         this->output.pub.imu_publisher =
             this->get_node()->create_publisher<sensor_msgs::msg::Imu>(state_prefix + "imu", qos);
         this->output.pub.imu_temperature_publisher =
             this->get_node()->create_publisher<sensor_msgs::msg::Temperature>(
                 state_prefix + "imu_temperature", qos);
+        this->output.pub.main_power_enabled_publisher =
+            this->get_node()->create_publisher<msg::MainPowerEnabled>(
+                state_prefix + "main_power_enabled", qos);
         this->output.pub.thruster_state_all_publisher =
             this->get_node()->create_publisher<msg::ThrusterStateAll>(
                 state_prefix + "thruster_state_all", qos);
@@ -310,8 +310,6 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
     util::interface_accessor::get_states_from_loaned_interfaces(
         this->state_interfaces_, this->state_interface_data);
 
-    this->output.pub.main_power_enabled_publisher->publish(
-        msg::MainPowerEnabled().set__enabled(this->output.cmd.main_power_enabled_ref.value));
     this->output.pub.imu_publisher->publish(
         sensor_msgs::msg::Imu()
             .set__header(std_msgs::msg::Header().set__stamp(time).set__frame_id("imu"))
@@ -332,6 +330,8 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
         sensor_msgs::msg::Temperature()
             .set__header(std_msgs::msg::Header().set__stamp(time).set__frame_id("imu"))
             .set__temperature(this->input.state.imu_temperature.value));
+    this->output.pub.main_power_enabled_publisher->publish(
+        msg::MainPowerEnabled().set__enabled(this->output.cmd.main_power_enabled_ref.value));
     this->output.pub.thruster_state_all_publisher->publish(
         msg::ThrusterStateAll()
             .set__lf(msg::ThrusterState()

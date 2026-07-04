@@ -100,11 +100,11 @@ class GateController : public controller_interface::ControllerInterface {
         };
         // Publishers for states
         struct Publishers {
-            rclcpp::Publisher<sinsei_umiusi_msgs::msg::MainPowerEnabled>::SharedPtr
-                main_power_enabled_publisher;
             rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_publisher;
             rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr
                 imu_temperature_publisher;
+            rclcpp::Publisher<sinsei_umiusi_msgs::msg::MainPowerEnabled>::SharedPtr
+                main_power_enabled_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::ThrusterStateAll>::SharedPtr
                 thruster_state_all_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::LowPowerCircuitInfo>::SharedPtr
