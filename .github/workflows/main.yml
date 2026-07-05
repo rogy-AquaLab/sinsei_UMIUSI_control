@@ -112,46 +112,70 @@ jobs:
           tar -C /home/ubuntu/ros_ws -czf /home/ubuntu/ros_ws/colcon-build-results.tar.gz \
             build install
 
+      - name: Archive ROS C++ libraries
+        run: |
+          tar -C /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }} \
+            -czf /home/ubuntu/ros_ws/ros-cpp-libraries.tar.gz include src
+
       - name: Upload Build results
         uses: actions/upload-artifact@v4
         with:
           name: colcon-build-results
           path: /home/ubuntu/ros_ws/colcon-build-results.tar.gz
 
+      - name: Upload ROS C++ libraries
+        uses: actions/upload-artifact@v4
+        with:
+          name: ros-cpp-libraries
+          path: /home/ubuntu/ros_ws/ros-cpp-libraries.tar.gz
+
   cpp-lint:
     name: C++ Lint
     needs: [parse-env-file, colcon-build]
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/rogy-aqualab/sinsei_umiusi_control:${{ needs.parse-env-file.outputs.ROS_DISTRO }}
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install lint dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgpiod-dev \
+            libgstreamermm-1.0-dev
+
       - name: Download Build results
         uses: actions/download-artifact@v4
         with:
           name: colcon-build-results
-          path: /home/ubuntu/ros_ws
+          path: ${{ github.workspace }}
 
-      - name: Prepare ROS workspace
-        run: |
-          rm -rf /home/ubuntu/ros_ws/src/pkg
-          ln -s "$GITHUB_WORKSPACE" /home/ubuntu/ros_ws/src/pkg
+      - name: Download ROS C++ libraries
+        uses: actions/download-artifact@v4
+        with:
+          name: ros-cpp-libraries
+          path: ${{ github.workspace }}
 
       - name: Extract Build results
         run: |
-          rm -rf /home/ubuntu/ros_ws/build /home/ubuntu/ros_ws/install
-          tar -C /home/ubuntu/ros_ws -xzf /home/ubuntu/ros_ws/colcon-build-results.tar.gz
+          rm -rf build install
+          tar -C "$GITHUB_WORKSPACE" -xzf "$GITHUB_WORKSPACE/colcon-build-results.tar.gz"
+
+      - name: Extract ROS C++ libraries
+        run: |
+          rm -rf "$GITHUB_WORKSPACE/opt_ros"
+          mkdir -p "$GITHUB_WORKSPACE/opt_ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}"
+          tar -C "$GITHUB_WORKSPACE/opt_ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}" \
+            -xzf "$GITHUB_WORKSPACE/ros-cpp-libraries.tar.gz"
 
       - name: Rewrite compile_commands.json paths
         run: |
-          if [ -f /home/ubuntu/ros_ws/build/compile_commands.json ]; then
-            sed -i "s|/home/ubuntu/ros_ws/src/pkg|$GITHUB_WORKSPACE|g" /home/ubuntu/ros_ws/build/compile_commands.json
+          if [ -f build/compile_commands.json ]; then
+            sed -i "s|/home/ubuntu/ros_ws/src/pkg|$GITHUB_WORKSPACE|g" build/compile_commands.json
+            sed -i "s|/home/ubuntu/ros_ws/build|$GITHUB_WORKSPACE/build|g" build/compile_commands.json
+            sed -i "s|/home/ubuntu/ros_ws/install|$GITHUB_WORKSPACE/install|g" build/compile_commands.json
+            sed -i "s|/opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}|$GITHUB_WORKSPACE/opt_ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}|g" build/compile_commands.json
             echo "Fixed working directory paths in compile_commands.json"
           fi
 
@@ -165,7 +189,7 @@ jobs:
           version: 18
           style: file
           tidy-checks: ""
-          database: /home/ubuntu/ros_ws/build
+          database: build
           ignore: ./.github | ./build
           step-summary: true
           files-changed-only: false
