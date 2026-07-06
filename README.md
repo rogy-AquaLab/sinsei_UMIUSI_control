@@ -17,21 +17,18 @@ flowchart LR
     classDef physicalEdge stroke:#4a9df5,stroke-width:3px,color:#4a9df5;
 
     subgraph ROS["ROS Topics"]
-        direction TB
         CMD["cmd/(indicator_led, main_power, led_tape, headlights)_output<br/>cmd/thruster_runnable_all<br/>cmd/target"]
         MANUAL["cmd/direct/thruster_controller/output_*<br/>cmd/direct/thruster_controller/output_all"]
         STATE["state/(imu, imu_temperature, main_power_enabled, thruster_state_all)<br/>state/(low_power_circuit_info, high_power_circuit_info)"]
     end
 
     subgraph CTRL["Controllers"]
-        direction TB
         GATE["GateController"]
         ATT["AttitudeController"]
         THR["ThrusterController x4"]
     end
 
     subgraph HWC["Hardware Components"]
-        direction TB
         LEDC["Indicator LED<br/>(System)"]
         CANC["CAN<br/>(System)"]
         IMUC["IMU<br/>(Sensor)"]
@@ -39,7 +36,6 @@ flowchart LR
     end
 
     subgraph HW["Hardwares"]
-        direction TB
         LED["Indicator LED"]
         MCP["CAN Controller<br/>(MCP2515)"]
         VESC["VESC Boards x4<br/>+ Power Board"]
