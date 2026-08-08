@@ -23,12 +23,7 @@ class FeedForward : public AttitudeController::Logic {
         return std::sqrt(x * x + y * y);
     }
 
-    static auto sign(const double & x, const double & y) -> double {
-        // π/2 < φ < 3π/2 -> negative
-        constexpr auto half_pi = boost::math::constants::half_pi<double>();
-        const auto phi = std::atan2(y, x);
-        return (phi > half_pi && phi < 3.0 * half_pi) ? -1.0 : 1.0;
-    }
+    static auto sign(const double & x) -> double { return x < 0.0 ? -1.0 : 1.0; }
 
   public:
     auto control_mode() const -> logic::ControlMode override {
@@ -80,7 +75,7 @@ class FeedForward : public AttitudeController::Logic {
             sinsei_umiusi_control::cmd::thruster::servo::Angle{atan_or_zero(y[6], y[7])},
         };
         const auto thrust_sgns = std::array<double, 4>{
-            sign(y[0], y[1]), sign(y[2], y[3]), sign(y[4], y[5]), sign(y[6], y[7])};
+            sign(y[0]), sign(y[2]), sign(y[4]), sign(y[6])};
         const auto thrust_abss = std::array<double, 4>{
             magnitude(y[0], y[1]), magnitude(y[2], y[3]), magnitude(y[4], y[5]),
             magnitude(y[6], y[7])};
