@@ -24,15 +24,12 @@ class FeedForward : public AttitudeController::Logic {
     }
 
     static auto sign(const double & x, const double & y) -> double {
-        // π/2 < φ < 3π/2 (left half-plane) -> negative: a ±90° servo can only aim into the right
-        // half-plane, so left-half forces are produced by reversing the ESC.
-        // std::atan2 returns (-π, π]; wrap negatives into [0, 2π) first, else the third quadrant
-        // (x<0, y<0) is missed and wrongly returns +1.
+        // π/2 < φ < 3π/2 -> negative
         constexpr auto half_pi = boost::math::constants::half_pi<double>();
         constexpr auto two_pi = boost::math::constants::two_pi<double>();
         auto phi = std::atan2(y, x);
         if (phi < 0.0) {
-            phi += two_pi;
+            phi += two_pi;  // (-π, π] -> [0, 2π)
         }
         return (phi > half_pi && phi < 3.0 * half_pi) ? -1.0 : 1.0;
     }
