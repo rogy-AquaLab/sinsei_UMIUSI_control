@@ -70,9 +70,8 @@ TEST(CanModelTest, CanModelOnReadTimeoutReturnsTimeoutErrorTest) {
 
     EXPECT_CALL(*can, recv_frame())
         .Times(1)
-        .WillOnce(
-            Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{
-                std::nullopt}));
+        .WillOnce(Return(
+            tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{std::nullopt}));
 
     auto can_model = suchm::CanModel(can, VESC_IDS, PERIOD_LED_TAPE_PER_THRUSTERS);
     const auto result = can_model.on_read();

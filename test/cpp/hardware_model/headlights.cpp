@@ -50,12 +50,12 @@ TEST(HeadlightsModelOnInitTest, all) {
                 &suchm::interface::GpioOutputRequest::consumer,
                 testing::StrEq("sinsei_umiusi_control::HeadlightsModel")))))
         .Times(1)
-        .WillOnce(Return(ByMove(tl::expected<std::unique_ptr<suchm::interface::GpioLineRequest>, std::string>(
-            std::move(gpio_lines)))));
+        .WillOnce(Return(
+            ByMove(tl::expected<std::unique_ptr<suchm::interface::GpioLineRequest>, std::string>(
+                std::move(gpio_lines)))));
 
-    auto headlights_model =
-        suchm::HeadlightsModel(
-            std::move(gpio), HIGH_BEAM_LINE_OFFSET, LOW_BEAM_LINE_OFFSET, IR_LINE_OFFSET);
+    auto headlights_model = suchm::HeadlightsModel(
+        std::move(gpio), HIGH_BEAM_LINE_OFFSET, LOW_BEAM_LINE_OFFSET, IR_LINE_OFFSET);
     auto result = headlights_model.on_init();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
@@ -92,12 +92,12 @@ TEST_P(HeadlightsModelOnWriteTest, all) {
                 &suchm::interface::GpioOutputRequest::consumer,
                 testing::StrEq("sinsei_umiusi_control::HeadlightsModel")))))
         .Times(1)
-        .WillOnce(Return(ByMove(tl::expected<std::unique_ptr<suchm::interface::GpioLineRequest>, std::string>(
-            std::move(gpio_lines)))));
+        .WillOnce(Return(
+            ByMove(tl::expected<std::unique_ptr<suchm::interface::GpioLineRequest>, std::string>(
+                std::move(gpio_lines)))));
 
-    auto headlights_model =
-        suchm::HeadlightsModel(
-            std::move(gpio), HIGH_BEAM_LINE_OFFSET, LOW_BEAM_LINE_OFFSET, IR_LINE_OFFSET);
+    auto headlights_model = suchm::HeadlightsModel(
+        std::move(gpio), HIGH_BEAM_LINE_OFFSET, LOW_BEAM_LINE_OFFSET, IR_LINE_OFFSET);
     auto hb = succmd::headlights::HighBeamEnabled{high_beam_enabled};
     auto lb = succmd::headlights::LowBeamEnabled{low_beam_enabled};
     auto ir = succmd::headlights::IrEnabled{ir_enabled};

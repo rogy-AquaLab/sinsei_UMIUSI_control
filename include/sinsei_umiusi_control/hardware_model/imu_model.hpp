@@ -6,9 +6,8 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
-#include <tuple>
-
 #include <rcpputils/tl_expected/expected.hpp>
+#include <tuple>
 
 #include "sinsei_umiusi_control/hardware_model/interface/i2c.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"

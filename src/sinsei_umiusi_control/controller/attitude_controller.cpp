@@ -92,8 +92,7 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
 
         const auto thruster_prefix = controller_prefix + "thruster/";
         this->state_interface_data.push_back(std::make_tuple(
-            thruster_prefix + "esc/rpm",
-            util::to_interface_data_ptr(this->input.state.esc_rpms[i]),
+            thruster_prefix + "esc/rpm", util::to_interface_data_ptr(this->input.state.esc_rpms[i]),
             sizeof(this->input.state.esc_rpms[i])));
     }
     this->state_interface_data.push_back(std::make_tuple(

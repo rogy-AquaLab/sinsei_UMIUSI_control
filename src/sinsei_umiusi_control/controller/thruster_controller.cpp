@@ -247,7 +247,8 @@ auto ThrusterController::on_export_state_interfaces()
     auto interfaces = std::vector<hardware_interface::StateInterface>{};
     for (auto & [name, data, _] : this->state_interface_data) {
         // Thruster ID を隠蔽する (e.g. thruster1/esc/rpm -> thruster/esc/rpm)
-        constexpr auto THRUSTER_OFFSET = std::size("thrusterN") - 1;  // 末尾のnull文字を除くため、-1
+        constexpr auto THRUSTER_OFFSET =
+            std::size("thrusterN") - 1;  // 末尾のnull文字を除くため、-1
         const auto fixed_name = "thruster" + name.substr(THRUSTER_OFFSET);
         interfaces.emplace_back(
             hardware_interface::StateInterface(this->get_node()->get_name(), fixed_name, data));

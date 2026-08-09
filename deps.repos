@@ -2,4 +2,4 @@ repositories:
   sinsei_umiusi_msgs:
     type: git
     url: https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs.git
-    version: main
+    version: b315878b43e33ca8f3921c62533583c310c66a53

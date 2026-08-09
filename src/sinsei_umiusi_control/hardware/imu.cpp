@@ -36,9 +36,8 @@ auto Imu::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
         return hardware_interface::CallbackReturn::ERROR;
     }
 
-    this->model.emplace(
-        std::make_unique<sinsei_umiusi_control::hardware_model::impl::LinuxI2c>(
-            device_path.value()));
+    this->model.emplace(std::make_unique<sinsei_umiusi_control::hardware_model::impl::LinuxI2c>(
+        device_path.value()));
 
     auto res = this->model->on_init();
     if (!res) {

@@ -22,8 +22,7 @@ class GpioChip : public hardware_model::interface::GpioChip {
 
     MOCK_METHOD(
         (tl::expected<GpioLineRequestPtr, std::string>), request_outputs,
-        ((hardware_model::interface::GpioOutputRequest request)),
-        (override));
+        ((hardware_model::interface::GpioOutputRequest request)), (override));
 };
 }  // namespace sinsei_umiusi_control::test::mock
 

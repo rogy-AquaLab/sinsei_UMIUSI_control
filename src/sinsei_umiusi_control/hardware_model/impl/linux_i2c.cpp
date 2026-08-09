@@ -37,7 +37,15 @@ namespace sinsei_umiusi_control::hardware_model::impl {
 LinuxI2c::LinuxI2c(std::string device_path)
 : fd(std::nullopt), device_path(std::move(device_path)) {}
 
-LinuxI2c::~LinuxI2c() { (void)this->close(); }
+auto LinuxI2c::reset_fd() noexcept -> void {
+    if (!this->fd) {
+        return;
+    }
+    (void)::close(this->fd.value());
+    this->fd.reset();
+}
+
+LinuxI2c::~LinuxI2c() { this->reset_fd(); }
 
 auto LinuxI2c::open() -> tl::expected<void, std::string> {
     if (this->fd) {

@@ -17,6 +17,7 @@ class LinuxCan : public interface::Can {
 
     std::optional<FileDescriptor> sock;
 
+    auto reset_socket() noexcept -> void;
     auto send_linux_can_frame(const can_frame & frame) -> tl::expected<void, std::string>;
     auto recv_linux_can_frame() -> tl::expected<std::optional<can_frame>, std::string>;
 

@@ -15,6 +15,8 @@ class LinuxI2c : public interface::I2c {
     std::optional<FileDescriptor> fd;
     std::string device_path;
 
+    auto reset_fd() noexcept -> void;
+
   public:
     LinuxI2c(std::string device_path);
     ~LinuxI2c() override;

@@ -1,8 +1,8 @@
 #ifndef SINSEI_UMIUSI_CONTROL_CONTROLLER_LOGIC_ATTITUDE_FEED_FORWARD_HPP
 #define SINSEI_UMIUSI_CONTROL_CONTROLLER_LOGIC_ATTITUDE_FEED_FORWARD_HPP
 
-#include <Eigen/Core>
 #include <boost/math/constants/constants.hpp>
+#include <eigen3/Eigen/Core>
 
 #include "sinsei_umiusi_control/controller/attitude_controller.hpp"
 #include "sinsei_umiusi_control/controller/logic/attitude/data_conversion.hpp"

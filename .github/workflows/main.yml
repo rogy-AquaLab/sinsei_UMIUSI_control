@@ -15,6 +15,10 @@ on:
       - "docs/**"
       - "**.md"
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   parse-env-file:
     name: Parse Environment
@@ -65,22 +69,19 @@ jobs:
     needs: parse-env-file
     runs-on: ubuntu-latest
     container:
-      image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
+      image: ghcr.io/rogy-aqualab/sinsei_umiusi_control:${{ needs.parse-env-file.outputs.ROS_DISTRO }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      - name: Checkout install script
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          sparse-checkout: .docker/scripts
-
-      - name: Install GStreamer C++ development package
-        run: |
-          sudo apt-get update && sudo apt-get install -y libgstreamermm-1.0-dev
 
       - name: Fetch cache
         uses: actions/cache@v4
         env:
-          prefix: ${{ runner.os }}-sccache-ros-${{ needs.parse-env-file.outputs.ROS_DISTRO }}-build
+          prefix: ${{ runner.os }}-sccache-ros-${{ needs.parse-env-file.outputs.ROS_DISTRO }}-ci
         with:
           path: /github/home/.cache/sccache
           key: ${{ env.prefix }}-${{ needs.parse-env-file.outputs.file-hash }}
@@ -91,63 +92,68 @@ jobs:
         with:
           version: "v0.7.7" # sccache version as apt package
 
+      - name: Prepare ROS workspace
+        run: |
+          rm -rf /home/ubuntu/ros_ws/src/pkg
+          ln -s "$GITHUB_WORKSPACE" /home/ubuntu/ros_ws/src/pkg
+
       - name: Colcon Build
-        uses: ros-tooling/action-ros-ci@v0.4
-        with:
-          target-ros2-distro: ${{ needs.parse-env-file.outputs.ROS_DISTRO }}
-          package-name: "${{ needs.parse-env-file.outputs.PACKAGE_NAME }} sinsei_umiusi_msgs"
-          vcs-repo-file-url: ./deps.repos
-          skip-tests: true
+        working-directory: /home/ubuntu/ros_ws
+        shell: bash
+        run: |
+          source /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/setup.bash
+          colcon build \
+            --packages-up-to "${{ needs.parse-env-file.outputs.PACKAGE_NAME }}" \
+            --symlink-install \
+            --event-handlers console_direct+
 
-      - name: Upload ROS C++ libraries
+      - name: Archive Build results
+        run: |
+          tar -C /home/ubuntu/ros_ws -czf /home/ubuntu/ros_ws/colcon-build-results.tar.gz \
+            build install
+
+      - name: Upload Build results
         uses: actions/upload-artifact@v4
         with:
-          name: ros-cpp-libraries
-          path: |
-            /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/include
-            /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}/src
-
-      - name: Upload Build results (`build` directory)
-        uses: actions/upload-artifact@v4
-        with:
-          name: colcon-build-results-build
-          path: ros_ws/build
+          name: colcon-build-results
+          path: /home/ubuntu/ros_ws/colcon-build-results.tar.gz
 
   cpp-lint:
     name: C++ Lint
     needs: [parse-env-file, colcon-build]
     runs-on: ubuntu-latest
-    env:
-      SED_ARG_1: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/src/[0-9a-z]*/${{ github.event.repository.name }}|${{ github.workspace }}|g
-      SED_ARG_2: s|/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros_ws/build|${{ github.workspace }}/build|g
+    container:
+      image: ghcr.io/rogy-aqualab/sinsei_umiusi_control:${{ needs.parse-env-file.outputs.ROS_DISTRO }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
-      - name: Checkout install script
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          sparse-checkout: .docker/scripts
 
-      - name: Install GStreamer C++ development package
-        run: |
-          sudo apt-get update && sudo apt-get install -y libgstreamermm-1.0-dev
-
-      - name: Download ROS C++ libraries
+      - name: Download Build results
         uses: actions/download-artifact@v4
         with:
-          name: ros-cpp-libraries
-          path: /opt/ros/${{ needs.parse-env-file.outputs.ROS_DISTRO }}
-          merge-multiple: true
+          name: colcon-build-results
+          path: /home/ubuntu/ros_ws
 
-      - name: Download Colcon Build results (`build` directory)
-        uses: actions/download-artifact@v4
-        with:
-          name: colcon-build-results-build
-          path: build
-
-      - name: Replace ROS working directory with current one
+      - name: Prepare ROS workspace
         run: |
-          sed -i '${{ env.SED_ARG_1 }}' build/compile_commands.json ; \
-          sed -i '${{ env.SED_ARG_2 }}' build/compile_commands.json ; \
-          echo "Replaced ROS working directory in compile_commands.json" && cat build/compile_commands.json
+          rm -rf /home/ubuntu/ros_ws/src/pkg
+          ln -s "$GITHUB_WORKSPACE" /home/ubuntu/ros_ws/src/pkg
+
+      - name: Extract Build results
+        run: |
+          rm -rf /home/ubuntu/ros_ws/build /home/ubuntu/ros_ws/install
+          tar -C /home/ubuntu/ros_ws -xzf /home/ubuntu/ros_ws/colcon-build-results.tar.gz
+
+      - name: Rewrite compile_commands.json paths
+        run: |
+          if [ -f /home/ubuntu/ros_ws/build/compile_commands.json ]; then
+            sed -i "s|/home/ubuntu/ros_ws/src/pkg|$GITHUB_WORKSPACE|g" /home/ubuntu/ros_ws/build/compile_commands.json
+            echo "Fixed working directory paths in compile_commands.json"
+          fi
 
       - name: C++ Lint
         id: cpp-lint
@@ -159,40 +165,55 @@ jobs:
           version: 18
           style: file
           tidy-checks: ""
-          database: build
+          database: /home/ubuntu/ros_ws/build
           ignore: ./.github | ./build
           step-summary: true
           files-changed-only: false
 
-      - name: On failed
+      - name: Check C++ Lint result
         if: steps.cpp-lint.outputs.checks-failed > 0
         run: echo "C++ lint checks failed ... ${{ steps.cpp-lint.outputs.checks-failed }}" && exit 1
 
   colcon-test:
     name: Colcon Test
-    needs: [parse-env-file]
+    needs: [parse-env-file, colcon-build]
     runs-on: ubuntu-latest
     container:
-      image: rostooling/setup-ros-docker:ubuntu-noble-ros-jazzy-desktop-latest
+      image: ghcr.io/rogy-aqualab/sinsei_umiusi_control:${{ needs.parse-env-file.outputs.ROS_DISTRO }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
-      - name: Checkout install script
+      - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Download Build results
+        uses: actions/download-artifact@v4
         with:
-          sparse-checkout: .docker/scripts
+          name: colcon-build-results
+          path: /home/ubuntu/ros_ws
 
-      - name: Install GStreamer C++ development package
+      - name: Prepare ROS workspace
         run: |
-          sudo apt-get update && sudo apt-get install -y libgstreamermm-1.0-dev
+          rm -rf /home/ubuntu/ros_ws/src/pkg
+          ln -s "$GITHUB_WORKSPACE" /home/ubuntu/ros_ws/src/pkg
 
-      - name: Upgrade apt packages in ROS container
+      - name: Extract Build results
         run: |
-          sudo apt-get update
-          DEBIAN_FRONTEND=noninteractive sudo apt-get dist-upgrade -y
+          rm -rf /home/ubuntu/ros_ws/build /home/ubuntu/ros_ws/install
+          tar -C /home/ubuntu/ros_ws -xzf /home/ubuntu/ros_ws/colcon-build-results.tar.gz
 
       - name: Colcon Test
-        uses: ros-tooling/action-ros-ci@v0.4
-        with:
-          target-ros2-distro: ${{ needs.parse-env-file.outputs.ROS_DISTRO }}
-          package-name: "${{ needs.parse-env-file.outputs.PACKAGE_NAME }} sinsei_umiusi_msgs"
-          vcs-repo-file-url: ./deps.repos
-          coverage-result: false
+        working-directory: /home/ubuntu/ros_ws
+        shell: bash
+        run: |
+          source /home/ubuntu/ros_ws/install/setup.bash
+          colcon test \
+            --packages-select "${{ needs.parse-env-file.outputs.PACKAGE_NAME }}" \
+            --event-handlers console_direct+
+
+      - name: Colcon Test Result
+        working-directory: /home/ubuntu/ros_ws
+        if: always()
+        run: colcon test-result --verbose

@@ -10,15 +10,15 @@ using namespace sinsei_umiusi_control::hardware_model;
 can::VescModel::VescModel(can::VescModel::Id id) : id(id) {}
 
 auto can::VescModel::make_frame(
-    VescSimpleCommandID command_id, const interface::CanFrame::Data & data)
-    const -> interface::CanFrame {
+    VescSimpleCommandID command_id,
+    const interface::CanFrame::Data & data) const -> interface::CanFrame {
     const auto id =
         (static_cast<interface::CanFrame::Id>(command_id) & 0xFF) << 8 | (this->id & 0xFF);
     return interface::CanFrame{
-        id,                                   // id
-        SIMPLE_COMMAND_FRAME_LENGTH,          // len
-        data,                                 // data
-        true,                                 // is_extended
+        id,                           // id
+        SIMPLE_COMMAND_FRAME_LENGTH,  // len
+        data,                         // data
+        true,                         // is_extended
     };
 }
 
@@ -75,8 +75,7 @@ auto can::VescModel::get_packet_status(const interface::CanFrame & frame) const
     if (frame.len != STATUS_FRAME_LENGTH) {
         return tl::make_unexpected(
             "Received CAN frame with invalid length (expected: " +
-            std::to_string(STATUS_FRAME_LENGTH) + ", received: " +
-            std::to_string(frame.len) + ")");
+            std::to_string(STATUS_FRAME_LENGTH) + ", received: " + std::to_string(frame.len) + ")");
     }
 
     const auto cmd_id = static_cast<uint32_t>((frame.id >> 8) & 0xFF);
