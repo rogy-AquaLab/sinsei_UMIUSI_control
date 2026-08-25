@@ -194,15 +194,25 @@ auto Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period
             this->get_command(thruster_name(i) + "/servo/angle"));
     }
 
-    const auto res = this->model->on_write(
-        main_power_enabled, esc_allowed_flags, esc_duty_cycles, servo_allowed_flags, servo_angles,
-        led_tape_color);
-    if (!res) {
-        constexpr auto DURATION = 3000;  // ms
-        RCLCPP_ERROR_THROTTLE(
-            this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to write Can: %s",
-            res.error().c_str());
-        return hardware_interface::return_type::OK;
+    // `on_write`は1回の呼び出しにつきCANフレームを1つだけ送る。スラスター4基 ×
+    // (esc_allowed / esc_duty / servo_allowed / servo_angle) の16パケットで1周するため、
+    // 1周期に1回しか呼ばないと **各サーボの角度更新は update_rate/16** になる。
+    // 100Hzなら6.25Hz(160ms)で、VESC側のサーボ指令タイムアウトがこれより短いと
+    // 「受信 → タイムアウト → 中立」を繰り返してサーボが振動する(実機で実測)。
+    // 1周期あたり複数フレーム送ることで更新レートを上げる。
+    // CANバス負荷: 100Hz × 8フレーム = 800フレーム/秒。500kbpsに対して約18%で余裕がある。
+    constexpr auto FRAMES_PER_UPDATE = 8;
+    for (auto i = 0; i < FRAMES_PER_UPDATE; ++i) {
+        const auto res = this->model->on_write(
+            main_power_enabled, esc_allowed_flags, esc_duty_cycles, servo_allowed_flags,
+            servo_angles, led_tape_color);
+        if (!res) {
+            constexpr auto DURATION = 3000;  // ms
+            RCLCPP_ERROR_THROTTLE(
+                this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to write Can: %s",
+                res.error().c_str());
+            return hardware_interface::return_type::OK;
+        }
     }
 
     return hardware_interface::return_type::OK;
