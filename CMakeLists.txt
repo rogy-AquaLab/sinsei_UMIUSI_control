@@ -144,6 +144,21 @@ if(BUILD_TESTING)
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/cpp>
   )
 
+  if(Torch_FOUND)
+    # バンドル (deploy.pt) を要るテストは環境変数 SUC_RL_BUNDLE が指すときだけ走る。
+    # 配備物は生成物なので repo には入っていない (test/cpp/.../rl.cpp 冒頭)
+    ament_auto_add_gtest(test_attitude_rl
+      test/cpp/controller/logic/attitude/rl.cpp
+    )
+    target_include_directories(test_attitude_rl
+      PRIVATE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    )
+    target_include_directories(test_attitude_rl SYSTEM PRIVATE ${TORCH_INCLUDE_DIRS})
+    target_link_libraries(test_attitude_rl ${TORCH_LIBRARIES})
+    target_compile_options(test_attitude_rl PRIVATE ${SUC_TORCH_CXX_FLAGS})
+    target_link_options(test_attitude_rl PRIVATE "-Wl,-rpath,${TORCH_INSTALL_PREFIX}/lib")
+  endif()
 endif()
 
 ament_auto_package(
