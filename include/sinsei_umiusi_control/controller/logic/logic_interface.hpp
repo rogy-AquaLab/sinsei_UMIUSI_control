@@ -9,6 +9,7 @@ namespace sinsei_umiusi_control::controller::logic {
 enum class ControlMode {
     FeedForward,
     FeedBack,
+    Rl,
 };
 
 inline auto control_mode_to_str(const ControlMode & mode) -> std::string_view {
@@ -17,6 +18,8 @@ inline auto control_mode_to_str(const ControlMode & mode) -> std::string_view {
             return "ff";
         case ControlMode::FeedBack:
             return "fb";
+        case ControlMode::Rl:
+            return "rl";
         default:
             return "unknown";  // unreachable
     }
@@ -29,6 +32,9 @@ inline auto get_mode_from_str(const std::string_view & str)
     }
     if (str == "fb") {
         return ControlMode::FeedBack;
+    }
+    if (str == "rl") {
+        return ControlMode::Rl;
     }
     return tl::make_unexpected("Invalid control mode: " + std::string(str));
 }
