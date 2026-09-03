@@ -17,7 +17,7 @@
       # 空だと rl は起動しない (既定は ff なので他モードには影響しない)。
       # libtorch 無しでビルドした場合、rl は on_configure で拒否される。
       rl:
-        model_path: "" # <bundle>/deploy.pt (e.g. .../umiusi_rl_control/models/av_mode13/deploy.pt)
+        model_path: "" # <bundle>/deploy.pt (e.g. <umiusi_sim>/models/av_mode13/deploy.pt)
         golden_path: "" # 空なら model_path と同じ場所の golden.pt を探す
         max_duty: 0.25 # duty の絶対値上限。力は 2 乗で効く (0.2 -> 0.4 は 4 倍)
         servo_range_deg: 90.0 # 方策の servo 出力 ±1 が当たる角度。契約と一致していないと起動しない

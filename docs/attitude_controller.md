@@ -114,9 +114,12 @@ A = \begin{bmatrix}
 
 学習済み方策 (RL) で姿勢を保つ。`control_mode: "rl"` で選ぶ。libtorch があるときだけビルドされる。
 
-sim (`umiusi_sim`) で学習した方策を、autonomy の `tools/export_deploy_bundle.py` が固めた
+`umiusi_sim` で学習した方策を、同じ repo の `tools/export_deploy_bundle.py` が固めた
 `deploy.pt` (TorchScript 1 ファイル) として読む。起動時に golden vectors を再生して、
 重み・正規化統計・観測レイアウトが sim と一致することを確かめてから使う。
+
+**配備の経路に autonomy は入らない。** 方策を作るのも配備物を作るのも sim なので、
+`rl.model_path` は `<umiusi_sim>/models/<name>/deploy.pt` を直接指す。
 
 ### 入出力
 
@@ -157,8 +160,9 @@ IMU の quat / gyro は軸変換せずそのまま入れる。ずれていたら
 起動時に `golden.pt` を再生する。突き合わせるのは 2 段階:
 
 1. **ネットの生出力** — 重みと正規化統計が sim と一致するか
-2. **`mixed`** (`modes` のときだけ) — 積分・ミキサ・折返しを通した 8 次元が Python 実装と
-   一致するか。1 だけでは 3 段の取り違えが素通りする
+2. **`mixed`** (`modes` のときだけ) — 積分・ミキサ・折返しを通した 8 次元が、学習に使った
+   env そのもの (`umiusi_rl.envs.mode_mixer.ModeMixer`) の出力と一致するか。
+   1 だけでは 3 段の取り違えが素通りする
 
 どちらかがずれていれば `on_configure` が ERROR になり、スラスタは回らない。
 観測の**並び**はどちらの golden でも検出できない (組み立て済みの観測を再生するだけ) ので、
