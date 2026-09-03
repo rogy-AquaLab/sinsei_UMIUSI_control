@@ -1,38 +1,47 @@
 #ifndef SINSEI_UMIUSI_CONTROL_CONTROLLER_LOGIC_ATTITUDE_RL_HPP
 #define SINSEI_UMIUSI_CONTROL_CONTROLLER_LOGIC_ATTITUDE_RL_HPP
 
-/// 学習済み方策で姿勢を制御する logic。`control_mode:=rl` で選ぶ。
-///
-/// 読むのは autonomy の `tools/export_deploy_bundle.py` が作る `deploy.pt` 1 ファイル。
-/// ネットと正規化パラメータと `action_contract` が入った TorchScript で、C++ 側に
-/// JSON パーサも npz リーダも要らない。
-///
-/// 観測の並びはバンドルが決める (`obs_field_names` / `obs_field_widths` で照合する):
-///   18 次元 [ori_err(3), gyro(3), v_cmd(3), prev_action(8), max_duty(1)]
-///   17 次元 [ori_err(3), gyro(3), v_cmd(3), prev_action(8)]
-///   14 次元 [ori_err(3), gyro(3),           prev_action(8)]
-///
-/// 出力の形は `action_mode` が決める:
-///   "direct" — 8 次元 [servo x4, esc x4] をそのまま使う
-///   "modes"  — 6 次元のレンチモード**レート**。積分 -> ミキサ -> 折返しの 3 段で
-///              8 次元に直す (`ModeAction`)。sim が回したのと同じ 3 段を同じ順序で
-///              再現しないと、学習したのと別のプラントになる
-///
-/// 守ること:
-///   * 観測の順序と正規化はバンドルと厳密に合わせる。ずれても golden 以外では気付けない
-///     — その golden も並びの取り違えは検出できない (組み立て済みの観測を再生するだけ)
-///     ので、`obs_fields` の照合が唯一のゲートになる
-///   * `prev_action` は「自分が直前に出した指令」。init() でゼロに戻す
-///   * スレッド数は 1 に固定する。他のノードと CPU を奪い合うと多スレッドは逆効果
-///     (autonomy の docs/performance_tuning.md、検出器で実測)
-///
-/// 出力は **duty** [-1, 1] とサーボ角 [deg]。方策は duty で学習しているのでそのまま流す。
-/// 推力 [N] で出す案 (`thrust_per_cmd` / `thrust_curve_exp` で順写像) は保留 — 下流の
-/// `ThrusterController` は `duty = duty_per_thrust * esc_thrust` の線形で、
-/// `duty_per_thrust` も `thrust_per_cmd` もベンチ未較正のまま食い違っている。
-///
-/// 指令のレート制限はここで掛ける。sim のプラントが持っていたもので、下流の
-/// `max_duty_step_per_sec` は esc しか見ない (サーボには誰も掛けない)。
+// 学習済み方策で姿勢を制御する logic。`control_mode:=rl` で選ぶ。
+//
+// 読むのは autonomy の `tools/export_deploy_bundle.py` が作る `deploy.pt` 1 ファイル。
+// ネットと正規化パラメータと `action_contract` が入った TorchScript で、C++ 側に
+// JSON パーサも npz リーダも要らない。
+//
+// 観測の並びはバンドルが決める (`obs_field_names` / `obs_field_widths` で照合する):
+//   18 次元 [ori_err(3), gyro(3), v_cmd(3), prev_action(8), max_duty(1)]
+//   17 次元 [ori_err(3), gyro(3), v_cmd(3), prev_action(8)]
+//   14 次元 [ori_err(3), gyro(3),           prev_action(8)]
+//
+// 出力の形は `action_mode` が決める:
+//   "direct" — 8 次元 [servo x4, esc x4] をそのまま使う
+//   "modes"  — 6 次元のレンチモードレート。積分 -> ミキサ -> 折返しの 3 段で
+//              8 次元に直す (`ModeAction`)。sim が回したのと同じ 3 段を同じ順序で
+//              再現しないと、学習したのと別のプラントになる
+//
+// 守ること:
+//   * 観測の順序と正規化はバンドルと厳密に合わせる。ずれても golden 以外では気付けない
+//     — その golden も並びの取り違えは検出できない (組み立て済みの観測を再生するだけ)
+//     ので、`obs_fields` の照合が唯一のゲートになる
+//   * `prev_action` は「自分が直前に出した指令」。init() でゼロに戻す
+//   * IMU の異常サンプルはここでは弾いていない。Python の参照実装 (`ImuSanity`) は
+//     弾いており、観測に直接入るので 1 発で指令が跳ねる (autonomy known_issues A-1)。
+//     `prev_action` を通って次の観測にも戻るので、跳ねは数 tick 残る。
+//     `to_unit_quat` はゼロ quat しか守らない — フィルタは呼び出し側の責務
+//   * スレッド数は 1 に固定する。他のノードと CPU を奪い合うと多スレッドは逆効果
+//     (autonomy の docs/performance_tuning.md、検出器で実測)
+//
+// 出力は duty [-1, 1] とサーボ角 [deg]。方策は duty で学習しているのでそのまま流す。
+// 推力 [N] で出す案 (`thrust_per_cmd` / `thrust_curve_exp` で順写像) は保留 — 下流の
+// `ThrusterController` は `duty = duty_per_thrust * esc_thrust` の線形で、
+// `duty_per_thrust` も `thrust_per_cmd` もベンチ未較正のまま食い違っている。
+//
+// 指令のレート制限はここで掛ける。sim のプラントが持っていたもの。ただし esc は
+// 下流の `ThrusterController` も `max_duty_step_per_sec` で制限するので、実効レートは
+// 両者の厳しい方:
+//   * `params/controllers.yaml` の既定は 1.0/s で、方策が学習・golden 検証された
+//     `rl.thrust_slew_per_s: 4.0` より厳しい。rl で走らせるなら上げないと、
+//     duty 0.25 に届くまで 62.5 ms ではなく 250 ms かかる (sim と別のプラントになる)
+//   * サーボにはどちらの経路にも制限が無いので、`rl.servo_slew_deg_per_s` が唯一の制限
 
 #include <ATen/Parallel.h>
 #include <torch/script.h>
@@ -50,14 +59,14 @@
 
 namespace sinsei_umiusi_control::controller::logic::attitude {
 
-/// スラスタの並び。`attitude_controller.cpp` の `THRUSTER_SUFFIX` と、
-/// バンドルの `mode_positions` の両方に一致していなければならない。
+// スラスタの並び。`attitude_controller.cpp` の `THRUSTER_SUFFIX` と、
+// バンドルの `mode_positions` の両方に一致していなければならない。
 inline constexpr std::array<std::string_view, 4> POSITIONS{"lf", "lb", "rb", "rf"};
 
-/// 方策の推論と、バンドル (`deploy.pt`) の読み込み・検証。
-/// 正規化 -> 推論 -> クリップ を Python の `policy_infer.PolicyRunner` と同じ順序で行う。
-/// 正規化を float64 で計算してから float32 に落とすところまで揃えること —
-/// float32 で計算すると golden がわずかにずれる。
+// 方策の推論と、バンドル (`deploy.pt`) の読み込み・検証。
+// 正規化 -> 推論 -> クリップ を Python の `policy_infer.PolicyRunner` と同じ順序で行う。
+// 正規化を float64 で計算してから float32 に落とすところまで揃えること —
+// float32 で計算すると golden がわずかにずれる。
 class PolicyRunner {
   public:
     static constexpr int64_t OBS_DIM_CAP = 18;       // + duty 上限
@@ -120,6 +129,9 @@ class PolicyRunner {
                 "obs_norm の次元がポリシーの入力次元と一致しません (" + deploy_path + ")");
         }
         this->check_obs_fields();
+
+        x_ = torch::empty({1, obs_dim_}, torch::kFloat32);
+        inputs_.emplace_back(x_);
     }
 
     auto obs_dim() const -> int64_t { return obs_dim_; }
@@ -129,32 +141,40 @@ class PolicyRunner {
     auto path() const -> const std::string & { return path_; }
     auto needs_velocity() const -> bool { return obs_dim_ != OBS_DIM_NO_VEL; }
     auto needs_max_duty() const -> bool { return obs_dim_ == OBS_DIM_CAP; }
-    /// 読み込み時に出た「落とすほどではないが黙って通したくない」こと。
+    // 読み込み時に出た「落とすほどではないが黙って通したくない」こと。
     auto warnings() const -> const std::vector<std::string> & { return warnings_; }
 
-    auto act(const std::vector<double> & obs) const -> std::vector<double> {
+    // 制御周期で回る側はこちらを使い、out を使い回すこと。入力テンソルと引数リストは
+    // 構築時に確保して使い回している — update() は controller_manager の更新スレッド上で
+    // 走るので、毎 tick のヒープ確保を持ち込まない
+    void act(const std::vector<double> & obs, std::vector<double> & out) const {
         if (static_cast<int64_t>(obs.size()) != obs_dim_) {
             throw std::runtime_error(
                 "観測の次元が " + std::to_string(obs.size()) + " です (" +
                 std::to_string(obs_dim_) + " が必要)");
         }
-        auto x = torch::empty({1, obs_dim_}, torch::kFloat32);
-        auto * p = x.data_ptr<float>();
+        auto * p = x_.data_ptr<float>();
         for (int64_t i = 0; i < obs_dim_; ++i) {
             const double n = (obs[i] - mean_[i]) / std::sqrt(var_[i] + eps_);
             p[i] = static_cast<float>(std::clamp(n, -clip_, clip_));
         }
         torch::NoGradGuard no_grad;
-        const auto y = module_.forward({x}).toTensor().squeeze(0).contiguous();
+        const auto y = module_.forward(inputs_).toTensor().squeeze(0).contiguous();
         const auto * q = y.data_ptr<float>();
-        std::vector<double> out(static_cast<size_t>(y.numel()));
+        out.resize(static_cast<size_t>(y.numel()));
         for (size_t i = 0; i < out.size(); ++i) {
             out[i] = std::clamp(static_cast<double>(q[i]), -1.0, 1.0);
         }
+    }
+
+    // 制御周期の外 (検証・テスト) 用。
+    auto act(const std::vector<double> & obs) const -> std::vector<double> {
+        auto out = std::vector<double>{};
+        this->act(obs, out);
         return out;
     }
 
-    /// バンドルの属性を読む。無ければ「deploy.pt が古い」と分かるメッセージで落とす。
+    // バンドルの属性を読む。無ければ「deploy.pt が古い」と分かるメッセージで落とす。
     auto attr(const std::string & name) const -> c10::IValue {
         try {
             return module_.attr(name);
@@ -184,7 +204,7 @@ class PolicyRunner {
     }
 
   private:
-    /// このクラスが組み立てる観測の並び。`Rl::update` と 1:1 で対応させること。
+    // このクラスが組み立てる観測の並び。`Rl::update` と 1:1 で対応させること。
     static auto expected_fields(int64_t obs_dim)
         -> std::vector<std::pair<std::string, int64_t>> {
         auto fields = std::vector<std::pair<std::string, int64_t>>{{"ori_err", 3}, {"gyro", 3}};
@@ -206,11 +226,11 @@ class PolicyRunner {
         return s + "]";
     }
 
-    /// 観測の組み立て順をバンドルと照合する。golden では通ってしまう領域 —
-    /// golden は組み立て済みの観測を再生するだけで、組み立て順は見ていない。
-    ///
-    /// 18 次元では必須。並びを取り違えて一番困るのが末尾に max_duty を足したこの次元で、
-    /// そこだけ穴を開けるのは本末転倒なので、照合できないなら起動させない。
+    // 観測の組み立て順をバンドルと照合する。golden では通ってしまう領域 —
+    // golden は組み立て済みの観測を再生するだけで、組み立て順は見ていない。
+    //
+    // 18 次元では必須。並びを取り違えて一番困るのが末尾に max_duty を足したこの次元で、
+    // そこだけ穴を開けるのは本末転倒なので、照合できないなら起動させない。
     void check_obs_fields() {
         const auto expected = expected_fields(obs_dim_);
         const auto names = this->string_list_attr("obs_field_names");
@@ -267,16 +287,18 @@ class PolicyRunner {
     std::string action_mode_;
     std::string obs_frame_;
     std::vector<std::string> warnings_;
+    at::Tensor x_;                       // 推論の入力バッファ (使い回す)
+    std::vector<c10::IValue> inputs_;    // forward() の引数リスト (同上、x_ を指す)
     mutable torch::jit::script::Module module_;
 };
 
-/// レンチモード action (`action_mode: "modes"`) を [servo x4, esc x4] に直す。
-/// 6 次元のモードレートを 積分 -> ミキサ -> 折返し の 3 段で 8 次元にする。
-/// 係数はすべてバンドルの `action_contract` が正。**ここでハードコードしない**
-/// (sim が値を変えたら読み込みで落とす)。
-///
-/// 状態は積分器 `m_` と前回サーボ角 `prev_servo_` の 2 つ。どちらも tick をまたいで残り、
-/// `reset()` (= disarm / モード切替) で 0 に戻る。
+// レンチモード action (`action_mode: "modes"`) を [servo x4, esc x4] に直す。
+// 6 次元のモードレートを 積分 -> ミキサ -> 折返し の 3 段で 8 次元にする。
+// 係数はすべてバンドルの `action_contract` が正。ここでハードコードしない
+// (sim が値を変えたら読み込みで落とす)。
+//
+// 状態は積分器 `m_` と前回サーボ角 `prev_servo_` の 2 つ。どちらも tick をまたいで残り、
+// `reset()` (= disarm / モード切替) で 0 に戻る。
 class ModeAction {
   public:
     ModeAction(const PolicyRunner & runner) {
@@ -286,12 +308,16 @@ class ModeAction {
         thrust_curve_exp_ = runner.double_attr("thrust_curve_exp");
         servo_range_deg_ = runner.double_attr("servo_range_deg");
         control_rate_hz_ = runner.double_attr("control_rate_hz");
+        // deadband_frac も必須にする。契約に無いキーは書き出し側が 0.0 で埋めるので、
+        // ここで許すと「欠けている」を「デッドバンド無効」として黙って受け入れることになり、
+        // 原点近傍でサーボが atan2 の数値ノイズを追ってチャタリングする
         if (mode_slew_per_s_ <= 0.0 || thrust_per_cmd_ <= 0.0 || thrust_curve_exp_ <= 0.0 ||
-            servo_range_deg_ <= 0.0) {
+            servo_range_deg_ <= 0.0 || deadband_frac_ <= 0.0) {
             throw std::runtime_error(
                 "action_contract の係数が欠けています (" + runner.path() +
-                ")。レンチモードのバンドルは mode_slew_per_s / thrust_per_cmd / "
-                "thrust_curve_exp / servo_range_deg を持っている必要があります");
+                ")。レンチモードのバンドルは mode_slew_per_s / deadband_frac / "
+                "thrust_per_cmd / thrust_curve_exp / servo_range_deg を持っている必要が"
+                "あります");
         }
 
         const auto names = runner.string_list_attr("mode_names");
@@ -350,7 +376,7 @@ class ModeAction {
         this->reset();
     }
 
-    /// disarm / モード切替のたびに呼ぶ。積分器と前回サーボ角を初期状態に戻す。
+    // disarm / モード切替のたびに呼ぶ。積分器と前回サーボ角を初期状態に戻す。
     void reset() {
         m_.fill(0.0);
         prev_servo_.fill(0.0);
@@ -362,8 +388,8 @@ class ModeAction {
     auto thrust_per_cmd() const -> double { return thrust_per_cmd_; }
     auto thrust_curve_exp() const -> double { return thrust_curve_exp_; }
 
-    /// モードレート -> [servo x4, esc x4] (各 [-1, 1])。
-    /// `max_duty` は方策が観測しているのと同じ値を渡すこと (モード 1.0 の意味を揃える)。
+    // モードレート -> [servo x4, esc x4] (各 [-1, 1])。
+    // `max_duty` は方策が観測しているのと同じ値を渡すこと (モード 1.0 の意味を揃える)。
     auto step(const std::vector<double> & raw, double max_duty, double dt)
         -> std::array<double, static_cast<size_t>(PolicyRunner::ACT_DIM)> {
         if (static_cast<int64_t>(raw.size()) != PolicyRunner::MODE_DIM) {
@@ -399,8 +425,9 @@ class ModeAction {
                 esc_sign = -1.0;
             }
             const double mag = std::hypot(h, v);
-            double u =
-                esc_sign * std::pow(std::min(mag, f_max) / thrust_per_cmd_, 1.0 / thrust_curve_exp_);
+            double u = esc_sign * std::pow(
+                                      std::min(mag, f_max) / thrust_per_cmd_,
+                                      1.0 / thrust_curve_exp_);
             double servo = phi / servo_range_rad;
             if (mag < deadband_frac_ * f_max) {  // 原点近傍: 前回のサーボ角を保持
                 servo = prev_servo_[i];
@@ -433,7 +460,7 @@ class ModeAction {
     std::array<double, 4> prev_servo_{};  // 正規化 (±1 = ±servo_range_deg)
 };
 
-/// 配備前検証の結果 (`verify_golden` の戻り値)。
+// 配備前検証の結果 (`verify_golden` の戻り値)。
 struct GoldenResult {
     size_t count;
     double worst;
@@ -441,16 +468,16 @@ struct GoldenResult {
     double mixed_worst{0.0};
 };
 
-/// sim で記録した golden vectors を実機の推論経路で再生する。
-/// 重み・正規化統計のどちらかが sim と食い違っていれば落ちる。
-///
-/// golden.pt は `obs` [N, obs_dim] と `act` [N, act_dim] を持つ TorchScript。
-/// 突き合わせるのは**ネットの生出力**なので、それだけでは `modes` の 3 段
-/// (積分・ミキサ・折返し) を取り違えても PASS してしまう。そのため golden.pt は
-/// `mixed` [N, 8] — Python の `ModeAction` に同じ act を通した結果 — も運ぶ。
-/// `mode_action` を渡すとそこまで照合する (渡さなければ生出力までで止める)。
-///
-/// 判定閾値 1e-4 は Python の配備前検証と同じ。
+// sim で記録した golden vectors を実機の推論経路で再生する。
+// 重み・正規化統計のどちらかが sim と食い違っていれば落ちる。
+//
+// golden.pt は `obs` [N, obs_dim] と `act` [N, act_dim] を持つ TorchScript。
+// 突き合わせるのはネットの生出力なので、それだけでは `modes` の 3 段
+// (積分・ミキサ・折返し) を取り違えても PASS してしまう。そのため golden.pt は
+// `mixed` [N, 8] — Python の `ModeAction` に同じ act を通した結果 — も運ぶ。
+// `mode_action` を渡すとそこまで照合する (渡さなければ生出力までで止める)。
+//
+// 判定閾値 1e-4 は Python の配備前検証と同じ。
 inline auto verify_golden(
     const PolicyRunner & runner, const std::string & golden_path,
     ModeAction * mode_action = nullptr, double tol = 1e-4) -> GoldenResult {
@@ -534,9 +561,9 @@ inline auto verify_golden(
     return result;
 }
 
-/// qb を qa へ持っていく回転ベクトル。MuJoCo の `mju_subQuat` 相当。
-/// autonomy の numpy 実装と乱数 2000 組で照合し、最大誤差 4.4e-16 (倍精度の丸め 1-2 ulp)。
-/// bit 一致ではないので、golden の判定閾値をこれより厳しくしないこと。
+// qb を qa へ持っていく回転ベクトル。MuJoCo の `mju_subQuat` 相当。
+// autonomy の numpy 実装と乱数 2000 組で照合し、最大誤差 4.4e-16 (倍精度の丸め 1-2 ulp)。
+// bit 一致ではないので、golden の判定閾値をこれより厳しくしないこと。
 inline auto sub_quat(
     const std::array<double, 4> & qa, const std::array<double, 4> & qb) -> std::array<double, 3> {
     // qb の共役 (単位クォータニオン前提)
@@ -558,7 +585,7 @@ inline auto sub_quat(
     return {qd[1] * k, qd[2] * k, qd[3] * k};
 }
 
-/// IMU の姿勢を (w, x, y, z) に並べ替えて正規化する。
+// IMU の姿勢を (w, x, y, z) に並べ替えて正規化する。
 inline auto to_unit_quat(const state::imu::Quaternion & q) -> std::array<double, 4> {
     const double n = std::sqrt(q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z);
     if (n < 1e-9) {
@@ -567,9 +594,9 @@ inline auto to_unit_quat(const state::imu::Quaternion & q) -> std::array<double,
     return {q.w / n, q.x / n, q.y / n, q.z / n};
 }
 
-/// 目標姿勢の解釈。`ff` は `target_orientation` をトルク配分の入力として使うが、
-/// `rl` は **回転ベクトル [rad] (REP-103、ワールド基準)** として読む。
-/// 大きさが回転角、向きが回転軸。ゼロは水平・機首方位維持。
+// 目標姿勢の解釈。`ff` は `target_orientation` をトルク配分の入力として使うが、
+// `rl` は 回転ベクトル [rad] (REP-103、ワールド基準) として読む。
+// 大きさが回転角、向きが回転軸。ゼロは水平・機首方位維持。
 inline auto target_quat_from(const cmd::attitude::Orientation & o) -> std::array<double, 4> {
     const double theta = std::sqrt(o.x * o.x + o.y * o.y + o.z * o.z);
     if (theta < 1e-12) {
@@ -579,8 +606,8 @@ inline auto target_quat_from(const cmd::attitude::Orientation & o) -> std::array
     return {std::cos(theta / 2.0), o.x * s, o.y * s, o.z * s};
 }
 
-/// current を target へ、1 ステップあたり最大 `max_rate * dt` だけ近づける。
-/// `max_rate` が 0 以下なら制限しない。
+// current を target へ、1 ステップあたり最大 `max_rate * dt` だけ近づける。
+// `max_rate` が 0 以下なら制限しない。
 inline auto slew(double current, double target, double max_rate, double dt) -> double {
     if (max_rate <= 0.0) {
         return target;
@@ -591,8 +618,8 @@ inline auto slew(double current, double target, double max_rate, double dt) -> d
 
 class Rl : public AttitudeController::Logic {
   public:
-    /// 18 次元ポリシーの学習時 duty 上限の分布。**観測に入れる値だけ**ここへ丸める
-    /// (duty のクリップ自体はオペレータの max_duty のまま)。
+    // 18 次元ポリシーの学習時 duty 上限の分布。観測に入れる値だけここへ丸める
+    // (duty のクリップ自体はオペレータの max_duty のまま)。
     static constexpr double MAX_DUTY_OBS_MIN = 0.2;
     static constexpr double MAX_DUTY_OBS_MAX = 0.4;
 
@@ -607,9 +634,9 @@ class Rl : public AttitudeController::Logic {
         double control_hz;  // 0 なら学習時レートとの照合をしない
     };
 
-    /// バンドルを読み、配備前検証を通してから使える状態にする。
-    /// 失敗は例外。呼び出し側 (`on_configure`) で拾って ERROR にすること —
-    /// 検証を通っていない方策でスラスタを回さない。
+    // バンドルを読み、配備前検証を通してから使える状態にする。
+    // 失敗は例外。呼び出し側 (`on_configure`) で拾って ERROR にすること —
+    // 検証を通っていない方策でスラスタを回さない。
     explicit Rl(const Options & opt) : opt_(opt), runner_(opt.model_path) {
         report_ = "policy loaded from " + opt.model_path + " (obs " +
                   std::to_string(runner_.obs_dim()) + "-D, act " +
@@ -649,9 +676,9 @@ class Rl : public AttitudeController::Logic {
                 // 実挙動がずれる (0.5 に上げても方策は 0.4 のつもりで指令を作る)
                 report_ += "\n  [warn] max_duty=" + std::to_string(opt_.max_duty) +
                            " は学習分布 [" + std::to_string(MAX_DUTY_OBS_MIN) + ", " +
-                           std::to_string(MAX_DUTY_OBS_MAX) + "] の外です。**観測に入れる値は " +
+                           std::to_string(MAX_DUTY_OBS_MAX) + "] の外です。観測に入れる値は " +
                            std::to_string(this->obs_max_duty()) +
-                           " にクランプ**します (duty のクリップ自体は設定値のまま)";
+                           " にクランプします (duty のクリップ自体は設定値のまま)";
             }
         }
 
@@ -673,14 +700,14 @@ class Rl : public AttitudeController::Logic {
         this->reset();
     }
 
-    /// 読み込みと検証の結果。`on_configure` がそのままログに出す。
+    // 読み込みと検証の結果。`on_configure` がそのままログに出す。
     auto report() const -> const std::string & { return report_; }
 
     auto control_mode() const -> logic::ControlMode override { return logic::ControlMode::Rl; }
 
-    /// モードに入った瞬間は出力をゼロにし、方策の内部状態も初期化する。
-    /// `prev_action` は「自分が直前に出した指令」なので、指令を出していない間の値を
-    /// 残すと最初の観測が実際とずれる。レンチモードの積分器も同じ理由で戻す。
+    // モードに入った瞬間は出力をゼロにし、方策の内部状態も初期化する。
+    // `prev_action` は「自分が直前に出した指令」なので、指令を出していない間の値を
+    // 残すと最初の観測が実際とずれる。レンチモードの積分器も同じ理由で戻す。
     auto init(
         double /*time*/, const AttitudeController::Input & /*input*/,
         const AttitudeController::Output & /*output*/) -> AttitudeController::Output override {
@@ -753,7 +780,7 @@ class Rl : public AttitudeController::Logic {
         return a;
     }
 
-    /// 方策が観測する duty 上限。ミキサにも同じ値を渡す。
+    // 方策が観測する duty 上限。ミキサにも同じ値を渡す。
     auto obs_max_duty() const -> double {
         return std::clamp(opt_.max_duty, MAX_DUTY_OBS_MIN, MAX_DUTY_OBS_MAX);
     }
