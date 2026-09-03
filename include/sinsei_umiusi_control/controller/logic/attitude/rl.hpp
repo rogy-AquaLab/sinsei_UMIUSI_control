@@ -3,7 +3,8 @@
 
 // 学習済み方策で姿勢を制御する logic。`control_mode:=rl` で選ぶ。
 //
-// 読むのは autonomy の `tools/export_deploy_bundle.py` が作る `deploy.pt` 1 ファイル。
+// 読むのは umiusi_sim の `tools/export_deploy_bundle.py` が作る `deploy.pt` 1 ファイル。
+// 方策を作るのも配備物を作るのも sim なので、この経路に autonomy は入らない。
 // ネットと正規化パラメータと `action_contract` が入った TorchScript で、C++ 側に
 // JSON パーサも npz リーダも要らない。
 //
@@ -474,7 +475,8 @@ struct GoldenResult {
 // golden.pt は `obs` [N, obs_dim] と `act` [N, act_dim] を持つ TorchScript。
 // 突き合わせるのはネットの生出力なので、それだけでは `modes` の 3 段
 // (積分・ミキサ・折返し) を取り違えても PASS してしまう。そのため golden.pt は
-// `mixed` [N, 8] — Python の `ModeAction` に同じ act を通した結果 — も運ぶ。
+// `mixed` [N, 8] — 学習に使った env そのもの (sim の `ModeMixer`) に同じ act を通した
+// 結果 — も運ぶ。
 // `mode_action` を渡すとそこまで照合する (渡さなければ生出力までで止める)。
 //
 // 判定閾値 1e-4 は Python の配備前検証と同じ。
@@ -562,7 +564,7 @@ inline auto verify_golden(
 }
 
 // qb を qa へ持っていく回転ベクトル。MuJoCo の `mju_subQuat` 相当。
-// autonomy の numpy 実装と乱数 2000 組で照合し、最大誤差 4.4e-16 (倍精度の丸め 1-2 ulp)。
+// MuJoCo の numpy 再実装と乱数 2000 組で照合し、最大誤差 4.4e-16 (倍精度の丸め 1-2 ulp)。
 // bit 一致ではないので、golden の判定閾値をこれより厳しくしないこと。
 inline auto sub_quat(
     const std::array<double, 4> & qa, const std::array<double, 4> & qb) -> std::array<double, 3> {

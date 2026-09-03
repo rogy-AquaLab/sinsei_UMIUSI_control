@@ -1,10 +1,10 @@
 // RL logic の単体テスト。
 //
 // バンドル (deploy.pt) を要るテストは環境変数が指すときだけ走る。配備物は生成物で
-// repo に入っていないため (autonomy の .gitignore)、CI では skip される。
+// repo に入っていないため (umiusi_sim の .gitignore が models/ ごと除外)、CI では skip される。
 //
-//     SUC_RL_BUNDLE=<autonomy>/umiusi_rl_control/models/av_cal1_best_rep103/deploy.pt
-//     SUC_RL_BUNDLE_MODES=<autonomy>/umiusi_rl_control/models/av_mode13/deploy.pt
+//     SUC_RL_BUNDLE=<umiusi_sim>/models/av_cal1_best_rep103/deploy.pt
+//     SUC_RL_BUNDLE_MODES=<umiusi_sim>/models/av_mode13/deploy.pt
 //     colcon test --packages-select sinsei_umiusi_control
 //
 // `SUC_RL_BUNDLE` は direct 出力 (17/14 次元)、`SUC_RL_BUNDLE_MODES` はレンチモード
