@@ -1,14 +1,14 @@
-/// RL logic の単体テスト。
-///
-/// バンドル (deploy.pt) を要るテストは環境変数が指すときだけ走る。配備物は生成物で
-/// repo に入っていないため (autonomy の .gitignore)、CI では skip される。
-///
-///     SUC_RL_BUNDLE=<autonomy>/umiusi_rl_control/models/av_cal1_best_rep103/deploy.pt
-///     SUC_RL_BUNDLE_MODES=<autonomy>/umiusi_rl_control/models/av_mode13/deploy.pt
-///     colcon test --packages-select sinsei_umiusi_control
-///
-/// `SUC_RL_BUNDLE` は direct 出力 (17/14 次元)、`SUC_RL_BUNDLE_MODES` はレンチモード
-/// (18 次元・6 次元レート) を指す。両方の経路を通す。
+// RL logic の単体テスト。
+//
+// バンドル (deploy.pt) を要るテストは環境変数が指すときだけ走る。配備物は生成物で
+// repo に入っていないため (autonomy の .gitignore)、CI では skip される。
+//
+//     SUC_RL_BUNDLE=<autonomy>/umiusi_rl_control/models/av_cal1_best_rep103/deploy.pt
+//     SUC_RL_BUNDLE_MODES=<autonomy>/umiusi_rl_control/models/av_mode13/deploy.pt
+//     colcon test --packages-select sinsei_umiusi_control
+//
+// `SUC_RL_BUNDLE` は direct 出力 (17/14 次元)、`SUC_RL_BUNDLE_MODES` はレンチモード
+// (18 次元・6 次元レート) を指す。両方の経路を通す。
 
 #include "sinsei_umiusi_control/controller/logic/attitude/rl.hpp"
 
@@ -86,7 +86,7 @@ TEST(Slew, LimitsTheStep) {
     EXPECT_NEAR(attitude::slew(0.0, 1.0, 0.0, 0.02), 1.0, 1e-12);
 }
 
-/// バンドルを指す環境変数が要るテストの共通土台。
+// バンドルを指す環境変数が要るテストの共通土台。
 class BundleTest : public ::testing::Test {
   protected:
     void load(const char * env) {
@@ -124,19 +124,19 @@ class BundleTest : public ::testing::Test {
     std::string path_;
 };
 
-/// `action_mode: "direct"` のバンドル (17 / 14 次元)。
+// `action_mode: "direct"` のバンドル (17 / 14 次元)。
 class RlBundle : public BundleTest {
   protected:
     void SetUp() override { this->load("SUC_RL_BUNDLE"); }
 };
 
-/// `action_mode: "modes"` のバンドル (18 次元・6 次元レート)。
+// `action_mode: "modes"` のバンドル (18 次元・6 次元レート)。
 class RlModes : public BundleTest {
   protected:
     void SetUp() override { this->load("SUC_RL_BUNDLE_MODES"); }
 };
 
-/// 配備前検証。重み・正規化統計・観測レイアウトが sim と食い違っていればここで落ちる。
+// 配備前検証。重み・正規化統計・観測レイアウトが sim と食い違っていればここで落ちる。
 TEST_F(RlBundle, LoadsAndPassesGolden) {
     const auto opt = this->options();
     ASSERT_FALSE(opt.golden_path.empty()) << "golden.pt が無いので検証できない";
@@ -146,7 +146,7 @@ TEST_F(RlBundle, LoadsAndPassesGolden) {
     EXPECT_LE(g.worst, 1e-4);
 }
 
-/// 出力が指令のレート制限と duty 上限を守る。1 tick 目は 0 から max_rate * dt しか動けない。
+// 出力が指令のレート制限と duty 上限を守る。1 tick 目は 0 から max_rate * dt しか動けない。
 TEST_F(RlBundle, FirstStepRespectsSlewAndDutyLimit) {
     const auto opt = this->options();
     auto rl = attitude::Rl{opt};
@@ -164,7 +164,7 @@ TEST_F(RlBundle, FirstStepRespectsSlewAndDutyLimit) {
     }
 }
 
-/// duty 上限は何 tick 回しても効き続ける (レート制限が追いついた後も)。
+// duty 上限は何 tick 回しても効き続ける (レート制限が追いついた後も)。
 TEST_F(RlBundle, HoldsDutyLimitOverTime) {
     const auto opt = this->options();
     auto rl = attitude::Rl{opt};
@@ -184,7 +184,7 @@ TEST_F(RlBundle, HoldsDutyLimitOverTime) {
     }
 }
 
-/// init() は出力と内部状態 (prev_action / レート制限) を 0 に戻す。
+// init() は出力と内部状態 (prev_action / レート制限) を 0 に戻す。
 TEST_F(RlBundle, InitResetsState) {
     const auto opt = this->options();
     auto rl = attitude::Rl{opt};
@@ -207,7 +207,7 @@ TEST_F(RlBundle, InitResetsState) {
     }
 }
 
-/// direct のバンドルも obs_fields を運ぶので、既定設定なら警告が出ない。
+// direct のバンドルも obs_fields を運ぶので、既定設定なら警告が出ない。
 TEST_F(RlBundle, LoadsCleanlyWithDefaultParams) {
     const auto rl = attitude::Rl{this->options()};
     EXPECT_EQ(rl.report().find("[warn]"), std::string::npos) << rl.report();
@@ -235,8 +235,8 @@ TEST_F(RlModes, BundleCarriesTheWholeContract) {
     EXPECT_TRUE(runner.warnings().empty()) << runner.warnings().front();
 }
 
-/// ネットの生出力に加えて、積分・ミキサ・折返しの 3 段も Python 実装と突き合わせる。
-/// 生出力だけでは 3 段の取り違えが素通りする。
+// ネットの生出力に加えて、積分・ミキサ・折返しの 3 段も Python 実装と突き合わせる。
+// 生出力だけでは 3 段の取り違えが素通りする。
 TEST_F(RlModes, LoadsAndPassesGolden) {
     const auto opt = this->options();
     ASSERT_FALSE(opt.golden_path.empty()) << "golden.pt が無いので検証できない";
@@ -249,8 +249,8 @@ TEST_F(RlModes, LoadsAndPassesGolden) {
     EXPECT_LE(g.mixed_worst, 1e-4);
 }
 
-/// ミキサ 3 段を既知の入力で固定する。zero rate なら積分器は 0 のままで、
-/// デッドバンドに入って出力も 0。
+// ミキサ 3 段を既知の入力で固定する。zero rate なら積分器は 0 のままで、
+// デッドバンドに入って出力も 0。
 TEST_F(RlModes, ZeroRateStaysInTheDeadband) {
     const auto runner = attitude::PolicyRunner{this->path_};
     auto ma = attitude::ModeAction{runner};
@@ -260,12 +260,12 @@ TEST_F(RlModes, ZeroRateStaysInTheDeadband) {
     }
 }
 
-/// 鉛直モード (fz) を 1 秒ぶん積分すると、全ユニットが真上を向いて f_max を出す。
-/// 期待値は action_contract の係数から手で解いたもの:
-///   m.fz = clamp(1 * 2.0 /s * 1 s) = 1
-///   f_max = thrust_per_cmd * max_duty^exp = 30 * 0.25^2 = 1.875 N
-///   h = 0, v = f_max  ->  phi = +90 deg = +1.0 (正規化)
-///   esc = (f_max / thrust_per_cmd)^(1/exp) = 0.25
+// 鉛直モード (fz) を 1 秒ぶん積分すると、全ユニットが真上を向いて f_max を出す。
+// 期待値は action_contract の係数から手で解いたもの:
+//   m.fz = clamp(1 * 2.0 /s * 1 s) = 1
+//   f_max = thrust_per_cmd * max_duty^exp = 30 * 0.25^2 = 1.875 N
+//   h = 0, v = f_max  ->  phi = +90 deg = +1.0 (正規化)
+//   esc = (f_max / thrust_per_cmd)^(1/exp) = 0.25
 TEST_F(RlModes, VerticalModeMixesToFullUp) {
     const auto runner = attitude::PolicyRunner{this->path_};
     auto ma = attitude::ModeAction{runner};
@@ -284,7 +284,7 @@ TEST_F(RlModes, VerticalModeMixesToFullUp) {
     }
 }
 
-/// 積分器は tick をまたいで残り、reset() で戻る。
+// 積分器は tick をまたいで残り、reset() で戻る。
 TEST_F(RlModes, IntegratorPersistsAndResets) {
     const auto runner = attitude::PolicyRunner{this->path_};
     auto ma = attitude::ModeAction{runner};
@@ -324,16 +324,16 @@ TEST_F(RlModes, RespectsSlewAndDutyLimitThroughTheLogic) {
     }
 }
 
-/// 契約とパラメータの servo_range_deg が食い違ったら起動させない
-/// (ミキサの正規化と出力側の逆正規化が食い違い、角度が別物になる)。
+// 契約とパラメータの servo_range_deg が食い違ったら起動させない
+// (ミキサの正規化と出力側の逆正規化が食い違い、角度が別物になる)。
 TEST_F(RlModes, RefusesServoRangeMismatch) {
     auto opt = this->options();
     opt.servo_range_deg = 45.0;
     EXPECT_THROW({ attitude::Rl{opt}; }, std::runtime_error);
 }
 
-/// 推奨設定 (params/controllers.yaml の既定値) で読み込んだら、起動ログに警告が出ない。
-/// 「普通に起動したらエラーも警告も無い」ことを固定する。
+// 推奨設定 (params/controllers.yaml の既定値) で読み込んだら、起動ログに警告が出ない。
+// 「普通に起動したらエラーも警告も無い」ことを固定する。
 TEST_F(RlModes, LoadsCleanlyWithDefaultParams) {
     const auto rl = attitude::Rl{this->options()};
     EXPECT_EQ(rl.report().find("[warn]"), std::string::npos) << rl.report();
@@ -341,7 +341,7 @@ TEST_F(RlModes, LoadsCleanlyWithDefaultParams) {
     EXPECT_NE(rl.report().find("mixed"), std::string::npos) << rl.report();
 }
 
-/// duty 上限が学習分布の外なら、黙って丸めずに警告を残す。
+// duty 上限が学習分布の外なら、黙って丸めずに警告を残す。
 TEST_F(RlModes, WarnsWhenMaxDutyIsOutOfDistribution) {
     auto opt = this->options();
     opt.max_duty = 0.6;
@@ -349,7 +349,7 @@ TEST_F(RlModes, WarnsWhenMaxDutyIsOutOfDistribution) {
     EXPECT_NE(rl.report().find("[warn]"), std::string::npos) << rl.report();
 }
 
-/// frame 契約 (2026-08-21 の再発防止ゲート): 同梱バンドルはすべて rep103。
+// frame 契約 (2026-08-21 の再発防止ゲート): 同梱バンドルはすべて rep103。
 TEST_F(RlBundle, EnforcesRep103Frame) {
     const auto runner = attitude::PolicyRunner{this->path_};
     EXPECT_EQ(runner.obs_frame(), "rep103");
