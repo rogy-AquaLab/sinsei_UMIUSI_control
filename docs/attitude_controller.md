@@ -164,6 +164,16 @@ IMU の quat / gyro は軸変換せずそのまま入れる。ずれていたら
 観測の**並び**はどちらの golden でも検出できない (組み立て済みの観測を再生するだけ) ので、
 そこは `obs_fields` の照合が守る。
 
+### ライフサイクルと制御周期
+
+バンドルの読み込みと golden 再生は `on_configure` (数秒) に置いてある — 制御周期の中で
+やるとその間スラスタへ指令が出ないため。`update()` 側は入力テンソルと引数リストを
+使い回して毎 tick のヒープ確保をなくしてある。
+
+内部状態 (`prev_action` / モード積分器 / レート制限) は `on_activate` で毎回 0 に戻る。
+deactivate は disarm の経路なので、前回の値を抱えたまま再開すると最初の tick で
+disarm 前の指令が出る (モード積分器は ±1 に飽和したままのことがある)。
+
 ### 制約
 
 - **`obs_frame: rep103` のバンドルしか受け付けない**。IMU を無変換で観測に入れるため。
@@ -177,14 +187,25 @@ IMU の quat / gyro は軸変換せずそのまま入れる。ずれていたら
   (ミキサの正規化と出力側の逆正規化が食い違い、角度が別物になる)。
 - 出力は duty。推力 [N] で出すには `duty_per_thrust` のベンチ較正が要る
   (`ThrusterController` は線形、方策側は 2 乗カーブで食い違っている)。
-- disarm 時のリセットは `init()` (モード切替) でしか掛からない。積分器と `prev_action` を
-  arm/disarm に合わせて戻したいなら `ThrusterMode` を logic まで通す必要がある。
+- **IMU の異常サンプルを弾いていない。** Python の参照実装 (`ImuSanity`) は弾いており、
+  観測に直接入るので 1 発で指令が跳ねる (autonomy known_issues A-1)。`prev_action` を
+  通って次の観測にも戻るので跳ねは数 tick 残る。フィルタは未移植。
+- `servo_sign` (ch 別のサーボ回転センス補正) は未移植。実機の結線が反転していたら要追加。
 
 ### パラメータ
 
-`params/controllers.yaml` の `attitude_controller.rl.*` を参照。指令のレート制限
-(`servo_slew_deg_per_s` / `thrust_slew_per_s`) は sim のプラントが持っていたもので、
-ここで掛けなければ誰も掛けない (下流の `max_duty_step_per_sec` は esc しか見ない)。
+`params/controllers.yaml` の `attitude_controller.rl.*` を参照。
+
+指令のレート制限は sim のプラントが持っていたもの。**どちらが効くかは経路で違う**:
+
+| | この logic | 下流 `ThrusterController` | 実効 |
+| --- | --- | --- | --- |
+| esc | `rl.thrust_slew_per_s` (既定 4.0/s) | `max_duty_step_per_sec` (既定 **1.0/s**) | 厳しい方 = 1.0/s |
+| servo | `rl.servo_slew_deg_per_s` (既定 250 deg/s) | 制限なし | 250 deg/s |
+
+既定のままだと esc は 1.0/s で頭打ちになり、方策が学習・golden 検証された 4.0/s より
+遅い (duty 0.25 まで 62.5 ms ではなく 250 ms)。**rl で走らせるなら 4 基すべての
+`max_duty_step_per_sec` を上げること** — 上げないと sim と別のプラントになる。
 
 ### ビルド
 
