@@ -150,6 +150,13 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
     RCLCPP_INFO(this->get_node()->get_logger(), "Control mode: %s", control_mode_str.c_str());
 
     // Command / State Interfaceの設定
+    // 再 configure されうる (deactivate -> cleanup -> configure、`control_mode` を
+    // `rl` に変えて入り直す導線がこれ)。push_back の前に空にしないと同じ名前が
+    // 二重に並び、activate でインタフェースを二重 claim して失敗する
+    this->command_interface_data.clear();
+    this->state_interface_data.clear();
+    this->ref_interface_data.clear();
+
     constexpr std::string_view THRUSTER_SUFFIX[4] = {"_lf", "_lb", "_rb", "_rf"};
 
     for (size_t i = 0; i < 4; ++i) {
@@ -247,6 +254,19 @@ auto AttitudeController::on_export_state_interfaces()
             hardware_interface::StateInterface(this->get_node()->get_name(), name, data));
     }
     return interfaces;
+}
+
+auto AttitudeController::on_activate(const rclcpp_lifecycle::State & /*previous_state*/)
+    -> controller_interface::CallbackReturn {
+    // activate のたびに logic の状態を初期化する。deactivate は disarm の経路なので、
+    // 前回の値を抱えたまま再開すると最初の tick で disarm 前の指令が出る。
+    // rl は prev_action / モード積分器 / レート制限の 3 つを持っていて、いずれも
+    // 「指令を出していない間の値」を残すと実際とずれる (rl.hpp 冒頭の不変条件)。
+    if (this->logic) {
+        this->output = this->logic->init(
+            this->get_node()->now().seconds(), this->input, this->output);
+    }
+    return controller_interface::CallbackReturn::SUCCESS;
 }
 
 auto AttitudeController::on_set_chained_mode(bool /*chained_mode*/) -> bool { return true; };
