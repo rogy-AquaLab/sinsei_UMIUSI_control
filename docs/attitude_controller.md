@@ -107,3 +107,91 @@ A = \begin{bmatrix}
     V^\text{ref}_z
 \end{bmatrix}
 ```
+
+## `logic::attitude::Rl`
+
+### TL;DR
+
+学習済み方策 (RL) で姿勢を保つ。`control_mode: "rl"` で選ぶ。libtorch があるときだけビルドされる。
+
+sim (`umiusi_sim`) で学習した方策を、autonomy の `tools/export_deploy_bundle.py` が固めた
+`deploy.pt` (TorchScript 1 ファイル) として読む。起動時に golden vectors を再生して、
+重み・正規化統計・観測レイアウトが sim と一致することを確かめてから使う。
+
+### 入出力
+
+`FeedForward` と同じインタフェースを使うが、**`target_orientation` の意味が違う**。
+
+| | `FeedForward` | `Rl` |
+| --- | --- | --- |
+| `target_orientation` | 姿勢ベクトル (線形変換の入力) | **回転ベクトル [rad]** (REP-103・ワールド基準。大きさが回転角、向きが回転軸。ゼロ = 水平・機首方位維持) |
+| `target_velocity` | 速度ベクトル (線形変換の入力) | 速度指令 [m/s] (観測にそのまま入る。14 次元の方策は使わない) |
+| `esc/duty_cycle` | 正規化した推力 | duty [-1, 1] |
+| `servo/angle` | 角度 [deg] | 角度 [deg] |
+
+観測は方策のバンドルが決める。並びは `deploy.pt` の `obs_fields` と照合され、
+食い違えば起動しない。
+
+- 18 次元 `[ori_err(3), gyro(3), v_cmd(3), prev_action(8), max_duty(1)]` — duty 上限を観測に持つ
+- 17 次元 `[ori_err(3), gyro(3), v_cmd(3), prev_action(8)]` — `attitude_velocity` タスク
+- 14 次元 `[ori_err(3), gyro(3), prev_action(8)]` — `attitude` タスク
+
+`ori_err` は現在姿勢から目標姿勢への回転ベクトル (MuJoCo の `mju_subQuat` 相当)。
+IMU の quat / gyro は軸変換せずそのまま入れる。ずれていたら IMU ドライバ側 (`AXIS_MAP`) を直す。
+
+観測に入れる `max_duty` は学習分布 `[0.2, 0.4]` へクランプする (duty のクリップ自体は
+`rl.max_duty` の設定値のまま)。外れていれば起動ログに警告が出る。
+
+### `action_mode`
+
+| | 出力 | 変換 |
+| --- | --- | --- |
+| `direct` | 8 次元 `[servo x4, esc x4]` | そのまま使う |
+| `modes` | 6 次元のレンチモード**レート** | 積分 -> ミキサ -> 折返しの 3 段で 8 次元に直す |
+
+`modes` の 3 段は sim が回したのと同じ順序・同じ係数で再現しないと、学習したのと別の
+プラントになる。係数は `deploy.pt` の `action_contract` が正で、コードにハードコードしない。
+
+### 配備前検証
+
+起動時に `golden.pt` を再生する。突き合わせるのは 2 段階:
+
+1. **ネットの生出力** — 重みと正規化統計が sim と一致するか
+2. **`mixed`** (`modes` のときだけ) — 積分・ミキサ・折返しを通した 8 次元が Python 実装と
+   一致するか。1 だけでは 3 段の取り違えが素通りする
+
+どちらかがずれていれば `on_configure` が ERROR になり、スラスタは回らない。
+観測の**並び**はどちらの golden でも検出できない (組み立て済みの観測を再生するだけ) ので、
+そこは `obs_fields` の照合が守る。
+
+### 制約
+
+- **`obs_frame: rep103` のバンドルしか受け付けない**。IMU を無変換で観測に入れるため。
+  2026-08-21 のプール試験で pitch/yaw が入れ替わった観測が入り、姿勢制御が全く効かなかった
+  ことへの再発防止ゲート。sim 側の変換は `umiusi_sim/tools/convert_policy_frame.py`。
+- **`rl` への実行時切替は不可**。バンドルの読み込みと golden 検証に数秒かかるので、
+  `on_configure` でしか入れない (`control_mode` を変えて再 configure する)。
+- 18 次元のバンドルは `obs_fields` が**必須**。無ければ起動を拒否する
+  (末尾 `max_duty` の位置を照合できないと、golden が PASS しても別の入力を読む)。
+- `modes` では `rl.servo_range_deg` と契約の値が一致していなければ起動しない
+  (ミキサの正規化と出力側の逆正規化が食い違い、角度が別物になる)。
+- 出力は duty。推力 [N] で出すには `duty_per_thrust` のベンチ較正が要る
+  (`ThrusterController` は線形、方策側は 2 乗カーブで食い違っている)。
+- disarm 時のリセットは `init()` (モード切替) でしか掛からない。積分器と `prev_action` を
+  arm/disarm に合わせて戻したいなら `ThrusterMode` を logic まで通す必要がある。
+
+### パラメータ
+
+`params/controllers.yaml` の `attitude_controller.rl.*` を参照。指令のレート制限
+(`servo_slew_deg_per_s` / `thrust_slew_per_s`) は sim のプラントが持っていたもので、
+ここで掛けなければ誰も掛けない (下流の `max_duty_step_per_sec` は esc しか見ない)。
+
+### ビルド
+
+```sh
+colcon build --packages-select sinsei_umiusi_control \
+  --cmake-args -DTorch_DIR=<venv>/lib/pythonX.Y/site-packages/torch/share/cmake/Torch
+```
+
+libtorch が見つからなければ RL logic はビルドから外れ、`control_mode: "rl"` は
+`on_configure` で明示的に拒否される。
