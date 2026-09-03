@@ -84,6 +84,30 @@ ament_target_dependencies(${PROJECT_NAME}_controller
   sinsei_umiusi_msgs
 )
 
+# libtorch (optional): RL attitude logic (`control_mode:=rl`).
+# 見つからなければ RL logic をビルドから外す — 他の開発者に torch を強制しない。
+# pip の torch wheel が C++ 側を同梱しているので追加 DL は要らない:
+#   colcon build --cmake-args -DCMAKE_PREFIX_PATH=<venv>/lib/pythonX.Y/site-packages/torch/share/cmake
+find_package(Torch QUIET)
+if(Torch_FOUND)
+  message(STATUS "libtorch found (${TORCH_INSTALL_PREFIX}): RL attitude logic is enabled")
+  target_compile_definitions(${PROJECT_NAME}_controller PRIVATE SINSEI_UMIUSI_CONTROL_WITH_TORCH)
+  # SYSTEM: torch のヘッダは -Wall -Wextra -Wpedantic を通らない
+  target_include_directories(${PROJECT_NAME}_controller SYSTEM PRIVATE ${TORCH_INCLUDE_DIRS})
+  target_link_libraries(${PROJECT_NAME}_controller ${TORCH_LIBRARIES})
+  # TORCH_CXX_FLAGS は _GLIBCXX_USE_CXX11_ABI を指定する。ROS 2 の共有ライブラリと
+  # 混ぜるので、ここを落とすとリンクは通ってシンボルだけ食い違う
+  separate_arguments(SUC_TORCH_CXX_FLAGS NATIVE_COMMAND "${TORCH_CXX_FLAGS}")
+  target_compile_options(${PROJECT_NAME}_controller PRIVATE ${SUC_TORCH_CXX_FLAGS})
+  # libtorch は ROS のライブラリ検索パスに居ない (pip の venv の中)。RPATH に焼かないと
+  # controller_manager が plugin をロードするときに libtorch_cpu.so が見つからない
+  target_link_options(${PROJECT_NAME}_controller PRIVATE
+    "-Wl,-rpath,${TORCH_INSTALL_PREFIX}/lib"
+  )
+else()
+  message(STATUS "libtorch not found: `control_mode:=rl` will be rejected at configure time")
+endif()
+
 ament_auto_add_executable(gst_camera_node
   src/${PROJECT_NAME}/camera/gst_camera_node.cpp
 )
@@ -119,6 +143,7 @@ if(BUILD_TESTING)
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/cpp>
   )
+
 endif()
 
 ament_auto_package(
