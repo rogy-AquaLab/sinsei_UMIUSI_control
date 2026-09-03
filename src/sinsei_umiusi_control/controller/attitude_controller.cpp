@@ -1,5 +1,6 @@
 #include "sinsei_umiusi_control/controller/attitude_controller.hpp"
 
+#include <cmath>
 #include <controller_interface/controller_interface_base.hpp>
 #include <cstddef>
 #include <rclcpp/logging.hpp>
@@ -9,6 +10,14 @@
 #include "sinsei_umiusi_control/controller/logic/logic_interface.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
+
+// RL logic は libtorch がある環境でだけ入る (CMakeLists の find_package(Torch QUIET))。
+// 無ければ `control_mode:=rl` は on_configure で明示的に落とす。
+#ifdef SINSEI_UMIUSI_CONTROL_WITH_TORCH
+#include <filesystem>
+
+#include "sinsei_umiusi_control/controller/logic/attitude/rl.hpp"
+#endif
 
 using namespace sinsei_umiusi_control::controller;
 
@@ -41,6 +50,23 @@ auto AttitudeController::state_interface_configuration() const
 auto AttitudeController::on_init() -> controller_interface::CallbackReturn {
     this->get_node()->declare_parameter("control_mode", "ff");
 
+    // --- `control_mode:=rl` のときだけ使うパラメータ ---
+    // バンドル (deploy.pt) のパス。空なら rl は起動しない
+    this->get_node()->declare_parameter("rl.model_path", "");
+    // 配備前検証に使う golden.pt。空なら model_path と同じディレクトリの golden.pt を探し、
+    // それも無ければ検証をスキップする
+    this->get_node()->declare_parameter("rl.golden_path", "");
+    // duty の絶対値上限。力は上限の 2 乗で効くので 0.2 -> 0.4 は倍ではなく 4 倍
+    // (autonomy known_issues A-17)
+    this->get_node()->declare_parameter("rl.max_duty", 0.25);
+    // 方策の servo 出力 ±1 が何度に当たるか。sim の servo_range_deg と揃える
+    this->get_node()->declare_parameter("rl.servo_range_deg", 90.0);
+    // 指令のレート制限。sim のプラントが持っていた値と揃える (known_issues A-11)
+    this->get_node()->declare_parameter("rl.servo_slew_deg_per_s", 250.0);
+    this->get_node()->declare_parameter("rl.thrust_slew_per_s", 4.0);
+    // false で yaw の保持だけ切る (roll/pitch のみ保持)
+    this->get_node()->declare_parameter("rl.hold_yaw", true);
+
     this->input = AttitudeController::Input{};
     this->output = AttitudeController::Output{};
 
@@ -68,6 +94,54 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
                 this->get_node()->get_logger(), "Feedback control mode is not implemented yet");
             return controller_interface::CallbackReturn::ERROR;
             break;
+        }
+        case logic::ControlMode::Rl: {
+#ifdef SINSEI_UMIUSI_CONTROL_WITH_TORCH
+            auto opt = logic::attitude::Rl::Options{};
+            opt.model_path = this->get_node()->get_parameter("rl.model_path").as_string();
+            opt.golden_path = this->get_node()->get_parameter("rl.golden_path").as_string();
+            opt.max_duty = std::abs(this->get_node()->get_parameter("rl.max_duty").as_double());
+            opt.servo_range_deg = this->get_node()->get_parameter("rl.servo_range_deg").as_double();
+            opt.servo_slew_deg_per_s =
+                this->get_node()->get_parameter("rl.servo_slew_deg_per_s").as_double();
+            opt.thrust_slew_per_s =
+                this->get_node()->get_parameter("rl.thrust_slew_per_s").as_double();
+            opt.hold_yaw = this->get_node()->get_parameter("rl.hold_yaw").as_bool();
+            // 学習時の control_rate_hz と照合する (合わなければ report に警告が出る)
+            opt.control_hz = static_cast<double>(this->get_update_rate());
+            if (opt.model_path.empty()) {
+                RCLCPP_ERROR(
+                    this->get_node()->get_logger(),
+                    "control_mode:=rl には rl.model_path (deploy.pt) が要ります");
+                return controller_interface::CallbackReturn::ERROR;
+            }
+            if (opt.golden_path.empty()) {
+                // 既定の置き場所を探す。見つからなければ空のまま (検証はスキップ)
+                const auto beside =
+                    std::filesystem::path(opt.model_path).parent_path() / "golden.pt";
+                if (std::filesystem::exists(beside)) {
+                    opt.golden_path = beside.string();
+                }
+            }
+            try {
+                // バンドルの読み込みと配備前検証はここで済ませる。update() は制御周期で
+                // 回るので、数秒かかる読み込みを持ち込まない
+                auto rl = std::make_unique<logic::attitude::Rl>(opt);
+                RCLCPP_INFO(this->get_node()->get_logger(), "%s", rl->report().c_str());
+                this->logic = std::move(rl);
+            } catch (const std::exception & e) {
+                RCLCPP_ERROR(
+                    this->get_node()->get_logger(), "RL ポリシーを読み込めません: %s", e.what());
+                return controller_interface::CallbackReturn::ERROR;
+            }
+            break;
+#else
+            RCLCPP_ERROR(
+                this->get_node()->get_logger(),
+                "control_mode:=rl は libtorch 無しでビルドされたため使えません "
+                "(CMAKE_PREFIX_PATH に libtorch を足して再ビルドしてください)");
+            return controller_interface::CallbackReturn::ERROR;
+#endif
         }
         default: {
             return controller_interface::CallbackReturn::ERROR;  // unreachable
@@ -224,6 +298,15 @@ auto AttitudeController::update_and_write_commands(
                 // TODO: Implement feedback logic
                 RCLCPP_ERROR(
                     this->get_node()->get_logger(), "Feedback control mode is not implemented yet");
+                return controller_interface::return_type::ERROR;
+            }
+            case logic::ControlMode::Rl: {
+                // バンドルの読み込みと golden 検証に数秒かかる。制御周期の中でやると
+                // その間スラスタへ指令が出ないので、rl へは configure でしか入れない
+                RCLCPP_ERROR(
+                    this->get_node()->get_logger(),
+                    "rl への実行時切替は非対応です。control_mode:=rl で再 configure "
+                    "してください");
                 return controller_interface::return_type::ERROR;
             }
             default: {
