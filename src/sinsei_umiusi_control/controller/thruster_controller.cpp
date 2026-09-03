@@ -130,8 +130,7 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                                 ->get_parameter("servo_sign")
                                 .as_double();  // パラメータで範囲に制約を設けているので安全
 
-    // ハードウェア境界の歯止め。**`logic` を通るかどうかに関わらず必ず適用する**
-    // (thruster_limits.hpp)。`logic` は従来どおり core 経路のスルーレートと換算を持つ。
+    // logic を通るかどうかに関わらず必ず適用する (thruster_limits.hpp)
     this->limits = ThrusterLimits{max_duty_cycle, servo_sign};
 
     if (max_duty_cycle <= 0.0) {
@@ -325,14 +324,8 @@ auto ThrusterController::update_and_write_commands(
         this->output = this->logic->update(time.seconds(), period.seconds(), this->input);
     }
 
-    // **指令の出所によらず**ハードウェア境界の歯止めを通してから書き出す。直接指令
-    // (`cmd/direct/...`) が coreの電源/モード調停をバイパスするのは意図どおりだが、
-    // ハードの範囲チェックまで一緒に外れていたのは巻き添えだった (thruster_limits.hpp)。
-    //
-    // **`output.state` は書き換えない。** `state` は指令のエコーという既存の契約を保つのと、
-    // `output` が永続メンバなので書き戻すと次の周期に制限が重ね掛けされるため
-    // (`servo_sign = -1` のとき符号が周期ごとに反転する)。ここはステートレスな
-    // クランプだけなので、毎周期 生の値から作り直して問題ない。
+    // output.state は書き換えない。state は指令のエコーという契約を保つのと、
+    // output が永続メンバなので書き戻すと次の周期に重ね掛けされるため
     constexpr auto CLAMP_WARN_MS = 3000;
     if (this->limits.duty_was_clamped(this->output.state.esc_duty_cycle.value)) {
         RCLCPP_WARN_THROTTLE(

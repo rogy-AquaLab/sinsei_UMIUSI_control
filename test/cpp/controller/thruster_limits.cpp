@@ -6,10 +6,8 @@ namespace controller = sinsei_umiusi_control::controller;
 
 namespace {
 
-// `ThrusterLimits` は **ステートレス** であることが設計の要。`thruster_controller` は
-// 永続メンバ `output` を持ち、直接指令の経路ではメッセージが届かなかった周期にも
-// `update_and_write_commands` が走る。状態を持つ (あるいは冪等でない) 制限を
-// `output.state` に書き戻すと、そこに制限が重ね掛けされて壊れる。
+// ステートレスであることが設計の要。thruster_controller は永続メンバ output を持ち、
+// メッセージが届かなかった周期にも update_and_write_commands が走るため、冪等でないと壊れる。
 
 TEST(ThrusterLimits, DutyIsClampedToMaxDuty) {
     const auto limits = controller::ThrusterLimits{0.5, 1.0};
