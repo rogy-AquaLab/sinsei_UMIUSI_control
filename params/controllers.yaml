@@ -12,7 +12,18 @@
     ros__parameters:
       type: sinsei_umiusi_control/controller/AttitudeController
       update_rate: 50 # Hz
-      control_mode: "ff" # Control mode (ff: feedforward / fb: feedback)
+      control_mode: "ff" # Control mode (ff: feedforward / fb: feedback / rl: learned policy)
+      # `rl` のときだけ使う。model_path は tools/export_deploy_bundle.py が作る deploy.pt。
+      # 空だと rl は起動しない (既定は ff なので他モードには影響しない)。
+      # libtorch 無しでビルドした場合、rl は on_configure で拒否される。
+      rl:
+        model_path: "" # <bundle>/deploy.pt (e.g. .../umiusi_rl_control/models/av_mode13/deploy.pt)
+        golden_path: "" # 空なら model_path と同じ場所の golden.pt を探す
+        max_duty: 0.25 # duty の絶対値上限。力は 2 乗で効く (0.2 -> 0.4 は 4 倍)
+        servo_range_deg: 90.0 # 方策の servo 出力 ±1 が当たる角度。契約と一致していないと起動しない
+        servo_slew_deg_per_s: 250.0 # 指令のレート制限 (sim のプラントと揃える)
+        thrust_slew_per_s: 4.0
+        hold_yaw: true # false で yaw の保持だけ切る
 
   thruster_controller_lf: # Left Front Thruster
     ros__parameters:
