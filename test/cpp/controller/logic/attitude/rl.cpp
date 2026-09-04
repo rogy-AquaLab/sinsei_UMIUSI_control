@@ -1,14 +1,11 @@
 // RL logic の単体テスト。
 //
-// バンドル (deploy.pt) を要るテストは環境変数が指すときだけ走る。配備物は生成物で
-// repo に入っていないため (umiusi_sim の .gitignore が models/ ごと除外)、CI では skip される。
+// バンドルは models/ に同梱しているので環境変数なしで走る (CMake が SUC_MODELS_DIR で
+// ソースツリーの models/ を指す)。同梱物が壊れたら CI が落ちるのが狙い。
 //
-//     SUC_RL_BUNDLE=<umiusi_sim>/models/av_cal1_best_rep103/deploy.pt
-//     SUC_RL_BUNDLE_MODES=<umiusi_sim>/models/av_mode13/deploy.pt
-//     colcon test --packages-select sinsei_umiusi_control
-//
-// `SUC_RL_BUNDLE` は direct 出力 (17/14 次元)、`SUC_RL_BUNDLE_MODES` はレンチモード
-// (18 次元・6 次元レート) を指す。両方の経路を通す。
+// 別のバンドルで試すときだけ環境変数で上書きする:
+//     SUC_RL_BUNDLE=<dir>/deploy.pt          direct 出力 (17/14 次元)
+//     SUC_RL_BUNDLE_MODES=<dir>/deploy.pt    レンチモード (18 次元・6 次元レート)
 
 #include "sinsei_umiusi_control/controller/logic/attitude/rl.hpp"
 
@@ -17,6 +14,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
+#include <memory>
 #include <string>
 
 namespace attitude = sinsei_umiusi_control::controller::logic::attitude;
@@ -24,10 +22,19 @@ using sinsei_umiusi_control::controller::AttitudeController;
 
 namespace {
 
-auto env_path(const char * name) -> std::string {
-    const auto * p = std::getenv(name);
-    return p == nullptr ? std::string{} : std::string{p};
+// 同梱バンドルの deploy.pt。環境変数があればそちらを優先する。
+auto bundle_path(const char * env, const char * shipped) -> std::string {
+    const auto * p = std::getenv(env);
+    if (p != nullptr && *p != '\0') {
+        return std::string{p};
+    }
+    return (std::filesystem::path(SUC_MODELS_DIR) / shipped / "deploy.pt").string();
 }
+
+// 同梱しているバンドルの一覧 (models/README.md の表と 1:1)。
+constexpr const char * SHIPPED[] = {
+    "av_mode13", "av_cal1_best_rep103", "att_cal1_best_rep103", "av_cal5_3d_rep103",
+    "av_sim2real2_rep103"};
 
 }  // namespace
 
@@ -89,15 +96,9 @@ TEST(Slew, LimitsTheStep) {
 // バンドルを指す環境変数が要るテストの共通土台。
 class BundleTest : public ::testing::Test {
   protected:
-    void load(const char * env) {
-        env_ = env;
-        path_ = env_path(env);
-        if (path_.empty()) {
-            GTEST_SKIP() << env << " が未設定なので skip (deploy.pt は生成物)";
-        }
-        if (!std::filesystem::exists(path_)) {
-            GTEST_SKIP() << env << " が指す " << path_ << " がありません";
-        }
+    void load(const char * env, const char * shipped) {
+        path_ = bundle_path(env, shipped);
+        ASSERT_TRUE(std::filesystem::exists(path_)) << path_ << " がありません";
     }
 
     auto options() const -> attitude::Rl::Options {
@@ -120,20 +121,19 @@ class BundleTest : public ::testing::Test {
         return input;
     }
 
-    const char * env_{nullptr};
     std::string path_;
 };
 
 // `action_mode: "direct"` のバンドル (17 / 14 次元)。
 class RlBundle : public BundleTest {
   protected:
-    void SetUp() override { this->load("SUC_RL_BUNDLE"); }
+    void SetUp() override { this->load("SUC_RL_BUNDLE", "av_cal1_best_rep103"); }
 };
 
 // `action_mode: "modes"` のバンドル (18 次元・6 次元レート)。
 class RlModes : public BundleTest {
   protected:
-    void SetUp() override { this->load("SUC_RL_BUNDLE_MODES"); }
+    void SetUp() override { this->load("SUC_RL_BUNDLE_MODES", "av_mode13"); }
 };
 
 // 配備前検証。重み・正規化統計・観測レイアウトが sim と食い違っていればここで落ちる。
@@ -358,4 +358,42 @@ TEST_F(RlBundle, EnforcesRep103Frame) {
 TEST_F(RlModes, EnforcesRep103Frame) {
     const auto runner = attitude::PolicyRunner{this->path_};
     EXPECT_EQ(runner.obs_frame(), "rep103");
+}
+
+// ---------------------------------------------------------------------------
+// 同梱バンドル (models/) — README.md の表に載っているもの全部
+// ---------------------------------------------------------------------------
+
+// 同梱物が壊れていない = 5 本すべてが読めて、frame 契約と観測レイアウトが合っていて、
+// golden を通ること。umiusi_sim 側でバンドルを作り直してコピーし忘れると、ここが落ちる。
+TEST(ShippedBundles, AllLoadAndPassGolden) {
+    for (const auto * name : SHIPPED) {
+        const auto dir = std::filesystem::path(SUC_MODELS_DIR) / name;
+        SCOPED_TRACE(name);
+        ASSERT_TRUE(std::filesystem::exists(dir / "deploy.pt")) << dir;
+        ASSERT_TRUE(std::filesystem::exists(dir / "golden.pt")) << dir;
+
+        const auto runner = attitude::PolicyRunner{(dir / "deploy.pt").string()};
+        EXPECT_EQ(runner.obs_frame(), "rep103");
+        // obs_fields が入っていれば警告は出ない。出るなら export が古い
+        EXPECT_TRUE(runner.warnings().empty())
+            << (runner.warnings().empty() ? "" : runner.warnings().front());
+
+        auto ma = std::unique_ptr<attitude::ModeAction>{};
+        if (runner.action_mode() == "modes") {
+            ma = std::make_unique<attitude::ModeAction>(runner);
+        }
+        const auto g = attitude::verify_golden(runner, (dir / "golden.pt").string(), ma.get());
+        EXPECT_GT(g.count, 0u);
+        EXPECT_LE(g.worst, 1e-4);
+        // レンチモードのバンドルは 3 段まで検証できていること
+        EXPECT_EQ(g.has_mixed, runner.action_mode() == "modes");
+    }
+}
+
+// 既定の rl.model_name が同梱されていること (これが無いと control_mode:=rl が起動しない)。
+TEST(ShippedBundles, DefaultModelNameIsShipped) {
+    const auto def = std::filesystem::path(SUC_MODELS_DIR) / "av_mode13" / "deploy.pt";
+    EXPECT_TRUE(std::filesystem::exists(def))
+        << "params/controllers.yaml の rl.model_name の既定と models/ が食い違っている";
 }
