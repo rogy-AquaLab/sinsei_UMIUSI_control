@@ -14,6 +14,7 @@
 // RL logic は libtorch がある環境でだけ入る (CMakeLists の find_package(Torch QUIET))。
 // 無ければ `control_mode:=rl` は on_configure で明示的に落とす。
 #ifdef SINSEI_UMIUSI_CONTROL_WITH_TORCH
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <filesystem>
 
 #include "sinsei_umiusi_control/controller/logic/attitude/rl.hpp"
@@ -51,7 +52,9 @@ auto AttitudeController::on_init() -> controller_interface::CallbackReturn {
     this->get_node()->declare_parameter("control_mode", "ff");
 
     // --- `control_mode:=rl` のときだけ使うパラメータ ---
-    // バンドル (deploy.pt) のパス。空なら rl は起動しない
+    // 同梱バンドルの名前 (models/<name>/deploy.pt)。rl.model_path が空のときに使う
+    this->get_node()->declare_parameter("rl.model_name", "av_mode13");
+    // 同梱していないバンドルを使うときだけ、deploy.pt のフルパスを直接指定する
     this->get_node()->declare_parameter("rl.model_path", "");
     // 配備前検証に使う golden.pt。空なら model_path と同じディレクトリの golden.pt を探し、
     // それも無ければ検証をスキップする
@@ -110,10 +113,25 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
             // 学習時の control_rate_hz と照合する (合わなければ report に警告が出る)
             opt.control_hz = static_cast<double>(this->get_update_rate());
             if (opt.model_path.empty()) {
-                RCLCPP_ERROR(
-                    this->get_node()->get_logger(),
-                    "control_mode:=rl には rl.model_path (deploy.pt) が要ります");
-                return controller_interface::CallbackReturn::ERROR;
+                // 既定は同梱バンドル。これで control 単体で rl が立ち上がる
+                // (配備物の作り方と由来は models/README.md)
+                const auto name = this->get_node()->get_parameter("rl.model_name").as_string();
+                if (name.empty()) {
+                    RCLCPP_ERROR(
+                        this->get_node()->get_logger(),
+                        "control_mode:=rl には rl.model_name か rl.model_path が要ります");
+                    return controller_interface::CallbackReturn::ERROR;
+                }
+                const auto share = std::filesystem::path(
+                    ament_index_cpp::get_package_share_directory("sinsei_umiusi_control"));
+                opt.model_path = (share / "models" / name / "deploy.pt").string();
+                if (!std::filesystem::exists(opt.model_path)) {
+                    RCLCPP_ERROR(
+                        this->get_node()->get_logger(),
+                        "同梱バンドル '%s' がありません (%s)", name.c_str(),
+                        opt.model_path.c_str());
+                    return controller_interface::CallbackReturn::ERROR;
+                }
             }
             if (opt.golden_path.empty()) {
                 // 既定の置き場所を探す。見つからなければ空のまま (検証はスキップ)

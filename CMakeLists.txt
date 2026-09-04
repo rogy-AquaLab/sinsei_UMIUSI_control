@@ -145,8 +145,7 @@ if(BUILD_TESTING)
   )
 
   if(Torch_FOUND)
-    # バンドル (deploy.pt) を要るテストは環境変数 SUC_RL_BUNDLE が指すときだけ走る。
-    # 配備物は生成物なので repo には入っていない (test/cpp/.../rl.cpp 冒頭)
+    # 同梱バンドル (models/) を読むので環境変数なしで走る (test/cpp/.../rl.cpp 冒頭)
     ament_auto_add_gtest(test_attitude_rl
       test/cpp/controller/logic/attitude/rl.cpp
     )
@@ -158,6 +157,9 @@ if(BUILD_TESTING)
     target_link_libraries(test_attitude_rl ${TORCH_LIBRARIES})
     target_compile_options(test_attitude_rl PRIVATE ${SUC_TORCH_CXX_FLAGS})
     target_link_options(test_attitude_rl PRIVATE "-Wl,-rpath,${TORCH_INSTALL_PREFIX}/lib")
+    # 同梱バンドルの在り処。install 済みでなくても走れるようにソースツリーを指す
+    target_compile_definitions(test_attitude_rl PRIVATE
+      SUC_MODELS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/models")
   endif()
 endif()
 
@@ -167,6 +169,7 @@ ament_auto_package(
   urdf
   params
   launch
+  models
 )
 
 # ! 以下、後ろの方に書かないと無限ループに陥るので注意
