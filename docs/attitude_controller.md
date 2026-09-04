@@ -118,8 +118,12 @@ A = \begin{bmatrix}
 `deploy.pt` (TorchScript 1 ファイル) として読む。起動時に golden vectors を再生して、
 重み・正規化統計・観測レイアウトが sim と一致することを確かめてから使う。
 
-**配備の経路に autonomy は入らない。** 方策を作るのも配備物を作るのも sim なので、
-`rl.model_path` は `<umiusi_sim>/models/<name>/deploy.pt` を直接指す。
+**配備の経路に autonomy は入らない。** 方策を作るのも配備物を作るのも sim で、
+配備するバンドルはこのパッケージが `models/` に同梱する (`models/README.md`)。
+既定では `rl.model_name` (既定 `av_mode13`) を
+`share/sinsei_umiusi_control/models/<name>/deploy.pt` に解決するので、
+`control_mode:=rl` だけで立ち上がる。同梱していないバンドルを使うときだけ
+`rl.model_path` に `deploy.pt` のフルパスを指定する。
 
 ### 入出力
 

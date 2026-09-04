@@ -5,3 +5,9 @@
 
 *.png binary
 *.jpg binary
+
+# 学習済み方策の配備物 (models/)。上の `* text eol=lf` に巻き込まれると、
+# バイト列の中の CR LF が LF に潰されて TorchScript が壊れる。
+# 壊れたことは golden 検証で分かるが、そもそも壊さない
+*.pt binary
+*.npz binary
