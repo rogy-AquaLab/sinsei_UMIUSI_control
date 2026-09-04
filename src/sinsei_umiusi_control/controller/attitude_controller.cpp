@@ -142,8 +142,8 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
                 }
             }
             try {
-                // バンドルの読み込みと配備前検証はここで済ませる。update() は制御周期で
-                // 回るので、数秒かかる読み込みを持ち込まない
+                // バンドルの読み込みと配備前検証はここで済ませる。実測 86-109 ms で、
+                // 50 Hz の制御周期 (20 ms) の 4-5 周期ぶん。update() に持ち込まない
                 auto rl = std::make_unique<logic::attitude::Rl>(opt);
                 RCLCPP_INFO(this->get_node()->get_logger(), "%s", rl->report().c_str());
                 this->logic = std::move(rl);
@@ -339,8 +339,8 @@ auto AttitudeController::update_and_write_commands(
                 return controller_interface::return_type::ERROR;
             }
             case logic::ControlMode::Rl: {
-                // バンドルの読み込みと golden 検証に数秒かかる。制御周期の中でやると
-                // その間スラスタへ指令が出ないので、rl へは configure でしか入れない
+                // バンドルの読み込みと golden 検証は実測 86-109 ms = 制御周期 (20 ms) の
+                // 4-5 周期ぶん。その間スラスタへ指令が出ないので configure でしか入れない
                 RCLCPP_ERROR(
                     this->get_node()->get_logger(),
                     "rl への実行時切替は非対応です。control_mode:=rl で再 configure "
