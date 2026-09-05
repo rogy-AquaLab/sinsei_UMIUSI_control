@@ -397,3 +397,81 @@ TEST(ShippedBundles, DefaultModelNameIsShipped) {
     EXPECT_TRUE(std::filesystem::exists(def))
         << "params/controllers.yaml の rl.model_name の既定と models/ が食い違っている";
 }
+
+// ---------------------------------------------------------------------------
+// 鉛直指令インターロック
+// ---------------------------------------------------------------------------
+
+namespace {
+
+auto shipped_options(const char * name) -> attitude::Rl::Options {
+    auto opt = attitude::Rl::Options{};
+    const auto dir = std::filesystem::path(SUC_MODELS_DIR) / name;
+    opt.model_path = (dir / "deploy.pt").string();
+    opt.golden_path = (dir / "golden.pt").string();
+    opt.max_duty = 0.25;
+    opt.servo_range_deg = 90.0;
+    opt.servo_slew_deg_per_s = 250.0;
+    opt.thrust_slew_per_s = 4.0;
+    opt.hold_yaw = true;
+    opt.control_hz = 50.0;
+    return opt;
+}
+
+auto level_in() -> AttitudeController::Input {
+    auto input = AttitudeController::Input{};
+    input.state.imu_quaternion = {/*x=*/0.0, /*y=*/0.0, /*z=*/0.0, /*w=*/1.0};
+    return input;
+}
+
+}  // namespace
+
+// 水平専用の方策 (vertical_ok なし) では、鉛直の速度指令が出力を変えない。
+// UI のゲームパッドは L2/R2 で velocity.z を送ってくるので実際に踏む経路。
+TEST(VerticalInterlock, HorizontalOnlyPolicyIgnoresVerticalCommand) {
+    const auto opt = shipped_options("av_mode13");  // vertical_ok なし
+    auto input = level_in();
+    input.cmd.target_velocity = {0.2, 0.0, 0.0};
+
+    auto without = attitude::Rl{opt};
+    auto with_z = attitude::Rl{opt};
+    auto in_z = input;
+    in_z.cmd.target_velocity.z = 0.3;   // UI の L2/R2 が送る値
+
+    for (int step = 0; step < 20; ++step) {
+        const auto a = without.update(step * 0.02, 0.02, input);
+        const auto b = with_z.update(step * 0.02, 0.02, in_z);
+        for (size_t i = 0; i < 4; ++i) {
+            EXPECT_DOUBLE_EQ(a.cmd.esc_thrusts[i].value, b.cmd.esc_thrusts[i].value)
+                << "step " << step << " esc " << i;
+            EXPECT_DOUBLE_EQ(a.cmd.servo_angles[i].value, b.cmd.servo_angles[i].value)
+                << "step " << step << " servo " << i;
+        }
+    }
+    EXPECT_TRUE(with_z.vertical_clamped()) << "丸めたことが呼び出し側に伝わっていない";
+    EXPECT_FALSE(without.vertical_clamped());
+}
+
+// 3-D 方策 (vertical_ok あり) には鉛直の速度指令がそのまま届く。
+TEST(VerticalInterlock, VerticalCapablePolicyReceivesTheCommand) {
+    const auto opt = shipped_options("av_cal5_3d_rep103");  // vertical_ok: true
+    auto input = level_in();
+    input.cmd.target_velocity = {0.2, 0.0, 0.0};
+
+    auto without = attitude::Rl{opt};
+    auto with_z = attitude::Rl{opt};
+    auto in_z = input;
+    in_z.cmd.target_velocity.z = 0.3;
+
+    auto differed = false;
+    for (int step = 0; step < 20; ++step) {
+        const auto a = without.update(step * 0.02, 0.02, input);
+        const auto b = with_z.update(step * 0.02, 0.02, in_z);
+        for (size_t i = 0; i < 4; ++i) {
+            differed = differed || a.cmd.esc_thrusts[i].value != b.cmd.esc_thrusts[i].value ||
+                       a.cmd.servo_angles[i].value != b.cmd.servo_angles[i].value;
+        }
+    }
+    EXPECT_TRUE(differed) << "鉛直指令が観測に届いていない";
+    EXPECT_FALSE(with_z.vertical_clamped());
+}

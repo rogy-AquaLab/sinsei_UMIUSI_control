@@ -320,6 +320,18 @@ auto AttitudeController::update_and_write_commands(
     if (!mode_changed) {
         // 姿勢制御の関数を呼び出す
         this->output = this->logic->update(time.seconds(), period.seconds(), this->input);
+#ifdef SINSEI_UMIUSI_CONTROL_WITH_TORCH
+        // 黙って丸めない。UI のゲームパッドは L2/R2 で target_velocity.z を送ってくるので、
+        // 水平専用の方策を選んでいると操作しているのに効かない状態になる
+        const auto * rl = dynamic_cast<const logic::attitude::Rl *>(this->logic.get());
+        if (rl != nullptr && rl->vertical_clamped()) {
+            constexpr auto DURATION = 5000;  // ms
+            RCLCPP_WARN_THROTTLE(
+                this->get_node()->get_logger(), *this->get_node()->get_clock(), DURATION,
+                "鉛直の速度指令を 0 に丸めました — この方策は水平専用です "
+                "(rl.model_name を av_cal5_3d_rep103 にすると降下できます)");
+        }
+#endif
     } else {
         RCLCPP_INFO(
             this->get_node()->get_logger(), "Control mode changed: %s -> %s",
