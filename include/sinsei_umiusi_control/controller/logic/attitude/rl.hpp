@@ -96,6 +96,7 @@ class PolicyRunner {
         act_dim_ = this->attr("act_dim").toInt();
         action_mode_ = this->attr("action_mode").toStringRef();
         obs_frame_ = this->attr("obs_frame").toStringRef();
+        vertical_ok_ = this->attr("vertical_ok").toBool();
 
         // frame 契約: この logic は IMU を無変換 (REP-103) で観測に入れるので、
         // rep103 変換済みのバンドルだけを許す。2026-08-21 のプール試験では
@@ -139,6 +140,8 @@ class PolicyRunner {
     auto act_dim() const -> int64_t { return act_dim_; }
     auto action_mode() const -> const std::string & { return action_mode_; }
     auto obs_frame() const -> const std::string & { return obs_frame_; }
+    // 鉛直の速度指令を受け付けてよい方策か。false なら v_cmd の z 成分を渡さない
+    auto vertical_ok() const -> bool { return vertical_ok_; }
     auto path() const -> const std::string & { return path_; }
     auto needs_velocity() const -> bool { return obs_dim_ != OBS_DIM_NO_VEL; }
     auto needs_max_duty() const -> bool { return obs_dim_ == OBS_DIM_CAP; }
@@ -287,6 +290,7 @@ class PolicyRunner {
     int64_t act_dim_{0};
     std::string action_mode_;
     std::string obs_frame_;
+    bool vertical_ok_{false};
     std::vector<std::string> warnings_;
     at::Tensor x_;                       // 推論の入力バッファ (使い回す)
     std::vector<c10::IValue> inputs_;    // forward() の引数リスト (同上、x_ を指す)
@@ -670,6 +674,10 @@ class Rl : public AttitudeController::Logic {
                            " Hz と違います";
             }
         }
+        if (runner_.needs_velocity() && !runner_.vertical_ok()) {
+            report_ +=
+                "\n  水平専用の方策です (vertical_ok なし)。鉛直の速度指令は 0 に丸めます";
+        }
         if (runner_.needs_max_duty()) {
             report_ += "\n  duty 上限を観測に持つポリシーです (観測末尾 max_duty=" +
                        std::to_string(this->obs_max_duty()) + ")";
@@ -705,6 +713,10 @@ class Rl : public AttitudeController::Logic {
     // 読み込みと検証の結果。`on_configure` がそのままログに出す。
     auto report() const -> const std::string & { return report_; }
 
+    // 直前の update() で鉛直の速度指令を 0 に丸めたか。呼び出し側が警告を出す
+    // (この logic はロガーを持たないので、黙って丸めないための唯一の導線)。
+    auto vertical_clamped() const -> bool { return vertical_clamped_; }
+
     auto control_mode() const -> logic::ControlMode override { return logic::ControlMode::Rl; }
 
     // モードに入った瞬間は出力をゼロにし、方策の内部状態も初期化する。
@@ -739,7 +751,10 @@ class Rl : public AttitudeController::Logic {
         if (runner_.needs_velocity()) {  // attitude タスクだけが速度指令を持たない
             obs.push_back(input.cmd.target_velocity.x);
             obs.push_back(input.cmd.target_velocity.y);
-            obs.push_back(input.cmd.target_velocity.z);
+            // 鉛直指令インターロック: 水平専用の方策に z 成分を渡すと姿勢が崩壊する。
+            // UI のゲームパッドは L2/R2 で velocity.z を送ってくるので実際に踏む経路
+            vertical_clamped_ = !runner_.vertical_ok() && input.cmd.target_velocity.z != 0.0;
+            obs.push_back(vertical_clamped_ ? 0.0 : input.cmd.target_velocity.z);
         }
         obs.insert(obs.end(), prev_action_.begin(), prev_action_.end());
         if (runner_.needs_max_duty()) {
@@ -798,6 +813,7 @@ class Rl : public AttitudeController::Logic {
 
     Options opt_;
     PolicyRunner runner_;
+    bool vertical_clamped_{false};
     std::unique_ptr<ModeAction> mode_action_;  // action_mode="modes" のときだけ
     std::string report_;
     Action prev_action_{};
