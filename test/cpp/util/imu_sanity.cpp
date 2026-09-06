@@ -190,6 +190,19 @@ TEST(ImuSanity, AbsoluteAndRelativeAreClassifiedAsSuch) {
     EXPECT_FALSE(util::ImuSanity::absolute(R::AttitudeStep)) << "唯一の相対判定";
 }
 
+// 棄却に回す以上、正常なゆらぎと化けの両方から離れていることを固定する。
+// 実測値: 正常の最悪 0.00795 (84502 サンプル) / いちばん軽い化け 0.106 (A-1 の |q|=1.106)。
+TEST(ImuSanity, NormToleranceSeparatesRealNoiseFromRealCorruption) {
+    auto s = util::ImuSanity{};
+    s.update(LEVEL, STILL);
+    // 正常側: 実測の最悪より少し悪い値でも通ること
+    EXPECT_EQ(s.update({1.0 - 0.009, 0.0, 0.0, 0.0}, STILL).reason,
+              util::ImuSanity::Reason::None);
+    // 化け側: A-1 が記録したいちばん軽い化けが弾かれること
+    EXPECT_EQ(s.update({1.106, 0.0, 0.0, 0.0}, STILL).reason,
+              util::ImuSanity::Reason::BadNorm);
+}
+
 TEST(ImuSanity, AbsoluteRejectionCannotLockOut) {
     // 化けが続いても、正常なサンプルが 1 つ来れば即座に復帰する
     auto s = util::ImuSanity{};
