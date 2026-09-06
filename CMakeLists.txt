@@ -144,6 +144,14 @@ if(BUILD_TESTING)
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/cpp>
   )
 
+  ament_auto_add_gtest(test_util
+    test/cpp/util/imu_sanity.cpp
+  )
+  target_include_directories(test_util
+    PRIVATE
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  )
+
   if(Torch_FOUND)
     # 同梱バンドル (models/) を読むので環境変数なしで走る (test/cpp/.../rl.cpp 冒頭)
     ament_auto_add_gtest(test_attitude_rl
