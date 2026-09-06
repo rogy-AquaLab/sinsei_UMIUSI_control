@@ -207,11 +207,15 @@ auto Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period
             main_power_enabled, esc_allowed_flags, esc_duty_cycles, servo_allowed_flags,
             servo_angles, led_tape_color);
         if (!res) {
+            // 1フレームの失敗で打ち切らない。`on_write`が回す16パケットのうち
+            // esc_allowed / servo_allowed / led_tape は未実装で必ず失敗するので、
+            // ここで抜けると残りのフレームが出ず、上げたはずの更新レートが戻ってしまう
+            // (実機実測: 打ち切りありで96.8フレーム/秒 = サーボ12.1Hz)。
             constexpr auto DURATION = 3000;  // ms
             RCLCPP_ERROR_THROTTLE(
                 this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to write Can: %s",
                 res.error().c_str());
-            return hardware_interface::return_type::OK;
+            continue;
         }
     }
 
