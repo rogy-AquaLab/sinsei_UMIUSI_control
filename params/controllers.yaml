@@ -28,6 +28,12 @@
         # では範囲内で最良の点。理由なく上げないこと (docs/attitude_controller.md)
         thrust_slew_per_s: 4.0
         hold_yaw: true # false で yaw の保持だけ切る
+        # 配備前検証の 5 段目。ホバリング時の実測値 (export 時にバンドルへ焼く) の上限。
+        # どちらも 0 で無効 (既定)。有効にすると、実測値が焼かれていないバンドルは起動を拒否する
+        # ＝ 一度も測っていない方策が実機に載らない。duty だけ縛ると「姿勢を犠牲にして duty を
+        # 下げた方策」を通すので両方見ること
+        max_hover_duty_frac: 0.0 # hover_median_esc_frac の上限 (max_duty に対する割合)
+        max_hover_ori_err_rad: 0.0 # hover_ori_err_rad の上限 [rad]
 
   thruster_controller_lf: # Left Front Thruster
     ros__parameters:

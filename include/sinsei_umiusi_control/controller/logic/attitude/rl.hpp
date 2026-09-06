@@ -51,6 +51,7 @@
 #include <array>
 #include <cmath>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -195,6 +196,15 @@ class PolicyRunner {
 
     auto double_attr(const std::string & name) const -> double {
         return this->attr(name).toDouble();
+    }
+
+    // 無くてもよい属性。古いバンドルには入っていないので、有無を呼び出し側で分けられるようにする
+    auto optional_double_attr(const std::string & name) const -> std::optional<double> {
+        try {
+            return module_.attr(name).toDouble();
+        } catch (const std::exception &) {
+            return std::nullopt;
+        }
     }
 
     auto string_list_attr(const std::string & name) const -> std::vector<std::string> {
@@ -622,6 +632,36 @@ inline auto slew(double current, double target, double max_rate, double dt) -> d
     return current + std::clamp(target - current, -step, step);
 }
 
+// ホバリング economy の判定。バンドルに焼かれた実測値と上限を突き合わせ、
+// 通らない理由を返す (通れば nullopt)。`Rl` の外に出してあるのは、バンドルを用意せずに
+// 判定そのものをテストできるようにするため。
+// `duty` は max_duty に対する割合、`ori` は [rad]。上限は 0 以下で「見ない」。
+inline auto hover_economy_error(
+    std::optional<double> duty, std::optional<double> ori, double duty_limit,
+    double ori_limit) -> std::optional<std::string> {
+    if (duty_limit <= 0.0 && ori_limit <= 0.0) {
+        return std::nullopt;  // ゲート無効
+    }
+    // 上限を設定したのに実測値が無いのは「一度も測っていない方策」。警告で通すと、
+    // ゲートを有効にしたのに素通りしていた、が起こりうるので拒否する
+    if (!duty || !ori) {
+        return "ホバリング economy のゲートが有効ですが、バンドルに実測値がありません。"
+               "export_deploy_bundle.py を流し直して hover_median_esc_frac / "
+               "hover_ori_err_rad を焼いてください";
+    }
+    if (duty_limit > 0.0 && *duty > duty_limit) {
+        return "ホバリング時の duty が上限を超えています: " + std::to_string(*duty) + " > " +
+               std::to_string(duty_limit) + " (max_duty に対する割合)";
+    }
+    // duty だけを見ると「姿勢を犠牲にして duty を下げた方策」を通してしまう
+    // (sim の fy クランプ実験で duty -24% / ori +39% が実際に起きた)
+    if (ori_limit > 0.0 && *ori > ori_limit) {
+        return "ホバリング時の姿勢誤差が上限を超えています: " + std::to_string(*ori) + " > " +
+               std::to_string(ori_limit) + " [rad]";
+    }
+    return std::nullopt;
+}
+
 class Rl : public AttitudeController::Logic {
   public:
     // 18 次元ポリシーの学習時 duty 上限の分布。観測に入れる値だけここへ丸める
@@ -638,6 +678,11 @@ class Rl : public AttitudeController::Logic {
         double thrust_slew_per_s;
         bool hold_yaw;
         double control_hz;  // 0 なら学習時レートとの照合をしない
+        // ホバリング時の economy のゲート。どちらも 0 以下で無効 (既定)。
+        // 有効にすると、バンドルに実測値が焼かれていなければ起動を拒否する
+        // (「一度も測っていない方策を実機に載せない」ためで、閾値超過だけを見るのではない)
+        double max_hover_duty_frac;   // hover_median_esc_frac の上限 (max_duty に対する割合)
+        double max_hover_ori_err_rad;  // hover_ori_err_rad の上限
     };
 
     // バンドルを読み、配備前検証を通してから使える状態にする。
@@ -707,6 +752,8 @@ class Rl : public AttitudeController::Logic {
         } else {
             report_ += "\n  [warn] golden が無いので配備前検証をスキップしました";
         }
+
+        this->check_hover_economy();
         this->reset();
     }
 
@@ -801,6 +848,33 @@ class Rl : public AttitudeController::Logic {
     auto obs_max_duty() const -> double {
         return std::clamp(opt_.max_duty, MAX_DUTY_OBS_MIN, MAX_DUTY_OBS_MAX);
     }
+
+    // 配備前検証の 5 段目: ホバリング時の economy。
+    // 他の 4 段 (obs_frame / obs_fields / golden 生 / golden mixed) は「契約が一致しているか」を
+    // 見るもので、「出来上がった方策の振る舞いが良いか」は一切見ていない。指令ゼロでも duty が
+    // 上限に張り付く方策が golden PASS のまま実機に載った実績があるので、export 時の実測値を
+    // バンドルに焼いて起動時に照合する。
+    //
+    // 上限は両方見る。duty だけを縛ると「姿勢を犠牲にして duty を下げた方策」を通してしまう
+    // (sim の fy クランプ実験で duty -24% / ori +39% が実際に起きた)。
+    void check_hover_economy() {
+        const auto duty_limit = opt_.max_hover_duty_frac;
+        const auto ori_limit = opt_.max_hover_ori_err_rad;
+        if (duty_limit <= 0.0 && ori_limit <= 0.0) {
+            return;  // ゲート無効 (既定)
+        }
+
+        const auto duty = runner_.optional_double_attr("hover_median_esc_frac");
+        const auto ori = runner_.optional_double_attr("hover_ori_err_rad");
+        const auto err = hover_economy_error(duty, ori, duty_limit, ori_limit);
+        if (err) {
+            throw std::runtime_error(*err + " (" + opt_.model_path + ")");
+        }
+        // ここに来たなら両方とも値がある (無ければ hover_economy_error が理由を返している)
+        report_ += "\n  ホバリング economy PASS: duty " + std::to_string(*duty) + ", ori_err " +
+                   std::to_string(*ori) + " rad";
+    }
+
 
     void reset() {
         prev_action_.fill(0.0);

@@ -475,3 +475,39 @@ TEST(VerticalInterlock, VerticalCapablePolicyReceivesTheCommand) {
     EXPECT_TRUE(differed) << "鉛直指令が観測に届いていない";
     EXPECT_FALSE(with_z.vertical_clamped());
 }
+
+// --- 配備前検証の 5 段目: ホバリング economy ---------------------------------
+// 他の 4 段は「契約が一致しているか」だけを見ていて、出来上がった方策の振る舞いは見ていない。
+// 指令ゼロでも duty が上限に張り付く方策が golden PASS のまま実機に載った実績がある。
+
+TEST(HoverEconomy, DisabledByDefaultSoOldBundlesStillLoad) {
+    // 上限を設定しなければ、実測値が無いバンドルでも素通りする (既存挙動を壊さない)
+    EXPECT_FALSE(attitude::hover_economy_error(std::nullopt, std::nullopt, 0.0, 0.0));
+}
+
+TEST(HoverEconomy, RejectsBundleThatWasNeverMeasured) {
+    // ゲートを有効にしたのに実測値が無い = 一度も測っていない方策。警告で通してはいけない
+    EXPECT_TRUE(attitude::hover_economy_error(std::nullopt, std::nullopt, 0.5, 0.3));
+    EXPECT_TRUE(attitude::hover_economy_error(0.2, std::nullopt, 0.5, 0.3));
+    EXPECT_TRUE(attitude::hover_economy_error(std::nullopt, 0.1, 0.5, 0.3));
+}
+
+TEST(HoverEconomy, PassesWhenBothAreUnderTheLimit) {
+    EXPECT_FALSE(attitude::hover_economy_error(0.20, 0.10, 0.5, 0.3));
+}
+
+TEST(HoverEconomy, RejectsWastefulPolicy) {
+    // 実測されたホバリング duty (cap の 90%) が通らないこと
+    EXPECT_TRUE(attitude::hover_economy_error(0.90, 0.10, 0.5, 0.3));
+}
+
+TEST(HoverEconomy, RejectsPolicyThatTradedAttitudeForDuty) {
+    // duty だけを見ると通してしまう方策。fy クランプ実験で duty -24% / ori +39% が実際に起きた
+    EXPECT_FALSE(attitude::hover_economy_error(0.17, 0.495, 0.5, /*ori_limit=*/0.0));
+    EXPECT_TRUE(attitude::hover_economy_error(0.17, 0.495, 0.5, /*ori_limit=*/0.3));
+}
+
+TEST(HoverEconomy, EachLimitCanBeUsedAlone) {
+    EXPECT_TRUE(attitude::hover_economy_error(0.90, 0.10, /*duty=*/0.5, /*ori=*/0.0));
+    EXPECT_FALSE(attitude::hover_economy_error(0.90, 0.10, /*duty=*/0.0, /*ori=*/0.3));
+}
