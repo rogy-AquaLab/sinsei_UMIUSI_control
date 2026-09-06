@@ -216,9 +216,16 @@ disarm 前の指令が出る (モード積分器は ±1 に飽和したままの
 | esc | `rl.thrust_slew_per_s` (既定 4.0/s) | `max_duty_step_per_sec` (既定 **1.0/s**) | 厳しい方 = 1.0/s |
 | servo | `rl.servo_slew_deg_per_s` (既定 250 deg/s) | 制限なし | 250 deg/s |
 
-既定のままだと esc は 1.0/s で頭打ちになり、方策が学習・golden 検証された 4.0/s より
-遅い (duty 0.25 まで 62.5 ms ではなく 250 ms)。**rl で走らせるなら 4 基すべての
-`max_duty_step_per_sec` を上げること** — 上げないと sim と別のプラントになる。
+esc は下流が 1.0/s なので、`rl.thrust_slew_per_s` の 4.0 は効かない。**それでよい** —
+av_mode13 は ESC ランプを `[1.0, 10.0]` の domain randomization で学習しており、1.0/s は
+その範囲の中。sim 側の sweep 実測では 1.0/s が範囲内で最良の点だった
+(ori 0.154 / null 5.2% / 巡航 104%)。**理由なく上げないこと。**
+
+なお `/cmd/direct` に出す経路 (autonomy の rl_attitude_node) は `ThrusterController` を
+迂回する (known_issues B-12) ので、そちらの実効値は 4.0/s になる。**同じ方策でも
+スタックによって実効ランプが違う。**
+
+servo にはどちらの経路にも下流の制限が無いので、`rl.servo_slew_deg_per_s` が唯一の制限。
 
 ### ビルド
 
