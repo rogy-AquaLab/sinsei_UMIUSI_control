@@ -94,7 +94,15 @@ if(Torch_FOUND)
   target_compile_definitions(${PROJECT_NAME}_controller PRIVATE SINSEI_UMIUSI_CONTROL_WITH_TORCH)
   # SYSTEM: torch のヘッダは -Wall -Wextra -Wpedantic を通らない
   target_include_directories(${PROJECT_NAME}_controller SYSTEM PRIVATE ${TORCH_INCLUDE_DIRS})
-  target_link_libraries(${PROJECT_NAME}_controller ${TORCH_LIBRARIES})
+  # 伝播させないこと。`target_link_libraries` のキーワード無し (plain) signature は
+  # INTERFACE_LINK_LIBRARIES にも入れるので libtorch が推移的に伝播し、
+  # `ament_auto_add_executable` が同じパッケージのライブラリを繋ぐ gst_camera_node まで
+  # libtorch.so を直接依存に持つ。rpath は target_link_options が PRIVATE で付けているので
+  # 伝播せず、カメラノードは探せないライブラリを要求して exit 127 で落ちる (実機で発生)。
+  # `PRIVATE` キーワードは使えない — ament_auto_add_library が plain signature を使っており
+  # 同一ターゲットで混在できない。LINK_LIBRARIES だけに足せる set_property を使う
+  set_property(
+    TARGET ${PROJECT_NAME}_controller APPEND PROPERTY LINK_LIBRARIES ${TORCH_LIBRARIES})
   # TORCH_CXX_FLAGS は _GLIBCXX_USE_CXX11_ABI を指定する。ROS 2 の共有ライブラリと
   # 混ぜるので、ここを落とすとリンクは通ってシンボルだけ食い違う
   separate_arguments(SUC_TORCH_CXX_FLAGS NATIVE_COMMAND "${TORCH_CXX_FLAGS}")
