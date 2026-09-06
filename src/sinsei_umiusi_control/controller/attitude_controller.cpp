@@ -69,6 +69,10 @@ auto AttitudeController::on_init() -> controller_interface::CallbackReturn {
     this->get_node()->declare_parameter("rl.thrust_slew_per_s", 4.0);
     // false で yaw の保持だけ切る (roll/pitch のみ保持)
     this->get_node()->declare_parameter("rl.hold_yaw", true);
+    // 配備前検証の 5 段目 (ホバリング時の economy)。どちらも 0 以下で無効。
+    // 有効にすると、export 時の実測値がバンドルに焼かれていなければ起動を拒否する
+    this->get_node()->declare_parameter("rl.max_hover_duty_frac", 0.0);
+    this->get_node()->declare_parameter("rl.max_hover_ori_err_rad", 0.0);
 
     this->input = AttitudeController::Input{};
     this->output = AttitudeController::Output{};
@@ -110,6 +114,10 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
             opt.thrust_slew_per_s =
                 this->get_node()->get_parameter("rl.thrust_slew_per_s").as_double();
             opt.hold_yaw = this->get_node()->get_parameter("rl.hold_yaw").as_bool();
+            opt.max_hover_duty_frac =
+                this->get_node()->get_parameter("rl.max_hover_duty_frac").as_double();
+            opt.max_hover_ori_err_rad =
+                this->get_node()->get_parameter("rl.max_hover_ori_err_rad").as_double();
             // 学習時の control_rate_hz と照合する (合わなければ report に警告が出る)
             opt.control_hz = static_cast<double>(this->get_update_rate());
             if (opt.model_path.empty()) {
