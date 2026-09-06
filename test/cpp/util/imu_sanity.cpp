@@ -34,25 +34,21 @@ TEST(ImuSanity, ExactZeroNormIsAlwaysHeldEvenWhenNotEnforcing) {
     EXPECT_EQ(s.rejected(), 1u);
 }
 
-// 既定値のままだと、実機で実際に出る化けは「必ず捨てる」網に掛からない。
-// 2026-09-06 のベンチ 915 秒で出た 7 件はすべて |q| が 1.2e-4 〜 1.6e-2 で、
-// MIN_NORM (1e-6) を 2 桁上回るため Unnormalizable ではなく BadNorm に落ちる。
-// BadNorm は enforce=false では通るので、正規化された結果がそのまま姿勢として使われる。
-// ゼロ四元数より悪い: 値が「もっともらしい単位クォータニオン」になるので下流で気付けない。
-// この段は現状の挙動を固定するためのもの。閾値の扱いを変えるなら autonomy 側
-// (umiusi_common/imu_sanity.py) と known_issues A-1 の方針を揃えて変えること。
-TEST(ImuSanity, RealWorldCorruptionSlipsThroughTheAlwaysRejectNet) {
+// 実機で実際に出る化けは MIN_NORM (1e-6) を 2 桁上回るので Unnormalizable ではなく
+// BadNorm に落ちる (2026-09-06 のベンチで |q| は 1.2e-4 〜 2.23)。正規化すると
+// 「もっともらしい単位クォータニオン」になり、通すと下流で気付けない
+// (この例は 120 deg 回転)。BadNorm は絶対判定なので既定で棄却する。
+TEST(ImuSanity, RealWorldCorruptionIsRejectedByDefault) {
     auto s = util::ImuSanity{};
     s.update(LEVEL, STILL);
 
     // 実機で観測した値: 全成分が -0.0001 付近、|q|=0.0002
     const auto r = s.update({-0.0001, -0.0001, -0.0001, -0.0001}, STILL);
     EXPECT_EQ(r.reason, util::ImuSanity::Reason::BadNorm);
-    EXPECT_FALSE(util::ImuSanity::unusable(r.reason)) << "必ず捨てる網には掛からない";
+    EXPECT_TRUE(r.held);
     ASSERT_TRUE(r.sample);
-    // 正規化すると 120 deg 回転した単位クォータニオンになる
-    EXPECT_DOUBLE_EQ(r.sample->quat[0], -0.5);
-    EXPECT_EQ(s.rejected(), 0u);
+    EXPECT_DOUBLE_EQ(r.sample->quat[0], 1.0) << "直前の有効値が返るはず";
+    EXPECT_EQ(s.rejected(), 1u);
 }
 
 TEST(ImuSanity, NonFiniteIsAlwaysHeld) {
@@ -69,25 +65,25 @@ TEST(ImuSanity, NoValidSampleYetReturnsNothing) {
     EXPECT_FALSE(r.sample);
 }
 
-// --- 既定 (enforce=false) は検出するが通す -----------------------------------
-// 閾値を決めるためのデータ収集期間の挙動。フィルタ自身の誤爆のほうが被害が大きかった
-// (known_issues A-1 の 2026-08-21 方針変更)。
+// --- 棄却を切ると検出だけして通す ---------------------------------------------
+// 閾値を決め直すためのデータ収集で使う。
 
-TEST(ImuSanity, DetectsButPassesWhenNotEnforcing) {
-    auto s = util::ImuSanity{};
+TEST(ImuSanity, DetectsButPassesWhenAbsoluteEnforcementIsOff) {
+    auto opt = util::ImuSanity::Options{};
+    opt.enforce_absolute = false;
+    auto s = util::ImuSanity{opt};
     s.update(LEVEL, STILL);
     // 実機で観測したノルム異常 |q|=2.2306 (同じ値が 10 回繰り返した)
     const auto r = s.update({2.2306, 0.0, 0.0, 0.0}, STILL);
     EXPECT_EQ(r.reason, util::ImuSanity::Reason::BadNorm);
-    ASSERT_TRUE(r.sample);
-    EXPECT_DOUBLE_EQ(r.sample->quat[0], 1.0) << "正規化されて通るはず";
-    EXPECT_EQ(s.rejected(), 0u) << "enforce=false なので捨ててはいけない";
+    EXPECT_FALSE(r.held);
+    EXPECT_EQ(s.rejected(), 0u);
     EXPECT_EQ(s.flagged(), 1u);
 }
 
 TEST(ImuSanity, DiscardsWhenEnforcing) {
     auto opt = util::ImuSanity::Options{};
-    opt.enforce = true;
+    opt.enforce_step = true;
     auto s = util::ImuSanity{opt};
     s.update(LEVEL, STILL);
     const auto r = s.update(about_z(10.0), {20.0, 0.0, 0.0});
@@ -137,7 +133,7 @@ TEST(ImuSanity, NormalStepPassesAndLargeStepIsFlagged) {
 
 TEST(ImuSanity, ResyncsAfterTheReferenceItselfJumps) {
     auto opt = util::ImuSanity::Options{};
-    opt.enforce = true;
+    opt.enforce_step = true;
     opt.stale_after = 5;
     auto s = util::ImuSanity{opt};
     s.update(LEVEL, STILL);
@@ -171,17 +167,37 @@ TEST(ImuSanity, AngleBetweenAbsorbsSignAmbiguity) {
 // bag から |q| の化けが見えなくなり、閾値を決め直せない。
 
 TEST(ImuSanity, HeldIsOnlySetWhenTheSampleIsActuallyReplaced) {
-    auto s = util::ImuSanity{};  // enforce=false
+    auto s = util::ImuSanity{};  // 既定: 絶対判定は棄却、相対判定は通す
     s.update(LEVEL, STILL);
 
     EXPECT_FALSE(s.update(about_z(1.0), STILL).held) << "正常なサンプル";
-    EXPECT_FALSE(s.update({2.2306, 0.0, 0.0, 0.0}, STILL).held)
-        << "検出しただけなら生値を通してよい";
-    EXPECT_TRUE(s.update({0.0, 0.0, 0.0, 0.0}, STILL).held) << "必ず捨てる網に掛かった";
+    EXPECT_TRUE(s.update({2.2306, 0.0, 0.0, 0.0}, STILL).held) << "絶対判定は棄却する";
+    EXPECT_FALSE(s.update(about_z(80.0), STILL).held)
+        << "相対判定は既定では通す (基準が飛ぶとロックアウトするため)";
+}
 
-    auto opt = util::ImuSanity::Options{};
-    opt.enforce = true;
-    auto e = util::ImuSanity{opt};
-    e.update(LEVEL, STILL);
-    EXPECT_TRUE(e.update({2.2306, 0.0, 0.0, 0.0}, STILL).held) << "enforce=true なら差し替える";
+// --- 絶対判定と相対判定の切り分け ---------------------------------------------
+// 絶対判定は履歴に依存しないので、誤爆しても次のサンプルで復帰する。
+// 相対判定だけが「最後に採用した値」との比較で、基準そのものが飛ぶと復帰できない
+// (known_issues A-1 で 144 秒棄却し続けた)。棄却の既定値をここで分ける根拠。
+
+TEST(ImuSanity, AbsoluteAndRelativeAreClassifiedAsSuch) {
+    using R = util::ImuSanity::Reason;
+    EXPECT_TRUE(util::ImuSanity::absolute(R::NotFinite));
+    EXPECT_TRUE(util::ImuSanity::absolute(R::Unnormalizable));
+    EXPECT_TRUE(util::ImuSanity::absolute(R::BadNorm));
+    EXPECT_TRUE(util::ImuSanity::absolute(R::GyroOverLimit));
+    EXPECT_FALSE(util::ImuSanity::absolute(R::AttitudeStep)) << "唯一の相対判定";
+}
+
+TEST(ImuSanity, AbsoluteRejectionCannotLockOut) {
+    // 化けが続いても、正常なサンプルが 1 つ来れば即座に復帰する
+    auto s = util::ImuSanity{};
+    s.update(LEVEL, STILL);
+    for (int i = 0; i < 50; ++i) {
+        EXPECT_TRUE(s.update({2.2306, 0.0, 0.0, 0.0}, STILL).held);
+    }
+    const auto r = s.update(about_z(1.0), STILL);
+    EXPECT_EQ(r.reason, util::ImuSanity::Reason::None);
+    EXPECT_FALSE(r.held) << "絶対判定はロックアウトしない";
 }

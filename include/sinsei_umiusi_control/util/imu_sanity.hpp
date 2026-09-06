@@ -38,7 +38,13 @@ class ImuSanity {
         double max_step_deg = 30.0;   // 1 サンプル間の姿勢跳躍の上限。50 Hz なら 1500 deg/s 相当
         double quat_tol = 0.01;       // ノルムの許容誤差
         int stale_after = 5;          // 連続棄却がこれを超えたら跳躍チェックを解除する
-        bool enforce = false;         // false なら検出だけして値は通す (既定)
+        // 棄却するかどうかは「絶対判定か相対判定か」で分ける。
+        // 絶対判定 (NaN/Inf・ノルム・角速度) は履歴に依存しないのでロックアウトしない。
+        // 実機の化けはすべてここに落ちるので既定で棄却する。
+        // 相対判定 (姿勢の急変) は「最後に採用した値」との比較なので、基準そのものが
+        // 飛ぶと復帰できない (known_issues A-1 で 144 秒棄却し続けた)。既定では棄却しない
+        bool enforce_absolute = true;
+        bool enforce_step = false;
     };
 
     // 判定に引っかかった理由の種別。ログの文言ではなくこれで分岐すること
@@ -67,10 +73,15 @@ class ImuSanity {
     ImuSanity() = default;
     explicit ImuSanity(const Options & opt) : opt_(opt) {}
 
-    // enforce に関係なく必ず捨てる理由。閾値を緩めても救えない、値そのものが数値として
-    // 使えないものだけ。
+    // 値そのものが数値として使えない理由。閾値を緩めても救えないので必ず捨てる。
     static auto unusable(Reason r) -> bool {
         return r == Reason::NotFinite || r == Reason::Unnormalizable;
+    }
+
+    // 履歴に依存しない判定。誤爆しても次のサンプルで復帰するのでロックアウトしない。
+    static auto absolute(Reason r) -> bool {
+        return r == Reason::NotFinite || r == Reason::Unnormalizable ||
+               r == Reason::BadNorm || r == Reason::GyroOverLimit;
     }
 
     auto stale() const -> bool { return consecutive_ > opt_.stale_after; }
@@ -94,7 +105,9 @@ class ImuSanity {
 
         if (res.reason != Reason::None) {
             ++flagged_;
-            if (opt_.enforce || unusable(res.reason)) {
+            const auto reject = unusable(res.reason) ||
+                                (absolute(res.reason) ? opt_.enforce_absolute : opt_.enforce_step);
+            if (reject) {
                 ++rejected_;
                 ++consecutive_;
                 res.held = true;
@@ -119,7 +132,7 @@ class ImuSanity {
 
     // ログ 1 行。enforce の有無で「破棄した」のか「通した」のかが変わる。
     auto describe(const Result & r) const -> std::string {
-        if (opt_.enforce || unusable(r.reason)) {
+        if (r.held) {
             return "IMU サンプルを破棄: " + r.detail + " (棄却率 " + ratio_str(reject_ratio()) +
                    ")";
         }

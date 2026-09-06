@@ -38,8 +38,9 @@ auto Imu::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
         return hardware_interface::CallbackReturn::ERROR;
     }
 
-    // 化けサンプルの判定。パラメータ名と既定値は autonomy の umiusi_common/imu_sanity.py と
-    // 揃えてある (両スタックの run を突き合わせるため)。既定は検出のみで値は通す
+    // 化けサンプルの判定。閾値のパラメータ名と既定値は autonomy の
+    // umiusi_common/imu_sanity.py と揃えてある (両スタックの run を突き合わせるため)。
+    // 棄却の可否だけは autonomy の単一 imu_sanity_enforce と分けてある (下の Options を参照)
     auto sanity_opt = util::ImuSanity::Options{};
     const auto & hw_params = params.hardware_info.hardware_parameters;
     if (const auto v = util::find_param(hw_params, "imu_max_gyro")) {
@@ -54,8 +55,14 @@ auto Imu::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     if (const auto v = util::find_param(hw_params, "imu_stale_after")) {
         sanity_opt.stale_after = std::stoi(*v);
     }
-    if (const auto v = util::find_param(hw_params, "imu_sanity_enforce")) {
-        sanity_opt.enforce = (*v == "true" || *v == "True" || *v == "1");
+    const auto as_bool = [](const std::string & v) {
+        return v == "true" || v == "True" || v == "1";
+    };
+    if (const auto v = util::find_param(hw_params, "imu_enforce_absolute")) {
+        sanity_opt.enforce_absolute = as_bool(*v);
+    }
+    if (const auto v = util::find_param(hw_params, "imu_enforce_step")) {
+        sanity_opt.enforce_step = as_bool(*v);
     }
     this->sanity = util::ImuSanity{sanity_opt};
 
