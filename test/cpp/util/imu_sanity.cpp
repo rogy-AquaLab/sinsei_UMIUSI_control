@@ -165,3 +165,23 @@ TEST(ImuSanity, AngleBetweenAbsorbsSignAmbiguity) {
     EXPECT_NEAR(util::quat_angle_between(LEVEL, {-1.0, 0.0, 0.0, 0.0}), 0.0, 1e-9);
     EXPECT_NEAR(util::quat_angle_between(LEVEL, about_z(90.0)), M_PI / 2.0, 1e-9);
 }
+
+// --- held: 呼び出し側が生値を通してよいかの判定 -------------------------------
+// enforce=false で生データを録り続けるために要る。正規化した値を publish すると
+// bag から |q| の化けが見えなくなり、閾値を決め直せない。
+
+TEST(ImuSanity, HeldIsOnlySetWhenTheSampleIsActuallyReplaced) {
+    auto s = util::ImuSanity{};  // enforce=false
+    s.update(LEVEL, STILL);
+
+    EXPECT_FALSE(s.update(about_z(1.0), STILL).held) << "正常なサンプル";
+    EXPECT_FALSE(s.update({2.2306, 0.0, 0.0, 0.0}, STILL).held)
+        << "検出しただけなら生値を通してよい";
+    EXPECT_TRUE(s.update({0.0, 0.0, 0.0, 0.0}, STILL).held) << "必ず捨てる網に掛かった";
+
+    auto opt = util::ImuSanity::Options{};
+    opt.enforce = true;
+    auto e = util::ImuSanity{opt};
+    e.update(LEVEL, STILL);
+    EXPECT_TRUE(e.update({2.2306, 0.0, 0.0, 0.0}, STILL).held) << "enforce=true なら差し替える";
+}

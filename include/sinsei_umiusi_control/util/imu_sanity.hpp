@@ -55,6 +55,10 @@ class ImuSanity {
     struct Result {
         std::optional<ImuSample> sample;  // 採用値、または直前の有効値。まだ無ければ nullopt
         Reason reason = Reason::None;
+        // 実際に棄却して直前の有効値を返したか。false なら (検出したかどうかに関わらず)
+        // 呼び出し側は生値をそのまま使ってよい。enforce=false で生データを録り続けるために
+        // 要る — ここで正規化した値を返すと、bag から |q| の化けが見えなくなる
+        bool held = false;
         std::string detail;  // ログ用。実測値を含む
     };
 
@@ -93,6 +97,7 @@ class ImuSanity {
             if (opt_.enforce || unusable(res.reason)) {
                 ++rejected_;
                 ++consecutive_;
+                res.held = true;
                 res.sample = last_;
                 return res;
             }

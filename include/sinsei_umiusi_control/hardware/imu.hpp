@@ -6,12 +6,14 @@
 #include <rclcpp/macros.hpp>
 
 #include "sinsei_umiusi_control/hardware_model/imu_model.hpp"
+#include "sinsei_umiusi_control/util/imu_sanity.hpp"
 
 namespace sinsei_umiusi_control::hardware {
 
 class Imu : public hardware_interface::SensorInterface {
   private:
     std::optional<hardware_model::ImuModel> model;
+    util::ImuSanity sanity;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(Imu)
