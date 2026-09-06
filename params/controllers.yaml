@@ -24,7 +24,8 @@
         servo_slew_deg_per_s: 250.0 # サーボの指令レート制限。下流に制限が無いのでここが唯一
         # esc は下流の thruster_controller_*/max_duty_step_per_sec でも制限される。
         # 実効レートは両者の厳しい方 = 既定では 1.0/s で、この 4.0/s は効かない。
-        # rl で走らせるなら 4 基の max_duty_step_per_sec を上げること (docs 参照)
+        # それでよい: 1.0/s は方策が学習した DR 範囲 [1.0, 10.0] の中で、sim の sweep 実測
+        # では範囲内で最良の点。理由なく上げないこと (docs/attitude_controller.md)
         thrust_slew_per_s: 4.0
         hold_yaw: true # false で yaw の保持だけ切る
 
