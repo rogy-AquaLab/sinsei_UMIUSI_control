@@ -29,6 +29,9 @@ class AttitudeController : public controller_interface::ChainableControllerInter
             state::imu::Acceleration imu_acceleration;
             state::imu::AngularVelocity imu_angular_velocity;
             std::array<state::thruster::esc::Rpm, 4> esc_rpms;
+            // arm 状態 (`/cmd/thruster_runnable_all` -> ThrusterMode)。disarm 中に logic を
+            // 走らせないために読む
+            std::array<state::thruster::esc::Mode, 4> esc_modes;
         };
         Command cmd;
         State state;

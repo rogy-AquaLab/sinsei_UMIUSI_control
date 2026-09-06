@@ -1,5 +1,6 @@
 #include "sinsei_umiusi_control/controller/attitude_controller.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <controller_interface/controller_interface_base.hpp>
 #include <cstddef>
@@ -10,6 +11,7 @@
 #include "sinsei_umiusi_control/controller/logic/logic_interface.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
+#include "sinsei_umiusi_control/util/thruster_mode.hpp"
 
 // RL logic は libtorch がある環境でだけ入る (CMakeLists の find_package(Torch QUIET))。
 // 無ければ `control_mode:=rl` は on_configure で明示的に落とす。
@@ -189,6 +191,13 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
             util::to_interface_data_ptr(this->output.cmd.servo_angles[i]),
             sizeof(this->output.cmd.servo_angles[i])));
 
+        // arm 状態。thruster_controller が自分の名前で出している state interface で、
+        // gate_controller も同じものを読んでいる
+        this->state_interface_data.push_back(std::make_tuple(
+            controller_prefix + "esc/mode",
+            util::to_interface_data_ptr(this->input.state.esc_modes[i]),
+            sizeof(this->input.state.esc_modes[i])));
+
         const auto thruster_prefix = controller_prefix + "thruster/";
         this->state_interface_data.push_back(std::make_tuple(
             thruster_prefix + "esc/rpm",
@@ -317,7 +326,18 @@ auto AttitudeController::update_and_write_commands(
     }
     const auto mode_changed = this->logic->control_mode() != control_mode_res.value();
 
-    if (!mode_changed) {
+    // disarm 中は logic を走らせず初期状態に戻し続ける。on_activate だけでは足りない:
+    // 実運用の arm/disarm は `/cmd/thruster_runnable_all` (ThrusterMode) で行われ、
+    // attitude_controller は active のままなので deactivate を通らない。
+    // rl はレンチモードの積分器を持っていて、disarm 中も回し続けると誤差が閉じないまま
+    // ±1 のレールに張り付き、arm した瞬間に max_duty のキックが出る (実機で確認)。
+    const auto armed = std::any_of(
+        this->input.state.esc_modes.begin(), this->input.state.esc_modes.end(),
+        [](const auto & m) { return m.value == util::ThrusterMode::Runnable; });
+
+    if (!mode_changed && !armed) {
+        this->output = this->logic->init(time.seconds(), this->input, this->output);
+    } else if (!mode_changed) {
         // 姿勢制御の関数を呼び出す
         this->output = this->logic->update(time.seconds(), period.seconds(), this->input);
 #ifdef SINSEI_UMIUSI_CONTROL_WITH_TORCH
