@@ -36,6 +36,9 @@ class AttitudeController : public controller_interface::ChainableControllerInter
             std::array<std::optional<state::thruster::servo::EstimatedAngle>, 4>
                 servo_estimated_angles;
             std::array<state::thruster::servo::MaxAngularVelocity, 4> servo_max_angular_velocities;
+            // arm 状態 (`/cmd/thruster_runnable_all` -> ThrusterMode)。disarm 中に logic を
+            // 走らせないために読む
+            std::array<state::thruster::esc::Mode, 4> esc_modes;
         };
         Command cmd;
         State state;
