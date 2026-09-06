@@ -221,6 +221,10 @@ av_mode13 は ESC ランプを `[1.0, 10.0]` の domain randomization で学習�
 その範囲の中。sim 側の sweep 実測では 1.0/s が範囲内で最良の点だった
 (ori 0.154 / null 5.2% / 巡航 104%)。**理由なく上げないこと。**
 
+> この数値の**定義側は `umiusi_sim`** で、ここにあるのは引き写し。DR 範囲や推力を
+> 較正し直したら再掃引が要る (`umiusi_sim` の `thrust_slew_range` を変えたときも同じ)。
+> **ここだけ直しても意味が無いし、向こうだけ直すとここが黙って嘘になる。**
+
 なお `/cmd/direct` に出す経路 (autonomy の rl_attitude_node) は `ThrusterController` を
 迂回する (known_issues B-12) ので、そちらの実効値は 4.0/s になる。**同じ方策でも
 スタックによって実効ランプが違う。**

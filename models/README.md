@@ -19,7 +19,12 @@ cp models/<name>/{deploy.pt,golden.pt} <control>/models/<name>/
 元のバンドル (`export/weights.pt` + `obs_norm.npz` + `meta.json`、`golden.npz`、
 `meta.yaml`) は `umiusi_sim` の `models/<name>/` に版管理されている。そちらが正本。
 
-同梱時点の `umiusi_sim`: `430944e`
+同梱時点の `umiusi_sim`: `87de401`
+
+このコミット番号は**参考**で、正しさの根拠ではない。`deploy.pt` が古いと C++ 側が
+起動時に落ちる (属性が欠けていれば「deploy.pt が古い」と言い、値がずれていれば
+golden 検証が落ちる) ので、**合っているかどうかは起動すれば分かる**。
+テストでも見ている: `ShippedBundles.AllLoadAndPassGolden`。
 
 ## 中身
 
