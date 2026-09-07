@@ -110,6 +110,8 @@ auto Headlights::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /
         return hardware_interface::return_type::OK;
     }
 
+    this->set_state("headlights/health", util::to_interface_data(state::headlights::Health{true}));
+
     return hardware_interface::return_type::OK;
 }
 

@@ -89,6 +89,9 @@ auto IndicatorLed::write(const rclcpp::Time & /*time*/, const rclcpp::Duration &
         return hardware_interface::return_type::OK;
     }
 
+    this->set_state(
+        "indicator_led/health", util::to_interface_data(state::indicator_led::Health{true}));
+
     return hardware_interface::return_type::OK;
 }
 
