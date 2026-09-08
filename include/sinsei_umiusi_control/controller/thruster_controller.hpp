@@ -8,6 +8,7 @@
 #include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
 #include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
 #include "sinsei_umiusi_control/controller/logic/logic_interface.hpp"
+#include "sinsei_umiusi_control/controller/thruster_limits.hpp"
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
 #include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
@@ -77,6 +78,11 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     Output output;
 
     std::unique_ptr<Logic> logic;
+
+    // ハードウェア境界の歯止め。**`logic` を通るかどうかに関わらず必ず適用する**
+    // (直接指令が範囲チェックを素通りしていた件の対処。thruster_limits.hpp 参照)。
+    // ステートレスなので、`output.state` は生の指令のまま残し `output.cmd` を作るときだけ通す。
+    ThrusterLimits limits;
 
     util::interface_accessor::InterfaceDataContainer command_interface_data;
     util::interface_accessor::InterfaceDataContainer state_interface_data;

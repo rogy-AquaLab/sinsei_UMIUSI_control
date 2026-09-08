@@ -73,6 +73,15 @@ auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
             .set__description("Thruster direction (true for forward, false for reverse)")
             .set__type(rclcpp::PARAMETER_BOOL));
     this->get_node()->declare_parameter(
+        "servo_sign", 1.0,
+        ParameterDescriptor{}
+            .set__description(
+                "Servo rotation sense (+1.0 for normal, -1.0 for reversed mounting). "
+                "Applied at the hardware boundary, so it also covers direct commands.")
+            .set__type(rclcpp::PARAMETER_DOUBLE)
+            .set__floating_point_range(
+                {FloatingPointRange{}.set__from_value(-1.0).set__to_value(1.0)}));
+    this->get_node()->declare_parameter(
         "duty_per_thrust", 1.0,
         ParameterDescriptor{}
             .set__description("Duty cycle per unit thrust [/N]")
@@ -116,6 +125,25 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
         this->get_node()
             ->get_parameter("max_duty_step_per_sec")
             .as_double();  // パラメータで範囲に制約を設けているので安全
+
+    const auto servo_sign = this->get_node()
+                                ->get_parameter("servo_sign")
+                                .as_double();  // パラメータで範囲に制約を設けているので安全
+
+    // logic を通るかどうかに関わらず必ず適用する (thruster_limits.hpp)
+    this->limits = ThrusterLimits{max_duty_cycle, servo_sign};
+
+    if (max_duty_cycle <= 0.0) {
+        RCLCPP_WARN(
+            this->get_node()->get_logger(),
+            "max_duty is %.3f: this thruster will never produce any output", max_duty_cycle);
+    }
+    if (servo_sign != 1.0 && servo_sign != -1.0) {
+        RCLCPP_WARN(
+            this->get_node()->get_logger(),
+            "servo_sign is %.3f, which is not a rotation sense (+1.0 / -1.0); treating it as %+.1f",
+            servo_sign, servo_sign < 0.0 ? -1.0 : 1.0);
+    }
 
     this->logic = std::make_unique<logic::thruster::LinearAcceleration>(
         duty_per_thrust, max_duty_cycle, max_duty_step_per_sec);
@@ -296,12 +324,30 @@ auto ThrusterController::update_and_write_commands(
         this->output = this->logic->update(time.seconds(), period.seconds(), this->input);
     }
 
+    // output.state は書き換えない。state は指令のエコーという契約を保つのと、
+    // output が永続メンバなので書き戻すと次の周期に重ね掛けされるため
+    constexpr auto CLAMP_WARN_MS = 3000;
+    if (this->limits.duty_was_clamped(this->output.state.esc_duty_cycle.value)) {
+        RCLCPP_WARN_THROTTLE(
+            this->get_node()->get_logger(), *this->get_node()->get_clock(), CLAMP_WARN_MS,
+            "esc duty %.3f exceeds max_duty; clamping (raise max_duty for bench calibration)",
+            this->output.state.esc_duty_cycle.value);
+    }
+    if (this->limits.servo_angle_was_clamped(this->output.state.servo_angle.value)) {
+        RCLCPP_WARN_THROTTLE(
+            this->get_node()->get_logger(), *this->get_node()->get_clock(), CLAMP_WARN_MS,
+            "servo angle %.1f deg is out of the +-90 range; clamping",
+            this->output.state.servo_angle.value);
+    }
+
     this->output.cmd.esc_allowed.value =
         this->output.state.esc_mode.value == util::ThrusterMode::Runnable;
-    this->output.cmd.esc_duty_cycle.value = this->output.state.esc_duty_cycle.value;
+    this->output.cmd.esc_duty_cycle.value =
+        this->limits.apply_duty(this->output.state.esc_duty_cycle.value);
     this->output.cmd.servo_allowed.value =
         this->output.state.servo_mode.value == util::ThrusterMode::Runnable;
-    this->output.cmd.servo_angle.value = this->output.state.servo_angle.value;
+    this->output.cmd.servo_angle.value =
+        this->limits.apply_servo_angle(this->output.state.servo_angle.value);
 
     // コマンドを送信
     res = util::interface_accessor::set_commands_to_loaned_interfaces(
