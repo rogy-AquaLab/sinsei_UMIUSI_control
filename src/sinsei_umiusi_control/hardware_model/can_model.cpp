@@ -1,8 +1,12 @@
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 
+#include <algorithm>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 #include <tuple>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 #include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
 
@@ -10,53 +14,57 @@ using namespace sinsei_umiusi_control::hardware_model;
 
 auto CanModel::update_and_generate_command(
     cmd::main_power::Enabled main_power_enabled,
-    std::array<cmd::thruster::esc::Allowed, 4> esc_allowed_flags,
-    std::array<cmd::thruster::esc::DutyCycle, 4> esc_duty_cycles,
-    std::array<cmd::thruster::servo::Allowed, 4> servo_allowed_flags,
-    std::array<cmd::thruster::servo::Angle, 4> servo_angles,
-    cmd::led_tape::Color led_tape_color) -> WriteCommand {
+    const std::vector<ThrusterCommand> & thruster_commands,
+    cmd::led_tape::Color led_tape_color) -> tl::expected<WriteCommand, std::string> {
     this->loop_times++;
 
     // main_power_enabled
     if (this->last_main_power_enabled.value != main_power_enabled.value) {
         this->last_main_power_enabled = main_power_enabled;
-        return this->last_main_power_enabled;
+        return WriteCommand{this->last_main_power_enabled};
     }
 
-    constexpr auto THRUSTERS_NUM = 4;        // 1 ~ 4
-    constexpr auto THRUSTER_PACKET_NUM = 4;  // esc_allowed, servo_allowed, duty_cycle, angle
-    constexpr auto THRUSTERS_TOTAL_PACKET_NUM = THRUSTERS_NUM * THRUSTER_PACKET_NUM;  // 16
+    constexpr auto THRUSTER_PACKET_NUM = 4;  // esc_allowed, duty_cycle, servo_allowed, angle
+    const auto thrusters_num = this->thrusters.size();
+    const auto thrusters_total_packet_num = thrusters_num * THRUSTER_PACKET_NUM;
 
     const auto period_led_tape_per_loop =
-        this->period_led_tape_per_thrusters * THRUSTERS_TOTAL_PACKET_NUM;
+        this->period_led_tape_per_thrusters * thrusters_total_packet_num;
 
     // `period_led_tape_per_loop`回に1回LEDテープのコマンドを送信する。
     // LEDテープのコマンドを送信しない場合はスラスターのコマンドを順番に送信する。
     const auto led = (this->loop_times % period_led_tape_per_loop) == 0;
     if (!led) {
-        const auto thruster_index = this->loop_times % THRUSTERS_NUM;
-        const auto thruster_id = thruster_index + 1;
+        const auto thruster_index = this->loop_times % thrusters_num;
 
-        const auto packet_type =
-            (this->loop_times % THRUSTERS_TOTAL_PACKET_NUM) / THRUSTER_PACKET_NUM;
+        const auto packet_type = (this->loop_times % thrusters_total_packet_num) / thrusters_num;
+        const auto & thruster = this->thrusters[thruster_index];
+        const auto * thruster_command =
+            this->find_thruster_command(thruster_commands, thruster.name);
+        if (thruster_command == nullptr) {
+            return tl::make_unexpected("Missing thruster command: " + thruster.name);
+        }
+
         switch (packet_type) {
             case 0: {  // esc_allowed
-                return std::make_tuple(thruster_id, esc_allowed_flags[thruster_index]);
+                return WriteCommand{std::make_tuple(thruster_index, thruster_command->esc_allowed)};
             }
             case 1: {  // esc_duty_cycle
-                if (!esc_allowed_flags[thruster_index].value) {
+                if (!thruster_command->esc_allowed.value) {
                     break;  // ESCが無効の場合はデューティ比を送信しない
                 }
-                return std::make_tuple(thruster_id, esc_duty_cycles[thruster_index]);
+                return WriteCommand{
+                    std::make_tuple(thruster_index, thruster_command->esc_duty_cycle)};
             }
             case 2: {  // servo_allowed
-                return std::make_tuple(thruster_id, servo_allowed_flags[thruster_index]);
+                return WriteCommand{
+                    std::make_tuple(thruster_index, thruster_command->servo_allowed)};
             }
             case 3: {  // servo_angle
-                if (!servo_allowed_flags[thruster_index].value) {
+                if (!thruster_command->servo_allowed.value) {
                     break;  // サーボが無効の場合は角度を送信しない
                 }
-                return std::make_tuple(thruster_id, servo_angles[thruster_index]);
+                return WriteCommand{std::make_tuple(thruster_index, thruster_command->servo_angle)};
             }
             default: {
                 break;  // unreachable
@@ -64,23 +72,49 @@ auto CanModel::update_and_generate_command(
         }
     }
 
-    return led_tape_color;  // led_tape/color
+    return WriteCommand{led_tape_color};  // led_tape/color
 }
 
 CanModel::CanModel(
-    std::shared_ptr<interface::Can> can, std::array<int, 4> vesc_ids,
+    std::shared_ptr<interface::Can> can, std::vector<ThrusterConfig> thruster_configs,
     size_t period_led_tape_per_thrusters)
 : can(can),
-  vesc_models{{
-      can::VescModel(vesc_ids[0]),
-      can::VescModel(vesc_ids[1]),
-      can::VescModel(vesc_ids[2]),
-      can::VescModel(vesc_ids[3]),
-  }},
   last_main_power_enabled{false},
-  period_led_tape_per_thrusters{period_led_tape_per_thrusters} {}
+  period_led_tape_per_thrusters{period_led_tape_per_thrusters} {
+    this->thrusters.reserve(thruster_configs.size());
+    for (auto & config : thruster_configs) {
+        this->thrusters.push_back(
+            Thruster{std::move(config.name), config.vesc_id, can::VescModel(config.vesc_id)});
+    }
+}
+
+auto CanModel::validate_thrusters() const -> tl::expected<void, std::string> {
+    if (this->thrusters.empty()) {
+        return tl::make_unexpected("At least one thruster must be configured");
+    }
+
+    auto names = std::unordered_set<std::string>{};
+    auto vesc_ids = std::unordered_set<can::VescModel::Id>{};
+    for (const auto & thruster : this->thrusters) {
+        if (thruster.name.empty()) {
+            return tl::make_unexpected("Thruster name must not be empty");
+        }
+        if (!names.insert(thruster.name).second) {
+            return tl::make_unexpected("Duplicate thruster name: " + thruster.name);
+        }
+        if (!vesc_ids.insert(thruster.vesc_id).second) {
+            return tl::make_unexpected("Duplicate VESC ID: " + std::to_string(thruster.vesc_id));
+        }
+    }
+    return {};
+}
 
 auto CanModel::on_init() -> tl::expected<void, std::string> {
+    const auto validation_res = this->validate_thrusters();
+    if (!validation_res) {
+        return tl::make_unexpected("Invalid thruster configuration: " + validation_res.error());
+    }
+
     const auto res = this->can->init("can0");
     if (!res) {
         return tl::make_unexpected("Failed to initialize CAN interface: " + res.error());
@@ -98,12 +132,59 @@ auto CanModel::on_destroy() -> tl::expected<void, std::string> {
     return {};
 }
 
+auto CanModel::find_thruster(const std::string & name) const -> const Thruster * {
+    const auto thruster_it = std::find_if(
+        this->thrusters.cbegin(), this->thrusters.cend(),
+        [&name](const auto & thruster) { return thruster.name == name; });
+    if (thruster_it == this->thrusters.cend()) {
+        return nullptr;
+    }
+    return &*thruster_it;
+}
+
+auto CanModel::find_thruster_command(
+    const std::vector<ThrusterCommand> & commands,
+    const std::string & name) const -> const ThrusterCommand * {
+    const auto command_it = std::find_if(
+        commands.cbegin(), commands.cend(),
+        [&name](const auto & command) { return command.name == name; });
+    if (command_it == commands.cend()) {
+        return nullptr;
+    }
+    return &*command_it;
+}
+
+auto CanModel::validate_thruster_commands(const std::vector<ThrusterCommand> & commands) const
+    -> tl::expected<void, std::string> {
+    if (commands.size() != this->thrusters.size()) {
+        return tl::make_unexpected(
+            "Thruster command count does not match configuration: expected " +
+            std::to_string(this->thrusters.size()) + ", got " + std::to_string(commands.size()));
+    }
+
+    for (auto command_it = commands.begin(); command_it != commands.end(); ++command_it) {
+        const auto & name = command_it->name;
+        if (this->find_thruster(name) == nullptr) {
+            return tl::make_unexpected("Unknown thruster name: " + name);
+        }
+
+        const auto duplicate_it = std::find_if(
+            commands.begin(), command_it,
+            [&name](const auto & command) { return command.name == name; });
+        if (duplicate_it != command_it) {
+            return tl::make_unexpected("Duplicate thruster command: " + name);
+        }
+    }
+
+    return {};
+}
+
 auto CanModel::on_read() const
     -> tl::expected<
         std::variant<
-            std::tuple<size_t, state::thruster::esc::Rpm>,
-            std::tuple<size_t, state::thruster::esc::Voltage>,
-            std::tuple<size_t, state::thruster::esc::WaterLeaked>,
+            std::tuple<std::string, state::thruster::esc::Rpm>,
+            std::tuple<std::string, state::thruster::esc::Voltage>,
+            std::tuple<std::string, state::thruster::esc::WaterLeaked>,
             state::main_power::BatteryCurrent, state::main_power::BatteryVoltage,
             state::main_power::Temperature, state::main_power::WaterLeaked>,
         std::string> {
@@ -123,12 +204,13 @@ auto CanModel::on_read() const
 
     // TODO: この位置に`can::MainPowerModel`の処理を追加する
 
-    for (size_t i = 0; i < 4; ++i) {
-        const auto vesc_id = std::to_string(i + 1);
+    for (const auto & thruster : this->thrusters) {
+        const auto description =
+            "thruster '" + thruster.name + "' (VESC " + std::to_string(thruster.vesc_id) + ")";
 
-        const auto packet_status_res = this->vesc_models[i].get_packet_status(frame_opt.value());
+        const auto packet_status_res = thruster.vesc_model.get_packet_status(frame_opt.value());
         if (!packet_status_res) {
-            error_message += "    VESC " + vesc_id + ": " + packet_status_res.error() + "\n";
+            error_message += "    " + description + ": " + packet_status_res.error() + "\n";
             continue;
         }
 
@@ -143,22 +225,24 @@ auto CanModel::on_read() const
                 const auto & status = std::get<0>(packet_status_opt.value());
                 constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
                 // ERPMを極対数で割ってRPMに変換
-                return std::make_tuple(i, state::thruster::esc::Rpm{status.erpm / BLDC_POLE_PAIR});
+                return std::make_tuple(
+                    thruster.name, state::thruster::esc::Rpm{status.erpm / BLDC_POLE_PAIR});
             }
             case 4: {  // PacketStatus5
                 const auto & status = std::get<4>(packet_status_opt.value());
                 const auto volts_in = status.volts_in;
-                return std::make_tuple(i, state::thruster::esc::Voltage{volts_in});
+                return std::make_tuple(thruster.name, state::thruster::esc::Voltage{volts_in});
             }
             case 5: {  // PacketStatus6
                 const auto & status = std::get<5>(packet_status_opt.value());
                 // 浸水センサーはADC1に接続されている
                 const auto water_leaked = status.adc1 < WATER_LEAKED_VOLTAGE_THRESHOLD;
-                return std::make_tuple(i, state::thruster::esc::WaterLeaked{water_leaked});
+                return std::make_tuple(
+                    thruster.name, state::thruster::esc::WaterLeaked{water_leaked});
             }
             default: {
                 return tl::make_unexpected(
-                    "Unsupported VESC packet status variant received (VESC " + vesc_id +
+                    "Unsupported VESC packet status variant received (" + description +
                     ", variant index: " + std::to_string(packet_status_opt.value().index()) + ")");
             }
         }
@@ -177,14 +261,23 @@ auto CanModel::on_read() const
 
 auto CanModel::on_write(
     cmd::main_power::Enabled main_power_enabled,
-    std::array<cmd::thruster::esc::Allowed, 4> esc_allowed_flags,
-    std::array<cmd::thruster::esc::DutyCycle, 4> esc_duty_cycles,
-    std::array<cmd::thruster::servo::Allowed, 4> servo_allowed_flags,
-    std::array<cmd::thruster::servo::Angle, 4> servo_angles,
+    const std::vector<ThrusterCommand> & thruster_commands,
     cmd::led_tape::Color led_tape_color) -> tl::expected<void, std::string> {
-    auto command = this->update_and_generate_command(
-        main_power_enabled, esc_allowed_flags, esc_duty_cycles, servo_allowed_flags, servo_angles,
-        led_tape_color);
+    if (this->thrusters.empty()) {
+        return tl::make_unexpected("No thrusters are configured");
+    }
+
+    const auto validation_res = this->validate_thruster_commands(thruster_commands);
+    if (!validation_res) {
+        return tl::make_unexpected("Invalid thruster commands: " + validation_res.error());
+    }
+
+    const auto command_res =
+        this->update_and_generate_command(main_power_enabled, thruster_commands, led_tape_color);
+    if (!command_res) {
+        return tl::make_unexpected("Failed to generate CAN command: " + command_res.error());
+    }
+    auto command = command_res.value();
 
     auto frame = interface::CanFrame{};
 
@@ -197,55 +290,49 @@ auto CanModel::on_write(
             return tl::make_unexpected("Not implemented for main power enabled command");
         }
 
-        case 1: {  // std::tuple<ThrusterId, EscAllowed>
-            auto & [id, esc_allowed] = std::get<1>(command);
-            if (id > vesc_models.size()) {
-                return tl::make_unexpected("Invalid thruster ID: " + std::to_string(id));
-            }
+        case 1: {  // std::tuple<ThrusterIndex, EscAllowed>
+            auto & [index, esc_allowed] = std::get<1>(command);
 
             // TODO: `esc_allowed`の処理を実装する
             auto _ = esc_allowed;
-            return tl::make_unexpected("Not implemented for ESC allowed command");
+            return tl::make_unexpected(
+                "Not implemented for ESC allowed command (thruster: " +
+                this->thrusters[index].name + ")");
         }
 
-        case 2: {  // std::tuple<ThrusterId, ServoAllowed>
-            auto & [id, servo_allowed] = std::get<2>(command);
-            if (id > vesc_models.size()) {
-                return tl::make_unexpected("Invalid thruster ID: " + std::to_string(id));
-            }
+        case 2: {  // std::tuple<ThrusterIndex, ServoAllowed>
+            auto & [index, servo_allowed] = std::get<2>(command);
 
             // TODO: `servo_allowed`の処理を実装する
             const auto _ = servo_allowed;
-            return tl::make_unexpected("Not implemented for servo allowed command");
+            return tl::make_unexpected(
+                "Not implemented for servo allowed command (thruster: " +
+                this->thrusters[index].name + ")");
         }
 
-        case 3: {  // std::tuple<ThrusterId, EscDutyCycle>
-            auto & [id, esc_duty_cycle] = std::get<3>(command);
-            if (id > vesc_models.size()) {
-                return tl::make_unexpected("Invalid thruster ID: " + std::to_string(id));
-            }
+        case 3: {  // std::tuple<ThrusterIndex, EscDutyCycle>
+            auto & [index, esc_duty_cycle] = std::get<3>(command);
 
-            auto duty_frame_res = vesc_models[id - 1].make_duty_frame(esc_duty_cycle.value);
+            auto duty_frame_res =
+                this->thrusters[index].vesc_model.make_duty_frame(esc_duty_cycle.value);
             if (!duty_frame_res) {
                 return tl::make_unexpected(
-                    "Failed to create duty frame for thruster " + std::to_string(id) + ": " +
-                    duty_frame_res.error());
+                    "Failed to create duty frame for thruster '" + this->thrusters[index].name +
+                    "': " + duty_frame_res.error());
             }
             frame = std::move(duty_frame_res.value());
             break;
         }
 
-        case 4: {  // std::tuple<ThrusterId, ServoAngle>
-            auto & [id, servo_angle] = std::get<4>(command);
-            if (id > vesc_models.size()) {
-                return tl::make_unexpected("Invalid thruster ID: " + std::to_string(id));
-            }
+        case 4: {  // std::tuple<ThrusterIndex, ServoAngle>
+            auto & [index, servo_angle] = std::get<4>(command);
 
-            auto angle_frame_res = vesc_models[id - 1].make_servo_angle_frame(servo_angle.value);
+            auto angle_frame_res =
+                this->thrusters[index].vesc_model.make_servo_angle_frame(servo_angle.value);
             if (!angle_frame_res) {
                 return tl::make_unexpected(
-                    "Failed to create servo angle frame for thruster " + std::to_string(id) + ": " +
-                    angle_frame_res.error());
+                    "Failed to create servo angle frame for thruster '" +
+                    this->thrusters[index].name + "': " + angle_frame_res.error());
             }
             frame = std::move(angle_frame_res.value());
             break;
