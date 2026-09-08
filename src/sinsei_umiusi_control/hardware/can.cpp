@@ -1,9 +1,14 @@
 #include "sinsei_umiusi_control/hardware/can.hpp"
 
+#include <cstdint>
+#include <utility>
+#include <vector>
+
 #include "sinsei_umiusi_control/hardware_model/impl/linux_can.hpp"
 #include "sinsei_umiusi_control/state/can.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
+#include "sinsei_umiusi_control/util/string.hpp"
 
 using namespace sinsei_umiusi_control::hardware;
 
@@ -26,8 +31,14 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SystemInterface::on_init(params);
 
-    std::array<int, 4> vesc_ids;
-    for (size_t i = 0; i < 4; ++i) {
+    // FIXME: URDF側での名前付きGPIO設定を導入するまでは、既存のハードウェアパラメータを維持する。
+    // CanModel自体は、この固定長の表現には依存していない
+    constexpr size_t LEGACY_THRUSTER_COUNT = 4;
+    auto thruster_configs = std::vector<hardware_model::CanModel::ThrusterConfig>{};
+    auto thruster_names = std::vector<std::string>{};
+    thruster_configs.reserve(LEGACY_THRUSTER_COUNT);
+    thruster_names.reserve(LEGACY_THRUSTER_COUNT);
+    for (size_t i = 0; i < LEGACY_THRUSTER_COUNT; ++i) {
         auto vesc_id_key = "vesc" + std::to_string(i + 1) + "_id";
         auto vesc_id_str = util::find_param(params.hardware_info.hardware_parameters, vesc_id_key);
         if (!vesc_id_str) {
@@ -36,14 +47,19 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
                 vesc_id_key.c_str());
             return hardware_interface::CallbackReturn::ERROR;
         }
-        try {
-            vesc_ids[i] = std::stoi(vesc_id_str.value());
-        } catch (const std::invalid_argument & e) {
+        const auto vesc_id_res = util::from_chars_expected<unsigned int>(vesc_id_str.value());
+        if (!vesc_id_res || vesc_id_res.value() > UINT8_MAX) {
             RCLCPP_ERROR(
-                this->get_logger(), "Invalid VESC ID '%s': %s", vesc_id_str.value().c_str(),
-                e.what());
+                this->get_logger(), "Invalid VESC ID '%s' for parameter '%s'",
+                vesc_id_str.value().c_str(), vesc_id_key.c_str());
             return hardware_interface::CallbackReturn::ERROR;
         }
+        const auto thruster_name = "thruster" + std::to_string(i + 1);
+        thruster_configs.push_back(hardware_model::CanModel::ThrusterConfig{
+            thruster_name,
+            static_cast<hardware_model::can::VescModel::Id>(vesc_id_res.value()),
+        });
+        thruster_names.push_back(thruster_name);
     }
 
     // Thrusterすべてに信号を`period_led_tape_per_thrusters`回送るごとにLEDテープの信号を1回送る
@@ -74,8 +90,9 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
         return hardware_interface::CallbackReturn::ERROR;
     }
 
+    this->thruster_names = std::move(thruster_names);
     this->model.emplace(
-        std::make_shared<hardware_model::impl::LinuxCan>(), vesc_ids,
+        std::make_shared<hardware_model::impl::LinuxCan>(), std::move(thruster_configs),
         period_led_tape_per_thrusters);
 
     auto res = this->model->on_init();
@@ -115,20 +132,17 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
 
     switch (variant.index()) {
         case 0: {  // Rpm
-            const auto [index, rpm] = std::get<0>(variant);
-            const auto thruster_name = "thruster" + std::to_string(index + 1);
+            const auto & [thruster_name, rpm] = std::get<0>(variant);
             this->set_state(thruster_name + "/esc/rpm", util::to_interface_data(rpm));
             break;
         }
         case 1: {  // ESC Voltage
-            const auto [index, voltage] = std::get<1>(variant);
-            const auto thruster_name = "thruster" + std::to_string(index + 1);
+            const auto & [thruster_name, voltage] = std::get<1>(variant);
             this->set_state(thruster_name + "/esc/voltage", util::to_interface_data(voltage));
             break;
         }
         case 2: {  // ESC WaterLeaked
-            const auto [index, water_leaked] = std::get<2>(variant);
-            const auto thruster_name = "thruster" + std::to_string(index + 1);
+            const auto & [thruster_name, water_leaked] = std::get<2>(variant);
             this->set_state(
                 thruster_name + "/esc/water_leaked", util::to_interface_data(water_leaked));
             break;
@@ -176,27 +190,22 @@ auto Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period
     auto && led_tape_color =
         util::from_interface_data<cmd::led_tape::Color>(this->get_command("led_tape/color"));
 
-    auto thruster_name = [](size_t i) { return "thruster" + std::to_string(i + 1); };
-
-    auto && esc_allowed_flags = std::array<cmd::thruster::esc::Allowed, 4>{};
-    auto && esc_duty_cycles = std::array<cmd::thruster::esc::DutyCycle, 4>{};
-    auto && servo_allowed_flags = std::array<cmd::thruster::servo::Allowed, 4>{};
-    auto && servo_angles = std::array<cmd::thruster::servo::Angle, 4>{};
-
-    for (size_t i = 0; i < 4; ++i) {
-        esc_allowed_flags[i] = util::from_interface_data<cmd::thruster::esc::Allowed>(
-            this->get_command(thruster_name(i) + "/esc/allowed"));
-        esc_duty_cycles[i] = util::from_interface_data<cmd::thruster::esc::DutyCycle>(
-            this->get_command(thruster_name(i) + "/esc/duty_cycle"));
-        servo_allowed_flags[i] = util::from_interface_data<cmd::thruster::servo::Allowed>(
-            this->get_command(thruster_name(i) + "/servo/allowed"));
-        servo_angles[i] = util::from_interface_data<cmd::thruster::servo::Angle>(
-            this->get_command(thruster_name(i) + "/servo/angle"));
+    auto thruster_commands = std::vector<hardware_model::CanModel::ThrusterCommand>{};
+    thruster_commands.reserve(this->thruster_names.size());
+    for (const auto & name : this->thruster_names) {
+        thruster_commands.push_back(hardware_model::CanModel::ThrusterCommand{
+            util::from_interface_data<cmd::thruster::esc::Allowed>(
+                this->get_command(name + "/esc/allowed")),
+            util::from_interface_data<cmd::thruster::esc::DutyCycle>(
+                this->get_command(name + "/esc/duty_cycle")),
+            util::from_interface_data<cmd::thruster::servo::Allowed>(
+                this->get_command(name + "/servo/allowed")),
+            util::from_interface_data<cmd::thruster::servo::Angle>(
+                this->get_command(name + "/servo/angle")),
+        });
     }
 
-    const auto res = this->model->on_write(
-        main_power_enabled, esc_allowed_flags, esc_duty_cycles, servo_allowed_flags, servo_angles,
-        led_tape_color);
+    const auto res = this->model->on_write(main_power_enabled, thruster_commands, led_tape_color);
     if (!res) {
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(
