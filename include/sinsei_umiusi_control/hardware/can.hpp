@@ -4,6 +4,8 @@
 #include <hardware_interface/system_interface.hpp>
 #include <hardware_interface/types/hardware_component_interface_params.hpp>
 #include <rclcpp/macros.hpp>
+#include <string>
+#include <vector>
 
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 
@@ -12,6 +14,8 @@ namespace sinsei_umiusi_control::hardware {
 class Can : public hardware_interface::SystemInterface {
   private:
     std::optional<hardware_model::CanModel> model;
+    // CanModelへ渡したスラスタ設定と同じ順序で保持する
+    std::vector<std::string> thruster_names;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(Can)

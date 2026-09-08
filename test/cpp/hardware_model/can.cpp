@@ -3,7 +3,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <algorithm>
 #include <cstdint>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
@@ -51,10 +50,8 @@ auto make_thrusters(size_t count) -> std::vector<suchm::CanModel::ThrusterConfig
     return thrusters;
 }
 
-auto make_enabled_command(const std::string & name, double duty_cycle = 0.25)
-    -> suchm::CanModel::ThrusterCommand {
+auto make_enabled_command(double duty_cycle = 0.25) -> suchm::CanModel::ThrusterCommand {
     return suchm::CanModel::ThrusterCommand{
-        name,
         succmd::thruster::esc::Allowed{true},
         succmd::thruster::esc::DutyCycle{duty_cycle},
         succmd::thruster::servo::Allowed{true},
@@ -66,8 +63,7 @@ auto make_enabled_commands(size_t count) -> std::vector<suchm::CanModel::Thruste
     auto commands = std::vector<suchm::CanModel::ThrusterCommand>{};
     commands.reserve(count);
     for (size_t i = 0; i < count; ++i) {
-        const auto name = "thruster" + std::to_string(i + 1);
-        commands.push_back(make_enabled_command(name));
+        commands.push_back(make_enabled_command());
     }
     return commands;
 }
@@ -216,7 +212,7 @@ TEST(CanModelTest, CanModelOnInitRejectsDuplicateVescIdTest) {
     EXPECT_EQ(result.error(), "Invalid thruster configuration: Duplicate VESC ID: 1");
 }
 
-TEST(CanModelTest, OnWriteUsesThrusterNamesInsteadOfCommandOrder) {
+TEST(CanModelTest, OnWriteUsesCommandIndexForConfiguredThrusterOrder) {
     auto can = std::make_shared<Can>();
     auto sent_frames = std::vector<suchm::interface::CanFrame>{};
 
@@ -236,11 +232,11 @@ TEST(CanModelTest, OnWriteUsesThrusterNamesInsteadOfCommandOrder) {
         suchm::CanModel(can, make_thrusters(THRUSTER_COUNT), PERIOD_WITHOUT_LED_IN_FIRST_CYCLE);
     ASSERT_TRUE(can_model.on_init());
 
-    // 設定順とは逆に並べ、名前で対応付けられることを確認する
+    // コマンドのインデックスがスラスタ設定のインデックスに対応することを確認する
     const auto thruster_commands = std::vector<suchm::CanModel::ThrusterCommand>{
-        make_enabled_command("thruster3", 0.75),
-        make_enabled_command("thruster2", 0.50),
-        make_enabled_command("thruster1", 0.25),
+        make_enabled_command(0.25),
+        make_enabled_command(0.50),
+        make_enabled_command(0.75),
     };
 
     // 最初の2回は未実装のESC許可コマンドで、続く3回が各スラスタのDutyコマンドになる
@@ -259,7 +255,7 @@ TEST(CanModelTest, OnWriteUsesThrusterNamesInsteadOfCommandOrder) {
     EXPECT_EQ(sinsei_umiusi_control::util::to_int32_be(sent_frames[2].data).value(), 75000);
 }
 
-TEST(CanModelTest, OnWriteRejectsUnknownThrusterName) {
+TEST(CanModelTest, OnWriteRejectsMismatchedThrusterCommandCount) {
     auto can = std::make_shared<Can>();
 
     EXPECT_CALL(*can, init(_)).WillOnce(Return(tl::expected<void, std::string>{}));
@@ -271,32 +267,13 @@ TEST(CanModelTest, OnWriteRejectsUnknownThrusterName) {
     ASSERT_TRUE(can_model.on_init());
 
     auto thruster_commands = make_enabled_commands(THRUSTER_COUNT);
-    thruster_commands.back().name = "unknown";
+    thruster_commands.pop_back();
     const auto result = can_model.on_write(
         succmd::main_power::Enabled{false}, thruster_commands, succmd::led_tape::Color{0, 0, 0});
 
     ASSERT_FALSE(result);
-    EXPECT_EQ(result.error(), "Invalid thruster commands: Unknown thruster name: unknown");
-}
-
-TEST(CanModelTest, OnWriteRejectsDuplicateThrusterCommand) {
-    auto can = std::make_shared<Can>();
-
-    EXPECT_CALL(*can, init(_)).WillOnce(Return(tl::expected<void, std::string>{}));
-    EXPECT_CALL(*can, send_frame(_)).Times(0);
-
-    constexpr size_t THRUSTER_COUNT = 3;
-    auto can_model =
-        suchm::CanModel(can, make_thrusters(THRUSTER_COUNT), PERIOD_LED_TAPE_PER_THRUSTERS);
-    ASSERT_TRUE(can_model.on_init());
-
-    auto thruster_commands = make_enabled_commands(THRUSTER_COUNT);
-    thruster_commands.back().name = thruster_commands.front().name;
-    const auto result = can_model.on_write(
-        succmd::main_power::Enabled{false}, thruster_commands, succmd::led_tape::Color{0, 0, 0});
-
-    ASSERT_FALSE(result);
-    EXPECT_EQ(result.error(), "Invalid thruster commands: Duplicate thruster command: thruster1");
+    EXPECT_EQ(
+        result.error(), "Thruster command count does not match configuration: expected 3, got 2");
 }
 
 class CanModelVariableThrusterCountTest : public testing::TestWithParam<size_t> {};
@@ -322,8 +299,6 @@ TEST_P(CanModelVariableThrusterCountTest, WritesEachDynamicThrusterInRoundRobinO
     ASSERT_TRUE(can_model.on_init());
 
     auto thruster_commands = make_enabled_commands(thruster_count);
-    // 指令の並び順がスラスタの設定順に依存しないことも確認する
-    std::reverse(thruster_commands.begin(), thruster_commands.end());
 
     constexpr size_t COMMAND_TYPES_PER_THRUSTER = 4;
     // FIXME: ESC・サーボのallowedコマンドは未実装のため、Duty比とサーボ角度の送信だけが成功する

@@ -31,11 +31,13 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SystemInterface::on_init(params);
 
-    // 名前付きGPIO設定を導入するまでは、既存の位置ベースのハードウェアパラメータを維持する。
-    // CanModel自体は、この固定長の表現には依存しない。
+    // FIXME: URDF側での名前付きGPIO設定を導入するまでは、既存のハードウェアパラメータを維持する。
+    // CanModel自体は、この固定長の表現には依存していない
     constexpr size_t LEGACY_THRUSTER_COUNT = 4;
     auto thruster_configs = std::vector<hardware_model::CanModel::ThrusterConfig>{};
+    auto thruster_names = std::vector<std::string>{};
     thruster_configs.reserve(LEGACY_THRUSTER_COUNT);
+    thruster_names.reserve(LEGACY_THRUSTER_COUNT);
     for (size_t i = 0; i < LEGACY_THRUSTER_COUNT; ++i) {
         auto vesc_id_key = "vesc" + std::to_string(i + 1) + "_id";
         auto vesc_id_str = util::find_param(params.hardware_info.hardware_parameters, vesc_id_key);
@@ -52,10 +54,12 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
                 vesc_id_str.value().c_str(), vesc_id_key.c_str());
             return hardware_interface::CallbackReturn::ERROR;
         }
+        const auto thruster_name = "thruster" + std::to_string(i + 1);
         thruster_configs.push_back(hardware_model::CanModel::ThrusterConfig{
-            "thruster" + std::to_string(i + 1),
+            thruster_name,
             static_cast<hardware_model::can::VescModel::Id>(vesc_id_res.value()),
         });
+        thruster_names.push_back(thruster_name);
     }
 
     // Thrusterすべてに信号を`period_led_tape_per_thrusters`回送るごとにLEDテープの信号を1回送る
@@ -86,6 +90,7 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
         return hardware_interface::CallbackReturn::ERROR;
     }
 
+    this->thruster_names = std::move(thruster_names);
     this->model.emplace(
         std::make_shared<hardware_model::impl::LinuxCan>(), std::move(thruster_configs),
         period_led_tape_per_thrusters);
@@ -185,15 +190,10 @@ auto Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period
     auto && led_tape_color =
         util::from_interface_data<cmd::led_tape::Color>(this->get_command("led_tape/color"));
 
-    auto thruster_name = [](size_t i) { return "thruster" + std::to_string(i + 1); };
-
-    constexpr size_t LEGACY_THRUSTER_COUNT = 4;
     auto thruster_commands = std::vector<hardware_model::CanModel::ThrusterCommand>{};
-    thruster_commands.reserve(LEGACY_THRUSTER_COUNT);
-    for (size_t i = 0; i < LEGACY_THRUSTER_COUNT; ++i) {
-        const auto name = thruster_name(i);
+    thruster_commands.reserve(this->thruster_names.size());
+    for (const auto & name : this->thruster_names) {
         thruster_commands.push_back(hardware_model::CanModel::ThrusterCommand{
-            name,
             util::from_interface_data<cmd::thruster::esc::Allowed>(
                 this->get_command(name + "/esc/allowed")),
             util::from_interface_data<cmd::thruster::esc::DutyCycle>(

@@ -1,6 +1,5 @@
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 
-#include <algorithm>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 #include <tuple>
@@ -15,13 +14,13 @@ using namespace sinsei_umiusi_control::hardware_model;
 auto CanModel::update_and_generate_command(
     cmd::main_power::Enabled main_power_enabled,
     const std::vector<ThrusterCommand> & thruster_commands,
-    cmd::led_tape::Color led_tape_color) -> tl::expected<WriteCommand, std::string> {
+    cmd::led_tape::Color led_tape_color) -> WriteCommand {
     this->loop_times++;
 
     // main_power_enabled
     if (this->last_main_power_enabled.value != main_power_enabled.value) {
         this->last_main_power_enabled = main_power_enabled;
-        return WriteCommand{this->last_main_power_enabled};
+        return this->last_main_power_enabled;
     }
 
     constexpr auto THRUSTER_PACKET_NUM = 4;  // esc_allowed, duty_cycle, servo_allowed, angle
@@ -38,33 +37,26 @@ auto CanModel::update_and_generate_command(
         const auto thruster_index = this->loop_times % thrusters_num;
 
         const auto packet_type = (this->loop_times % thrusters_total_packet_num) / thrusters_num;
-        const auto & thruster = this->thrusters[thruster_index];
-        const auto * thruster_command =
-            this->find_thruster_command(thruster_commands, thruster.name);
-        if (thruster_command == nullptr) {
-            return tl::make_unexpected("Missing thruster command: " + thruster.name);
-        }
+        const auto & thruster_command = thruster_commands[thruster_index];
 
         switch (packet_type) {
             case 0: {  // esc_allowed
-                return WriteCommand{std::make_tuple(thruster_index, thruster_command->esc_allowed)};
+                return std::make_tuple(thruster_index, thruster_command.esc_allowed);
             }
             case 1: {  // esc_duty_cycle
-                if (!thruster_command->esc_allowed.value) {
+                if (!thruster_command.esc_allowed.value) {
                     break;  // ESCが無効の場合はデューティ比を送信しない
                 }
-                return WriteCommand{
-                    std::make_tuple(thruster_index, thruster_command->esc_duty_cycle)};
+                return std::make_tuple(thruster_index, thruster_command.esc_duty_cycle);
             }
             case 2: {  // servo_allowed
-                return WriteCommand{
-                    std::make_tuple(thruster_index, thruster_command->servo_allowed)};
+                return std::make_tuple(thruster_index, thruster_command.servo_allowed);
             }
             case 3: {  // servo_angle
-                if (!thruster_command->servo_allowed.value) {
+                if (!thruster_command.servo_allowed.value) {
                     break;  // サーボが無効の場合は角度を送信しない
                 }
-                return WriteCommand{std::make_tuple(thruster_index, thruster_command->servo_angle)};
+                return std::make_tuple(thruster_index, thruster_command.servo_angle);
             }
             default: {
                 break;  // unreachable
@@ -72,7 +64,7 @@ auto CanModel::update_and_generate_command(
         }
     }
 
-    return WriteCommand{led_tape_color};  // led_tape/color
+    return led_tape_color;  // led_tape/color
 }
 
 CanModel::CanModel(
@@ -129,53 +121,6 @@ auto CanModel::on_destroy() -> tl::expected<void, std::string> {
     if (!res) {
         return tl::make_unexpected("Failed to close CAN interface: " + res.error());
     }
-    return {};
-}
-
-auto CanModel::find_thruster(const std::string & name) const -> const Thruster * {
-    const auto thruster_it = std::find_if(
-        this->thrusters.cbegin(), this->thrusters.cend(),
-        [&name](const auto & thruster) { return thruster.name == name; });
-    if (thruster_it == this->thrusters.cend()) {
-        return nullptr;
-    }
-    return &*thruster_it;
-}
-
-auto CanModel::find_thruster_command(
-    const std::vector<ThrusterCommand> & commands,
-    const std::string & name) const -> const ThrusterCommand * {
-    const auto command_it = std::find_if(
-        commands.cbegin(), commands.cend(),
-        [&name](const auto & command) { return command.name == name; });
-    if (command_it == commands.cend()) {
-        return nullptr;
-    }
-    return &*command_it;
-}
-
-auto CanModel::validate_thruster_commands(const std::vector<ThrusterCommand> & commands) const
-    -> tl::expected<void, std::string> {
-    if (commands.size() != this->thrusters.size()) {
-        return tl::make_unexpected(
-            "Thruster command count does not match configuration: expected " +
-            std::to_string(this->thrusters.size()) + ", got " + std::to_string(commands.size()));
-    }
-
-    for (auto command_it = commands.begin(); command_it != commands.end(); ++command_it) {
-        const auto & name = command_it->name;
-        if (this->find_thruster(name) == nullptr) {
-            return tl::make_unexpected("Unknown thruster name: " + name);
-        }
-
-        const auto duplicate_it = std::find_if(
-            commands.begin(), command_it,
-            [&name](const auto & command) { return command.name == name; });
-        if (duplicate_it != command_it) {
-            return tl::make_unexpected("Duplicate thruster command: " + name);
-        }
-    }
-
     return {};
 }
 
@@ -267,17 +212,15 @@ auto CanModel::on_write(
         return tl::make_unexpected("No thrusters are configured");
     }
 
-    const auto validation_res = this->validate_thruster_commands(thruster_commands);
-    if (!validation_res) {
-        return tl::make_unexpected("Invalid thruster commands: " + validation_res.error());
+    if (thruster_commands.size() != this->thrusters.size()) {
+        return tl::make_unexpected(
+            "Thruster command count does not match configuration: expected " +
+            std::to_string(this->thrusters.size()) + ", got " +
+            std::to_string(thruster_commands.size()));
     }
 
-    const auto command_res =
+    auto command =
         this->update_and_generate_command(main_power_enabled, thruster_commands, led_tape_color);
-    if (!command_res) {
-        return tl::make_unexpected("Failed to generate CAN command: " + command_res.error());
-    }
-    auto command = command_res.value();
 
     auto frame = interface::CanFrame{};
 

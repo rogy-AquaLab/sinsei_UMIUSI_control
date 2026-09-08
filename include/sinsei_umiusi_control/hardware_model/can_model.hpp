@@ -31,7 +31,6 @@ class CanModel {
     };
 
     struct ThrusterCommand {
-        std::string name;
         EscAllowed esc_allowed;
         EscDutyCycle esc_duty_cycle;
         ServoAllowed servo_allowed;
@@ -77,15 +76,9 @@ class CanModel {
     auto update_and_generate_command(
         cmd::main_power::Enabled main_power_enabled,
         const std::vector<ThrusterCommand> & thruster_commands,
-        cmd::led_tape::Color led_tape_color) -> tl::expected<WriteCommand, std::string>;
+        cmd::led_tape::Color led_tape_color) -> WriteCommand;
 
     auto validate_thrusters() const -> tl::expected<void, std::string>;
-    auto find_thruster(const std::string & name) const -> const Thruster *;
-    auto find_thruster_command(
-        const std::vector<ThrusterCommand> & commands,
-        const std::string & name) const -> const ThrusterCommand *;
-    auto validate_thruster_commands(const std::vector<ThrusterCommand> & commands) const
-        -> tl::expected<void, std::string>;
 
   public:
     CanModel(
@@ -102,6 +95,7 @@ class CanModel {
                 state::main_power::BatteryCurrent, state::main_power::BatteryVoltage,
                 state::main_power::Temperature, state::main_power::WaterLeaked>,
             std::string>;
+    // thruster_commandsはコンストラクタへ渡したthruster_configsと同じ順序で指定する
     auto on_write(
         cmd::main_power::Enabled main_power_enabled,
         const std::vector<ThrusterCommand> & thruster_commands,
