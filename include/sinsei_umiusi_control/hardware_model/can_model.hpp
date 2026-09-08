@@ -81,7 +81,7 @@ class CanModel {
         const std::vector<ThrusterCommand> & thruster_commands,
         cmd::led_tape::Color led_tape_color) -> WriteCommand;
 
-    auto validate_thrusters() const -> tl::expected<void, std::string>;
+    auto validate_thruster_configs() const -> tl::expected<void, std::string>;
 
   public:
     CanModel(

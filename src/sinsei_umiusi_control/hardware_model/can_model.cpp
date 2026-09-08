@@ -80,7 +80,7 @@ CanModel::CanModel(
     }
 }
 
-auto CanModel::validate_thrusters() const -> tl::expected<void, std::string> {
+auto CanModel::validate_thruster_configs() const -> tl::expected<void, std::string> {
     if (this->thrusters.empty()) {
         return tl::make_unexpected("At least one thruster must be configured");
     }
@@ -102,7 +102,7 @@ auto CanModel::validate_thrusters() const -> tl::expected<void, std::string> {
 }
 
 auto CanModel::on_init() -> tl::expected<void, std::string> {
-    const auto validation_res = this->validate_thrusters();
+    const auto validation_res = this->validate_thruster_configs();
     if (!validation_res) {
         return tl::make_unexpected("Invalid thruster configuration: " + validation_res.error());
     }
