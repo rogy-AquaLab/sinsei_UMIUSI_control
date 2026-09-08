@@ -59,7 +59,7 @@ class CanModel {
     cmd::main_power::Enabled last_main_power_enabled;
 
     // `(% (スラスタ数 * 4)) / スラスタ数`: コマンド種別
-    // `% スラスタ数`:                                スラスタのインデックス
+    // `% スラスタ数`: スラスタのインデックス
     size_t loop_times = 0;
 
     // スラスタのコマンドが何周するごとにLEDテープのコマンドを1回送信するか

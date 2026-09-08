@@ -212,6 +212,7 @@ TEST(CanModelTest, CanModelOnInitRejectsDuplicateVescIdTest) {
     EXPECT_EQ(result.error(), "Invalid thruster configuration: Duplicate VESC ID: 1");
 }
 
+// FIXME: MainPowerModelが未実装のため、main_powerの状態変化を伴うon_writeは未テスト
 TEST(CanModelTest, OnWriteUsesCommandIndexForConfiguredThrusterOrder) {
     auto can = std::make_shared<Can>();
     auto sent_frames = std::vector<suchm::interface::CanFrame>{};
