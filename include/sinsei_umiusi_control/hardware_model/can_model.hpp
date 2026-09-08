@@ -58,8 +58,11 @@ class CanModel {
     // main_powerが更新されたときは必ずこれを送信する
     cmd::main_power::Enabled last_main_power_enabled;
 
-    // `(% (スラスタ数 * 4)) / スラスタ数`: コマンド種別
-    // `% スラスタ数`: スラスタのインデックス
+    // 1スラスタあたりのコマンド数
+    // esc_allowed, duty_cycle, servo_allowed, angle
+    static constexpr size_t THRUSTER_COMMAND_TYPE_COUNT = 4;
+
+    // 1周期分の送信順を管理するカウンタ
     size_t loop_times = 0;
 
     // スラスタのコマンドが何周するごとにLEDテープのコマンドを1回送信するか

@@ -23,12 +23,11 @@ auto CanModel::update_and_generate_command(
         return this->last_main_power_enabled;
     }
 
-    constexpr auto THRUSTER_PACKET_NUM = 4;  // esc_allowed, duty_cycle, servo_allowed, angle
     const auto thrusters_num = this->thrusters.size();
-    const auto thrusters_total_packet_num = thrusters_num * THRUSTER_PACKET_NUM;
+    const auto thruster_command_count_per_cycle = thrusters_num * THRUSTER_COMMAND_TYPE_COUNT;
 
     const auto period_led_tape_per_loop =
-        this->period_led_tape_per_thrusters * thrusters_total_packet_num;
+        this->period_led_tape_per_thrusters * thruster_command_count_per_cycle;
 
     // `period_led_tape_per_loop`回に1回LEDテープのコマンドを送信する。
     // LEDテープのコマンドを送信しない場合はスラスターのコマンドを順番に送信する。
@@ -36,10 +35,11 @@ auto CanModel::update_and_generate_command(
     if (!led) {
         const auto thruster_index = this->loop_times % thrusters_num;
 
-        const auto packet_type = (this->loop_times % thrusters_total_packet_num) / thrusters_num;
+        const auto command_type_index =
+            (this->loop_times / thrusters_num) % THRUSTER_COMMAND_TYPE_COUNT;
         const auto & thruster_command = thruster_commands[thruster_index];
 
-        switch (packet_type) {
+        switch (command_type_index) {
             case 0: {  // esc_allowed
                 return std::make_tuple(thruster_index, thruster_command.esc_allowed);
             }
