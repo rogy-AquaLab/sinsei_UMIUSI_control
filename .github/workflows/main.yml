@@ -54,8 +54,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # 最近のバージョンのタグがないためコミットIDを指定
-      - uses: editorconfig-checker/action-editorconfig-checker@48920075d6a466d902d683b648b6365703e49293
+      
+      - uses: editorconfig-checker/action-editorconfig-checker@v3.0.0
+        with:
+          version: v4.0.1
 
       - name: EditorConfig Check
         run: editorconfig-checker
