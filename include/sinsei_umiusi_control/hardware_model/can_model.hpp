@@ -57,8 +57,7 @@ class CanModel {
     struct NoCommand {};
 
     using WriteCommand = std::variant<
-        cmd::main_power::Enabled, std::tuple<ActuatorIndex, MotorAllowed>,
-        std::tuple<ActuatorIndex, ServoAllowed>, std::tuple<ActuatorIndex, MotorDutyCycle>,
+        cmd::main_power::Enabled, std::tuple<ActuatorIndex, MotorDutyCycle>,
         std::tuple<ActuatorIndex, ServoAngle>, cmd::led_tape::Color, NoCommand>;
 
     struct Actuator {

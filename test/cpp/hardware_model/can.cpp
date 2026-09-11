@@ -306,7 +306,7 @@ TEST(CanModelTest, OnWriteUsesCommandIndexForConfiguredActuatorOrder) {
         make_enabled_command(0.75),
     };
 
-    // 最初の2回は未実装のモーター許可コマンドで、続く3回が各アクチュエータのDutyコマンドになる
+    // 最初の2回はモーター許可のno-op枠で、続く3回が各アクチュエータのDutyコマンドになる
     for (size_t i = 0; i < 5; ++i) {
         can_model.on_write(
             succmd::main_power::Enabled{false}, actuator_commands,
@@ -341,6 +341,35 @@ TEST(CanModelTest, OnWriteRejectsMismatchedActuatorCommandCount) {
     ASSERT_FALSE(result);
     EXPECT_EQ(
         result.error(), "Actuator command count does not match configuration: expected 3, got 2");
+}
+
+TEST(CanModelTest, OnWriteSendsZeroDutyWhenMotorIsNotAllowedTest) {
+    auto can = std::make_shared<Can>();
+    const auto actuators = std::vector<suchm::CanModel::ActuatorConfig>{
+        {"crawler_left", VESC_ID_1, suchm::CanModel::MotorType::DC, false}};
+    auto sent_frame = suchm::interface::CanFrame{};
+
+    EXPECT_CALL(*can, init(_)).WillOnce(Return(tl::expected<void, std::string>{}));
+    EXPECT_CALL(*can, send_frame(_))
+        .Times(1)
+        .WillOnce(Invoke(
+            [&sent_frame](
+                const suchm::interface::CanFrame & frame) -> tl::expected<void, std::string> {
+                sent_frame = frame;
+                return {};
+            }));
+
+    auto can_model = suchm::CanModel(can, actuators, PERIOD_LED_TAPE_PER_ACTUATORS);
+    ASSERT_TRUE(can_model.on_init());
+    auto command = make_enabled_command(0.75);
+    command.motor_allowed.value = false;
+
+    const auto result = can_model.on_write(
+        succmd::main_power::Enabled{false}, {command}, succmd::led_tape::Color{0, 0, 0});
+
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
+    EXPECT_EQ(sent_frame.id, VESC_ID_1);
+    EXPECT_EQ(sinsei_umiusi_control::util::to_int32_be(sent_frame.data).value(), 0);
 }
 
 TEST(CanModelTest, OnWriteSupportsMixedMotorAndServoCapabilitiesTest) {
@@ -414,16 +443,12 @@ TEST_P(CanModelVariableActuatorCountTest, WritesEachDynamicActuatorInRoundRobinO
     auto actuator_commands = make_enabled_commands(actuator_count);
 
     constexpr size_t COMMAND_TYPES_PER_ACTUATOR = 4;
-    // FIXME: モーター・サーボのallowedコマンドは未実装のため、Duty比とサーボ角度の送信だけが成功する
+    // allowedと存在しない機能の枠は正常なno-op、Duty比とサーボ角度の枠だけCAN送信する。
     for (size_t i = 0; i < actuator_count * COMMAND_TYPES_PER_ACTUATOR; ++i) {
         const auto result = can_model.on_write(
             succmd::main_power::Enabled{false}, actuator_commands,
             succmd::led_tape::Color{0, 0, 0});
-        const auto loop_count = i + 1;
-        const auto writes_duty = loop_count >= actuator_count && loop_count < 2 * actuator_count;
-        const auto writes_servo =
-            loop_count >= 3 * actuator_count && loop_count < 4 * actuator_count;
-        EXPECT_EQ(result.has_value(), writes_duty || writes_servo);
+        EXPECT_TRUE(result) << std::string("Error: ") + result.error();
     }
 
     auto expected_frame_ids = std::vector<suchm::interface::CanFrame::Id>{};

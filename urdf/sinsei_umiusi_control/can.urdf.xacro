@@ -38,6 +38,41 @@
     </gpio>
   </xacro:macro>
 
+  <xacro:macro name="can_auxiliary_interfaces">
+    <gpio name="main_power">
+      <command_interface name="enabled" data_type="double">
+        <!-- false (Cannot use bool type due to ros2_control bug) -->
+        <param name="initial_value">0.0</param>
+      </command_interface>
+      <state_interface name="battery_current" data_type="double">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="battery_voltage" data_type="double">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="temperature" data_type="double">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="water_leaked" data_type="double">
+        <!-- false (Cannot use bool type due to ros2_control bug) -->
+        <param name="initial_value">0.0</param>
+      </state_interface>
+    </gpio>
+
+    <gpio name="led_tape">
+      <command_interface name="color" data_type="double">
+        <param name="initial_value">0.0</param>
+      </command_interface>
+    </gpio>
+
+    <sensor name="can">
+      <state_interface name="health" data_type="double">
+        <!-- false (Cannot use bool type due to ros2_control bug) -->
+        <param name="initial_value">0.0</param>
+      </state_interface>
+    </sensor>
+  </xacro:macro>
+
   <xacro:macro name="can"
     params="vesc1_id vesc2_id vesc3_id vesc4_id period_led_tape_per_actuators">
     <ros2_control name="can" type="system" is_async="true">
@@ -51,38 +86,25 @@
       <xacro:vesc_actuator name="thruster3" vesc_id="${vesc3_id}" motor_type="bldc" has_servo="true" />
       <xacro:vesc_actuator name="thruster4" vesc_id="${vesc4_id}" motor_type="bldc" has_servo="true" />
 
-      <gpio name="main_power">
-        <command_interface name="enabled" data_type="double">
-          <!-- false (Cannot use bool type due to ros2_control bug) -->
-          <param name="initial_value">0.0</param>
-        </command_interface>
-        <state_interface name="battery_current" data_type="double">
-          <param name="initial_value">0.0</param>
-        </state_interface>
-        <state_interface name="battery_voltage" data_type="double">
-          <param name="initial_value">0.0</param>
-        </state_interface>
-        <state_interface name="temperature" data_type="double">
-          <param name="initial_value">0.0</param>
-        </state_interface>
-        <state_interface name="water_leaked" data_type="double">
-          <!-- false (Cannot use bool type due to ros2_control bug) -->
-          <param name="initial_value">0.0</param>
-        </state_interface>
-      </gpio>
+      <xacro:can_auxiliary_interfaces />
+    </ros2_control>
+  </xacro:macro>
 
-      <gpio name="led_tape">
-        <command_interface name="color" data_type="double">
-          <param name="initial_value">0.0</param>
-        </command_interface>
-      </gpio>
+  <xacro:macro name="alexandrite_can"
+    params="thruster1_vesc_id thruster2_vesc_id thruster3_vesc_id crawler_left_vesc_id crawler_right_vesc_id period_led_tape_per_actuators">
+    <ros2_control name="can" type="system" is_async="true">
+      <hardware>
+        <plugin>sinsei_umiusi_control/hardware/Can</plugin>
+        <param name="period_led_tape_per_actuators">${period_led_tape_per_actuators}</param>
+      </hardware>
 
-      <sensor name="can">
-        <state_interface name="health" data_type="double">
-          <!-- false (Cannot use bool type due to ros2_control bug) -->
-          <param name="initial_value">0.0</param>
-        </state_interface>
-      </sensor>
+      <xacro:vesc_actuator name="thruster1" vesc_id="${thruster1_vesc_id}" motor_type="bldc" has_servo="true" />
+      <xacro:vesc_actuator name="thruster2" vesc_id="${thruster2_vesc_id}" motor_type="bldc" has_servo="true" />
+      <xacro:vesc_actuator name="thruster3" vesc_id="${thruster3_vesc_id}" motor_type="bldc" has_servo="true" />
+      <xacro:vesc_actuator name="crawler_left" vesc_id="${crawler_left_vesc_id}" motor_type="dc" has_servo="false" />
+      <xacro:vesc_actuator name="crawler_right" vesc_id="${crawler_right_vesc_id}" motor_type="dc" has_servo="false" />
+
+      <xacro:can_auxiliary_interfaces />
     </ros2_control>
   </xacro:macro>
 

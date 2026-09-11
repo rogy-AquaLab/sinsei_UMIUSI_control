@@ -40,23 +40,23 @@ auto CanModel::update_and_generate_command(
 
         switch (command_type_index) {
             case 0: {  // motor_allowed
+                // allowedはVESCへ送るコマンドではなく、Duty出力のローカルな安全条件として扱う。
+                break;
+            }
+            case 1: {  // motor_duty_cycle
                 if (actuator.motor_type == MotorType::None) {
                     break;
                 }
-                return std::make_tuple(actuator_index, actuator_command.motor_allowed);
-            }
-            case 1: {  // motor_duty_cycle
-                if (actuator.motor_type == MotorType::None ||
-                    !actuator_command.motor_allowed.value) {
-                    break;  // モーターが無いか無効の場合はデューティ比を送信しない
-                }
-                return std::make_tuple(actuator_index, actuator_command.motor_duty_cycle);
+                // 無効化時にもDuty 0を送り、直前の出力がVESCに残らないようにする。
+                return std::make_tuple(
+                    actuator_index, MotorDutyCycle{
+                                        actuator_command.motor_allowed.value
+                                            ? actuator_command.motor_duty_cycle.value
+                                            : 0.0});
             }
             case 2: {  // servo_allowed
-                if (!actuator.has_servo) {
-                    break;
-                }
-                return std::make_tuple(actuator_index, actuator_command.servo_allowed);
+                // allowedはVESCへ送るコマンドではなく、角度出力のローカルな安全条件として扱う。
+                break;
             }
             case 3: {  // servo_angle
                 if (!actuator.has_servo || !actuator_command.servo_allowed.value) {
@@ -247,28 +247,8 @@ auto CanModel::on_write(
             return tl::make_unexpected("Not implemented for main power enabled command");
         }
 
-        case 1: {  // std::tuple<ActuatorIndex, MotorAllowed>
-            auto & [index, motor_allowed] = std::get<1>(command);
-
-            // TODO: `motor_allowed`の処理を実装する
-            auto _ = motor_allowed;
-            return tl::make_unexpected(
-                "Not implemented for motor allowed command (actuator: " +
-                this->actuators[index].name + ")");
-        }
-
-        case 2: {  // std::tuple<ActuatorIndex, ServoAllowed>
-            auto & [index, servo_allowed] = std::get<2>(command);
-
-            // TODO: `servo_allowed`の処理を実装する
-            const auto _ = servo_allowed;
-            return tl::make_unexpected(
-                "Not implemented for servo allowed command (actuator: " +
-                this->actuators[index].name + ")");
-        }
-
-        case 3: {  // std::tuple<ActuatorIndex, MotorDutyCycle>
-            auto & [index, motor_duty_cycle] = std::get<3>(command);
+        case 1: {  // std::tuple<ActuatorIndex, MotorDutyCycle>
+            auto & [index, motor_duty_cycle] = std::get<1>(command);
 
             auto duty_frame_res =
                 this->actuators[index].vesc_model.make_duty_frame(motor_duty_cycle.value);
@@ -281,8 +261,8 @@ auto CanModel::on_write(
             break;
         }
 
-        case 4: {  // std::tuple<ActuatorIndex, ServoAngle>
-            auto & [index, servo_angle] = std::get<4>(command);
+        case 2: {  // std::tuple<ActuatorIndex, ServoAngle>
+            auto & [index, servo_angle] = std::get<2>(command);
 
             auto angle_frame_res =
                 this->actuators[index].vesc_model.make_servo_angle_frame(servo_angle.value);
@@ -295,14 +275,14 @@ auto CanModel::on_write(
             break;
         }
 
-        case 5: {  // cmd::led_tape::Color
-            auto & led_tape_color = std::get<5>(command);
+        case 3: {  // cmd::led_tape::Color
+            auto & led_tape_color = std::get<3>(command);
 
             // TODO: `led_tape_color`の処理を実装する
             auto _ = led_tape_color;
             return tl::make_unexpected("Not implemented for LED tape color command");
         }
-        case 6: {  // NoCommand
+        case 4: {  // NoCommand
             return {};
         }
         default: {
