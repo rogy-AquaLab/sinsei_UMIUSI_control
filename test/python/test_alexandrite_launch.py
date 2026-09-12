@@ -50,3 +50,6 @@ def test_alexandrite_controller_running(helper_node):
         'active',
         120,
     )
+    assert helper_node.count_subscribers('/cmd/target') > 0
+    assert helper_node.count_subscribers('/cmd/crawler_target') > 0
+    assert helper_node.count_subscribers('/cmd/thruster_runnable_all') > 0
