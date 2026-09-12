@@ -1,0 +1,38 @@
+launch:
+  - arg:
+      description: "CAN ID for Alexandrite thruster 1"
+      name: thruster1_vesc_id
+      default: "124"
+  - arg:
+      description: "CAN ID for Alexandrite thruster 2"
+      name: thruster2_vesc_id
+      default: "125"
+  - arg:
+      description: "CAN ID for Alexandrite thruster 3"
+      name: thruster3_vesc_id
+      default: "126"
+  - arg:
+      description: "CAN ID for Alexandrite left crawler"
+      name: crawler_left_vesc_id
+      default: "127"
+  - arg:
+      description: "CAN ID for Alexandrite right crawler"
+      name: crawler_right_vesc_id
+      default: "128"
+  - arg:
+      description: "LED tape's operation period per actuators' operation period"
+      name: period_led_tape_per_actuators
+      default: "10"
+
+  - arg:
+      description: "Namespace for controllers"
+      name: namespace
+      default: ""
+  - arg:
+      description: "File path for Alexandrite controller parameters"
+      name: controllers_param_file
+      default: "$(find-pkg-share sinsei_umiusi_control)/params/alexandrite_controllers.yaml"
+  - arg:
+      description: "File path for Alexandrite robot description"
+      name: robot_description_file
+      default: "$(find-pkg-share sinsei_umiusi_control)/urdf/alexandrite.urdf.xacro"
