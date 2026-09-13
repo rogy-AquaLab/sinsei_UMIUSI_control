@@ -1,5 +1,7 @@
 #include "sinsei_umiusi_control/controller/attitude_controller.hpp"
 
+#include <algorithm>
+#include <array>
 #include <controller_interface/controller_interface_base.hpp>
 #include <cstddef>
 #include <rclcpp/logging.hpp>
@@ -40,6 +42,7 @@ auto AttitudeController::state_interface_configuration() const
 
 auto AttitudeController::on_init() -> controller_interface::CallbackReturn {
     this->get_node()->declare_parameter("control_mode", "ff");
+    this->get_node()->declare_parameter("disabled_thruster", "none");
 
     this->input = AttitudeController::Input{};
     this->output = AttitudeController::Output{};
@@ -57,9 +60,33 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
             this->get_node()->get_logger(), "Invalid control mode: %s", control_mode_str.c_str());
         return controller_interface::CallbackReturn::ERROR;
     }
+
+    constexpr auto THRUSTER_NAMES = std::array<std::string_view, 4>{"lf", "lb", "rb", "rf"};
+    const auto disabled_thruster_name =
+        this->get_node()->get_parameter("disabled_thruster").as_string();
+    if (disabled_thruster_name == "none") {
+        this->disabled_thruster = std::nullopt;
+    } else {
+        const auto disabled_thruster_it =
+            std::find(THRUSTER_NAMES.begin(), THRUSTER_NAMES.end(), disabled_thruster_name);
+        if (disabled_thruster_it == THRUSTER_NAMES.end()) {
+            RCLCPP_ERROR(
+                this->get_node()->get_logger(),
+                "Invalid disabled_thruster: %s (expected none, lf, lb, rb, or rf)",
+                disabled_thruster_name.c_str());
+            return controller_interface::CallbackReturn::ERROR;
+        }
+        this->disabled_thruster =
+            static_cast<size_t>(std::distance(THRUSTER_NAMES.begin(), disabled_thruster_it));
+        RCLCPP_WARN(
+            this->get_node()->get_logger(),
+            "Thruster %s is disabled; commands will be reallocated to the remaining thrusters",
+            disabled_thruster_name.c_str());
+    }
+
     switch (control_mode_res.value()) {
         case logic::ControlMode::FeedForward: {
-            this->logic = std::make_unique<logic::attitude::FeedForward>();
+            this->logic = std::make_unique<logic::attitude::FeedForward>(this->disabled_thruster);
             break;
         }
         case logic::ControlMode::FeedBack: {
@@ -92,8 +119,7 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
 
         const auto thruster_prefix = controller_prefix + "thruster/";
         this->state_interface_data.push_back(std::make_tuple(
-            thruster_prefix + "esc/rpm",
-            util::to_interface_data_ptr(this->input.state.esc_rpms[i]),
+            thruster_prefix + "esc/rpm", util::to_interface_data_ptr(this->input.state.esc_rpms[i]),
             sizeof(this->input.state.esc_rpms[i])));
     }
     this->state_interface_data.push_back(std::make_tuple(
@@ -217,7 +243,8 @@ auto AttitudeController::update_and_write_commands(
         // モードが変わった場合はロジックを変更して初期化
         switch (control_mode_res.value()) {
             case logic::ControlMode::FeedForward: {
-                this->logic = std::make_unique<logic::attitude::FeedForward>();
+                this->logic =
+                    std::make_unique<logic::attitude::FeedForward>(this->disabled_thruster);
                 break;
             }
             case logic::ControlMode::FeedBack: {

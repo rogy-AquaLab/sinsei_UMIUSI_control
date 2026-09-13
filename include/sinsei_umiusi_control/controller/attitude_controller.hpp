@@ -3,6 +3,7 @@
 
 #include <controller_interface/chainable_controller_interface.hpp>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "sinsei_umiusi_control/cmd/attitude.hpp"
@@ -50,6 +51,7 @@ class AttitudeController : public controller_interface::ChainableControllerInter
     Output output;
 
     std::unique_ptr<Logic> logic;
+    std::optional<size_t> disabled_thruster;
 
     util::interface_accessor::InterfaceDataContainer command_interface_data;
     util::interface_accessor::InterfaceDataContainer state_interface_data;

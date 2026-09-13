@@ -8,6 +8,14 @@
 
 入力(`target_orientation`, `target_velocity`)から線形変換により出力(各スラスタへの命令: `angle`, `duty_cycle`)を得る。
 
+`disabled_thruster`パラメータには`none`, `lf`, `lb`, `rb`, `rf`のいずれかを指定できる。
+スラスタを指定すると、そのスラスタの水平・垂直出力をゼロに固定し、残り3基が同じ6自由度指令を
+生成するように配分行列を再計算する。再配分後の最大推力が範囲を超える場合は、力・モーメントの
+比率を保ったまま全スラスタの出力を一様に縮小する。
+
+現在の設定では左前BLDCの故障に対応するため`disabled_thruster: "lf"`とし、加えて
+`thruster_controller_lf.esc_disabled: true`でハードウェアへの出力を強制的に無効化している。
+
 ### Detail
 
 以下のように文字を定義する。

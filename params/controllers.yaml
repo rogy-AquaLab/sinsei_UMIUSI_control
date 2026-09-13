@@ -13,13 +13,14 @@
       type: sinsei_umiusi_control/controller/AttitudeController
       update_rate: 50 # Hz
       control_mode: "ff" # Control mode (ff: feedforward / fb: feedback)
+      disabled_thruster: "lf" # Reallocate commands while the left-front BLDC is unavailable
 
   thruster_controller_lf: # Left Front Thruster
     ros__parameters:
       type: sinsei_umiusi_control/controller/ThrusterController
       update_rate: 50 # Hz
       id: 1 # ID of the thruster hardware component (`N` for `thrusterN` in the URDF)
-      esc_disabled: false # Whether to disable ESC
+      esc_disabled: true # Left-front BLDC is unavailable
       servo_disabled: false # Whether to disable servo
       is_forward: true # Thruster direction (true for forward, false for reverse)
       duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
