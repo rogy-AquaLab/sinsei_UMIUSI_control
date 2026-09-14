@@ -1,5 +1,6 @@
 #include "sinsei_umiusi_control/hardware_model/can/vesc_model.hpp"
 
+#include <boost/math/constants/constants.hpp>
 #include <rcpputils/tl_expected/expected.hpp>
 
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
@@ -10,15 +11,15 @@ using namespace sinsei_umiusi_control::hardware_model;
 can::VescModel::VescModel(can::VescModel::Id id) : id(id) {}
 
 auto can::VescModel::make_frame(
-    VescSimpleCommandID command_id, const interface::CanFrame::Data & data)
-    const -> interface::CanFrame {
+    VescSimpleCommandID command_id,
+    const interface::CanFrame::Data & data) const -> interface::CanFrame {
     const auto id =
         (static_cast<interface::CanFrame::Id>(command_id) & 0xFF) << 8 | (this->id & 0xFF);
     return interface::CanFrame{
-        id,                                   // id
-        SIMPLE_COMMAND_FRAME_LENGTH,          // len
-        data,                                 // data
-        true,                                 // is_extended
+        id,                           // id
+        SIMPLE_COMMAND_FRAME_LENGTH,  // len
+        data,                         // data
+        true,                         // is_extended
     };
 }
 
@@ -51,14 +52,18 @@ auto can::VescModel::make_servo_frame(double value) const
     return this->make_frame(VescSimpleCommandID::CAN_PACKET_SET_SERVO, bytes);
 }
 
-auto can::VescModel::make_servo_angle_frame(double deg) const
+auto can::VescModel::make_servo_angle_frame(double rad) const
     -> tl::expected<interface::CanFrame, std::string> {
-    // -90.0 ~ 90.0度の角度を0.0 ~ 1.0に変換
-    if (deg < -90.0 || deg > 90.0) {
+    // -pi/2 ~ pi/2の角度を0.0 ~ 1.0に変換
+
+    constexpr auto PI = boost::math::constants::pi<double>();
+    if (rad < -PI / 2.0 || rad > PI / 2.0) {
         return tl::make_unexpected(
-            "Servo angle must be between -90.0 ~ 90.0 degrees (deg: " + std::to_string(deg) + ")");
+            "Servo angle must be between -pi/2 and pi/2 radians (rad: " + std::to_string(rad) +
+            ")");
     }
-    return this->make_servo_frame((deg + 90.0) / 180.0);
+
+    return this->make_servo_frame((rad + PI / 2.0) / PI);
 }
 
 auto can::VescModel::id_matches(const interface::CanFrame & frame) const -> bool {
@@ -75,8 +80,7 @@ auto can::VescModel::get_packet_status(const interface::CanFrame & frame) const
     if (frame.len != STATUS_FRAME_LENGTH) {
         return tl::make_unexpected(
             "Received CAN frame with invalid length (expected: " +
-            std::to_string(STATUS_FRAME_LENGTH) + ", received: " +
-            std::to_string(frame.len) + ")");
+            std::to_string(STATUS_FRAME_LENGTH) + ", received: " + std::to_string(frame.len) + ")");
     }
 
     const auto cmd_id = static_cast<uint32_t>((frame.id >> 8) & 0xFF);
