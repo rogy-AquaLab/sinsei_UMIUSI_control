@@ -2,7 +2,7 @@
   pi_camera:
     ros__parameters:
       pipeline: >-
-        libcamerasrc !
+        libcamerasrc af-mode=continuous !
         video/x-raw,width=1280,height=720,framerate=30/1 !
         videoconvert !
         v4l2h264enc extra-controls="controls,video_bitrate=3000000,h264_i_frame_period=30" !
