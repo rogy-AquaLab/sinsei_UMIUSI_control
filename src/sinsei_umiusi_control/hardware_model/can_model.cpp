@@ -11,68 +11,9 @@
 
 using namespace sinsei_umiusi_control::hardware_model;
 
-auto CanModel::update_and_generate_command(
-    cmd::main_power::Enabled main_power_enabled,
-    const std::vector<ThrusterCommand> & thruster_commands,
-    cmd::led_tape::Color led_tape_color) -> WriteCommand {
-    this->loop_times++;
-
-    // main_power_enabled
-    if (this->last_main_power_enabled.value != main_power_enabled.value) {
-        this->last_main_power_enabled = main_power_enabled;
-        return this->last_main_power_enabled;
-    }
-
-    const auto thrusters_num = this->thrusters.size();
-    const auto thruster_command_count_per_cycle = thrusters_num * THRUSTER_COMMAND_TYPE_COUNT;
-
-    const auto period_led_tape_per_loop =
-        this->period_led_tape_per_thrusters * thruster_command_count_per_cycle;
-
-    // `period_led_tape_per_loop`回に1回LEDテープのコマンドを送信する。
-    // LEDテープのコマンドを送信しない場合はスラスターのコマンドを順番に送信する。
-    const auto led = (this->loop_times % period_led_tape_per_loop) == 0;
-    if (!led) {
-        const auto thruster_index = this->loop_times % thrusters_num;
-
-        const auto command_type_index =
-            (this->loop_times / thrusters_num) % THRUSTER_COMMAND_TYPE_COUNT;
-        const auto & thruster_command = thruster_commands[thruster_index];
-
-        switch (command_type_index) {
-            case 0: {  // esc_allowed
-                return std::make_tuple(thruster_index, thruster_command.esc_allowed);
-            }
-            case 1: {  // esc_duty_cycle
-                if (!thruster_command.esc_allowed.value) {
-                    break;  // ESCが無効の場合はデューティ比を送信しない
-                }
-                return std::make_tuple(thruster_index, thruster_command.esc_duty_cycle);
-            }
-            case 2: {  // servo_allowed
-                return std::make_tuple(thruster_index, thruster_command.servo_allowed);
-            }
-            case 3: {  // servo_angle
-                if (!thruster_command.servo_allowed.value) {
-                    break;  // サーボが無効の場合は角度を送信しない
-                }
-                return std::make_tuple(thruster_index, thruster_command.servo_angle);
-            }
-            default: {
-                break;  // unreachable
-            }
-        }
-    }
-
-    return led_tape_color;  // led_tape/color
-}
-
 CanModel::CanModel(
-    std::shared_ptr<interface::Can> can, std::vector<ThrusterConfig> thruster_configs,
-    size_t period_led_tape_per_thrusters)
-: can(can),
-  last_main_power_enabled{false},
-  period_led_tape_per_thrusters{period_led_tape_per_thrusters} {
+    std::shared_ptr<interface::Can> can, std::vector<ThrusterConfig> thruster_configs)
+: can(can) {
     this->thrusters.reserve(thruster_configs.size());
     for (auto & config : thruster_configs) {
         this->thrusters.push_back(
@@ -205,9 +146,9 @@ auto CanModel::on_read() const
 }
 
 auto CanModel::on_write(
-    cmd::main_power::Enabled main_power_enabled,
+    cmd::main_power::Enabled /*main_power_enabled*/,
     const std::vector<ThrusterCommand> & thruster_commands,
-    cmd::led_tape::Color led_tape_color) -> tl::expected<void, std::string> {
+    cmd::led_tape::Color /*led_tape_color*/) -> tl::expected<void, std::string> {
     if (this->thrusters.empty()) {
         return tl::make_unexpected("No thrusters are configured");
     }
@@ -219,84 +160,50 @@ auto CanModel::on_write(
             std::to_string(thruster_commands.size()));
     }
 
-    auto command =
-        this->update_and_generate_command(main_power_enabled, thruster_commands, led_tape_color);
+    const auto phase = this->write_phase;
+    this->write_phase = phase == WritePhase::Esc ? WritePhase::Servo : WritePhase::Esc;
 
-    auto frame = interface::CanFrame{};
+    // TODO: main_power_enabledとled_tape_colorのCAN送信を実装する
+    // TODO: esc_allowed/servo_allowedはLispBMが未実装
 
-    switch (command.index()) {
-        case 0: {  // suc::cmd::main_power::Enabled
-            auto & main_power_enabled = std::get<0>(command);
+    auto error_message = std::string("");
 
-            // TODO: `main_power_enabled`の処理を実装する
-            auto _ = main_power_enabled;
-            return tl::make_unexpected("Not implemented for main power enabled command");
+    for (size_t index = 0; index < this->thrusters.size(); ++index) {
+        const auto & thruster = this->thrusters[index];
+        const auto & command = thruster_commands[index];
+
+        if (phase == WritePhase::Esc && !command.esc_allowed.value) {
+            continue;
+        }
+        if (phase == WritePhase::Servo && !command.servo_allowed.value) {
+            continue;
         }
 
-        case 1: {  // std::tuple<ThrusterIndex, EscAllowed>
-            auto & [index, esc_allowed] = std::get<1>(command);
-
-            // TODO: `esc_allowed`の処理を実装する
-            auto _ = esc_allowed;
-            return tl::make_unexpected(
-                "Not implemented for ESC allowed command (thruster: " +
-                this->thrusters[index].name + ")");
-        }
-
-        case 2: {  // std::tuple<ThrusterIndex, ServoAllowed>
-            auto & [index, servo_allowed] = std::get<2>(command);
-
-            // TODO: `servo_allowed`の処理を実装する
-            const auto _ = servo_allowed;
-            return tl::make_unexpected(
-                "Not implemented for servo allowed command (thruster: " +
-                this->thrusters[index].name + ")");
-        }
-
-        case 3: {  // std::tuple<ThrusterIndex, EscDutyCycle>
-            auto & [index, esc_duty_cycle] = std::get<3>(command);
-
-            auto duty_frame_res =
-                this->thrusters[index].vesc_model.make_duty_frame(esc_duty_cycle.value);
-            if (!duty_frame_res) {
-                return tl::make_unexpected(
-                    "Failed to create duty frame for thruster '" + this->thrusters[index].name +
-                    "': " + duty_frame_res.error());
+        const auto frame_res =
+            phase == WritePhase::Esc
+                ? thruster.vesc_model.make_duty_frame(command.esc_duty_cycle.value)
+                : thruster.vesc_model.make_servo_angle_frame(command.servo_angle.value);
+        if (!frame_res) {
+            if (!error_message.empty()) {
+                error_message += "\n";
             }
-            frame = std::move(duty_frame_res.value());
-            break;
+            error_message += "Failed to create CAN frame for thruster '" + thruster.name +
+                             "': " + frame_res.error();
+            continue;
         }
 
-        case 4: {  // std::tuple<ThrusterIndex, ServoAngle>
-            auto & [index, servo_angle] = std::get<4>(command);
-
-            auto angle_frame_res =
-                this->thrusters[index].vesc_model.make_servo_angle_frame(servo_angle.value);
-            if (!angle_frame_res) {
-                return tl::make_unexpected(
-                    "Failed to create servo angle frame for thruster '" +
-                    this->thrusters[index].name + "': " + angle_frame_res.error());
+        const auto send_res = this->can->send_frame(frame_res.value());
+        if (!send_res) {
+            if (!error_message.empty()) {
+                error_message += "\n";
             }
-            frame = std::move(angle_frame_res.value());
-            break;
-        }
-
-        case 5: {  // cmd::led_tape::Color
-            auto & led_tape_color = std::get<5>(command);
-
-            // TODO: `led_tape_color`の処理を実装する
-            auto _ = led_tape_color;
-            return tl::make_unexpected("Not implemented for LED tape color command");
-        }
-        default: {
-            return tl::make_unexpected("Unknown command type in CanModel::on_write");
+            error_message += "Failed to send CAN frame for thruster '" + thruster.name +
+                             "': " + send_res.error();
         }
     }
-    const auto res = this->can->send_frame(frame);
-    if (!res) {
-        return tl::make_unexpected(
-            "Failed to send CAN frame (command type id: " + std::to_string(command.index()) +
-            "): " + res.error());
+
+    if (!error_message.empty()) {
+        return tl::make_unexpected(error_message);
     }
     return {};
 }

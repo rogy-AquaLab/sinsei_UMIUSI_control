@@ -34,8 +34,6 @@ def generate_launch_description():
                 LaunchConfiguration('ir_line_offset'),
                 ' indicator_led_line_offset:=',
                 LaunchConfiguration('indicator_led_line_offset'),
-                ' period_led_tape_per_thrusters:=',
-                LaunchConfiguration('period_led_tape_per_thrusters'),
                 ' imu_i2c_device:=',
                 LaunchConfiguration('imu_i2c_device'),
             ],
