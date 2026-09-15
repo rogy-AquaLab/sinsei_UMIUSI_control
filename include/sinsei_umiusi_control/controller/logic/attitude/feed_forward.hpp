@@ -12,11 +12,10 @@ namespace sinsei_umiusi_control::controller::logic::attitude {
 class FeedForward : public AttitudeController::Logic {
   private:
     static auto atan_or_zero(const double & x, const double & y) -> double {
-        constexpr auto pi = boost::math::constants::pi<double>();
         if (x == 0.0 && y == 0.0) {
             return 0.0;
         }
-        return std::atan(y / x) * 180.0 / pi;
+        return std::atan(y / x);
     }
 
     static auto magnitude(const double & x, const double & y) -> double {
