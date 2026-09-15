@@ -3,6 +3,7 @@
 
 #include <hardware_interface/system_interface.hpp>
 #include <hardware_interface/types/hardware_component_interface_params.hpp>
+#include <optional>
 #include <rclcpp/macros.hpp>
 #include <string>
 #include <vector>
@@ -13,9 +14,15 @@ namespace sinsei_umiusi_control::hardware {
 
 class Can : public hardware_interface::SystemInterface {
   private:
+    struct Actuator {
+        std::string name;
+        hardware_model::CanModel::MotorType motor_type;
+        bool has_servo;
+    };
+
     std::optional<hardware_model::CanModel> model;
-    // CanModelへ渡したスラスタ設定と同じ順序で保持する
-    std::vector<std::string> thruster_names;
+    // CanModelへ渡したアクチュエータ設定と同じ順序で保持する
+    std::vector<Actuator> actuators;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(Can)
