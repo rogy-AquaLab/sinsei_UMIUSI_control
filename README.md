@@ -2,6 +2,8 @@
 
 [![Main CI](https://github.com/rogy-AquaLab/sinsei_UMIUSI_control/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/rogy-AquaLab/sinsei_UMIUSI_control/actions/workflows/main.yml)
 
+Alexandriteの暫定的な起動・直接指令方法は[docs/alexandrite.md](docs/alexandrite.md)を参照。
+
 ## Structure
 
 ```mermaid

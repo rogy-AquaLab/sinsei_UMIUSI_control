@@ -1,0 +1,29 @@
+launch:
+  - let:
+      name: pkg_name
+      value: "sinsei_umiusi_control"
+  - let:
+      name: ros2_control_common
+      value: "$(find-pkg-share $(var pkg_name))/launch/include/alexandrite_ros2_control.py"
+
+  - arg:
+      name: args
+      description: "Path to the Alexandrite launch arguments file"
+      default: "$(find-pkg-share $(var pkg_name))/params/alexandrite_launch_args.yaml"
+
+  - include:
+      file: "$(var args)"
+
+  - group:
+    - push_ros_namespace:
+        namespace: "$(var namespace)"
+
+    - include:
+        file: "$(var ros2_control_common)"
+
+    - node:
+        pkg: "controller_manager"
+        exec: "spawner"
+        args: |
+          alexandrite_controller
+          --param-file $(var controllers_param_file)

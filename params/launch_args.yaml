@@ -38,8 +38,8 @@ launch:
       name: indicator_led_line_offset
       default: "24"
   - arg:
-      description: "LED tape's operation period per thrusters' operation period"
-      name: period_led_tape_per_thrusters
+      description: "LED tape's operation period per actuators' operation period"
+      name: period_led_tape_per_actuators
       default: "10"
   - arg:
       description: "I2C device path for the BNO055 IMU"
