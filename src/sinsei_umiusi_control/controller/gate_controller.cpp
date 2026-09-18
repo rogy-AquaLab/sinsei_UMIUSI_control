@@ -189,7 +189,8 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                 });
         this->input.sub.headlights_output_subscriber =
             this->get_node()->create_subscription<msg::HeadlightsOutput>(
-                "head_lights_output", qos, [this](const msg::HeadlightsOutput::SharedPtr input) {
+                cmd_prefix + "headlights_output", qos,
+                [this](const msg::HeadlightsOutput::SharedPtr input) {
                     this->output.cmd.high_beam_enabled_ref.value = input->high_beam_enabled;
                     this->output.cmd.low_beam_enabled_ref.value = input->low_beam_enabled;
                     this->output.cmd.ir_enabled_ref.value = input->ir_enabled;
