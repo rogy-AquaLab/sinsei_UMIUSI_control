@@ -12,7 +12,6 @@
       vesc2_id
       vesc3_id
       vesc4_id
-      period_led_tape_per_thrusters
       imu_i2c_device
       mock
     ">
@@ -27,7 +26,6 @@
       vesc2_id="${vesc2_id}"
       vesc3_id="${vesc3_id}"
       vesc4_id="${vesc4_id}"
-      period_led_tape_per_thrusters="${period_led_tape_per_thrusters}"
     />
     <xacro:imu i2c_device="${imu_i2c_device}" />
     <xacro:headlights

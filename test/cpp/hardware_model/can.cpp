@@ -31,8 +31,6 @@ constexpr int VESC_ID_1 = 1;
 constexpr int VESC_ID_2 = 2;
 constexpr int VESC_ID_3 = 3;
 constexpr int VESC_ID_4 = 4;
-constexpr size_t PERIOD_LED_TAPE_PER_THRUSTERS = 1;
-
 const auto THRUSTERS = std::vector<suchm::CanModel::ThrusterConfig>{
     {"thruster1", VESC_ID_1},
     {"thruster2", VESC_ID_2},
@@ -85,7 +83,7 @@ TEST(CanModelTest, CanModelOnInitTest) {
 
     EXPECT_CALL(*can, init(_)).Times(1).WillOnce(Return(tl::expected<void, std::string>{}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, PERIOD_LED_TAPE_PER_THRUSTERS);
+    auto can_model = suchm::CanModel(can, THRUSTERS);
     auto result = can_model.on_init();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
@@ -95,7 +93,7 @@ TEST(CanModelTest, CanModelOnDestroyTest) {
 
     EXPECT_CALL(*can, close()).Times(1).WillOnce(Return(tl::expected<void, std::string>{}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, PERIOD_LED_TAPE_PER_THRUSTERS);
+    auto can_model = suchm::CanModel(can, THRUSTERS);
     auto result = can_model.on_destroy();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
@@ -109,7 +107,7 @@ TEST(CanModelTest, CanModelOnReadTimeoutReturnsTimeoutErrorTest) {
         .WillOnce(Return(
             tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{std::nullopt}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, PERIOD_LED_TAPE_PER_THRUSTERS);
+    auto can_model = suchm::CanModel(can, THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error(), "CAN read timeout: no CAN frame received within the timeout period");
@@ -128,7 +126,7 @@ TEST(CanModelTest, CanModelOnReadPacketStatusReturnsRpmUpdateTest) {
         .WillOnce(
             Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, PERIOD_LED_TAPE_PER_THRUSTERS);
+    auto can_model = suchm::CanModel(can, THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     const auto variant = result.value();
@@ -148,12 +146,12 @@ TEST(CanModelTest, CanModelOnReadUnsupportedPacketStatusReturnsErrorTest) {
         .WillOnce(
             Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, PERIOD_LED_TAPE_PER_THRUSTERS);
+    auto can_model = suchm::CanModel(can, THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_FALSE(result);
     EXPECT_EQ(
         result.error(),
-        "Unsupported VESC packet status variant received (thruster 'thruster1' (VESC 1), "
+        "Unsupported VESC packet status variant received ('thruster1' (VESC 1), "
         "variant index: 1)");
 }
 
@@ -168,7 +166,7 @@ TEST(CanModelTest, CanModelOnReadUnhandledFrameReturnsErrorTest) {
         .WillOnce(
             Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, PERIOD_LED_TAPE_PER_THRUSTERS);
+    auto can_model = suchm::CanModel(can, THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error(), "Unhandled CAN frame: no registered model accepted frame id 2337");
@@ -179,7 +177,7 @@ TEST(CanModelTest, CanModelOnInitRejectsEmptyThrusterConfigurationTest) {
 
     EXPECT_CALL(*can, init(_)).Times(0);
 
-    auto can_model = suchm::CanModel(can, {}, PERIOD_LED_TAPE_PER_THRUSTERS);
+    auto can_model = suchm::CanModel(can, {});
     const auto result = can_model.on_init();
     ASSERT_FALSE(result);
     EXPECT_EQ(
@@ -193,7 +191,7 @@ TEST(CanModelTest, CanModelOnInitRejectsDuplicateThrusterNameTest) {
 
     EXPECT_CALL(*can, init(_)).Times(0);
 
-    auto can_model = suchm::CanModel(can, thrusters, PERIOD_LED_TAPE_PER_THRUSTERS);
+    auto can_model = suchm::CanModel(can, thrusters);
     const auto result = can_model.on_init();
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error(), "Invalid thruster configuration: Duplicate thruster name: thruster1");
@@ -206,7 +204,7 @@ TEST(CanModelTest, CanModelOnInitRejectsDuplicateVescIdTest) {
 
     EXPECT_CALL(*can, init(_)).Times(0);
 
-    auto can_model = suchm::CanModel(can, thrusters, PERIOD_LED_TAPE_PER_THRUSTERS);
+    auto can_model = suchm::CanModel(can, thrusters);
     const auto result = can_model.on_init();
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error(), "Invalid thruster configuration: Duplicate VESC ID: 1");
@@ -228,9 +226,7 @@ TEST(CanModelTest, OnWriteUsesCommandIndexForConfiguredThrusterOrder) {
             }));
 
     constexpr size_t THRUSTER_COUNT = 3;
-    constexpr size_t PERIOD_WITHOUT_LED_IN_FIRST_CYCLE = 10;
-    auto can_model =
-        suchm::CanModel(can, make_thrusters(THRUSTER_COUNT), PERIOD_WITHOUT_LED_IN_FIRST_CYCLE);
+    auto can_model = suchm::CanModel(can, make_thrusters(THRUSTER_COUNT));
     ASSERT_TRUE(can_model.on_init());
 
     // コマンドのインデックスがスラスタ設定のインデックスに対応することを確認する
@@ -240,20 +236,18 @@ TEST(CanModelTest, OnWriteUsesCommandIndexForConfiguredThrusterOrder) {
         make_enabled_command(0.75),
     };
 
-    // 最初の2回は未実装のESC許可コマンドで、続く3回が各スラスタのDutyコマンドになる
-    for (size_t i = 0; i < 5; ++i) {
-        can_model.on_write(
-            succmd::main_power::Enabled{false}, thruster_commands,
-            succmd::led_tape::Color{0, 0, 0});
-    }
+    // 最初の送信フェーズで各スラスタのDutyをまとめて送信する
+    const auto result = can_model.on_write(
+        succmd::main_power::Enabled{false}, thruster_commands, succmd::led_tape::Color{0, 0, 0});
+    ASSERT_TRUE(result) << result.error();
 
     ASSERT_EQ(sent_frames.size(), THRUSTER_COUNT);
     EXPECT_EQ(sent_frames[0].id, VESC_ID_1);
     EXPECT_EQ(sent_frames[1].id, VESC_ID_2);
     EXPECT_EQ(sent_frames[2].id, VESC_ID_3);
-    EXPECT_EQ(sinsei_umiusi_control::util::to_int32_be(sent_frames[0].data).value(), 25000);
-    EXPECT_EQ(sinsei_umiusi_control::util::to_int32_be(sent_frames[1].data).value(), 50000);
-    EXPECT_EQ(sinsei_umiusi_control::util::to_int32_be(sent_frames[2].data).value(), 75000);
+    EXPECT_EQ(sinsei_umiusi_control::util::to_int32_be(sent_frames[0].data), 25000);
+    EXPECT_EQ(sinsei_umiusi_control::util::to_int32_be(sent_frames[1].data), 50000);
+    EXPECT_EQ(sinsei_umiusi_control::util::to_int32_be(sent_frames[2].data), 75000);
 }
 
 TEST(CanModelTest, OnWriteRejectsMismatchedThrusterCommandCount) {
@@ -263,8 +257,7 @@ TEST(CanModelTest, OnWriteRejectsMismatchedThrusterCommandCount) {
     EXPECT_CALL(*can, send_frame(_)).Times(0);
 
     constexpr size_t THRUSTER_COUNT = 3;
-    auto can_model =
-        suchm::CanModel(can, make_thrusters(THRUSTER_COUNT), PERIOD_LED_TAPE_PER_THRUSTERS);
+    auto can_model = suchm::CanModel(can, make_thrusters(THRUSTER_COUNT));
     ASSERT_TRUE(can_model.on_init());
 
     auto thruster_commands = make_enabled_commands(THRUSTER_COUNT);
@@ -279,13 +272,13 @@ TEST(CanModelTest, OnWriteRejectsMismatchedThrusterCommandCount) {
 
 class CanModelVariableThrusterCountTest : public testing::TestWithParam<size_t> {};
 
-TEST_P(CanModelVariableThrusterCountTest, WritesEachDynamicThrusterInRoundRobinOrder) {
+TEST_P(CanModelVariableThrusterCountTest, WritesEachDynamicThrusterInAlternatingBatches) {
     const auto thruster_count = GetParam();
     auto can = std::make_shared<Can>();
     auto sent_frame_ids = std::vector<suchm::interface::CanFrame::Id>{};
 
     EXPECT_CALL(*can, send_frame(_))
-        .Times(2 * thruster_count)
+        .Times(static_cast<int>(2 * thruster_count))
         .WillRepeatedly(Invoke(
             [&sent_frame_ids](
                 const suchm::interface::CanFrame & frame) -> tl::expected<void, std::string> {
@@ -293,26 +286,19 @@ TEST_P(CanModelVariableThrusterCountTest, WritesEachDynamicThrusterInRoundRobinO
                 return {};
             }));
 
-    constexpr size_t PERIOD_WITHOUT_LED_IN_FIRST_CYCLE = 10;
-    auto can_model =
-        suchm::CanModel(can, make_thrusters(thruster_count), PERIOD_WITHOUT_LED_IN_FIRST_CYCLE);
+    auto can_model = suchm::CanModel(can, make_thrusters(thruster_count));
     EXPECT_CALL(*can, init(_)).WillOnce(Return(tl::expected<void, std::string>{}));
     ASSERT_TRUE(can_model.on_init());
 
     auto thruster_commands = make_enabled_commands(thruster_count);
 
-    constexpr size_t COMMAND_TYPES_PER_THRUSTER = 4;
-    // FIXME: ESC・サーボのallowedコマンドは未実装のため、Duty比とサーボ角度の送信だけが成功する
-    for (size_t i = 0; i < thruster_count * COMMAND_TYPES_PER_THRUSTER; ++i) {
-        const auto result = can_model.on_write(
-            succmd::main_power::Enabled{false}, thruster_commands,
-            succmd::led_tape::Color{0, 0, 0});
-        const auto loop_count = i + 1;
-        const auto writes_duty = loop_count >= thruster_count && loop_count < 2 * thruster_count;
-        const auto writes_servo =
-            loop_count >= 3 * thruster_count && loop_count < 4 * thruster_count;
-        EXPECT_EQ(result.has_value(), writes_duty || writes_servo);
-    }
+    const auto duty_result = can_model.on_write(
+        succmd::main_power::Enabled{false}, thruster_commands, succmd::led_tape::Color{0, 0, 0});
+    ASSERT_TRUE(duty_result) << duty_result.error();
+
+    const auto servo_result = can_model.on_write(
+        succmd::main_power::Enabled{false}, thruster_commands, succmd::led_tape::Color{0, 0, 0});
+    ASSERT_TRUE(servo_result) << servo_result.error();
 
     auto expected_frame_ids = std::vector<suchm::interface::CanFrame::Id>{};
     expected_frame_ids.reserve(2 * thruster_count);
@@ -329,6 +315,42 @@ TEST_P(CanModelVariableThrusterCountTest, WritesEachDynamicThrusterInRoundRobinO
     EXPECT_EQ(sent_frame_ids, expected_frame_ids);
 }
 
+TEST(CanModelTest, OnWriteDoesNotReplaceDisabledCommandsWithZero) {
+    // FIXME: LispBMの実装が終わったらallowedコマンドの送信も検証する
+    auto can = std::make_shared<Can>();
+    auto sent_frames = std::vector<suchm::interface::CanFrame>{};
+
+    EXPECT_CALL(*can, init(_)).WillOnce(Return(tl::expected<void, std::string>{}));
+    EXPECT_CALL(*can, send_frame(_))
+        .Times(2)
+        .WillRepeatedly(Invoke(
+            [&sent_frames](
+                const suchm::interface::CanFrame & frame) -> tl::expected<void, std::string> {
+                sent_frames.push_back(frame);
+                return {};
+            }));
+
+    auto can_model = suchm::CanModel(can, make_thrusters(2));
+    ASSERT_TRUE(can_model.on_init());
+
+    auto thruster_commands = make_enabled_commands(2);
+    thruster_commands[0].esc_allowed.value = false;
+    thruster_commands[1].servo_allowed.value = false;
+
+    ASSERT_TRUE(can_model.on_write(
+        succmd::main_power::Enabled{false}, thruster_commands, succmd::led_tape::Color{0, 0, 0}));
+    ASSERT_TRUE(can_model.on_write(
+        succmd::main_power::Enabled{false}, thruster_commands, succmd::led_tape::Color{0, 0, 0}));
+
+    ASSERT_EQ(sent_frames.size(), 2u);
+    EXPECT_EQ(sent_frames[0].id, VESC_ID_2);
+    EXPECT_EQ(
+        sent_frames[1].id, (static_cast<suchm::interface::CanFrame::Id>(
+                                suchm::can::VescSimpleCommandID::CAN_PACKET_SET_SERVO)
+                            << 8) |
+                               VESC_ID_1);
+}
+
 TEST_P(CanModelVariableThrusterCountTest, RoutesReceivedStatusToConfiguredThrusterName) {
     const auto thruster_count = GetParam();
     auto can = std::make_shared<Can>();
@@ -343,8 +365,7 @@ TEST_P(CanModelVariableThrusterCountTest, RoutesReceivedStatusToConfiguredThrust
         .WillOnce(
             Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
 
-    auto can_model =
-        suchm::CanModel(can, make_thrusters(thruster_count), PERIOD_LED_TAPE_PER_THRUSTERS);
+    auto can_model = suchm::CanModel(can, make_thrusters(thruster_count));
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     const auto & [name, rpm] = std::get<0>(result.value());

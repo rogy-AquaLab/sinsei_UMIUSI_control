@@ -2,7 +2,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
 
   <xacro:macro name="can"
-    params="vesc1_id vesc2_id vesc3_id vesc4_id period_led_tape_per_thrusters">
+    params="vesc1_id vesc2_id vesc3_id vesc4_id">
     <ros2_control name="can" type="system" is_async="true">
       <hardware>
         <plugin>sinsei_umiusi_control/hardware/Can</plugin>
@@ -10,7 +10,6 @@
         <param name="vesc2_id">${vesc2_id}</param>
         <param name="vesc3_id">${vesc3_id}</param>
         <param name="vesc4_id">${vesc4_id}</param>
-        <param name="period_led_tape_per_thrusters">${period_led_tape_per_thrusters}</param>
       </hardware>
 
       <xacro:macro name="thruster" params="id">
