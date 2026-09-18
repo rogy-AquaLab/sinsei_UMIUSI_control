@@ -151,7 +151,7 @@ TEST(CanModelTest, CanModelOnReadUnsupportedPacketStatusReturnsErrorTest) {
     ASSERT_FALSE(result);
     EXPECT_EQ(
         result.error(),
-        "Unsupported VESC packet status variant received (thruster 'thruster1' (VESC 1), "
+        "Unsupported VESC packet status variant received ('thruster1' (VESC 1), "
         "variant index: 1)");
 }
 
