@@ -92,7 +92,7 @@ auto CanModel::on_read() const
 
     for (const auto & thruster : this->thrusters) {
         const auto description =
-            "thruster '" + thruster.name + "' (VESC " + std::to_string(thruster.vesc_id) + ")";
+            "'" + thruster.name + "' (VESC " + std::to_string(thruster.vesc_id) + ")";
 
         const auto packet_status_res = thruster.vesc_model.get_packet_status(frame_opt.value());
         if (!packet_status_res) {
@@ -187,8 +187,8 @@ auto CanModel::on_write(
             if (!error_message.empty()) {
                 error_message += "\n";
             }
-            error_message += "Failed to create CAN frame for thruster '" + thruster.name +
-                             "': " + frame_res.error();
+            error_message +=
+                "Failed to create CAN frame for '" + thruster.name + "': " + frame_res.error();
             continue;
         }
 
@@ -197,8 +197,8 @@ auto CanModel::on_write(
             if (!error_message.empty()) {
                 error_message += "\n";
             }
-            error_message += "Failed to send CAN frame for thruster '" + thruster.name +
-                             "': " + send_res.error();
+            error_message +=
+                "Failed to send CAN frame for '" + thruster.name + "': " + send_res.error();
         }
     }
 
