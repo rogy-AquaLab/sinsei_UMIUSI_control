@@ -105,6 +105,7 @@ auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
     this->last_servo_command = std::nullopt;
     this->servo_estimated_angle_interface =
         state::thruster::servo::EstimatedAngle{std::numeric_limits<double>::quiet_NaN()};
+    this->servo_max_angular_velocity_interface = state::thruster::servo::MaxAngularVelocity{0.0};
 
     return controller_interface::CallbackReturn::SUCCESS;
 }
@@ -141,6 +142,8 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
         duty_per_thrust, max_duty_cycle, max_duty_step_per_sec);
     this->servo_angle_estimator =
         std::make_unique<logic::thruster::ServoAngleEstimator>(servo_max_angular_velocity);
+    this->servo_max_angular_velocity_interface =
+        state::thruster::servo::MaxAngularVelocity{servo_max_angular_velocity};
     this->last_servo_command = std::nullopt;
     this->output.state.servo_estimated_angle = std::nullopt;
     this->servo_estimated_angle_interface =
@@ -294,6 +297,9 @@ auto ThrusterController::on_export_state_interfaces()
     interfaces.emplace_back(hardware_interface::StateInterface(
         this->get_node()->get_name(), "servo/estimated_angle",
         util::to_interface_data_ptr(this->servo_estimated_angle_interface)));
+    interfaces.emplace_back(hardware_interface::StateInterface(
+        this->get_node()->get_name(), "servo/max_angular_velocity",
+        util::to_interface_data_ptr(this->servo_max_angular_velocity_interface)));
 
     return interfaces;
 }

@@ -1,8 +1,9 @@
 #include "sinsei_umiusi_control/controller/logic/attitude/attitude_feedback.hpp"
 
+#include <gtest/gtest.h>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <gtest/gtest.h>
 #include <limits>
 
 namespace sinsei_umiusi_control::test::controller::logic::attitude {
@@ -25,8 +26,8 @@ TEST(AttitudeFeedbackTest, LevelAndStoppedProducesNoMoment) {
 TEST(AttitudeFeedbackTest, PositiveRollTargetProducesPositiveRollMoment) {
     const auto feedback = AttitudeFeedback{};
     const auto target = Eigen::Quaterniond{Eigen::AngleAxisd{ANGLE, Eigen::Vector3d::UnitX()}};
-    const auto moment = feedback.moment(
-        target, Eigen::Quaterniond::Identity(), Eigen::Vector3d::Zero(), 0.0);
+    const auto moment =
+        feedback.moment(target, Eigen::Quaterniond::Identity(), Eigen::Vector3d::Zero(), 0.0);
 
     ASSERT_TRUE(moment);
     EXPECT_GT(moment->x(), 0.0);
@@ -36,8 +37,8 @@ TEST(AttitudeFeedbackTest, PositiveRollTargetProducesPositiveRollMoment) {
 TEST(AttitudeFeedbackTest, PositivePitchTargetProducesPositivePitchMoment) {
     const auto feedback = AttitudeFeedback{};
     const auto target = Eigen::Quaterniond{Eigen::AngleAxisd{ANGLE, Eigen::Vector3d::UnitY()}};
-    const auto moment = feedback.moment(
-        target, Eigen::Quaterniond::Identity(), Eigen::Vector3d::Zero(), 0.0);
+    const auto moment =
+        feedback.moment(target, Eigen::Quaterniond::Identity(), Eigen::Vector3d::Zero(), 0.0);
 
     ASSERT_TRUE(moment);
     EXPECT_NEAR(moment->x(), 0.0, EPS);
@@ -47,8 +48,8 @@ TEST(AttitudeFeedbackTest, PositivePitchTargetProducesPositivePitchMoment) {
 TEST(AttitudeFeedbackTest, PositiveCurrentRollProducesRestoringNegativeRollMoment) {
     const auto feedback = AttitudeFeedback{};
     const auto current = Eigen::Quaterniond{Eigen::AngleAxisd{ANGLE, Eigen::Vector3d::UnitX()}};
-    const auto moment = feedback.moment(
-        Eigen::Quaterniond::Identity(), current, Eigen::Vector3d::Zero(), 0.0);
+    const auto moment =
+        feedback.moment(Eigen::Quaterniond::Identity(), current, Eigen::Vector3d::Zero(), 0.0);
 
     ASSERT_TRUE(moment);
     EXPECT_LT(moment->x(), 0.0);
@@ -58,8 +59,8 @@ TEST(AttitudeFeedbackTest, PositiveCurrentRollProducesRestoringNegativeRollMomen
 TEST(AttitudeFeedbackTest, PositiveCurrentPitchProducesRestoringNegativePitchMoment) {
     const auto feedback = AttitudeFeedback{};
     const auto current = Eigen::Quaterniond{Eigen::AngleAxisd{ANGLE, Eigen::Vector3d::UnitY()}};
-    const auto moment = feedback.moment(
-        Eigen::Quaterniond::Identity(), current, Eigen::Vector3d::Zero(), 0.0);
+    const auto moment =
+        feedback.moment(Eigen::Quaterniond::Identity(), current, Eigen::Vector3d::Zero(), 0.0);
 
     ASSERT_TRUE(moment);
     EXPECT_NEAR(moment->x(), 0.0, EPS);
@@ -68,10 +69,8 @@ TEST(AttitudeFeedbackTest, PositiveCurrentPitchProducesRestoringNegativePitchMom
 
 TEST(AttitudeFeedbackTest, TransformsWorldTiltErrorIntoCurrentBodyFrame) {
     const auto feedback = AttitudeFeedback{};
-    const auto current = Eigen::Quaterniond{
-        Eigen::AngleAxisd{M_PI_2, Eigen::Vector3d::UnitZ()}};
-    const auto target = Eigen::Quaterniond{
-        Eigen::AngleAxisd{ANGLE, Eigen::Vector3d::UnitY()}};
+    const auto current = Eigen::Quaterniond{Eigen::AngleAxisd{M_PI_2, Eigen::Vector3d::UnitZ()}};
+    const auto target = Eigen::Quaterniond{Eigen::AngleAxisd{ANGLE, Eigen::Vector3d::UnitY()}};
     const auto moment = feedback.moment(target, current, Eigen::Vector3d::Zero(), 0.0);
 
     ASSERT_TRUE(moment);
@@ -102,10 +101,8 @@ TEST(AttitudeFeedbackTest, YawRateUsesMeasuredRateFeedback) {
 
 TEST(AttitudeFeedbackTest, IgnoresTargetAndCurrentYawForTiltControl) {
     const auto feedback = AttitudeFeedback{};
-    const auto current = Eigen::Quaterniond{
-        Eigen::AngleAxisd{1.0, Eigen::Vector3d::UnitZ()}};
-    const auto target = Eigen::Quaterniond{
-        Eigen::AngleAxisd{-0.7, Eigen::Vector3d::UnitZ()}};
+    const auto current = Eigen::Quaterniond{Eigen::AngleAxisd{1.0, Eigen::Vector3d::UnitZ()}};
+    const auto target = Eigen::Quaterniond{Eigen::AngleAxisd{-0.7, Eigen::Vector3d::UnitZ()}};
     const auto moment = feedback.moment(target, current, Eigen::Vector3d::Zero(), 0.0);
 
     ASSERT_TRUE(moment);
@@ -119,8 +116,8 @@ TEST(AttitudeFeedbackTest, QuaternionSignDoesNotChangeMoment) {
     auto negative_target = target;
     negative_target.coeffs() *= -1.0;
 
-    const auto positive = feedback.moment(
-        target, Eigen::Quaterniond::Identity(), Eigen::Vector3d::Zero(), 0.0);
+    const auto positive =
+        feedback.moment(target, Eigen::Quaterniond::Identity(), Eigen::Vector3d::Zero(), 0.0);
     const auto negative = feedback.moment(
         negative_target, Eigen::Quaterniond::Identity(), Eigen::Vector3d::Zero(), 0.0);
 
@@ -132,10 +129,17 @@ TEST(AttitudeFeedbackTest, QuaternionSignDoesNotChangeMoment) {
 TEST(AttitudeFeedbackTest, RejectsInvalidQuaternionAndNonFiniteInput) {
     const auto feedback = AttitudeFeedback{};
     const auto zero_quaternion = Eigen::Quaterniond{0.0, 0.0, 0.0, 0.0};
+    const auto corrupted_imu_quaternion = Eigen::Quaterniond{
+        -0.00006103515625, -0.00006103515625, -0.00006103515625, -0.00006103515625};
+    const auto oversized_quaternion = Eigen::Quaterniond{2.0, 0.0, 0.0, 0.0};
     const auto nan = std::numeric_limits<double>::quiet_NaN();
 
     EXPECT_FALSE(feedback.moment(
         zero_quaternion, Eigen::Quaterniond::Identity(), Eigen::Vector3d::Zero(), 0.0));
+    EXPECT_FALSE(feedback.moment(
+        Eigen::Quaterniond::Identity(), corrupted_imu_quaternion, Eigen::Vector3d::Zero(), 0.0));
+    EXPECT_FALSE(feedback.moment(
+        oversized_quaternion, Eigen::Quaterniond::Identity(), Eigen::Vector3d::Zero(), 0.0));
     EXPECT_FALSE(feedback.moment(
         Eigen::Quaterniond::Identity(), Eigen::Quaterniond::Identity(),
         Eigen::Vector3d{nan, 0.0, 0.0}, 0.0));

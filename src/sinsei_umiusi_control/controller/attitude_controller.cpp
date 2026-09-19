@@ -105,6 +105,10 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
             controller_prefix + "servo/estimated_angle",
             util::to_interface_data_ptr(this->servo_estimated_angle_interfaces[i]),
             sizeof(this->servo_estimated_angle_interfaces[i])));
+        this->state_interface_data.push_back(std::make_tuple(
+            controller_prefix + "servo/max_angular_velocity",
+            util::to_interface_data_ptr(this->input.state.servo_max_angular_velocities[i]),
+            sizeof(this->input.state.servo_max_angular_velocities[i])));
     }
     this->state_interface_data.push_back(std::make_tuple(
         "imu/quaternion.x", util::to_interface_data_ptr(this->input.state.imu_quaternion.x),

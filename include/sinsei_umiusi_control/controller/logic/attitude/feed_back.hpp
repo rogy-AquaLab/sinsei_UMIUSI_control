@@ -27,7 +27,7 @@ class FeedBack : public AttitudeController::Logic {
         return {};
     }
 
-    auto update(double /*time*/, double /*duration*/, const AttitudeController::Input & input)
+    auto update(double /*time*/, double duration, const AttitudeController::Input & input)
         -> AttitudeController::Output override {
         const auto target_attitude = to_eigen_quaternion(input.cmd.target_attitude);
         const auto current_attitude = to_eigen_quaternion(input.state.imu_quaternion);
@@ -41,19 +41,21 @@ class FeedBack : public AttitudeController::Logic {
             target_attitude, current_attitude, angular_velocity,
             input.cmd.target_attitude.yaw_rate);
         if (!moment || !target_velocity.allFinite()) {
-            return {};
+            return hold_current_servo_angles(input.state.servo_estimated_angles);
         }
 
         const auto u = Eigen::Vector<double, 6>{
-            moment->x(),                        // rollモーメント要求
-            moment->y(),                        // pitchモーメント要求
-            moment->z(),                        // yawモーメント要求
-            target_velocity[0],                 // 目標並進(x)
-            target_velocity[1],                 // 目標並進(y)
-            target_velocity[2],                 // 目標並進(z)
+            moment->x(),         // rollモーメント要求
+            moment->y(),         // pitchモーメント要求
+            moment->z(),         // yawモーメント要求
+            target_velocity[0],  // 目標並進(x)
+            target_velocity[1],  // 目標並進(y)
+            target_velocity[2],  // 目標並進(z)
         };
 
-        return mix_to_thrusters(u);
+        return mix_to_thrusters(
+            u, input.state.servo_estimated_angles, input.state.servo_max_angular_velocities,
+            duration);
     }
 };
 

@@ -14,6 +14,9 @@ struct CommandedAngle {
 struct EstimatedAngle {
     double value;
 };
+struct MaxAngularVelocity {
+    double value;
+};
 
 }  // namespace sinsei_umiusi_control::state::thruster::servo
 

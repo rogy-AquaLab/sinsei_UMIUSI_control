@@ -86,6 +86,7 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     std::optional<state::thruster::servo::CommandedAngle> last_servo_command;
     state::thruster::servo::EstimatedAngle servo_estimated_angle_interface{
         std::numeric_limits<double>::quiet_NaN()};
+    state::thruster::servo::MaxAngularVelocity servo_max_angular_velocity_interface{0.0};
 
     util::interface_accessor::InterfaceDataContainer command_interface_data;
     util::interface_accessor::InterfaceDataContainer state_interface_data;

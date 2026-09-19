@@ -35,6 +35,7 @@ class AttitudeController : public controller_interface::ChainableControllerInter
             std::array<state::thruster::servo::CommandedAngle, 4> servo_commanded_angles;
             std::array<std::optional<state::thruster::servo::EstimatedAngle>, 4>
                 servo_estimated_angles;
+            std::array<state::thruster::servo::MaxAngularVelocity, 4> servo_max_angular_velocities;
         };
         Command cmd;
         State state;

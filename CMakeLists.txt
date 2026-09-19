@@ -122,6 +122,7 @@ if(BUILD_TESTING)
   )
   ament_auto_add_gtest(test_controller_logic
     test/cpp/controller/logic/attitude/attitude_feedback.cpp
+    test/cpp/controller/logic/attitude/mixer.cpp
     test/cpp/controller/logic/thruster/servo_angle_estimator.cpp
     src/${PROJECT_NAME}/controller/logic/thruster/servo_angle_estimator.cpp
   )
