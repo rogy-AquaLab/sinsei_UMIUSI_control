@@ -4,6 +4,7 @@
 #include <memory>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
+#include <tuple>
 #include <variant>
 #include <vector>
 
@@ -24,6 +25,12 @@ class CanModel {
     using EscDutyCycle = cmd::thruster::esc::DutyCycle;
     using ServoAllowed = cmd::thruster::servo::Allowed;
     using ServoAngle = cmd::thruster::servo::Angle;
+    using StateUpdate = std::variant<
+        std::tuple<std::string, state::thruster::esc::Rpm>,
+        std::tuple<std::string, state::thruster::esc::Voltage>,
+        std::tuple<std::string, state::thruster::esc::WaterLeaked>,
+        state::main_power::BatteryCurrent, state::main_power::BatteryVoltage,
+        state::main_power::Temperature, state::main_power::WaterLeaked>;
 
     struct ThrusterConfig {
         std::string name;
@@ -35,6 +42,11 @@ class CanModel {
         EscDutyCycle esc_duty_cycle;
         ServoAllowed servo_allowed;
         ServoAngle servo_angle;
+    };
+
+    struct ReadResult {
+        std::vector<StateUpdate> updates;
+        std::string error_message;
     };
 
   private:
@@ -64,20 +76,14 @@ class CanModel {
     static constexpr double WATER_LEAKED_VOLTAGE_THRESHOLD = 2.0;
 
     auto validate_thruster_configs() const -> tl::expected<void, std::string>;
+    auto process_frame(const interface::CanFrame & frame) const
+        -> tl::expected<StateUpdate, std::string>;
 
   public:
     CanModel(std::shared_ptr<interface::Can> can, std::vector<ThrusterConfig> thruster_configs);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_destroy() -> tl::expected<void, std::string>;
-    auto on_read() const
-        -> tl::expected<
-            std::variant<
-                std::tuple<std::string, state::thruster::esc::Rpm>,
-                std::tuple<std::string, state::thruster::esc::Voltage>,
-                std::tuple<std::string, state::thruster::esc::WaterLeaked>,
-                state::main_power::BatteryCurrent, state::main_power::BatteryVoltage,
-                state::main_power::Temperature, state::main_power::WaterLeaked>,
-            std::string>;
+    auto on_read() const -> tl::expected<ReadResult, std::string>;
     // thruster_commandsはコンストラクタへ渡したthruster_configsと同じ順序で指定する
     auto on_write(
         cmd::main_power::Enabled main_power_enabled,

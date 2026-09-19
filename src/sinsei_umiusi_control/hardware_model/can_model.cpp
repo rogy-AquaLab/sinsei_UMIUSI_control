@@ -65,25 +65,8 @@ auto CanModel::on_destroy() -> tl::expected<void, std::string> {
     return {};
 }
 
-auto CanModel::on_read() const
-    -> tl::expected<
-        std::variant<
-            std::tuple<std::string, state::thruster::esc::Rpm>,
-            std::tuple<std::string, state::thruster::esc::Voltage>,
-            std::tuple<std::string, state::thruster::esc::WaterLeaked>,
-            state::main_power::BatteryCurrent, state::main_power::BatteryVoltage,
-            state::main_power::Temperature, state::main_power::WaterLeaked>,
-        std::string> {
-    const auto frame_res = this->can->recv_frame();
-    if (!frame_res) {
-        return tl::make_unexpected("Failed to receive CAN frame: " + frame_res.error());
-    }
-    const auto & frame_opt = frame_res.value();
-    if (!frame_opt) {
-        return tl::make_unexpected(
-            "CAN read timeout: no CAN frame received within the timeout period");
-    }
-
+auto CanModel::process_frame(const interface::CanFrame & frame) const
+    -> tl::expected<StateUpdate, std::string> {
     // フレームを各モデルに渡していく
 
     auto error_message = std::string("");
@@ -94,7 +77,7 @@ auto CanModel::on_read() const
         const auto description =
             "'" + thruster.name + "' (VESC " + std::to_string(thruster.vesc_id) + ")";
 
-        const auto packet_status_res = thruster.vesc_model.get_packet_status(frame_opt.value());
+        const auto packet_status_res = thruster.vesc_model.get_packet_status(frame);
         if (!packet_status_res) {
             error_message += "    " + description + ": " + packet_status_res.error() + "\n";
             continue;
@@ -111,20 +94,21 @@ auto CanModel::on_read() const
                 const auto & status = std::get<0>(packet_status_opt.value());
                 constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
                 // ERPMを極対数で割ってRPMに変換
-                return std::make_tuple(
-                    thruster.name, state::thruster::esc::Rpm{status.erpm / BLDC_POLE_PAIR});
+                return StateUpdate{std::make_tuple(
+                    thruster.name, state::thruster::esc::Rpm{status.erpm / BLDC_POLE_PAIR})};
             }
             case 4: {  // PacketStatus5
                 const auto & status = std::get<4>(packet_status_opt.value());
                 const auto volts_in = status.volts_in;
-                return std::make_tuple(thruster.name, state::thruster::esc::Voltage{volts_in});
+                return StateUpdate{
+                    std::make_tuple(thruster.name, state::thruster::esc::Voltage{volts_in})};
             }
             case 5: {  // PacketStatus6
                 const auto & status = std::get<5>(packet_status_opt.value());
                 // 浸水センサーはADC1に接続されている
                 const auto water_leaked = status.adc1 < WATER_LEAKED_VOLTAGE_THRESHOLD;
-                return std::make_tuple(
-                    thruster.name, state::thruster::esc::WaterLeaked{water_leaked});
+                return StateUpdate{std::make_tuple(
+                    thruster.name, state::thruster::esc::WaterLeaked{water_leaked})};
             }
             default: {
                 return tl::make_unexpected(
@@ -137,12 +121,35 @@ auto CanModel::on_read() const
     if (error_message.empty()) {
         return tl::make_unexpected(
             "Unhandled CAN frame: no registered model accepted frame id " +
-            std::to_string(frame_opt.value().id));
+            std::to_string(frame.id));
     }
 
     return tl::make_unexpected(
-        "Failed to handle CAN frame \"" + std::to_string(frame_opt.value().id) +
-        "\" in all models: \n" + error_message);
+        "Failed to handle CAN frame \"" + std::to_string(frame.id) + "\" in all models: \n" +
+        error_message);
+}
+
+auto CanModel::on_read() const -> tl::expected<ReadResult, std::string> {
+    const auto frames_res = this->can->recv_frames();
+    if (!frames_res) {
+        return tl::make_unexpected("Failed to receive CAN frames: " + frames_res.error());
+    }
+
+    auto read_result = ReadResult{};
+    read_result.updates.reserve(frames_res.value().size());
+    for (const auto & frame : frames_res.value()) {
+        auto update_res = this->process_frame(frame);
+        if (update_res) {
+            read_result.updates.push_back(std::move(update_res.value()));
+            continue;
+        }
+
+        if (!read_result.error_message.empty()) {
+            read_result.error_message += "\n";
+        }
+        read_result.error_message += update_res.error();
+    }
+    return read_result;
 }
 
 auto CanModel::on_write(

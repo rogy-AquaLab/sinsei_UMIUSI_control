@@ -97,51 +97,64 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
             res.error().c_str());
         return hardware_interface::return_type::OK;
     }
-    this->set_state("can/health", util::to_interface_data(state::can::Health{true}));
 
-    auto variant = res.value();
+    const auto & read_result = res.value();
+    for (const auto & update : read_result.updates) {
+        switch (update.index()) {
+            case 0: {  // Rpm
+                const auto & [thruster_name, rpm] = std::get<0>(update);
+                this->set_state(thruster_name + "/esc/rpm", util::to_interface_data(rpm));
+                break;
+            }
+            case 1: {  // ESC Voltage
+                const auto & [thruster_name, voltage] = std::get<1>(update);
+                this->set_state(thruster_name + "/esc/voltage", util::to_interface_data(voltage));
+                break;
+            }
+            case 2: {  // ESC WaterLeaked
+                const auto & [thruster_name, water_leaked] = std::get<2>(update);
+                this->set_state(
+                    thruster_name + "/esc/water_leaked", util::to_interface_data(water_leaked));
+                break;
+            }
+            case 3: {  // BatteryCurrent
+                const auto battery_current =
+                    std::get<sinsei_umiusi_control::state::main_power::BatteryCurrent>(update);
+                this->set_state(
+                    "main_power/battery_current", util::to_interface_data(battery_current));
+                break;
+            }
+            case 4: {  // BatteryVoltage
+                const auto battery_voltage =
+                    std::get<sinsei_umiusi_control::state::main_power::BatteryVoltage>(update);
+                this->set_state(
+                    "main_power/battery_voltage", util::to_interface_data(battery_voltage));
+                break;
+            }
+            case 5: {  // Temperature
+                const auto temperature =
+                    std::get<sinsei_umiusi_control::state::main_power::Temperature>(update);
+                this->set_state("main_power/temperature", util::to_interface_data(temperature));
+                break;
+            }
+            case 6: {  // WaterLeaked
+                const auto water_leaked =
+                    std::get<sinsei_umiusi_control::state::main_power::WaterLeaked>(update);
+                this->set_state("main_power/water_leaked", util::to_interface_data(water_leaked));
+                break;
+            }
+        }
+    }
 
-    switch (variant.index()) {
-        case 0: {  // Rpm
-            const auto & [thruster_name, rpm] = std::get<0>(variant);
-            this->set_state(thruster_name + "/esc/rpm", util::to_interface_data(rpm));
-            break;
-        }
-        case 1: {  // ESC Voltage
-            const auto & [thruster_name, voltage] = std::get<1>(variant);
-            this->set_state(thruster_name + "/esc/voltage", util::to_interface_data(voltage));
-            break;
-        }
-        case 2: {  // ESC WaterLeaked
-            const auto & [thruster_name, water_leaked] = std::get<2>(variant);
-            this->set_state(
-                thruster_name + "/esc/water_leaked", util::to_interface_data(water_leaked));
-            break;
-        }
-        case 3: {  // BatteryCurrent
-            const auto battery_current =
-                std::get<sinsei_umiusi_control::state::main_power::BatteryCurrent>(variant);
-            this->set_state("main_power/battery_current", util::to_interface_data(battery_current));
-            break;
-        }
-        case 4: {  // BatteryVoltage
-            const auto battery_voltage =
-                std::get<sinsei_umiusi_control::state::main_power::BatteryVoltage>(variant);
-            this->set_state("main_power/battery_voltage", util::to_interface_data(battery_voltage));
-            break;
-        }
-        case 5: {  // Temperature
-            const auto temperature =
-                std::get<sinsei_umiusi_control::state::main_power::Temperature>(variant);
-            this->set_state("main_power/temperature", util::to_interface_data(temperature));
-            break;
-        }
-        case 6: {  // WaterLeaked
-            const auto water_leaked =
-                std::get<sinsei_umiusi_control::state::main_power::WaterLeaked>(variant);
-            this->set_state("main_power/water_leaked", util::to_interface_data(water_leaked));
-            break;
-        }
+    if (!read_result.error_message.empty()) {
+        this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
+
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_ERROR_THROTTLE(
+            this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to read CAN data: %s",
+            read_result.error_message.c_str());
+    } else if (!read_result.updates.empty()) {
+        this->set_state("can/health", util::to_interface_data(state::can::Health{true}));
     }
 
     return hardware_interface::return_type::OK;
