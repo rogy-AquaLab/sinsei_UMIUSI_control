@@ -9,6 +9,7 @@
 namespace sinsei_umiusi_control::test::controller::logic::attitude {
 
 using sinsei_umiusi_control::controller::logic::attitude::AttitudeFeedback;
+using sinsei_umiusi_control::controller::logic::attitude::AttitudeFeedbackGains;
 
 constexpr auto ANGLE = 0.2;
 constexpr auto EPS = 1e-12;
@@ -143,6 +144,67 @@ TEST(AttitudeFeedbackTest, RejectsInvalidQuaternionAndNonFiniteInput) {
     EXPECT_FALSE(feedback.moment(
         Eigen::Quaterniond::Identity(), Eigen::Quaterniond::Identity(),
         Eigen::Vector3d{nan, 0.0, 0.0}, 0.0));
+}
+
+TEST(AttitudeFeedbackTest, ZeroDurationDoesNotAccumulateIntegral) {
+    auto gains = AttitudeFeedbackGains{};
+    gains.ki_roll = 1.0;
+    gains.ki_pitch = 1.0;
+    const auto feedback = AttitudeFeedback{gains};
+    const auto target = Eigen::Quaterniond{Eigen::AngleAxisd{ANGLE, Eigen::Vector3d::UnitX()}};
+
+    for (auto i = 0; i < 5; ++i) {
+        feedback.moment(target, Eigen::Quaterniond::Identity(), Eigen::Vector3d::Zero(), 0.0);
+    }
+    const auto moment =
+        feedback.moment(target, Eigen::Quaterniond::Identity(), Eigen::Vector3d::Zero(), 0.0);
+
+    ASSERT_TRUE(moment);
+    EXPECT_NEAR(moment->x(), std::sin(ANGLE), EPS);
+}
+
+TEST(AttitudeFeedbackTest, PersistentTiltErrorAccumulatesIntegralOverTime) {
+    auto gains = AttitudeFeedbackGains{};
+    gains.ki_roll = 1.0;
+    gains.ki_pitch = 1.0;
+    gains.i_max = 10.0;
+    const auto feedback = AttitudeFeedback{gains};
+    const auto target = Eigen::Quaterniond{Eigen::AngleAxisd{ANGLE, Eigen::Vector3d::UnitX()}};
+    constexpr auto DURATION = 0.1;
+
+    // 同じ傾き誤差が続くと、積分項の寄与だけ徐々にモーメントが増える。
+    const auto first =
+        feedback.moment(target, Eigen::Quaterniond::Identity(), Eigen::Vector3d::Zero(), 0.0, DURATION);
+    const auto second =
+        feedback.moment(target, Eigen::Quaterniond::Identity(), Eigen::Vector3d::Zero(), 0.0, DURATION);
+
+    ASSERT_TRUE(first);
+    ASSERT_TRUE(second);
+    EXPECT_GT(second->x(), first->x());
+}
+
+TEST(AttitudeFeedbackTest, IntegralTermIsClampedByIMax) {
+    auto gains = AttitudeFeedbackGains{};
+    gains.ki_roll = 1.0;
+    gains.ki_pitch = 1.0;
+    gains.i_max = 0.01;
+    const auto feedback = AttitudeFeedback{gains};
+    const auto target = Eigen::Quaterniond{Eigen::AngleAxisd{ANGLE, Eigen::Vector3d::UnitX()}};
+    constexpr auto DURATION = 1.0;
+
+    auto last = feedback.moment(
+        target, Eigen::Quaterniond::Identity(), Eigen::Vector3d::Zero(), 0.0, DURATION);
+    for (auto i = 0; i < 50; ++i) {
+        last = feedback.moment(
+            target, Eigen::Quaterniond::Identity(), Eigen::Vector3d::Zero(), 0.0, DURATION);
+    }
+    const auto clamped = feedback.moment(
+        target, Eigen::Quaterniond::Identity(), Eigen::Vector3d::Zero(), 0.0, DURATION);
+
+    ASSERT_TRUE(last);
+    ASSERT_TRUE(clamped);
+    // i_max でクランプされているので、これ以上呼び出しても積分項の寄与は増えない。
+    EXPECT_NEAR(last->x(), clamped->x(), EPS);
 }
 
 }  // namespace sinsei_umiusi_control::test::controller::logic::attitude

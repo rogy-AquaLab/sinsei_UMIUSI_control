@@ -39,7 +39,7 @@ class FeedBack : public AttitudeController::Logic {
         };
         const auto moment = this->attitude_feedback.moment(
             target_attitude, current_attitude, angular_velocity,
-            input.cmd.target_attitude.yaw_rate);
+            input.cmd.target_attitude.yaw_rate, duration);
         if (!moment || !target_velocity.allFinite()) {
             return hold_current_servo_angles(input.state.servo_estimated_angles);
         }

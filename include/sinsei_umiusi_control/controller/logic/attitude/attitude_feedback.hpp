@@ -3,6 +3,7 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <algorithm>
 #include <cmath>
 #include <optional>
 
@@ -14,6 +15,11 @@ struct AttitudeFeedbackGains {
     double kd_roll{0.35};
     double kd_pitch{0.35};
     double kp_yaw_rate{1.0};
+    // 浮心オフセットやサーボ中立点のずれ等、モデル誤差由来の定常的な傾きを消すための積分項。
+    // 既定 0.0 は従来通り（PD相当）。プールで定常的な傾きが見えた場合にのみ上げる。
+    double ki_roll{0.0};
+    double ki_pitch{0.0};
+    double i_max{0.2};  // 積分項自体をクランプする簡易アンチワインドアップ
 };
 
 // Roll/pitch は body-up の向きだけを合わせる reduced-attitude 制御、yaw はレート制御。
@@ -21,6 +27,9 @@ struct AttitudeFeedbackGains {
 class AttitudeFeedback {
   private:
     AttitudeFeedbackGains gains;
+    // moment() は const だが、積分項は制御周期をまたいで蓄積する必要があるため mutable にする。
+    mutable double i_err_roll{0.0};
+    mutable double i_err_pitch{0.0};
 
     static auto valid_quaternion(const Eigen::Quaterniond & quaternion) -> bool {
         if (!quaternion.coeffs().allFinite()) {
@@ -67,12 +76,15 @@ class AttitudeFeedback {
   public:
     explicit AttitudeFeedback(AttitudeFeedbackGains gains = {}) : gains(gains) {}
 
+    // duration (制御周期 [s]) は既定 0.0 のままなら積分項が蓄積しないため、既存呼び出しの
+    // 挙動は変えない。
     auto moment(
         Eigen::Quaterniond target_attitude, Eigen::Quaterniond current_attitude,
         const Eigen::Vector3d & angular_velocity,
-        double target_yaw_rate) const -> std::optional<Eigen::Vector3d> {
+        double target_yaw_rate, double duration = 0.0) const -> std::optional<Eigen::Vector3d> {
         if (!valid_quaternion(target_attitude) || !valid_quaternion(current_attitude) ||
-            !angular_velocity.allFinite() || !std::isfinite(target_yaw_rate)) {
+            !angular_velocity.allFinite() || !std::isfinite(target_yaw_rate) ||
+            !std::isfinite(duration) || duration < 0.0) {
             return std::nullopt;
         }
 
@@ -90,10 +102,19 @@ class AttitudeFeedback {
         };
         const auto tilt_error_body = rotate_world_to_body(current_attitude, tilt_error_world);
 
+        this->i_err_roll = std::clamp(
+            this->i_err_roll + tilt_error_body.x() * duration, -this->gains.i_max,
+            this->gains.i_max);
+        this->i_err_pitch = std::clamp(
+            this->i_err_pitch + tilt_error_body.y() * duration, -this->gains.i_max,
+            this->gains.i_max);
+
         return Eigen::Vector3d{
-            this->gains.kp_roll * tilt_error_body.x() - this->gains.kd_roll * angular_velocity.x(),
+            this->gains.kp_roll * tilt_error_body.x() - this->gains.kd_roll * angular_velocity.x() +
+                this->gains.ki_roll * this->i_err_roll,
             this->gains.kp_pitch * tilt_error_body.y() -
-                this->gains.kd_pitch * angular_velocity.y(),
+                this->gains.kd_pitch * angular_velocity.y() +
+                this->gains.ki_pitch * this->i_err_pitch,
             this->gains.kp_yaw_rate * (target_yaw_rate - angular_velocity.z()),
         };
     }
