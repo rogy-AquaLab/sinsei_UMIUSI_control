@@ -49,7 +49,7 @@ class LinearAcceleration : public ThrusterController::Logic {
         output.state.esc_duty_cycle.value = this->duty_cycle;
         output.state.servo_mode.value = util::resolve_thruster_mode(
             this->params.servo_disabled, input.cmd.servo_runnable.value);
-        output.state.servo_angle.value = input.cmd.servo_angle.value;
+        output.state.servo_commanded_angle.value = input.cmd.servo_angle.value;
         return output;
     }
 };

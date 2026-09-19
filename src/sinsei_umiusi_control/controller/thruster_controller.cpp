@@ -1,6 +1,8 @@
 #include "sinsei_umiusi_control/controller/thruster_controller.hpp"
 
+#include <cmath>
 #include <hardware_interface/handle.hpp>
+#include <limits>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/parameter_value.hpp>
 #include <rclcpp/qos.hpp>
@@ -91,9 +93,18 @@ auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
             .set__type(rclcpp::PARAMETER_DOUBLE)
             .set__floating_point_range(
                 {FloatingPointRange{}.set__from_value(0.0).set__to_value(100.0)}));
+    this->get_node()->declare_parameter(
+        "servo_max_angular_velocity", 0.0,
+        ParameterDescriptor{}
+            .set__description(
+                "Maximum servo angular velocity [rad/s] (0.0 keeps the estimate unavailable)")
+            .set__type(rclcpp::PARAMETER_DOUBLE));
 
     this->input = Input{};
     this->output = Output{};
+    this->last_servo_command = std::nullopt;
+    this->servo_estimated_angle_interface =
+        state::thruster::servo::EstimatedAngle{std::numeric_limits<double>::quiet_NaN()};
 
     return controller_interface::CallbackReturn::SUCCESS;
 }
@@ -117,8 +128,23 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
             ->get_parameter("max_duty_step_per_sec")
             .as_double();  // パラメータで範囲に制約を設けているので安全
 
+    const auto servo_max_angular_velocity =
+        this->get_node()->get_parameter("servo_max_angular_velocity").as_double();
+    if (!std::isfinite(servo_max_angular_velocity) || servo_max_angular_velocity < 0.0) {
+        RCLCPP_ERROR(
+            this->get_node()->get_logger(),
+            "servo_max_angular_velocity must be finite and non-negative");
+        return controller_interface::CallbackReturn::ERROR;
+    }
+
     this->logic = std::make_unique<logic::thruster::LinearAcceleration>(
         duty_per_thrust, max_duty_cycle, max_duty_step_per_sec);
+    this->servo_angle_estimator =
+        std::make_unique<logic::thruster::ServoAngleEstimator>(servo_max_angular_velocity);
+    this->last_servo_command = std::nullopt;
+    this->output.state.servo_estimated_angle = std::nullopt;
+    this->servo_estimated_angle_interface =
+        state::thruster::servo::EstimatedAngle{std::numeric_limits<double>::quiet_NaN()};
     this->logic->params.is_forward = this->get_node()
                                          ->get_parameter("is_forward")
                                          .as_bool();  // パラメータで範囲に制約を設けているので安全
@@ -183,7 +209,7 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                     this->output.state.servo_mode.value = util::resolve_thruster_mode(
                         this->logic->params.servo_disabled, msg->runnable.servo);
                     this->output.state.esc_duty_cycle.value = msg->duty_cycle;
-                    this->output.state.servo_angle.value = msg->angle;
+                    this->output.state.servo_commanded_angle.value = msg->angle;
                 });
         this->input.sub.thruster_output_all =
             this->get_node()->create_subscription<msg::ThrusterOutputAll>(
@@ -200,28 +226,28 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
                         this->output.state.esc_duty_cycle.value = msg->lf.duty_cycle;
                         this->output.state.servo_mode.value = util::resolve_thruster_mode(
                             this->logic->params.servo_disabled, msg->lf.runnable.servo);
-                        this->output.state.servo_angle.value = msg->lf.angle;
+                        this->output.state.servo_commanded_angle.value = msg->lf.angle;
                     } else if (thruster_pos == "lb") {
                         this->output.state.esc_mode.value = util::resolve_thruster_mode(
                             this->logic->params.esc_disabled, msg->lb.runnable.esc);
                         this->output.state.esc_duty_cycle.value = msg->lb.duty_cycle;
                         this->output.state.servo_mode.value = util::resolve_thruster_mode(
                             this->logic->params.servo_disabled, msg->lb.runnable.servo);
-                        this->output.state.servo_angle.value = msg->lb.angle;
+                        this->output.state.servo_commanded_angle.value = msg->lb.angle;
                     } else if (thruster_pos == "rb") {
                         this->output.state.esc_mode.value = util::resolve_thruster_mode(
                             this->logic->params.esc_disabled, msg->rb.runnable.esc);
                         this->output.state.esc_duty_cycle.value = msg->rb.duty_cycle;
                         this->output.state.servo_mode.value = util::resolve_thruster_mode(
                             this->logic->params.servo_disabled, msg->rb.runnable.servo);
-                        this->output.state.servo_angle.value = msg->rb.angle;
+                        this->output.state.servo_commanded_angle.value = msg->rb.angle;
                     } else if (thruster_pos == "rf") {
                         this->output.state.esc_mode.value = util::resolve_thruster_mode(
                             this->logic->params.esc_disabled, msg->rf.runnable.esc);
                         this->output.state.esc_duty_cycle.value = msg->rf.duty_cycle;
                         this->output.state.servo_mode.value = util::resolve_thruster_mode(
                             this->logic->params.servo_disabled, msg->rf.runnable.servo);
-                        this->output.state.servo_angle.value = msg->rf.angle;
+                        this->output.state.servo_commanded_angle.value = msg->rf.angle;
                     }
                 });
     }
@@ -247,7 +273,8 @@ auto ThrusterController::on_export_state_interfaces()
     auto interfaces = std::vector<hardware_interface::StateInterface>{};
     for (auto & [name, data, _] : this->state_interface_data) {
         // Thruster ID を隠蔽する (e.g. thruster1/esc/rpm -> thruster/esc/rpm)
-        constexpr auto THRUSTER_OFFSET = std::size("thrusterN") - 1;  // 末尾のnull文字を除くため、-1
+        constexpr auto THRUSTER_OFFSET =
+            std::size("thrusterN") - 1;  // 末尾のnull文字を除くため、-1
         const auto fixed_name = "thruster" + name.substr(THRUSTER_OFFSET);
         interfaces.emplace_back(
             hardware_interface::StateInterface(this->get_node()->get_name(), fixed_name, data));
@@ -262,8 +289,11 @@ auto ThrusterController::on_export_state_interfaces()
         this->get_node()->get_name(), "servo/mode",
         util::to_interface_data_ptr(this->output.state.servo_mode)));
     interfaces.emplace_back(hardware_interface::StateInterface(
-        this->get_node()->get_name(), "servo/angle",
-        util::to_interface_data_ptr(this->output.state.servo_angle)));
+        this->get_node()->get_name(), "servo/commanded_angle",
+        util::to_interface_data_ptr(this->output.state.servo_commanded_angle)));
+    interfaces.emplace_back(hardware_interface::StateInterface(
+        this->get_node()->get_name(), "servo/estimated_angle",
+        util::to_interface_data_ptr(this->servo_estimated_angle_interface)));
 
     return interfaces;
 }
@@ -296,12 +326,37 @@ auto ThrusterController::update_and_write_commands(
         this->output = this->logic->update(time.seconds(), period.seconds(), this->input);
     }
 
+    if (this->last_servo_command && this->servo_angle_estimator) {
+        const auto estimate =
+            this->servo_angle_estimator->update(*this->last_servo_command, period.seconds());
+        if (estimate) {
+            this->output.state.servo_estimated_angle = *estimate;
+        } else {
+            this->output.state.servo_estimated_angle = std::nullopt;
+        }
+    } else {
+        this->output.state.servo_estimated_angle = std::nullopt;
+    }
+
     this->output.cmd.esc_allowed.value =
         this->output.state.esc_mode.value == util::ThrusterMode::Runnable;
     this->output.cmd.esc_duty_cycle.value = this->output.state.esc_duty_cycle.value;
     this->output.cmd.servo_allowed.value =
         this->output.state.servo_mode.value == util::ThrusterMode::Runnable;
-    this->output.cmd.servo_angle.value = this->output.state.servo_angle.value;
+    this->output.cmd.servo_angle.value = this->output.state.servo_commanded_angle.value;
+
+    if (this->output.cmd.servo_allowed.value) {
+        this->last_servo_command =
+            state::thruster::servo::CommandedAngle{this->output.cmd.servo_angle.value};
+    } else {
+        this->last_servo_command = std::nullopt;
+        this->output.state.servo_estimated_angle = std::nullopt;
+        if (this->servo_angle_estimator) {
+            this->servo_angle_estimator->reset();
+        }
+    }
+    this->servo_estimated_angle_interface = this->output.state.servo_estimated_angle.value_or(
+        state::thruster::servo::EstimatedAngle{std::numeric_limits<double>::quiet_NaN()});
 
     // コマンドを送信
     res = util::interface_accessor::set_commands_to_loaned_interfaces(

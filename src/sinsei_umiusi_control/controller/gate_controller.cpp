@@ -139,8 +139,9 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                 tc_prefix + "servo/mode", to_interface_data_ptr(this->input.state.servo_modes[i]),
                 sizeof(this->input.state.servo_modes[i]));
             this->state_interface_data.emplace_back(
-                tc_prefix + "servo/angle", to_interface_data_ptr(this->input.state.servo_angles[i]),
-                sizeof(this->input.state.servo_angles[i]));
+                tc_prefix + "servo/commanded_angle",
+                to_interface_data_ptr(this->input.state.servo_commanded_angles[i]),
+                sizeof(this->input.state.servo_commanded_angles[i]));
 
             this->state_interface_data.emplace_back(
                 tc_prefix + "thruster/esc/voltage",
@@ -152,9 +153,8 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                 sizeof(this->input.state.esc_water_leaked_flags[i]));
 
             // RPMのみ`attitude_controller`経由で取得する
-            const auto ac_prefix =
-                "attitude_controller/thruster_controller" + std::string(THRUSTER_SUFFIX[i]) +
-                "/thruster/";
+            const auto ac_prefix = "attitude_controller/thruster_controller" +
+                                   std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
             this->state_interface_data.emplace_back(
                 ac_prefix + "esc/rpm", to_interface_data_ptr(this->input.state.esc_rpms[i]),
                 sizeof(this->input.state.esc_rpms[i]));
@@ -342,7 +342,7 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                                         .set__servo(static_cast<int8_t>(
                                             this->input.state.servo_modes[0].value)))
                          .set__duty_cycle(this->input.state.esc_duty_cycles[0].value)
-                         .set__angle(this->input.state.servo_angles[0].value)
+                         .set__angle(this->input.state.servo_commanded_angles[0].value)
                          .set__rpm(this->input.state.esc_rpms[0].value))
             .set__lb(msg::ThrusterState()
                          .set__mode(msg::ThrusterMode()
@@ -351,7 +351,7 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                                         .set__servo(static_cast<int8_t>(
                                             this->input.state.servo_modes[1].value)))
                          .set__duty_cycle(this->input.state.esc_duty_cycles[1].value)
-                         .set__angle(this->input.state.servo_angles[1].value)
+                         .set__angle(this->input.state.servo_commanded_angles[1].value)
                          .set__rpm(this->input.state.esc_rpms[1].value))
             .set__rb(msg::ThrusterState()
                          .set__mode(msg::ThrusterMode()
@@ -360,7 +360,7 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                                         .set__servo(static_cast<int8_t>(
                                             this->input.state.servo_modes[2].value)))
                          .set__duty_cycle(this->input.state.esc_duty_cycles[2].value)
-                         .set__angle(this->input.state.servo_angles[2].value)
+                         .set__angle(this->input.state.servo_commanded_angles[2].value)
                          .set__rpm(this->input.state.esc_rpms[2].value))
             .set__rf(msg::ThrusterState()
                          .set__mode(msg::ThrusterMode()
@@ -369,7 +369,7 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                                         .set__servo(static_cast<int8_t>(
                                             this->input.state.servo_modes[3].value)))
                          .set__duty_cycle(this->input.state.esc_duty_cycles[3].value)
-                         .set__angle(this->input.state.servo_angles[3].value)
+                         .set__angle(this->input.state.servo_commanded_angles[3].value)
                          .set__rpm(this->input.state.esc_rpms[3].value)));
     this->output.pub.low_power_circuit_info_publisher->publish(
         msg::LowPowerCircuitInfo()
