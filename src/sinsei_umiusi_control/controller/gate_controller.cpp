@@ -45,6 +45,7 @@ auto GateController::state_interface_configuration() const
 
 auto GateController::on_init() -> controller_interface::CallbackReturn {
     this->output.cmd = GateController::Output::Command{};
+    this->output.cmd.target_attitude_ref.w = 1.0;
     this->input.state = GateController::Input::State{};
     this->input.state.servo_estimated_angles.fill(
         state::thruster::servo::EstimatedAngle{std::numeric_limits<double>::quiet_NaN()});

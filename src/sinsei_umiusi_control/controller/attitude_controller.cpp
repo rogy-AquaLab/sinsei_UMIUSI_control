@@ -42,9 +42,10 @@ auto AttitudeController::state_interface_configuration() const
 }
 
 auto AttitudeController::on_init() -> controller_interface::CallbackReturn {
-    this->get_node()->declare_parameter("control_mode", "ff");
+    this->get_node()->declare_parameter("control_mode", "fb");
 
     this->input = AttitudeController::Input{};
+    this->input.cmd.target_attitude.w = 1.0;
     this->output = AttitudeController::Output{};
     this->servo_estimated_angle_interfaces.fill(
         state::thruster::servo::EstimatedAngle{std::numeric_limits<double>::quiet_NaN()});

@@ -4,7 +4,7 @@
 namespace sinsei_umiusi_control::cmd::attitude {
 
 struct AttitudeTarget {
-    // Target roll/pitch attitude (quaternion); yaw component should be 0
+    // Target attitude quaternion; feedback control uses its body-up direction and ignores yaw.
     double x;
     double y;
     double z;

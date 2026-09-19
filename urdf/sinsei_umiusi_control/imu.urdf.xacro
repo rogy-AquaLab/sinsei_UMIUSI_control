@@ -9,7 +9,7 @@
 
       <sensor name="imu">
         <state_interface name="quaternion.x" data_type="double">
-          <param name="initial_value">1.0</param>
+          <param name="initial_value">0.0</param>
         </state_interface>
         <state_interface name="quaternion.y" data_type="double">
           <param name="initial_value">0.0</param>
@@ -18,7 +18,7 @@
           <param name="initial_value">0.0</param>
         </state_interface>
         <state_interface name="quaternion.w" data_type="double">
-          <param name="initial_value">0.0</param>
+          <param name="initial_value">1.0</param>
         </state_interface>
         <state_interface name="acceleration.x" data_type="double">
           <param name="initial_value">0.0</param>

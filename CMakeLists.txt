@@ -121,12 +121,14 @@ if(BUILD_TESTING)
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/cpp>
   )
   ament_auto_add_gtest(test_controller_logic
+    test/cpp/controller/logic/attitude/attitude_feedback.cpp
     test/cpp/controller/logic/thruster/servo_angle_estimator.cpp
     src/${PROJECT_NAME}/controller/logic/thruster/servo_angle_estimator.cpp
   )
   target_include_directories(test_controller_logic
     PRIVATE
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+      ${Eigen3_INCLUDE_DIRS}
   )
 endif()
 
