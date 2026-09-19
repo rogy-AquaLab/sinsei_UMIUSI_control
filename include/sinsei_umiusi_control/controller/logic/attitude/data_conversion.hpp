@@ -12,8 +12,8 @@ inline auto to_eigen_quaternion(const state::imu::Quaternion & q) -> Eigen::Quat
     return Eigen::Quaterniond(q.w, q.x, q.y, q.z);
 }
 
-inline auto to_eigen_vector(const cmd::attitude::Orientation & o) -> Eigen::Vector3d {
-    return Eigen::Vector3d(o.x, o.y, o.z);
+inline auto to_eigen_quaternion(const cmd::attitude::AttitudeTarget & a) -> Eigen::Quaterniond {
+    return Eigen::Quaterniond(a.w, a.x, a.y, a.z);
 }
 
 inline auto to_eigen_vector(const cmd::attitude::Velocity & v) -> Eigen::Vector3d {

@@ -218,13 +218,20 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                 });
         this->input.sub.target_subscriber = this->get_node()->create_subscription<msg::Target>(
             cmd_prefix + "target", qos, [this](const msg::Target::SharedPtr input) {
-                this->output.cmd.target_orientation_ref.x = input->orientation.x;
-                this->output.cmd.target_orientation_ref.y = input->orientation.y;
-                this->output.cmd.target_orientation_ref.z = input->orientation.z;
                 this->output.cmd.target_velocity_ref.x = input->velocity.x;
                 this->output.cmd.target_velocity_ref.y = input->velocity.y;
                 this->output.cmd.target_velocity_ref.z = input->velocity.z;
             });
+        this->input.sub.attitude_target_subscriber =
+            this->get_node()->create_subscription<msg::AttitudeTarget>(
+                cmd_prefix + "attitude_target", qos,
+                [this](const msg::AttitudeTarget::SharedPtr input) {
+                    this->output.cmd.target_attitude_ref.x = input->attitude.x;
+                    this->output.cmd.target_attitude_ref.y = input->attitude.y;
+                    this->output.cmd.target_attitude_ref.z = input->attitude.z;
+                    this->output.cmd.target_attitude_ref.w = input->attitude.w;
+                    this->output.cmd.target_attitude_ref.yaw_rate = input->yaw_rate;
+                });
     }
     {  // Output
         // Command interface (out)
@@ -252,17 +259,25 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
             "led_tape/color", to_interface_data_ptr(this->output.cmd.led_tape_color_ref),
             sizeof(this->output.cmd.led_tape_color_ref)));
         this->command_interface_data.push_back(std::make_tuple(
-            "attitude_controller/target_orientation.x",
-            to_interface_data_ptr(this->output.cmd.target_orientation_ref.x),
-            sizeof(this->output.cmd.target_orientation_ref.x)));
+            "attitude_controller/target_attitude.x",
+            to_interface_data_ptr(this->output.cmd.target_attitude_ref.x),
+            sizeof(this->output.cmd.target_attitude_ref.x)));
         this->command_interface_data.push_back(std::make_tuple(
-            "attitude_controller/target_orientation.y",
-            to_interface_data_ptr(this->output.cmd.target_orientation_ref.y),
-            sizeof(this->output.cmd.target_orientation_ref.y)));
+            "attitude_controller/target_attitude.y",
+            to_interface_data_ptr(this->output.cmd.target_attitude_ref.y),
+            sizeof(this->output.cmd.target_attitude_ref.y)));
         this->command_interface_data.push_back(std::make_tuple(
-            "attitude_controller/target_orientation.z",
-            to_interface_data_ptr(this->output.cmd.target_orientation_ref.z),
-            sizeof(this->output.cmd.target_orientation_ref.z)));
+            "attitude_controller/target_attitude.z",
+            to_interface_data_ptr(this->output.cmd.target_attitude_ref.z),
+            sizeof(this->output.cmd.target_attitude_ref.z)));
+        this->command_interface_data.push_back(std::make_tuple(
+            "attitude_controller/target_attitude.w",
+            to_interface_data_ptr(this->output.cmd.target_attitude_ref.w),
+            sizeof(this->output.cmd.target_attitude_ref.w)));
+        this->command_interface_data.push_back(std::make_tuple(
+            "attitude_controller/target_attitude.yaw_rate",
+            to_interface_data_ptr(this->output.cmd.target_attitude_ref.yaw_rate),
+            sizeof(this->output.cmd.target_attitude_ref.yaw_rate)));
         this->command_interface_data.push_back(std::make_tuple(
             "attitude_controller/target_velocity.x",
             to_interface_data_ptr(this->output.cmd.target_velocity_ref.x),

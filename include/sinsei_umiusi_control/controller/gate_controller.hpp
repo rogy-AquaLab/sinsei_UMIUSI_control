@@ -25,6 +25,7 @@
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
 #include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
+#include "sinsei_umiusi_msgs/msg/attitude_target.hpp"
 #include "sinsei_umiusi_msgs/msg/headlights_output.hpp"
 #include "sinsei_umiusi_msgs/msg/high_power_circuit_info.hpp"
 #include "sinsei_umiusi_msgs/msg/indicator_led_output.hpp"
@@ -80,6 +81,8 @@ class GateController : public controller_interface::ControllerInterface {
             rclcpp::Subscription<sinsei_umiusi_msgs::msg::LedTapeOutput>::SharedPtr
                 led_tape_output_subscriber;
             rclcpp::Subscription<sinsei_umiusi_msgs::msg::Target>::SharedPtr target_subscriber;
+            rclcpp::Subscription<sinsei_umiusi_msgs::msg::AttitudeTarget>::SharedPtr
+                attitude_target_subscriber;
         };
         State state;
         Subscribers sub;
@@ -98,7 +101,7 @@ class GateController : public controller_interface::ControllerInterface {
                 servo_runnable_refs;
 
             sinsei_umiusi_control::cmd::led_tape::Color led_tape_color_ref;
-            sinsei_umiusi_control::cmd::attitude::Orientation target_orientation_ref;
+            sinsei_umiusi_control::cmd::attitude::AttitudeTarget target_attitude_ref;
             sinsei_umiusi_control::cmd::attitude::Velocity target_velocity_ref;
         };
         // Publishers for states

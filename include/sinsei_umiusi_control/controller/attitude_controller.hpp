@@ -23,7 +23,7 @@ class AttitudeController : public controller_interface::ChainableControllerInter
     struct Input {
         // Command interfaces (in)
         struct Command {
-            cmd::attitude::Orientation target_orientation;
+            cmd::attitude::AttitudeTarget target_attitude;
             cmd::attitude::Velocity target_velocity;
         };
         // State interfaces (in)

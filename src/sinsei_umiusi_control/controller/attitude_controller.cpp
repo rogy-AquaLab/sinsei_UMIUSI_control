@@ -7,6 +7,7 @@
 #include <rclcpp/logging.hpp>
 #include <string>
 
+#include "sinsei_umiusi_control/controller/logic/attitude/feed_back.hpp"
 #include "sinsei_umiusi_control/controller/logic/attitude/feed_forward.hpp"
 #include "sinsei_umiusi_control/controller/logic/logic_interface.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
@@ -67,10 +68,7 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
             break;
         }
         case logic::ControlMode::FeedBack: {
-            // TODO: Implement feedback logic
-            RCLCPP_ERROR(
-                this->get_node()->get_logger(), "Feedback control mode is not implemented yet");
-            return controller_interface::CallbackReturn::ERROR;
+            this->logic = std::make_unique<logic::attitude::FeedBack>();
             break;
         }
         default: {
@@ -142,14 +140,21 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
         sizeof(this->input.state.imu_angular_velocity.z)));
 
     this->ref_interface_data.push_back(std::make_tuple(
-        "target_orientation.x", util::to_interface_data_ptr(this->input.cmd.target_orientation.x),
-        sizeof(this->input.cmd.target_orientation.x)));
+        "target_attitude.x", util::to_interface_data_ptr(this->input.cmd.target_attitude.x),
+        sizeof(this->input.cmd.target_attitude.x)));
     this->ref_interface_data.push_back(std::make_tuple(
-        "target_orientation.y", util::to_interface_data_ptr(this->input.cmd.target_orientation.y),
-        sizeof(this->input.cmd.target_orientation.y)));
+        "target_attitude.y", util::to_interface_data_ptr(this->input.cmd.target_attitude.y),
+        sizeof(this->input.cmd.target_attitude.y)));
     this->ref_interface_data.push_back(std::make_tuple(
-        "target_orientation.z", util::to_interface_data_ptr(this->input.cmd.target_orientation.z),
-        sizeof(this->input.cmd.target_orientation.z)));
+        "target_attitude.z", util::to_interface_data_ptr(this->input.cmd.target_attitude.z),
+        sizeof(this->input.cmd.target_attitude.z)));
+    this->ref_interface_data.push_back(std::make_tuple(
+        "target_attitude.w", util::to_interface_data_ptr(this->input.cmd.target_attitude.w),
+        sizeof(this->input.cmd.target_attitude.w)));
+    this->ref_interface_data.push_back(std::make_tuple(
+        "target_attitude.yaw_rate",
+        util::to_interface_data_ptr(this->input.cmd.target_attitude.yaw_rate),
+        sizeof(this->input.cmd.target_attitude.yaw_rate)));
     this->ref_interface_data.push_back(std::make_tuple(
         "target_velocity.x", util::to_interface_data_ptr(this->input.cmd.target_velocity.x),
         sizeof(this->input.cmd.target_velocity.x)));
@@ -240,10 +245,8 @@ auto AttitudeController::update_and_write_commands(
                 break;
             }
             case logic::ControlMode::FeedBack: {
-                // TODO: Implement feedback logic
-                RCLCPP_ERROR(
-                    this->get_node()->get_logger(), "Feedback control mode is not implemented yet");
-                return controller_interface::return_type::ERROR;
+                this->logic = std::make_unique<logic::attitude::FeedBack>();
+                break;
             }
             default: {
                 return controller_interface::return_type::ERROR;  // unreachable

@@ -3,10 +3,13 @@
 
 namespace sinsei_umiusi_control::cmd::attitude {
 
-struct Orientation {
+struct AttitudeTarget {
+    // Target roll/pitch attitude (quaternion); yaw component should be 0
     double x;
     double y;
     double z;
+    double w;
+    double yaw_rate;  // [rad/s]
 };
 struct Velocity {
     double x;
