@@ -66,6 +66,19 @@ TEST(AttitudeFeedbackTest, PositiveCurrentPitchProducesRestoringNegativePitchMom
     EXPECT_LT(moment->y(), 0.0);
 }
 
+TEST(AttitudeFeedbackTest, TransformsWorldTiltErrorIntoCurrentBodyFrame) {
+    const auto feedback = AttitudeFeedback{};
+    const auto current = Eigen::Quaterniond{
+        Eigen::AngleAxisd{M_PI_2, Eigen::Vector3d::UnitZ()}};
+    const auto target = Eigen::Quaterniond{
+        Eigen::AngleAxisd{ANGLE, Eigen::Vector3d::UnitY()}};
+    const auto moment = feedback.moment(target, current, Eigen::Vector3d::Zero(), 0.0);
+
+    ASSERT_TRUE(moment);
+    EXPECT_NEAR(moment->x(), std::sin(ANGLE), EPS);
+    EXPECT_NEAR(moment->y(), 0.0, EPS);
+}
+
 TEST(AttitudeFeedbackTest, AngularVelocityDampsRollAndPitch) {
     const auto feedback = AttitudeFeedback{};
     const auto moment = feedback.moment(
