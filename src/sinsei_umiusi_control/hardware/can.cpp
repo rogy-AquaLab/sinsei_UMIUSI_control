@@ -146,6 +146,12 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
         }
     }
 
+    if (!read_result.updates.empty()) {
+        this->empty_read_cycles = 0;
+    }
+
+    // この周期数だけ状態更新がなければCANを異常とみなす
+    constexpr std::size_t MAX_EMPTY_READ_CYCLES = 50;
     if (!read_result.error_message.empty()) {
         this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
 
@@ -153,7 +159,14 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
         RCLCPP_ERROR_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to read CAN data: %s",
             read_result.error_message.c_str());
-    } else if (!read_result.updates.empty()) {
+    } else if (read_result.updates.empty()) {
+        if (this->empty_read_cycles < MAX_EMPTY_READ_CYCLES) {
+            ++this->empty_read_cycles;
+        }
+        if (this->empty_read_cycles >= MAX_EMPTY_READ_CYCLES) {
+            this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
+        }
+    } else {
         this->set_state("can/health", util::to_interface_data(state::can::Health{true}));
     }
 

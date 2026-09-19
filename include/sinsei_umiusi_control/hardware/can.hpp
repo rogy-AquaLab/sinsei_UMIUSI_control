@@ -1,8 +1,10 @@
 #ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_CAN_HPP
 #define SINSEI_UMIUSI_CONTROL_HARDWARE_CAN_HPP
 
+#include <cstddef>
 #include <hardware_interface/system_interface.hpp>
 #include <hardware_interface/types/hardware_component_interface_params.hpp>
+#include <optional>
 #include <rclcpp/macros.hpp>
 #include <string>
 #include <vector>
@@ -16,6 +18,9 @@ class Can : public hardware_interface::SystemInterface {
     std::optional<hardware_model::CanModel> model;
     // CanModelへ渡したスラスタ設定と同じ順序で保持する
     std::vector<std::string> thruster_names;
+
+    // 状態更新がなかった連続周期数のカウンタ
+    std::size_t empty_read_cycles = 0;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(Can)
