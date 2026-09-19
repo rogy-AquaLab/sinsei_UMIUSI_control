@@ -44,7 +44,7 @@ class CanModel {
         ServoAngle servo_angle;
     };
 
-    struct ReadResult {
+    struct ReadBatch {
         std::vector<StateUpdate> updates;
         std::string error_message;
     };
@@ -83,7 +83,7 @@ class CanModel {
     CanModel(std::shared_ptr<interface::Can> can, std::vector<ThrusterConfig> thruster_configs);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_destroy() -> tl::expected<void, std::string>;
-    auto on_read() const -> tl::expected<ReadResult, std::string>;
+    auto on_read() const -> tl::expected<ReadBatch, std::string>;
     // thruster_commandsはコンストラクタへ渡したthruster_configsと同じ順序で指定する
     auto on_write(
         cmd::main_power::Enabled main_power_enabled,

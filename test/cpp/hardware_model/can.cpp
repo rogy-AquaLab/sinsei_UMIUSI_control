@@ -132,9 +132,9 @@ TEST(CanModelTest, CanModelOnReadPacketStatusReturnsRpmUpdateTest) {
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     ASSERT_EQ(result.value().updates.size(), 1u);
     EXPECT_TRUE(result.value().error_message.empty());
-    const auto & variant = result.value().updates[0];
-    ASSERT_EQ(variant.index(), 0u);
-    const auto & [name, rpm] = std::get<0>(variant);
+    const auto & update = result.value().updates[0];
+    ASSERT_EQ(update.index(), 0u);
+    const auto & [name, rpm] = std::get<0>(update);
     EXPECT_EQ(name, "thruster1");
     EXPECT_DOUBLE_EQ(rpm.value, 200.0);
 }

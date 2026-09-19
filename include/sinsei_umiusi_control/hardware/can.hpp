@@ -19,8 +19,8 @@ class Can : public hardware_interface::SystemInterface {
     // CanModelへ渡したスラスタ設定と同じ順序で保持する
     std::vector<std::string> thruster_names;
 
-    // 状態更新がなかった連続周期数のカウンタ
-    std::size_t empty_read_cycles = 0;
+    // 状態更新がなかった連続周期数
+    std::size_t cycles_without_updates = 0;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(Can)

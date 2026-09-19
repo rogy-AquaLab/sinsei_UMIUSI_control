@@ -129,27 +129,27 @@ auto CanModel::process_frame(const interface::CanFrame & frame) const
         error_message);
 }
 
-auto CanModel::on_read() const -> tl::expected<ReadResult, std::string> {
+auto CanModel::on_read() const -> tl::expected<ReadBatch, std::string> {
     const auto frames_res = this->can->recv_frames();
     if (!frames_res) {
         return tl::make_unexpected("Failed to receive CAN frames: " + frames_res.error());
     }
 
-    auto read_result = ReadResult{};
-    read_result.updates.reserve(frames_res.value().size());
+    auto read_batch = ReadBatch{};
+    read_batch.updates.reserve(frames_res.value().size());
     for (const auto & frame : frames_res.value()) {
         auto update_res = this->process_frame(frame);
         if (update_res) {
-            read_result.updates.push_back(std::move(update_res.value()));
+            read_batch.updates.push_back(std::move(update_res.value()));
             continue;
         }
 
-        if (!read_result.error_message.empty()) {
-            read_result.error_message += "\n";
+        if (!read_batch.error_message.empty()) {
+            read_batch.error_message += "\n";
         }
-        read_result.error_message += update_res.error();
+        read_batch.error_message += update_res.error();
     }
-    return read_result;
+    return read_batch;
 }
 
 auto CanModel::on_write(

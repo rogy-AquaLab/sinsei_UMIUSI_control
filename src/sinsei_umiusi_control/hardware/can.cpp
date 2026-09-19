@@ -98,8 +98,8 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
         return hardware_interface::return_type::OK;
     }
 
-    const auto & read_result = res.value();
-    for (const auto & update : read_result.updates) {
+    const auto & read_batch = res.value();
+    for (const auto & update : read_batch.updates) {
         switch (update.index()) {
             case 0: {  // Rpm
                 const auto & [thruster_name, rpm] = std::get<0>(update);
@@ -146,24 +146,24 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
         }
     }
 
-    if (!read_result.updates.empty()) {
-        this->empty_read_cycles = 0;
+    if (!read_batch.updates.empty()) {
+        this->cycles_without_updates = 0;
     }
 
     // この周期数だけ状態更新がなければCANを異常とみなす
-    constexpr std::size_t MAX_EMPTY_READ_CYCLES = 50;
-    if (!read_result.error_message.empty()) {
+    constexpr std::size_t MAX_CYCLES_WITHOUT_UPDATES = 50;
+    if (!read_batch.error_message.empty()) {
         this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
 
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to read CAN data: %s",
-            read_result.error_message.c_str());
-    } else if (read_result.updates.empty()) {
-        if (this->empty_read_cycles < MAX_EMPTY_READ_CYCLES) {
-            ++this->empty_read_cycles;
+            read_batch.error_message.c_str());
+    } else if (read_batch.updates.empty()) {
+        if (this->cycles_without_updates < MAX_CYCLES_WITHOUT_UPDATES) {
+            ++this->cycles_without_updates;
         }
-        if (this->empty_read_cycles >= MAX_EMPTY_READ_CYCLES) {
+        if (this->cycles_without_updates >= MAX_CYCLES_WITHOUT_UPDATES) {
             this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
         }
     } else {
