@@ -53,7 +53,7 @@ flowchart LR
     ATT attitude_to_thruster@-- "thruster_controller_*/esc/duty_cycle<br/>thruster_controller_*/servo/angle" --> THR
     MANUAL manual_override@-- "manual override" --> THR
     THR thruster_to_attitude@-- "thruster_controller_*/servo/(commanded_angle, estimated_angle)" --> ATT
-    THR thruster_to_gate@-- "thruster_controller_*/esc/(mode, duty_cycle)<br/>thruster_controller_*/servo/(mode, commanded_angle)<br/>thruster_controller_*/thruster/esc/(voltage, water_leaked, health)" --> GATE
+    THR thruster_to_gate@-- "thruster_controller_*/esc/(mode, duty_cycle)<br/>thruster_controller_*/servo/(mode, commanded_angle, estimated_angle)<br/>thruster_controller_*/thruster/esc/(voltage, water_leaked, health)" --> GATE
 
     GATE gate_to_indicator@-- "indicator_led/enabled" --> LEDC
     LEDC indicator_gpio@-- "GPIO" --> LED
@@ -134,6 +134,6 @@ All types of messages are defined in [sinsei_UMIUSI_msgs](https://github.com/rog
 | `state/headlights_enabled`         | [`HeadlightsEnabled`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/HeadlightsEnabled.msg)               | Headlights enabled / disabled status for each of High beam, Low beam, and IR          |
 | `state/power/battery`              | [`sensor_msgs/BatteryState`](https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/BatteryState.html)                             | Standard battery voltage, current, SOC, and cell voltages; temperature is unavailable |
 | `state/power/bms`                  | [`BmsState`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/BmsState.msg)                                 | Harmony16-compatible BMS state of health, temperatures, balancing, and fault state    |
-| `state/thruster_state_all`         | [`ThrusterStateAll`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterStateAll.msg)                 | Thruster status including input voltage and water leak state                          |
+| `state/thruster_state_all`         | [`ThrusterStateAll`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterStateAll.msg)                 | Thruster status including commanded/estimated angle, input voltage, and water leak    |
 | `state/low_power_circuit_info`     | [`LowPowerCircuitInfo`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/LowPowerCircuitInfo.msg)           | Health status (`0` for ok / `1` for error) for each low-power circuit                 |
 | `state/high_power_circuit_info`    | [`HighPowerCircuitInfo`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/HighPowerCircuitInfo.msg)         | Health status for the BMS, battery, and each ESC                                      |

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <rclcpp/logging.hpp>
@@ -47,6 +48,8 @@ auto GateController::state_interface_configuration() const
 auto GateController::on_init() -> controller_interface::CallbackReturn {
     this->output.cmd = GateController::Output::Command{};
     this->input.state = GateController::Input::State{};
+    this->input.state.servo_estimated_angles.fill(
+        state::thruster::servo::EstimatedAngle{std::numeric_limits<double>::quiet_NaN()});
 
     return controller_interface::CallbackReturn::SUCCESS;
 }
@@ -208,6 +211,10 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                 tc_prefix + "servo/commanded_angle",
                 to_interface_data_ptr(this->input.state.servo_commanded_angles[i]),
                 sizeof(this->input.state.servo_commanded_angles[i]));
+            this->state_interface_data.emplace_back(
+                tc_prefix + "servo/estimated_angle",
+                to_interface_data_ptr(this->input.state.servo_estimated_angles[i]),
+                sizeof(this->input.state.servo_estimated_angles[i]));
 
             this->state_interface_data.emplace_back(
                 tc_prefix + "thruster/esc/voltage",
@@ -504,7 +511,10 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                                         .set__servo(static_cast<int8_t>(
                                             this->input.state.servo_modes[0].value)))
                          .set__duty_cycle(this->input.state.esc_duty_cycles[0].value)
-                         .set__angle(this->input.state.servo_commanded_angles[0].value)
+                         .set__commanded_angle(this->input.state.servo_commanded_angles[0].value)
+                         .set__estimated_angle_available(
+                             std::isfinite(this->input.state.servo_estimated_angles[0].value))
+                         .set__estimated_angle(this->input.state.servo_estimated_angles[0].value)
                          .set__rpm(this->input.state.esc_rpms[0].value)
                          .set__input_voltage(this->input.state.esc_voltages[0].value)
                          .set__water_leaked(this->input.state.esc_water_leaked_flags[0].value))
@@ -515,7 +525,10 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                                         .set__servo(static_cast<int8_t>(
                                             this->input.state.servo_modes[1].value)))
                          .set__duty_cycle(this->input.state.esc_duty_cycles[1].value)
-                         .set__angle(this->input.state.servo_commanded_angles[1].value)
+                         .set__commanded_angle(this->input.state.servo_commanded_angles[1].value)
+                         .set__estimated_angle_available(
+                             std::isfinite(this->input.state.servo_estimated_angles[1].value))
+                         .set__estimated_angle(this->input.state.servo_estimated_angles[1].value)
                          .set__rpm(this->input.state.esc_rpms[1].value)
                          .set__input_voltage(this->input.state.esc_voltages[1].value)
                          .set__water_leaked(this->input.state.esc_water_leaked_flags[1].value))
@@ -526,7 +539,10 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                                         .set__servo(static_cast<int8_t>(
                                             this->input.state.servo_modes[2].value)))
                          .set__duty_cycle(this->input.state.esc_duty_cycles[2].value)
-                         .set__angle(this->input.state.servo_commanded_angles[2].value)
+                         .set__commanded_angle(this->input.state.servo_commanded_angles[2].value)
+                         .set__estimated_angle_available(
+                             std::isfinite(this->input.state.servo_estimated_angles[2].value))
+                         .set__estimated_angle(this->input.state.servo_estimated_angles[2].value)
                          .set__rpm(this->input.state.esc_rpms[2].value)
                          .set__input_voltage(this->input.state.esc_voltages[2].value)
                          .set__water_leaked(this->input.state.esc_water_leaked_flags[2].value))
@@ -537,7 +553,10 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                                         .set__servo(static_cast<int8_t>(
                                             this->input.state.servo_modes[3].value)))
                          .set__duty_cycle(this->input.state.esc_duty_cycles[3].value)
-                         .set__angle(this->input.state.servo_commanded_angles[3].value)
+                         .set__commanded_angle(this->input.state.servo_commanded_angles[3].value)
+                         .set__estimated_angle_available(
+                             std::isfinite(this->input.state.servo_estimated_angles[3].value))
+                         .set__estimated_angle(this->input.state.servo_estimated_angles[3].value)
                          .set__rpm(this->input.state.esc_rpms[3].value)
                          .set__input_voltage(this->input.state.esc_voltages[3].value)
                          .set__water_leaked(this->input.state.esc_water_leaked_flags[3].value)));
