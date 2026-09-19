@@ -58,7 +58,10 @@ class GateController : public controller_interface::ControllerInterface {
             std::array<sinsei_umiusi_control::state::thruster::esc::WaterLeaked, 4>
                 esc_water_leaked_flags;
             std::array<sinsei_umiusi_control::state::thruster::servo::Mode, 4> servo_modes;
-            std::array<sinsei_umiusi_control::state::thruster::servo::Angle, 4> servo_angles;
+            std::array<sinsei_umiusi_control::state::thruster::servo::CommandedAngle, 4>
+                servo_commanded_angles;
+            std::array<sinsei_umiusi_control::state::thruster::servo::EstimatedAngle, 4>
+                servo_estimated_angles;
             sinsei_umiusi_control::state::can::Health can_health;
             sinsei_umiusi_control::state::headlights::Health headlights_health;
             sinsei_umiusi_control::state::imu::Health imu_health;
@@ -101,8 +104,7 @@ class GateController : public controller_interface::ControllerInterface {
         // Publishers for states
         struct Publishers {
             rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_publisher;
-            rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr
-                imu_temperature_publisher;
+            rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr imu_temperature_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::MainPowerEnabled>::SharedPtr
                 main_power_enabled_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::ThrusterStateAll>::SharedPtr
