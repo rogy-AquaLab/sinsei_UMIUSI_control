@@ -1,7 +1,9 @@
 #include "sinsei_umiusi_control/controller/attitude_controller.hpp"
 
+#include <cmath>
 #include <controller_interface/controller_interface_base.hpp>
 #include <cstddef>
+#include <limits>
 #include <rclcpp/logging.hpp>
 #include <string>
 
@@ -43,6 +45,8 @@ auto AttitudeController::on_init() -> controller_interface::CallbackReturn {
 
     this->input = AttitudeController::Input{};
     this->output = AttitudeController::Output{};
+    this->servo_estimated_angle_interfaces.fill(
+        state::thruster::servo::EstimatedAngle{std::numeric_limits<double>::quiet_NaN()});
 
     return controller_interface::CallbackReturn::SUCCESS;
 }
@@ -92,9 +96,16 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
 
         const auto thruster_prefix = controller_prefix + "thruster/";
         this->state_interface_data.push_back(std::make_tuple(
-            thruster_prefix + "esc/rpm",
-            util::to_interface_data_ptr(this->input.state.esc_rpms[i]),
+            thruster_prefix + "esc/rpm", util::to_interface_data_ptr(this->input.state.esc_rpms[i]),
             sizeof(this->input.state.esc_rpms[i])));
+        this->state_interface_data.push_back(std::make_tuple(
+            controller_prefix + "servo/commanded_angle",
+            util::to_interface_data_ptr(this->input.state.servo_commanded_angles[i]),
+            sizeof(this->input.state.servo_commanded_angles[i])));
+        this->state_interface_data.push_back(std::make_tuple(
+            controller_prefix + "servo/estimated_angle",
+            util::to_interface_data_ptr(this->servo_estimated_angle_interfaces[i]),
+            sizeof(this->servo_estimated_angle_interfaces[i])));
     }
     this->state_interface_data.push_back(std::make_tuple(
         "imu/quaternion.x", util::to_interface_data_ptr(this->input.state.imu_quaternion.x),
@@ -194,6 +205,14 @@ auto AttitudeController::update_and_write_commands(
         RCLCPP_WARN_THROTTLE(
             this->get_node()->get_logger(), *this->get_node()->get_clock(), DURATION,
             "Failed to get value of state interfaces");
+    }
+    for (size_t i = 0; i < this->servo_estimated_angle_interfaces.size(); ++i) {
+        const auto estimated_angle = this->servo_estimated_angle_interfaces[i];
+        if (std::isfinite(estimated_angle.value)) {
+            this->input.state.servo_estimated_angles[i] = estimated_angle;
+        } else {
+            this->input.state.servo_estimated_angles[i] = std::nullopt;
+        }
     }
 
     // コントロールモード(フィードフォワード/フィードバック)を取得

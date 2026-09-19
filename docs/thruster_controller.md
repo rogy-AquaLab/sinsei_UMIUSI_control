@@ -15,7 +15,7 @@
 | Command In | `cmd/thruster/esc::Runnable`, `cmd/thruster/esc::Thrust`, `cmd/thruster/servo::Runnable`, `cmd/thruster/servo::Angle` | GateControllerやAttitudeControllerから受け取る指示。`esc::Thrust`は後段でDutyに変換される。 |
 | State In | `state/thruster/esc::Rpm`, `Voltage`, `WaterLeaked` | CANハードウェアから受け取る状態。 |
 | Command Out | `esc/allowed`, `esc/duty_cycle`, `servo/allowed`, `servo/angle` | 実機へ書き込まれるコマンド。`*_allowed`は`ThrusterMode::Runnable`判定結果から導出。 |
-| State Out | `esc/mode`, `esc/duty_cycle`, `servo/mode`, `servo/angle`, `thruster/esc/rpm`, `thruster/esc/voltage`, `thruster/esc/water_leaked` | GateControllerやヘルスチェックノードが購読する状態量。IDを隠すため`thruster1/esc/rpm`のような名前は `thruster/esc/rpm` に変換してエクスポートされる。 |
+| State Out | `esc/mode`, `esc/duty_cycle`, `servo/mode`, `servo/commanded_angle`, `servo/estimated_angle`, `thruster/esc/rpm`, `thruster/esc/voltage`, `thruster/esc/water_leaked` | GateControllerやAttitudeController、ヘルスチェックノードが購読する状態量。IDを隠すため`thruster1/esc/rpm`のような名前は `thruster/esc/rpm` に変換してエクスポートされる。 |
 
 ## 受信トピックと優先順位
 
@@ -35,8 +35,13 @@
 | `duty_per_thrust` | double | `LinearAcceleration`が推力[N]からDuty(無次元)へ換算する係数。 |
 | `max_duty` | double (0.0-1.0) | Dutyの絶対値上限。 |
 | `max_duty_step_per_sec` | double | 1秒あたりのDuty変化上限。周期`dt`あたりのステップ制限は `max_duty_step_per_sec * dt`。 |
+| `servo_max_angular_velocity` | double [rad/s] | サーボ角度推定で使う最大角速度。0のときは推定値を常に未確定とする。 |
 
 これらは `params/controllers.yaml` でスラスタごとに設定可能。
+
+## `ServoAngleEstimator`
+
+起動時は初期角度が不明なため、角度候補を可動範囲`[-π/2, π/2]`とする。サーボ指令の送信中は、その両端を`servo_max_angular_velocity * dt`ずつ指令角へ近づけ、それらの候補が同じ角度に到達したときだけ推定値を返す。収束前は`std::nullopt`を返す。
 
 ## `logic::thruster::LinearAcceleration`
 
