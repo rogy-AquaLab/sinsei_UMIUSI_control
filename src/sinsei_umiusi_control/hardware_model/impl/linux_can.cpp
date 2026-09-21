@@ -154,7 +154,8 @@ auto impl::LinuxCan::recv_linux_can_frames() -> tl::expected<std::vector<can_fra
         const auto bytes_read = ::recv(this->sock.value(), &frame, bytes_to_read, MSG_DONTWAIT);
         if (bytes_read < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                return frames;
+                // No data is currently available, so all queued frames have been read
+                break;
             }
             return tl::make_unexpected("recv() failed: " + std::string(strerror(errno)));
         }
@@ -166,6 +167,8 @@ auto impl::LinuxCan::recv_linux_can_frames() -> tl::expected<std::vector<can_fra
 
         frames.push_back(frame);
     }
+
+    return frames;
 }
 
 auto impl::LinuxCan::send_frame(const interface::CanFrame & frame)
