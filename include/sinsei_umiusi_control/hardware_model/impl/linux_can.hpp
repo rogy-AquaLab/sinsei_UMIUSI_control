@@ -4,6 +4,7 @@
 #include <linux/can.h>
 
 #include <optional>
+#include <vector>
 
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
 
@@ -18,7 +19,7 @@ class LinuxCan : public interface::Can {
     std::optional<FileDescriptor> sock;
 
     auto send_linux_can_frame(const can_frame & frame) -> tl::expected<void, std::string>;
-    auto recv_linux_can_frame() -> tl::expected<std::optional<can_frame>, std::string>;
+    auto recv_linux_can_frames() -> tl::expected<std::vector<can_frame>, std::string>;
 
   public:
     LinuxCan();
@@ -27,7 +28,7 @@ class LinuxCan : public interface::Can {
     auto init(const std::string_view ifname) -> tl::expected<void, std::string> override;
     auto close() -> tl::expected<void, std::string> override;
     auto send_frame(const CanFrame & frame) -> tl::expected<void, std::string> override;
-    auto recv_frame() -> tl::expected<std::optional<CanFrame>, std::string> override;
+    auto recv_frames() -> tl::expected<std::vector<CanFrame>, std::string> override;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::impl

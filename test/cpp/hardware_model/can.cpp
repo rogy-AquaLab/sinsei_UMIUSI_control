@@ -99,18 +99,19 @@ TEST(CanModelTest, CanModelOnDestroyTest) {
 }
 
 // TODO: `can::MainPowerModel`を追加したら、MainPowerModel向けの`on_read`テストケースも追加する
-TEST(CanModelTest, CanModelOnReadTimeoutReturnsTimeoutErrorTest) {
+TEST(CanModelTest, CanModelOnReadNoFrameReturnsNoUpdateTest) {
     auto can = std::make_shared<Can>();
 
-    EXPECT_CALL(*can, recv_frame())
+    EXPECT_CALL(*can, recv_frames())
         .Times(1)
-        .WillOnce(Return(
-            tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{std::nullopt}));
+        .WillOnce(Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{
+            std::vector<suchm::interface::CanFrame>{}}));
 
     auto can_model = suchm::CanModel(can, THRUSTERS);
     const auto result = can_model.on_read();
-    ASSERT_FALSE(result);
-    EXPECT_EQ(result.error(), "CAN read timeout: no CAN frame received within the timeout period");
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
+    EXPECT_TRUE(result.value().states.empty());
+    EXPECT_TRUE(result.value().error_message.empty());
 }
 
 TEST(CanModelTest, CanModelOnReadPacketStatusReturnsRpmUpdateTest) {
@@ -121,19 +122,81 @@ TEST(CanModelTest, CanModelOnReadPacketStatusReturnsRpmUpdateTest) {
         {std::byte{0x00}, std::byte{0x00}, std::byte{0x05}, std::byte{0x78}, std::byte{0x00},
          std::byte{0x7B}, std::byte{0x01}, std::byte{0xF4}});
 
-    EXPECT_CALL(*can, recv_frame())
+    EXPECT_CALL(*can, recv_frames())
         .Times(1)
         .WillOnce(
-            Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
+            Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame}}));
 
     auto can_model = suchm::CanModel(can, THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
-    const auto variant = result.value();
-    ASSERT_EQ(variant.index(), 0u);
-    const auto & [name, rpm] = std::get<0>(variant);
+    ASSERT_EQ(result.value().states.size(), 1u);
+    EXPECT_TRUE(result.value().error_message.empty());
+    const auto & state = result.value().states[0];
+    ASSERT_EQ(state.index(), 0u);
+    const auto & [name, rpm] = std::get<0>(state);
     EXPECT_EQ(name, "thruster1");
     EXPECT_DOUBLE_EQ(rpm.value, 200.0);
+}
+
+TEST(CanModelTest, CanModelOnReadProcessesAllReceivedFramesTest) {
+    auto can = std::make_shared<Can>();
+
+    const auto data = suchm::interface::CanFrame::Data{
+        std::byte{0x00}, std::byte{0x00}, std::byte{0x05}, std::byte{0x78},
+        std::byte{0x00}, std::byte{0x7B}, std::byte{0x01}, std::byte{0xF4}};
+    const auto frame1 = make_vesc_status_frame(VESC_ID_1, suchm::can::PacketStatus::ID, data);
+    const auto frame2 = make_vesc_status_frame(VESC_ID_2, suchm::can::PacketStatus::ID, data);
+
+    EXPECT_CALL(*can, recv_frames())
+        .Times(1)
+        .WillOnce(Return(
+            tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame1, frame2}}));
+
+    auto can_model = suchm::CanModel(can, THRUSTERS);
+    const auto result = can_model.on_read();
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
+    ASSERT_EQ(result.value().states.size(), 2u);
+    EXPECT_TRUE(result.value().error_message.empty());
+
+    const auto & [name1, rpm1] = std::get<0>(result.value().states[0]);
+    const auto & [name2, rpm2] = std::get<0>(result.value().states[1]);
+    EXPECT_EQ(name1, "thruster1");
+    EXPECT_EQ(name2, "thruster2");
+    EXPECT_DOUBLE_EQ(rpm1.value, 200.0);
+    EXPECT_DOUBLE_EQ(rpm2.value, 200.0);
+}
+
+TEST(CanModelTest, CanModelOnReadContinuesAfterFrameErrorTest) {
+    auto can = std::make_shared<Can>();
+
+    const auto data = suchm::interface::CanFrame::Data{
+        std::byte{0x00}, std::byte{0x00}, std::byte{0x05}, std::byte{0x78},
+        std::byte{0x00}, std::byte{0x7B}, std::byte{0x01}, std::byte{0xF4}};
+    const auto frame1 = make_vesc_status_frame(VESC_ID_1, suchm::can::PacketStatus::ID, data);
+    const auto unsupported_frame = make_vesc_status_frame(VESC_ID_1, suchm::can::PacketStatus2::ID);
+    const auto frame2 = make_vesc_status_frame(VESC_ID_2, suchm::can::PacketStatus::ID, data);
+
+    EXPECT_CALL(*can, recv_frames())
+        .Times(1)
+        .WillOnce(Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{
+            {frame1, unsupported_frame, frame2}}));
+
+    auto can_model = suchm::CanModel(can, THRUSTERS);
+    const auto result = can_model.on_read();
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
+    ASSERT_EQ(result.value().states.size(), 2u);
+    EXPECT_EQ(
+        result.value().error_message,
+        "Unsupported VESC packet status variant received ('thruster1' (VESC 1), "
+        "variant index: 1)");
+
+    const auto & [name1, rpm1] = std::get<0>(result.value().states[0]);
+    const auto & [name2, rpm2] = std::get<0>(result.value().states[1]);
+    EXPECT_EQ(name1, "thruster1");
+    EXPECT_EQ(name2, "thruster2");
+    EXPECT_DOUBLE_EQ(rpm1.value, 200.0);
+    EXPECT_DOUBLE_EQ(rpm2.value, 200.0);
 }
 
 TEST(CanModelTest, CanModelOnReadUnsupportedPacketStatusReturnsErrorTest) {
@@ -141,35 +204,39 @@ TEST(CanModelTest, CanModelOnReadUnsupportedPacketStatusReturnsErrorTest) {
 
     const auto frame = make_vesc_status_frame(VESC_ID_1, suchm::can::PacketStatus2::ID);
 
-    EXPECT_CALL(*can, recv_frame())
+    EXPECT_CALL(*can, recv_frames())
         .Times(1)
         .WillOnce(
-            Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
+            Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame}}));
 
     auto can_model = suchm::CanModel(can, THRUSTERS);
     const auto result = can_model.on_read();
-    ASSERT_FALSE(result);
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
+    EXPECT_TRUE(result.value().states.empty());
     EXPECT_EQ(
-        result.error(),
+        result.value().error_message,
         "Unsupported VESC packet status variant received ('thruster1' (VESC 1), "
         "variant index: 1)");
 }
 
-TEST(CanModelTest, CanModelOnReadUnhandledFrameReturnsErrorTest) {
+TEST(CanModelTest, CanModelOnReadUndecodableFrameReturnsErrorTest) {
     auto can = std::make_shared<Can>();
 
-    // TODO: `can::MainPowerModel`を追加したら、このフレームがhandledになるか見直す
+    // TODO: `can::MainPowerModel`を追加したら、このフレームをデコードできるようになるか見直す
     const auto frame = make_vesc_status_frame(0x21, suchm::can::PacketStatus::ID);
 
-    EXPECT_CALL(*can, recv_frame())
+    EXPECT_CALL(*can, recv_frames())
         .Times(1)
         .WillOnce(
-            Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
+            Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame}}));
 
     auto can_model = suchm::CanModel(can, THRUSTERS);
     const auto result = can_model.on_read();
-    ASSERT_FALSE(result);
-    EXPECT_EQ(result.error(), "Unhandled CAN frame: no registered model accepted frame id 2337");
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
+    EXPECT_TRUE(result.value().states.empty());
+    EXPECT_EQ(
+        result.value().error_message,
+        "Failed to decode CAN frame: no registered model accepted frame id 2337");
 }
 
 TEST(CanModelTest, CanModelOnInitRejectsEmptyThrusterConfigurationTest) {
@@ -360,15 +427,17 @@ TEST_P(CanModelVariableThrusterCountTest, RoutesReceivedStatusToConfiguredThrust
         {std::byte{0x00}, std::byte{0x00}, std::byte{0x05}, std::byte{0x78}, std::byte{0x00},
          std::byte{0x7B}, std::byte{0x01}, std::byte{0xF4}});
 
-    EXPECT_CALL(*can, recv_frame())
+    EXPECT_CALL(*can, recv_frames())
         .Times(1)
         .WillOnce(
-            Return(tl::expected<std::optional<suchm::interface::CanFrame>, std::string>{frame}));
+            Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame}}));
 
     auto can_model = suchm::CanModel(can, make_thrusters(thruster_count));
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
-    const auto & [name, rpm] = std::get<0>(result.value());
+    ASSERT_EQ(result.value().states.size(), 1u);
+    EXPECT_TRUE(result.value().error_message.empty());
+    const auto & [name, rpm] = std::get<0>(result.value().states[0]);
     EXPECT_EQ(name, "thruster" + std::to_string(thruster_count));
     EXPECT_DOUBLE_EQ(rpm.value, 200.0);
 }

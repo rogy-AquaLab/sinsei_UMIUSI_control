@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <cerrno>
 #include <cstddef>
 #include <cstring>
 #include <optional>
@@ -140,45 +141,38 @@ auto impl::LinuxCan::send_linux_can_frame(const can_frame & frame)
     return {};
 }
 
-auto impl::LinuxCan::recv_linux_can_frame() -> tl::expected<std::optional<can_frame>, std::string> {
+auto impl::LinuxCan::recv_linux_can_frames() -> tl::expected<std::vector<can_frame>, std::string> {
     if (!this->sock) {
         return tl::make_unexpected("CAN socket is not initialized");
     }
 
-    fd_set read_fds;
-    FD_ZERO(&read_fds);                     // Clear the set
-    FD_SET(this->sock.value(), &read_fds);  // Add the socket to the set
+    auto frames = std::vector<can_frame>{};
+    while (true) {
+        // Read CAN frames without waiting for data to arrive
+        struct can_frame frame {};
+        const auto bytes_to_read = sizeof(frame);
+        const auto bytes_read = ::recv(this->sock.value(), &frame, bytes_to_read, MSG_DONTWAIT);
+        if (bytes_read < 0) {
+            if (errno == EINTR) {
+                // A signal interrupted recv() before completion, so retry without losing frames
+                continue;
+            }
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // No data is currently available, so all queued frames have been read
+                break;
+            }
+            return tl::make_unexpected("recv() failed: " + std::string(strerror(errno)));
+        }
+        if (static_cast<size_t>(bytes_read) != bytes_to_read) {
+            return tl::make_unexpected(
+                "Incomplete CAN frame read: expected " + std::to_string(bytes_to_read) +
+                " bytes, got " + std::to_string(bytes_read) + " bytes");
+        }
 
-    // Set a timeout for select (5 ms)
-    constexpr int TIMEOUT_MS = 5;
-    struct timeval timeout = {
-        TIMEOUT_MS / 1000,                                 // seconds
-        (static_cast<int64_t>(TIMEOUT_MS % 1000)) * 1000,  // microseconds
-    };
-
-    // Wait for data to be available on the socket
-    const auto nfds = this->sock.value() + 1;  // highest file descriptor + 1
-    auto res = ::select(nfds, &read_fds, nullptr, nullptr, &timeout);
-    if (res < 0) {
-        return tl::make_unexpected("select() failed: " + std::string(strerror(errno)));
-    } else if (res == 0) {
-        return std::nullopt;
+        frames.push_back(frame);
     }
 
-    // Read the CAN frame from the socket
-    struct can_frame frame {};
-    const auto bytes_to_read = sizeof(frame);
-    const auto bytes_read = ::read(this->sock.value(), &frame, bytes_to_read);
-    if (bytes_read < 0) {
-        return tl::make_unexpected("read() failed: " + std::string(strerror(errno)));
-    }
-    if (static_cast<size_t>(bytes_read) != bytes_to_read) {
-        return tl::make_unexpected(
-            "Incomplete CAN frame read: expected " + std::to_string(bytes_to_read) +
-            " bytes, got " + std::to_string(bytes_read) + " bytes");
-    }
-
-    return frame;
+    return frames;
 }
 
 auto impl::LinuxCan::send_frame(const interface::CanFrame & frame)
@@ -190,14 +184,16 @@ auto impl::LinuxCan::send_frame(const interface::CanFrame & frame)
     return this->send_linux_can_frame(linux_can_frame_res.value());
 }
 
-auto impl::LinuxCan::recv_frame() -> tl::expected<std::optional<CanFrame>, std::string> {
-    const auto linux_can_frame_res = this->recv_linux_can_frame();
-    if (!linux_can_frame_res) {
-        return tl::make_unexpected(linux_can_frame_res.error());
+auto impl::LinuxCan::recv_frames() -> tl::expected<std::vector<CanFrame>, std::string> {
+    const auto linux_can_frames_res = this->recv_linux_can_frames();
+    if (!linux_can_frames_res) {
+        return tl::make_unexpected(linux_can_frames_res.error());
     }
-    const auto & linux_can_frame_opt = linux_can_frame_res.value();
-    if (!linux_can_frame_opt) {
-        return std::nullopt;
+
+    auto frames = std::vector<CanFrame>{};
+    frames.reserve(linux_can_frames_res.value().size());
+    for (const auto & linux_can_frame : linux_can_frames_res.value()) {
+        frames.push_back(_from_linux_can_frame(linux_can_frame));
     }
-    return _from_linux_can_frame(linux_can_frame_opt.value());
+    return frames;
 }
