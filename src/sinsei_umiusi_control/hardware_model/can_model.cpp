@@ -65,9 +65,9 @@ auto CanModel::on_destroy() -> tl::expected<void, std::string> {
     return {};
 }
 
-auto CanModel::process_frame(const interface::CanFrame & frame) const
+auto CanModel::decode_frame(const interface::CanFrame & frame) const
     -> tl::expected<StateUpdate, std::string> {
-    // フレームを各モデルに渡していく
+    // CANフレームを整形された型（StateUpdate）に変換するため、各モデルを順番に試す
 
     auto error_message = std::string("");
 
@@ -120,12 +120,12 @@ auto CanModel::process_frame(const interface::CanFrame & frame) const
 
     if (error_message.empty()) {
         return tl::make_unexpected(
-            "Unhandled CAN frame: no registered model accepted frame id " +
+            "Failed to decode CAN frame: no registered model accepted frame id " +
             std::to_string(frame.id));
     }
 
     return tl::make_unexpected(
-        "Failed to handle CAN frame \"" + std::to_string(frame.id) + "\" in all models: \n" +
+        "Failed to decode CAN frame \"" + std::to_string(frame.id) + "\" in all models: \n" +
         error_message);
 }
 
@@ -138,7 +138,7 @@ auto CanModel::on_read() const -> tl::expected<ReadBatch, std::string> {
     auto read_batch = ReadBatch{};
     read_batch.updates.reserve(frames_res.value().size());
     for (const auto & frame : frames_res.value()) {
-        auto update_res = this->process_frame(frame);
+        auto update_res = this->decode_frame(frame);
         if (update_res) {
             read_batch.updates.push_back(std::move(update_res.value()));
             continue;

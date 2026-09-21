@@ -219,10 +219,10 @@ TEST(CanModelTest, CanModelOnReadUnsupportedPacketStatusReturnsErrorTest) {
         "variant index: 1)");
 }
 
-TEST(CanModelTest, CanModelOnReadUnhandledFrameReturnsErrorTest) {
+TEST(CanModelTest, CanModelOnReadUndecodableFrameReturnsErrorTest) {
     auto can = std::make_shared<Can>();
 
-    // TODO: `can::MainPowerModel`を追加したら、このフレームがhandledになるか見直す
+    // TODO: `can::MainPowerModel`を追加したら、このフレームをデコードできるようになるか見直す
     const auto frame = make_vesc_status_frame(0x21, suchm::can::PacketStatus::ID);
 
     EXPECT_CALL(*can, recv_frames())
@@ -236,7 +236,7 @@ TEST(CanModelTest, CanModelOnReadUnhandledFrameReturnsErrorTest) {
     EXPECT_TRUE(result.value().updates.empty());
     EXPECT_EQ(
         result.value().error_message,
-        "Unhandled CAN frame: no registered model accepted frame id 2337");
+        "Failed to decode CAN frame: no registered model accepted frame id 2337");
 }
 
 TEST(CanModelTest, CanModelOnInitRejectsEmptyThrusterConfigurationTest) {

@@ -76,7 +76,7 @@ class CanModel {
     static constexpr double WATER_LEAKED_VOLTAGE_THRESHOLD = 2.0;
 
     auto validate_thruster_configs() const -> tl::expected<void, std::string>;
-    auto process_frame(const interface::CanFrame & frame) const
+    auto decode_frame(const interface::CanFrame & frame) const
         -> tl::expected<StateUpdate, std::string>;
 
   public:
