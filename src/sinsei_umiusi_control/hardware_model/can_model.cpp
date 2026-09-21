@@ -66,8 +66,8 @@ auto CanModel::on_destroy() -> tl::expected<void, std::string> {
 }
 
 auto CanModel::decode_frame(const interface::CanFrame & frame) const
-    -> tl::expected<StateUpdate, std::string> {
-    // CANフレームを整形された型（StateUpdate）に変換するため、各モデルを順番に試す
+    -> tl::expected<DecodedState, std::string> {
+    // CANフレームをデコードするため、各モデルを順番に試す
 
     auto error_message = std::string("");
 
@@ -94,20 +94,20 @@ auto CanModel::decode_frame(const interface::CanFrame & frame) const
                 const auto & status = std::get<0>(packet_status_opt.value());
                 constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
                 // ERPMを極対数で割ってRPMに変換
-                return StateUpdate{std::make_tuple(
+                return DecodedState{std::make_tuple(
                     thruster.name, state::thruster::esc::Rpm{status.erpm / BLDC_POLE_PAIR})};
             }
             case 4: {  // PacketStatus5
                 const auto & status = std::get<4>(packet_status_opt.value());
                 const auto volts_in = status.volts_in;
-                return StateUpdate{
+                return DecodedState{
                     std::make_tuple(thruster.name, state::thruster::esc::Voltage{volts_in})};
             }
             case 5: {  // PacketStatus6
                 const auto & status = std::get<5>(packet_status_opt.value());
                 // 浸水センサーはADC1に接続されている
                 const auto water_leaked = status.adc1 < WATER_LEAKED_VOLTAGE_THRESHOLD;
-                return StateUpdate{std::make_tuple(
+                return DecodedState{std::make_tuple(
                     thruster.name, state::thruster::esc::WaterLeaked{water_leaked})};
             }
             default: {
@@ -136,18 +136,18 @@ auto CanModel::on_read() const -> tl::expected<ReadBatch, std::string> {
     }
 
     auto read_batch = ReadBatch{};
-    read_batch.updates.reserve(frames_res.value().size());
+    read_batch.states.reserve(frames_res.value().size());
     for (const auto & frame : frames_res.value()) {
-        auto update_res = this->decode_frame(frame);
-        if (update_res) {
-            read_batch.updates.push_back(std::move(update_res.value()));
+        auto state_res = this->decode_frame(frame);
+        if (state_res) {
+            read_batch.states.push_back(std::move(state_res.value()));
             continue;
         }
 
         if (!read_batch.error_message.empty()) {
             read_batch.error_message += "\n";
         }
-        read_batch.error_message += update_res.error();
+        read_batch.error_message += state_res.error();
     }
     return read_batch;
 }

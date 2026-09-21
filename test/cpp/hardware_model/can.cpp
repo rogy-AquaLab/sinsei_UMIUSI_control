@@ -110,7 +110,7 @@ TEST(CanModelTest, CanModelOnReadNoFrameReturnsNoUpdateTest) {
     auto can_model = suchm::CanModel(can, THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
-    EXPECT_TRUE(result.value().updates.empty());
+    EXPECT_TRUE(result.value().states.empty());
     EXPECT_TRUE(result.value().error_message.empty());
 }
 
@@ -130,11 +130,11 @@ TEST(CanModelTest, CanModelOnReadPacketStatusReturnsRpmUpdateTest) {
     auto can_model = suchm::CanModel(can, THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
-    ASSERT_EQ(result.value().updates.size(), 1u);
+    ASSERT_EQ(result.value().states.size(), 1u);
     EXPECT_TRUE(result.value().error_message.empty());
-    const auto & update = result.value().updates[0];
-    ASSERT_EQ(update.index(), 0u);
-    const auto & [name, rpm] = std::get<0>(update);
+    const auto & state = result.value().states[0];
+    ASSERT_EQ(state.index(), 0u);
+    const auto & [name, rpm] = std::get<0>(state);
     EXPECT_EQ(name, "thruster1");
     EXPECT_DOUBLE_EQ(rpm.value, 200.0);
 }
@@ -156,11 +156,11 @@ TEST(CanModelTest, CanModelOnReadProcessesAllReceivedFramesTest) {
     auto can_model = suchm::CanModel(can, THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
-    ASSERT_EQ(result.value().updates.size(), 2u);
+    ASSERT_EQ(result.value().states.size(), 2u);
     EXPECT_TRUE(result.value().error_message.empty());
 
-    const auto & [name1, rpm1] = std::get<0>(result.value().updates[0]);
-    const auto & [name2, rpm2] = std::get<0>(result.value().updates[1]);
+    const auto & [name1, rpm1] = std::get<0>(result.value().states[0]);
+    const auto & [name2, rpm2] = std::get<0>(result.value().states[1]);
     EXPECT_EQ(name1, "thruster1");
     EXPECT_EQ(name2, "thruster2");
     EXPECT_DOUBLE_EQ(rpm1.value, 200.0);
@@ -185,14 +185,14 @@ TEST(CanModelTest, CanModelOnReadContinuesAfterFrameErrorTest) {
     auto can_model = suchm::CanModel(can, THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
-    ASSERT_EQ(result.value().updates.size(), 2u);
+    ASSERT_EQ(result.value().states.size(), 2u);
     EXPECT_EQ(
         result.value().error_message,
         "Unsupported VESC packet status variant received ('thruster1' (VESC 1), "
         "variant index: 1)");
 
-    const auto & [name1, rpm1] = std::get<0>(result.value().updates[0]);
-    const auto & [name2, rpm2] = std::get<0>(result.value().updates[1]);
+    const auto & [name1, rpm1] = std::get<0>(result.value().states[0]);
+    const auto & [name2, rpm2] = std::get<0>(result.value().states[1]);
     EXPECT_EQ(name1, "thruster1");
     EXPECT_EQ(name2, "thruster2");
     EXPECT_DOUBLE_EQ(rpm1.value, 200.0);
@@ -212,7 +212,7 @@ TEST(CanModelTest, CanModelOnReadUnsupportedPacketStatusReturnsErrorTest) {
     auto can_model = suchm::CanModel(can, THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
-    EXPECT_TRUE(result.value().updates.empty());
+    EXPECT_TRUE(result.value().states.empty());
     EXPECT_EQ(
         result.value().error_message,
         "Unsupported VESC packet status variant received ('thruster1' (VESC 1), "
@@ -233,7 +233,7 @@ TEST(CanModelTest, CanModelOnReadUndecodableFrameReturnsErrorTest) {
     auto can_model = suchm::CanModel(can, THRUSTERS);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
-    EXPECT_TRUE(result.value().updates.empty());
+    EXPECT_TRUE(result.value().states.empty());
     EXPECT_EQ(
         result.value().error_message,
         "Failed to decode CAN frame: no registered model accepted frame id 2337");
@@ -435,9 +435,9 @@ TEST_P(CanModelVariableThrusterCountTest, RoutesReceivedStatusToConfiguredThrust
     auto can_model = suchm::CanModel(can, make_thrusters(thruster_count));
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
-    ASSERT_EQ(result.value().updates.size(), 1u);
+    ASSERT_EQ(result.value().states.size(), 1u);
     EXPECT_TRUE(result.value().error_message.empty());
-    const auto & [name, rpm] = std::get<0>(result.value().updates[0]);
+    const auto & [name, rpm] = std::get<0>(result.value().states[0]);
     EXPECT_EQ(name, "thruster" + std::to_string(thruster_count));
     EXPECT_DOUBLE_EQ(rpm.value, 200.0);
 }

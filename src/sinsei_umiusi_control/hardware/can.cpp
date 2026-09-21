@@ -99,54 +99,54 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
     }
 
     const auto & read_batch = res.value();
-    for (const auto & update : read_batch.updates) {
-        switch (update.index()) {
+    for (const auto & state : read_batch.states) {
+        switch (state.index()) {
             case 0: {  // Rpm
-                const auto & [thruster_name, rpm] = std::get<0>(update);
+                const auto & [thruster_name, rpm] = std::get<0>(state);
                 this->set_state(thruster_name + "/esc/rpm", util::to_interface_data(rpm));
                 break;
             }
             case 1: {  // ESC Voltage
-                const auto & [thruster_name, voltage] = std::get<1>(update);
+                const auto & [thruster_name, voltage] = std::get<1>(state);
                 this->set_state(thruster_name + "/esc/voltage", util::to_interface_data(voltage));
                 break;
             }
             case 2: {  // ESC WaterLeaked
-                const auto & [thruster_name, water_leaked] = std::get<2>(update);
+                const auto & [thruster_name, water_leaked] = std::get<2>(state);
                 this->set_state(
                     thruster_name + "/esc/water_leaked", util::to_interface_data(water_leaked));
                 break;
             }
             case 3: {  // BatteryCurrent
                 const auto battery_current =
-                    std::get<sinsei_umiusi_control::state::main_power::BatteryCurrent>(update);
+                    std::get<sinsei_umiusi_control::state::main_power::BatteryCurrent>(state);
                 this->set_state(
                     "main_power/battery_current", util::to_interface_data(battery_current));
                 break;
             }
             case 4: {  // BatteryVoltage
                 const auto battery_voltage =
-                    std::get<sinsei_umiusi_control::state::main_power::BatteryVoltage>(update);
+                    std::get<sinsei_umiusi_control::state::main_power::BatteryVoltage>(state);
                 this->set_state(
                     "main_power/battery_voltage", util::to_interface_data(battery_voltage));
                 break;
             }
             case 5: {  // Temperature
                 const auto temperature =
-                    std::get<sinsei_umiusi_control::state::main_power::Temperature>(update);
+                    std::get<sinsei_umiusi_control::state::main_power::Temperature>(state);
                 this->set_state("main_power/temperature", util::to_interface_data(temperature));
                 break;
             }
             case 6: {  // WaterLeaked
                 const auto water_leaked =
-                    std::get<sinsei_umiusi_control::state::main_power::WaterLeaked>(update);
+                    std::get<sinsei_umiusi_control::state::main_power::WaterLeaked>(state);
                 this->set_state("main_power/water_leaked", util::to_interface_data(water_leaked));
                 break;
             }
         }
     }
 
-    if (!read_batch.updates.empty()) {
+    if (!read_batch.states.empty()) {
         this->cycles_without_updates = 0;
     }
 
@@ -159,7 +159,7 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
         RCLCPP_ERROR_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to read CAN data: %s",
             read_batch.error_message.c_str());
-    } else if (read_batch.updates.empty()) {
+    } else if (read_batch.states.empty()) {
         if (this->cycles_without_updates < MAX_CYCLES_WITHOUT_UPDATES) {
             ++this->cycles_without_updates;
         }

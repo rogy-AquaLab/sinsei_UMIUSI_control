@@ -25,7 +25,7 @@ class CanModel {
     using EscDutyCycle = cmd::thruster::esc::DutyCycle;
     using ServoAllowed = cmd::thruster::servo::Allowed;
     using ServoAngle = cmd::thruster::servo::Angle;
-    using StateUpdate = std::variant<
+    using DecodedState = std::variant<
         std::tuple<std::string, state::thruster::esc::Rpm>,
         std::tuple<std::string, state::thruster::esc::Voltage>,
         std::tuple<std::string, state::thruster::esc::WaterLeaked>,
@@ -45,7 +45,7 @@ class CanModel {
     };
 
     struct ReadBatch {
-        std::vector<StateUpdate> updates;
+        std::vector<DecodedState> states;
         std::string error_message;
     };
 
@@ -77,7 +77,7 @@ class CanModel {
 
     auto validate_thruster_configs() const -> tl::expected<void, std::string>;
     auto decode_frame(const interface::CanFrame & frame) const
-        -> tl::expected<StateUpdate, std::string>;
+        -> tl::expected<DecodedState, std::string>;
 
   public:
     CanModel(std::shared_ptr<interface::Can> can, std::vector<ThrusterConfig> thruster_configs);
