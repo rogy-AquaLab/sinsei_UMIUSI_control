@@ -153,6 +153,10 @@ auto impl::LinuxCan::recv_linux_can_frames() -> tl::expected<std::vector<can_fra
         const auto bytes_to_read = sizeof(frame);
         const auto bytes_read = ::recv(this->sock.value(), &frame, bytes_to_read, MSG_DONTWAIT);
         if (bytes_read < 0) {
+            if (errno == EINTR) {
+                // A signal interrupted recv() before completion, so retry without losing frames
+                continue;
+            }
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 // No data is currently available, so all queued frames have been read
                 break;
