@@ -56,6 +56,7 @@ ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   src/${PROJECT_NAME}/hardware_model/imu_model.cpp
   src/${PROJECT_NAME}/hardware_model/indicator_led_model.cpp
   src/${PROJECT_NAME}/hardware_model/can/vesc_model.cpp
+  src/${PROJECT_NAME}/hardware_model/can/harmony_bms_model.cpp
 
   src/${PROJECT_NAME}/hardware_model/impl/linux_gpio.cpp
   src/${PROJECT_NAME}/hardware_model/impl/linux_i2c.cpp
@@ -113,6 +114,7 @@ if(BUILD_TESTING)
     test/cpp/hardware_model/indicator_led.cpp
     test/cpp/hardware_model/can.cpp
     test/cpp/hardware_model/can/vesc.cpp
+    test/cpp/hardware_model/can/harmony_bms.cpp
   )
   target_include_directories(test_hardware_model
     PRIVATE

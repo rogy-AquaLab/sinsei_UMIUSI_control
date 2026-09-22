@@ -24,6 +24,8 @@ def generate_launch_description():
                 LaunchConfiguration('vesc3_id'),
                 ' vesc4_id:=',
                 LaunchConfiguration('vesc4_id'),
+                ' harmony_bms_id:=',
+                LaunchConfiguration('harmony_bms_id'),
                 ' gpiochip_device:=',
                 LaunchConfiguration('gpiochip_device'),
                 ' high_beam_line_offset:=',

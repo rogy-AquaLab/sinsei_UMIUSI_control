@@ -156,6 +156,9 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
         prefix + "esc/water_leaked",
         util::to_interface_data_ptr(this->input.state.esc_water_leaked),
         sizeof(this->input.state.esc_water_leaked)));
+    this->state_interface_data.push_back(std::make_tuple(
+        prefix + "esc/health", util::to_interface_data_ptr(this->input.state.esc_health),
+        sizeof(this->input.state.esc_health)));
 
     this->ref_interface_data.push_back(std::make_tuple(
         "esc/runnable", util::to_interface_data_ptr(this->input.cmd.esc_runnable),
@@ -247,7 +250,8 @@ auto ThrusterController::on_export_state_interfaces()
     auto interfaces = std::vector<hardware_interface::StateInterface>{};
     for (auto & [name, data, _] : this->state_interface_data) {
         // Thruster ID を隠蔽する (e.g. thruster1/esc/rpm -> thruster/esc/rpm)
-        constexpr auto THRUSTER_OFFSET = std::size("thrusterN") - 1;  // 末尾のnull文字を除くため、-1
+        constexpr auto THRUSTER_OFFSET =
+            std::size("thrusterN") - 1;  // 末尾のnull文字を除くため、-1
         const auto fixed_name = "thruster" + name.substr(THRUSTER_OFFSET);
         interfaces.emplace_back(
             hardware_interface::StateInterface(this->get_node()->get_name(), fixed_name, data));
