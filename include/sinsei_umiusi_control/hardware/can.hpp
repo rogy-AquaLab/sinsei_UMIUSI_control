@@ -1,6 +1,7 @@
 #ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_CAN_HPP
 #define SINSEI_UMIUSI_CONTROL_HARDWARE_CAN_HPP
 
+#include <array>
 #include <cstddef>
 #include <hardware_interface/system_interface.hpp>
 #include <hardware_interface/types/hardware_component_interface_params.hpp>
@@ -21,6 +22,8 @@ class Can : public hardware_interface::SystemInterface {
 
     // 状態更新がなかった連続周期数
     std::size_t cycles_without_updates = 0;
+    std::size_t cycles_without_bms_updates = 0;
+    std::array<std::size_t, 4> cycles_without_esc_updates{};
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(Can)

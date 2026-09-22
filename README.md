@@ -17,9 +17,9 @@ flowchart LR
     classDef physicalEdge stroke:#4a9df5,stroke-width:3px,color:#4a9df5;
 
     subgraph ROS["ROS Topics"]
-        CMD["cmd/(indicator_led, main_power, led_tape, headlights)_output<br/>cmd/thruster_runnable_all<br/>cmd/target"]
+        CMD["cmd/(indicator_led, power_distribution, led_tape, headlights)_output<br/>cmd/thruster_runnable_all<br/>cmd/target"]
         MANUAL["cmd/direct/thruster_controller/output_*<br/>cmd/direct/thruster_controller/output_all"]
-        STATE["state/(imu, imu_temperature, main_power_enabled, thruster_state_all)<br/>state/(low_power_circuit_info, high_power_circuit_info)"]
+        STATE["state/(imu, imu_temperature, power_distribution_enabled, thruster_state_all)<br/>state/power/(battery, bms)<br/>state/(low_power_circuit_info, high_power_circuit_info)"]
     end
 
     subgraph CTRL["Controllers"]
@@ -38,7 +38,7 @@ flowchart LR
     subgraph HW["Hardwares"]
         LED["Indicator LED"]
         MCP["CAN Controller<br/>(MCP2515)"]
-        VESC["VESC Boards x4<br/>+ Power Board"]
+        VESC["VESC Boards x4<br/>+ Harmony16-compatible BMS"]
         BNO["IMU<br/>(BNO055)"]
         HL["High Beam<br/>Low Beam<br/>IR"]
     end
@@ -52,15 +52,15 @@ flowchart LR
     GATE gate_to_thruster@-- "thruster_controller_*/(esc, servo)/runnable" --> THR
     ATT attitude_to_thruster@-- "thruster_controller_*/esc/duty_cycle<br/>thruster_controller_*/servo/angle" --> THR
     MANUAL manual_override@-- "manual override" --> THR
-    THR thruster_to_gate@-- "thruster_controller_*/esc/(mode, duty_cycle)<br/>thruster_controller_*/servo/(mode, angle)<br/>thruster_controller_*/thruster/esc/(voltage, water_leaked)" --> GATE
+    THR thruster_to_gate@-- "thruster_controller_*/esc/(mode, duty_cycle)<br/>thruster_controller_*/servo/(mode, angle)<br/>thruster_controller_*/thruster/esc/(voltage, water_leaked, health)" --> GATE
 
     GATE gate_to_indicator@-- "indicator_led/enabled" --> LEDC
     LEDC indicator_gpio@-- "GPIO" --> LED
 
-    GATE gate_to_can@-- "main_power/enabled<br/>led_tape/color" --> CANC
+    GATE gate_to_can@-- "power_distribution/enabled<br/>led_tape/color" --> CANC
     THR thruster_to_can@-- "thrusterN/esc/(allowed, duty_cycle)<br/>thrusterN/servo/(allowed, angle)" --> CANC
-    CANC can_to_gate@-- "main_power/(battery_voltage, battery_current, temperature, water_leaked)<br/>can/health" --> GATE
-    CANC can_to_thruster@-- "thrusterN/esc/(rpm, voltage, water_leaked)" --> THR
+    CANC can_to_gate@-- "bms/*<br/>can/health" --> GATE
+    CANC can_to_thruster@-- "thrusterN/esc/(rpm, voltage, water_leaked, health)" --> THR
     CANC can_spi@-- "SPI" --> MCP
     MCP vesc_can@-- "CAN" --> VESC
 
@@ -106,7 +106,7 @@ All types of messages are defined in [sinsei_UMIUSI_msgs](https://github.com/rog
 | Topic Name                  | Type name (URL to `.msg` file)                                                                                    | Description                                                                               |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `cmd/indicator_led_output`  | [`IndicatorLedOutput`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/IndicatorLedOutput.msg)   | Indicator LED output (Enabled / Disabled)                                                 |
-| `cmd/main_power_output`     | [`MainPowerOutput`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/MainPowerOutput.msg)         | Main power output (Enabled / Disabled)                                                    |
+| `cmd/power_distribution_output` | [`PowerDistributionOutput`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/PowerDistributionOutput.msg) | Power distribution output (Enabled / Disabled)                                      |
 | `cmd/led_tape_output`       | [`LedTapeOutput`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/LedTapeOutput.msg)             | LED tape output (RGBA values)                                                             |
 | `cmd/headlights_output`     | [`HeadlightsOutput`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/HeadlightsOutput.msg)       | Headlights output (Enabled / Disabled) for each of High beam, Low beam, and IR            |
 | `cmd/thruster_runnable_all` | [`ThrusterRunnableAll`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterRunnableAll.msg) | Thruster runnable status (True / False for each of ESC and Servo motor) for each thruster |
@@ -128,7 +128,9 @@ All types of messages are defined in [sinsei_UMIUSI_msgs](https://github.com/rog
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | `state/imu`                     | [`sensor_msgs/Imu`](https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/Imu.html)                                       | IMU orientation, linear acceleration, and angular velocity                              |
 | `state/imu_temperature`         | [`sensor_msgs/Temperature`](https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/Temperature.html)                       | IMU temperature                                                                         |
-| `state/main_power_enabled`      | [`MainPowerEnabled`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/MainPowerEnabled.msg)         | Main power enabled / disabled status                                                    |
-| `state/thruster_state_all`      | [`ThrusterStateAll`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterStateAll.msg)         | Thruster status (Mode, Duty Cycle, Angle, and RPM) for each thruster                    |
+| `state/power_distribution_enabled` | [`PowerDistributionEnabled`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/PowerDistributionEnabled.msg) | Power distribution enabled / disabled status                                      |
+| `state/power/battery`           | [`sensor_msgs/BatteryState`](https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/BatteryState.html)                    | Standard battery voltage, current, temperature, SOC, and cell voltages                  |
+| `state/power/bms`               | [`BmsState`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/BmsState.msg)                         | Harmony16-compatible BMS details, counters, balancing, and fault state                  |
+| `state/thruster_state_all`      | [`ThrusterStateAll`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterStateAll.msg)         | Thruster status including input voltage and water leak state                            |
 | `state/low_power_circuit_info`  | [`LowPowerCircuitInfo`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/LowPowerCircuitInfo.msg)   | Health status (`0` for ok / `1` for error) for each low-power circuit                   |
-| `state/high_power_circuit_info` | [`HighPowerCircuitInfo`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/HighPowerCircuitInfo.msg) | Health-related values for each high-power circuit (Voltage, Current, WaterLeaked, etc.) |
+| `state/high_power_circuit_info` | [`HighPowerCircuitInfo`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/HighPowerCircuitInfo.msg) | Health status for the BMS, battery, and each ESC                                        |

@@ -16,6 +16,10 @@ launch:
       description: "CAN ID for VESC 4 (corresponds to thruster 4)"
       name: vesc4_id
       default: "127"
+  - arg:
+      description: "CAN ID for the Harmony16-compatible BMS"
+      name: harmony_bms_id
+      default: "10"
 
   - arg:
       description: "GPIO chip device path"
