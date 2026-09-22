@@ -73,6 +73,7 @@ ament_auto_add_library(${PROJECT_NAME}_controller SHARED
   src/${PROJECT_NAME}/controller/gate_controller.cpp
   src/${PROJECT_NAME}/controller/attitude_controller.cpp
   src/${PROJECT_NAME}/controller/thruster_controller.cpp
+  src/${PROJECT_NAME}/controller/logic/thruster/servo_angle_estimator.cpp
   src/${PROJECT_NAME}/util/interface_accessor.cpp
 )
 target_include_directories(${PROJECT_NAME}_controller
@@ -118,6 +119,14 @@ if(BUILD_TESTING)
     PRIVATE
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/cpp>
+  )
+  ament_auto_add_gtest(test_controller_logic
+    test/cpp/controller/logic/thruster/servo_angle_estimator.cpp
+    src/${PROJECT_NAME}/controller/logic/thruster/servo_angle_estimator.cpp
+  )
+  target_include_directories(test_controller_logic
+    PRIVATE
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   )
 endif()
 

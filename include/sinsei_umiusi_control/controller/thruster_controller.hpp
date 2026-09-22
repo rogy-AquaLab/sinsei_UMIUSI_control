@@ -2,12 +2,15 @@
 #define SINSEI_UMIUSI_CONTROL_THRUSTER_CONTROLLER_HPP
 
 #include <controller_interface/chainable_controller_interface.hpp>
+#include <limits>
+#include <optional>
 #include <rclcpp/subscription.hpp>
 #include <vector>
 
 #include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
 #include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
 #include "sinsei_umiusi_control/controller/logic/logic_interface.hpp"
+#include "sinsei_umiusi_control/controller/logic/thruster/servo_angle_estimator.hpp"
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
 #include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
@@ -56,7 +59,8 @@ class ThrusterController : public controller_interface::ChainableControllerInter
             state::thruster::esc::Mode esc_mode;
             state::thruster::esc::DutyCycle esc_duty_cycle;
             state::thruster::servo::Mode servo_mode;
-            state::thruster::servo::Angle servo_angle;
+            state::thruster::servo::CommandedAngle servo_commanded_angle;
+            std::optional<state::thruster::servo::EstimatedAngle> servo_estimated_angle;
         };
         Command cmd;
         State state;
@@ -77,6 +81,11 @@ class ThrusterController : public controller_interface::ChainableControllerInter
     Output output;
 
     std::unique_ptr<Logic> logic;
+    std::unique_ptr<logic::thruster::ServoAngleEstimator> servo_angle_estimator;
+
+    std::optional<state::thruster::servo::CommandedAngle> last_servo_command;
+    state::thruster::servo::EstimatedAngle servo_estimated_angle_interface{
+        std::numeric_limits<double>::quiet_NaN()};
 
     util::interface_accessor::InterfaceDataContainer command_interface_data;
     util::interface_accessor::InterfaceDataContainer state_interface_data;

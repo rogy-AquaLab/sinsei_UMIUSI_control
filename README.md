@@ -52,7 +52,8 @@ flowchart LR
     GATE gate_to_thruster@-- "thruster_controller_*/(esc, servo)/runnable" --> THR
     ATT attitude_to_thruster@-- "thruster_controller_*/esc/duty_cycle<br/>thruster_controller_*/servo/angle" --> THR
     MANUAL manual_override@-- "manual override" --> THR
-    THR thruster_to_gate@-- "thruster_controller_*/esc/(mode, duty_cycle)<br/>thruster_controller_*/servo/(mode, angle)<br/>thruster_controller_*/thruster/esc/(voltage, water_leaked)" --> GATE
+    THR thruster_to_attitude@-- "thruster_controller_*/servo/(commanded_angle, estimated_angle)" --> ATT
+    THR thruster_to_gate@-- "thruster_controller_*/esc/(mode, duty_cycle)<br/>thruster_controller_*/servo/(mode, commanded_angle, estimated_angle)<br/>thruster_controller_*/thruster/esc/(voltage, water_leaked)" --> GATE
 
     GATE gate_to_indicator@-- "indicator_led/enabled" --> LEDC
     LEDC indicator_gpio@-- "GPIO" --> LED
@@ -73,7 +74,7 @@ flowchart LR
 
     class topic_inputs,topic_outputs,manual_override topicEdge;
     class gate_to_attitude,gate_to_thruster,attitude_to_thruster,gate_to_indicator,gate_to_can,thruster_to_can,gate_to_headlights commandEdge;
-    class attitude_to_gate,thruster_to_gate,can_to_gate,can_to_thruster,imu_to_attitude,imu_to_gate stateEdge;
+    class attitude_to_gate,thruster_to_attitude,thruster_to_gate,can_to_gate,can_to_thruster,imu_to_attitude,imu_to_gate stateEdge;
     class indicator_gpio,can_spi,vesc_can,imu_i2c,headlights_gpio physicalEdge;
 
     class CMD,MANUAL topics;
@@ -129,6 +130,6 @@ All types of messages are defined in [sinsei_UMIUSI_msgs](https://github.com/rog
 | `state/imu`                     | [`sensor_msgs/Imu`](https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/Imu.html)                                       | IMU orientation, linear acceleration, and angular velocity                              |
 | `state/imu_temperature`         | [`sensor_msgs/Temperature`](https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/Temperature.html)                       | IMU temperature                                                                         |
 | `state/main_power_enabled`      | [`MainPowerEnabled`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/MainPowerEnabled.msg)         | Main power enabled / disabled status                                                    |
-| `state/thruster_state_all`      | [`ThrusterStateAll`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterStateAll.msg)         | Thruster status (Mode, Duty Cycle, Angle, and RPM) for each thruster                    |
+| `state/thruster_state_all`      | [`ThrusterStateAll`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterStateAll.msg)         | Thruster status (Mode, Duty Cycle, Commanded/Estimated Angle, and RPM) for each thruster |
 | `state/low_power_circuit_info`  | [`LowPowerCircuitInfo`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/LowPowerCircuitInfo.msg)   | Health status (`0` for ok / `1` for error) for each low-power circuit                   |
 | `state/high_power_circuit_info` | [`HighPowerCircuitInfo`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/HighPowerCircuitInfo.msg) | Health-related values for each high-power circuit (Voltage, Current, WaterLeaked, etc.) |
