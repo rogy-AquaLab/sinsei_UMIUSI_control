@@ -101,6 +101,9 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
         return std::nullopt;
     }
 
+    // This is an event flag for the state returned by this decode call, not persistent state.
+    this->state.status_updated = false;
+
     const auto packet_id = static_cast<uint8_t>((frame.id >> 8) & 0xFFU);
     const auto require_length = [&frame,
                                  packet_id](uint8_t expected) -> tl::expected<void, std::string> {
@@ -271,12 +274,19 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             const auto destination = static_cast<std::size_t>(chunk) * 8;
             if (chunk == 0) {
                 this->state.status.fill('\0');
+                this->status_received_mask = 0;
             }
             std::fill_n(this->state.status.begin() + destination, 8, '\0');
             for (std::size_t i = 0; i < frame.len; ++i) {
                 this->state.status[destination + i] = static_cast<char>(byte_at(frame.data, i));
             }
-            this->update_status_flags();
+            this->status_received_mask |= static_cast<uint8_t>(1U << chunk);
+            constexpr uint8_t ALL_STATUS_CHUNKS_RECEIVED = 0x1FU;
+            if (chunk == 4 && this->status_received_mask == ALL_STATUS_CHUNKS_RECEIVED) {
+                this->state.status_updated = true;
+                this->update_status_flags();
+                this->status_received_mask = 0;
+            }
             break;
         }
         default:

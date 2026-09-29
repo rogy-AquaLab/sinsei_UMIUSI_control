@@ -14,6 +14,32 @@
 
 using namespace sinsei_umiusi_control::hardware;
 
+namespace {
+
+auto power_switch_state_name(
+    sinsei_umiusi_control::hardware_model::can::HarmonyBmsModel::PowerSwitchState state) -> const
+    char * {
+    using PowerSwitchState =
+        sinsei_umiusi_control::hardware_model::can::HarmonyBmsModel::PowerSwitchState;
+    switch (state) {
+        case PowerSwitchState::Unknown:
+            return "unknown";
+        case PowerSwitchState::Initializing:
+            return "initializing";
+        case PowerSwitchState::Off:
+            return "off";
+        case PowerSwitchState::Precharge:
+            return "precharge";
+        case PowerSwitchState::On:
+            return "on";
+        case PowerSwitchState::Fault:
+            return "fault";
+    }
+    return "unknown";
+}
+
+}  // namespace
+
 Can::~Can() {
     if (!this->model) {
         RCLCPP_ERROR(this->get_logger(), "Can model is not initialized.");
@@ -67,6 +93,11 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     this->thruster_names = std::move(thruster_names);
     this->cycles_without_bms_updates = 50;
     this->cycles_without_esc_updates.fill(50);
+    this->bms_status_initialized = false;
+    this->last_bms_status.clear();
+    this->last_bms_power_switch_state =
+        hardware_model::can::HarmonyBmsModel::PowerSwitchState::Unknown;
+    this->last_bms_fault_flags = hardware_model::can::HarmonyBmsModel::FaultNone;
 
     auto harmony_bms_id_str =
         util::find_param(params.hardware_info.hardware_parameters, "harmony_bms_id");
@@ -186,8 +217,6 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
                 set_scalar("bms/charger_voltage", bms.charger_voltage);
                 set_scalar("bms/input_current", bms.input_current);
                 set_scalar("bms/measured_current", bms.measured_current);
-                set_scalar("bms/net_consumed_charge", bms.net_consumed_charge);
-                set_scalar("bms/net_consumed_energy", bms.net_consumed_energy);
                 set_scalar("bms/state_of_charge", bms.state_of_charge);
                 set_scalar("bms/state_of_health", bms.state_of_health);
                 set_scalar("bms/cell_voltage_min", bms.cell_voltage_min);
@@ -196,21 +225,12 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
                 set_bool("bms/charging", bms.charging);
                 set_bool("bms/balancing", bms.balancing);
                 set_bool("bms/charge_allowed", bms.charge_allowed);
-                set_scalar("bms/humidity_sensor_temperature", bms.humidity_sensor_temperature);
-                set_scalar("bms/relative_humidity", bms.relative_humidity);
                 set_scalar("bms/balance_ic_temperature", bms.balance_ic_temperature);
-                set_scalar("bms/total_charged_charge", bms.total_charged_charge);
-                set_scalar("bms/total_charged_energy", bms.total_charged_energy);
-                set_scalar("bms/total_discharged_charge", bms.total_discharged_charge);
-                set_scalar("bms/total_discharged_energy", bms.total_discharged_energy);
                 this->set_state(
                     "bms/cell_count", util::to_interface_data(state::bms::Count{bms.cell_count}));
                 this->set_state(
                     "bms/temperature_count",
                     util::to_interface_data(state::bms::Count{bms.temperature_count}));
-                this->set_state(
-                    "bms/data_version",
-                    util::to_interface_data(state::bms::Count{bms.data_version}));
                 this->set_state(
                     "bms/power_switch_state", util::to_interface_data(state::bms::PowerSwitchState{
                                                   static_cast<uint8_t>(bms.power_switch_state)}));
@@ -224,12 +244,50 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
                 for (std::size_t i = 0; i < bms.temperatures.size(); ++i) {
                     set_scalar("bms/temperature_" + std::to_string(i), bms.temperatures[i]);
                 }
-                for (std::size_t i = 0; i < 5; ++i) {
-                    auto chunk = state::bms::StatusChunk{};
-                    std::copy_n(bms.status.begin() + i * 8, 8, chunk.value.begin());
-                    this->set_state(
-                        "bms/status_chunk_" + std::to_string(i),
-                        util::to_interface_data(std::move(chunk)));
+                if (bms.status_updated) {
+                    const auto status_end = std::find(bms.status.begin(), bms.status.end(), '\0');
+                    const auto status = std::string(bms.status.begin(), status_end);
+                    const auto status_changed =
+                        !this->bms_status_initialized || status != this->last_bms_status;
+
+                    if (!this->bms_status_initialized ||
+                        bms.power_switch_state != this->last_bms_power_switch_state) {
+                        RCLCPP_INFO(
+                            this->get_logger(), "Harmony BMS power switch state: %s",
+                            power_switch_state_name(bms.power_switch_state));
+                    }
+
+                    const auto asserted_faults = bms.fault_flags & ~this->last_bms_fault_flags;
+                    const auto cleared_faults = this->last_bms_fault_flags & ~bms.fault_flags;
+                    if (asserted_faults != 0) {
+                        RCLCPP_ERROR(
+                            this->get_logger(),
+                            "Harmony BMS fault asserted: new=0x%08X active=0x%08X status='%s'",
+                            static_cast<unsigned int>(asserted_faults),
+                            static_cast<unsigned int>(bms.fault_flags), status.c_str());
+                    }
+                    if (cleared_faults != 0) {
+                        RCLCPP_INFO(
+                            this->get_logger(),
+                            "Harmony BMS fault cleared: cleared=0x%08X active=0x%08X",
+                            static_cast<unsigned int>(cleared_faults),
+                            static_cast<unsigned int>(bms.fault_flags));
+                    }
+                    if (status_changed && !status.empty() &&
+                        bms.power_switch_state ==
+                            hardware_model::can::HarmonyBmsModel::PowerSwitchState::Unknown) {
+                        RCLCPP_WARN(
+                            this->get_logger(), "Unknown Harmony BMS status: '%s'", status.c_str());
+                    }
+                    if (status_changed) {
+                        RCLCPP_DEBUG(
+                            this->get_logger(), "Harmony BMS raw status: '%s'", status.c_str());
+                    }
+
+                    this->bms_status_initialized = true;
+                    this->last_bms_status = status;
+                    this->last_bms_power_switch_state = bms.power_switch_state;
+                    this->last_bms_fault_flags = bms.fault_flags;
                 }
                 bms_updated = true;
                 break;

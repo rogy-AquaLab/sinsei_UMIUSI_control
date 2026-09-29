@@ -21,8 +21,8 @@ class HarmonyBmsModel {
     using Id = uint8_t;
 
     static constexpr std::size_t CELL_COUNT = 12;
-    // Harmony firmware exposes five built-in temperatures and up to four external ones.
-    static constexpr std::size_t TEMPERATURE_COUNT = 9;
+    // Five standardized temperatures followed by five board-specific sensors.
+    static constexpr std::size_t TEMPERATURE_COUNT = 10;
     static constexpr std::size_t STATUS_LENGTH = 40;
 
     enum class PacketId : uint8_t {
@@ -89,6 +89,7 @@ class HarmonyBmsModel {
         double total_discharged_charge = 0.0;
         double total_discharged_energy = 0.0;
         std::array<char, STATUS_LENGTH> status{};
+        bool status_updated = false;
         PowerSwitchState power_switch_state = PowerSwitchState::Unknown;
         uint32_t fault_flags = FaultNone;
     };
@@ -98,6 +99,7 @@ class HarmonyBmsModel {
     State state;
     std::size_t contiguous_cells = 0;
     std::size_t contiguous_temperatures = 0;
+    uint8_t status_received_mask = 0;
 
     auto update_status_flags() -> void;
 

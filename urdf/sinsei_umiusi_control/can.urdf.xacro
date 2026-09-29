@@ -78,8 +78,6 @@
         <xacro:bms_state name="charger_voltage" />
         <xacro:bms_state name="input_current" />
         <xacro:bms_state name="measured_current" />
-        <xacro:bms_state name="net_consumed_charge" />
-        <xacro:bms_state name="net_consumed_energy" />
         <xacro:bms_state name="state_of_charge" />
         <xacro:bms_state name="state_of_health" />
         <xacro:bms_state name="cell_voltage_min" />
@@ -111,21 +109,10 @@
         <xacro:bms_state name="temperature_6" />
         <xacro:bms_state name="temperature_7" />
         <xacro:bms_state name="temperature_8" />
-        <xacro:bms_state name="humidity_sensor_temperature" />
-        <xacro:bms_state name="relative_humidity" />
+        <xacro:bms_state name="temperature_9" />
         <xacro:bms_state name="balance_ic_temperature" />
-        <xacro:bms_state name="total_charged_charge" />
-        <xacro:bms_state name="total_charged_energy" />
-        <xacro:bms_state name="total_discharged_charge" />
-        <xacro:bms_state name="total_discharged_energy" />
         <xacro:bms_state name="power_switch_state" />
         <xacro:bms_state name="fault_flags" />
-        <xacro:bms_state name="data_version" />
-        <xacro:bms_state name="status_chunk_0" />
-        <xacro:bms_state name="status_chunk_1" />
-        <xacro:bms_state name="status_chunk_2" />
-        <xacro:bms_state name="status_chunk_3" />
-        <xacro:bms_state name="status_chunk_4" />
       </sensor>
 
       <gpio name="led_tape">

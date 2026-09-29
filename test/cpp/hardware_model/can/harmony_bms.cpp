@@ -162,14 +162,23 @@ TEST(HarmonyBmsModelTest, ReassemblesCellsTemperaturesAndBalancing) {
     EXPECT_FALSE(result.value()->cell_balancing[1]);
     EXPECT_TRUE(result.value()->cell_balancing[2]);
 
+    for (uint8_t offset = 0; offset < 9; offset += 3) {
+        result = model.decode(make_frame(
+            suchm::can::HarmonyBmsModel::PacketId::Temperatures,
+            {std::byte{offset}, std::byte{10}, std::byte{0x09}, std::byte{0xC4}, std::byte{0x0A},
+             std::byte{0x28}, std::byte{0x0A}, std::byte{0x8C}}));
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(result.value());
+        EXPECT_EQ(result.value()->temperature_count, 0);
+    }
     result = model.decode(make_frame(
         suchm::can::HarmonyBmsModel::PacketId::Temperatures,
-        {std::byte{0}, std::byte{3}, std::byte{0x09}, std::byte{0xC4}, std::byte{0x0A},
-         std::byte{0x28}, std::byte{0x0A}, std::byte{0x8C}}));
+        {std::byte{9}, std::byte{10}, std::byte{0x0D}, std::byte{0x7A}}, 4));
     ASSERT_TRUE(result);
-    EXPECT_EQ(result.value()->temperature_count, 3);
+    ASSERT_TRUE(result.value());
+    EXPECT_EQ(result.value()->temperature_count, 10);
     EXPECT_DOUBLE_EQ(result.value()->temperatures[0], 25.0);
-    EXPECT_DOUBLE_EQ(result.value()->temperatures[2], 27.0);
+    EXPECT_DOUBLE_EQ(result.value()->temperatures[9], 34.5);
 }
 
 TEST(HarmonyBmsModelTest, ReassemblesStatusAndMapsHarmonyFaults) {
@@ -177,18 +186,18 @@ TEST(HarmonyBmsModelTest, ReassemblesStatusAndMapsHarmonyFaults) {
     const auto text = std::string("PSW_ON | FLT_PSW_OT");
 
     std::optional<suchm::can::HarmonyBmsModel::State> state;
-    for (std::size_t chunk = 0; chunk < 3; ++chunk) {
+    for (std::size_t chunk = 0; chunk < 5; ++chunk) {
         auto data = suchm::interface::CanFrame::Data{};
         const auto begin = chunk * 8;
-        const auto length = std::min<std::size_t>(8, text.size() + 1 - begin);
-        for (std::size_t i = 0; i < length && begin + i < text.size(); ++i) {
+        for (std::size_t i = 0; i < data.size() && begin + i < text.size(); ++i) {
             data[i] = std::byte{static_cast<uint8_t>(text[begin + i])};
         }
         const auto packet_id = static_cast<suchm::can::HarmonyBmsModel::PacketId>(
             static_cast<uint8_t>(suchm::can::HarmonyBmsModel::PacketId::Status1) + chunk);
-        const auto result = model.decode(make_frame(packet_id, data, static_cast<uint8_t>(length)));
+        const auto result = model.decode(make_frame(packet_id, data));
         ASSERT_TRUE(result);
         ASSERT_TRUE(result.value());
+        EXPECT_EQ(result.value()->status_updated, chunk == 4);
         state = result.value();
     }
 
@@ -198,6 +207,69 @@ TEST(HarmonyBmsModelTest, ReassemblesStatusAndMapsHarmonyFaults) {
         state->fault_flags,
         static_cast<uint32_t>(suchm::can::HarmonyBmsModel::FaultSwitchOverTemperature));
     EXPECT_EQ(std::string(state->status.data()), text);
+}
+
+TEST(HarmonyBmsModelTest, DoesNotUpdateStatusWhenAChunkIsMissing) {
+    auto model = suchm::can::HarmonyBmsModel(BMS_ID);
+
+    for (const auto packet_id : {
+             suchm::can::HarmonyBmsModel::PacketId::Status1,
+             suchm::can::HarmonyBmsModel::PacketId::Status2,
+             suchm::can::HarmonyBmsModel::PacketId::Status4,
+             suchm::can::HarmonyBmsModel::PacketId::Status5,
+         }) {
+        const auto result = model.decode(make_frame(packet_id, {}));
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(result.value());
+        EXPECT_FALSE(result.value()->status_updated);
+    }
+}
+
+TEST(HarmonyBmsModelTest, AllowsDuplicateAndInterleavedFrames) {
+    auto model = suchm::can::HarmonyBmsModel(BMS_ID);
+
+    const auto decode_status = [&model](suchm::can::HarmonyBmsModel::PacketId packet_id) {
+        return model.decode(make_frame(packet_id, {}));
+    };
+
+    for (const auto packet_id : {
+             suchm::can::HarmonyBmsModel::PacketId::Status1,
+             suchm::can::HarmonyBmsModel::PacketId::Status2,
+             suchm::can::HarmonyBmsModel::PacketId::Status2,
+             suchm::can::HarmonyBmsModel::PacketId::Status3,
+         }) {
+        const auto result = decode_status(packet_id);
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(result.value());
+        EXPECT_FALSE(result.value()->status_updated);
+    }
+
+    auto result = model.decode(
+        make_frame(suchm::can::HarmonyBmsModel::PacketId::Voltage, two_floats(48.0F, 50.0F)));
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(result.value());
+    EXPECT_FALSE(result.value()->status_updated);
+
+    result = decode_status(suchm::can::HarmonyBmsModel::PacketId::Status4);
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(result.value());
+    EXPECT_FALSE(result.value()->status_updated);
+
+    result = decode_status(suchm::can::HarmonyBmsModel::PacketId::Status5);
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(result.value());
+    EXPECT_TRUE(result.value()->status_updated);
+
+    result = decode_status(suchm::can::HarmonyBmsModel::PacketId::Status5);
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(result.value());
+    EXPECT_FALSE(result.value()->status_updated);
+
+    result = model.decode(
+        make_frame(suchm::can::HarmonyBmsModel::PacketId::Voltage, two_floats(48.0F, 50.0F)));
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(result.value());
+    EXPECT_FALSE(result.value()->status_updated);
 }
 
 }  // namespace sinsei_umiusi_control::test::hardware_model::can::harmony_bms

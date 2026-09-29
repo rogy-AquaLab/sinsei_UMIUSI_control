@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <hardware_interface/system_interface.hpp>
 #include <hardware_interface/types/hardware_component_interface_params.hpp>
 #include <optional>
@@ -24,6 +25,12 @@ class Can : public hardware_interface::SystemInterface {
     std::size_t cycles_without_updates = 0;
     std::size_t cycles_without_bms_updates = 0;
     std::array<std::size_t, 4> cycles_without_esc_updates{};
+
+    bool bms_status_initialized = false;
+    std::string last_bms_status;
+    hardware_model::can::HarmonyBmsModel::PowerSwitchState last_bms_power_switch_state =
+        hardware_model::can::HarmonyBmsModel::PowerSwitchState::Unknown;
+    uint32_t last_bms_fault_flags = hardware_model::can::HarmonyBmsModel::FaultNone;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(Can)

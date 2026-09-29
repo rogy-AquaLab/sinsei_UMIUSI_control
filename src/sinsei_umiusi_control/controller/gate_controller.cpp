@@ -86,23 +86,9 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
             add_bms_state(
                 "temperature_" + std::to_string(i), this->input.state.bms_temperatures[i]);
         }
-        add_bms_state(
-            "humidity_sensor_temperature", this->input.state.bms_humidity_sensor_temperature);
-        add_bms_state("relative_humidity", this->input.state.bms_relative_humidity);
         add_bms_state("balance_ic_temperature", this->input.state.bms_balance_ic_temperature);
-        add_bms_state("net_consumed_charge", this->input.state.bms_net_consumed_charge);
-        add_bms_state("net_consumed_energy", this->input.state.bms_net_consumed_energy);
-        add_bms_state("total_charged_charge", this->input.state.bms_total_charged_charge);
-        add_bms_state("total_charged_energy", this->input.state.bms_total_charged_energy);
-        add_bms_state("total_discharged_charge", this->input.state.bms_total_discharged_charge);
-        add_bms_state("total_discharged_energy", this->input.state.bms_total_discharged_energy);
         add_bms_state("power_switch_state", this->input.state.bms_power_switch_state);
         add_bms_state("fault_flags", this->input.state.bms_fault_flags);
-        add_bms_state("data_version", this->input.state.bms_data_version);
-        for (std::size_t i = 0; i < this->input.state.bms_status_chunks.size(); ++i) {
-            add_bms_state(
-                "status_chunk_" + std::to_string(i), this->input.state.bms_status_chunks[i]);
-        }
         this->state_interface_data.emplace_back(
             "imu/temperature", to_interface_data_ptr(this->input.state.imu_temperature),
             sizeof(this->input.state.imu_temperature));
@@ -410,15 +396,6 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
     }
     this->output.pub.battery_state_publisher->publish(battery_state);
 
-    auto status_bytes = std::array<char, 40>{};
-    for (std::size_t chunk = 0; chunk < this->input.state.bms_status_chunks.size(); ++chunk) {
-        std::copy_n(
-            this->input.state.bms_status_chunks[chunk].value.begin(), 8,
-            status_bytes.begin() + chunk * 8);
-    }
-    const auto status_end = std::find(status_bytes.begin(), status_bytes.end(), '\0');
-    const auto status_text = std::string(status_bytes.begin(), status_end);
-
     auto bms_state = msg::BmsState{};
     bms_state.header = std_msgs::msg::Header().set__stamp(time).set__frame_id("harmony_bms");
     bms_state.state_of_health = static_cast<float>(this->input.state.bms_state_of_health.value);
@@ -426,7 +403,6 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
     bms_state.cell_voltage_max = static_cast<float>(this->input.state.bms_cell_voltage_max.value);
     bms_state.cell_temperature_max =
         static_cast<float>(this->input.state.bms_cell_temperature_max.value);
-    bms_state.charging = this->input.state.bms_charging.value;
     bms_state.balancing = this->input.state.bms_balancing.value;
     bms_state.charge_allowed = this->input.state.bms_charge_allowed.value;
     bms_state.cell_balancing.reserve(cell_count);
@@ -447,29 +423,11 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
     bms_state.cell_temperature_min = temperature_or_nan(1);
     bms_state.mosfet_temperature = temperature_or_nan(3);
     bms_state.ambient_temperature = temperature_or_nan(4);
-    for (std::size_t i = 5; i < temp_count; ++i) {
-        bms_state.additional_temperatures.push_back(
-            static_cast<float>(this->input.state.bms_temperatures[i].value));
+    for (std::size_t i = 0; i < bms_state.additional_temperatures.size(); ++i) {
+        bms_state.additional_temperatures[i] = temperature_or_nan(i + 5);
     }
-    bms_state.humidity_sensor_temperature =
-        static_cast<float>(this->input.state.bms_humidity_sensor_temperature.value);
-    bms_state.relative_humidity = static_cast<float>(this->input.state.bms_relative_humidity.value);
-    bms_state.net_consumed_charge =
-        static_cast<float>(this->input.state.bms_net_consumed_charge.value);
-    bms_state.net_consumed_energy =
-        static_cast<float>(this->input.state.bms_net_consumed_energy.value);
-    bms_state.total_charged_charge =
-        static_cast<float>(this->input.state.bms_total_charged_charge.value);
-    bms_state.total_charged_energy =
-        static_cast<float>(this->input.state.bms_total_charged_energy.value);
-    bms_state.total_discharged_charge =
-        static_cast<float>(this->input.state.bms_total_discharged_charge.value);
-    bms_state.total_discharged_energy =
-        static_cast<float>(this->input.state.bms_total_discharged_energy.value);
     bms_state.power_switch_state = this->input.state.bms_power_switch_state.value;
     bms_state.fault_flags = this->input.state.bms_fault_flags.value;
-    bms_state.data_version = this->input.state.bms_data_version.value;
-    bms_state.status_text = status_text;
     this->output.pub.bms_state_publisher->publish(bms_state);
 
     this->output.pub.thruster_state_all_publisher->publish(
