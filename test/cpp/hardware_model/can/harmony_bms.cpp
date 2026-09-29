@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -55,6 +56,42 @@ auto two_floats(float first, float second) -> suchm::interface::CanFrame::Data {
 TEST(HarmonyBmsModelTest, ExposesConfiguredId) {
     const auto model = suchm::can::HarmonyBmsModel(BMS_ID);
     EXPECT_EQ(model.get_id(), BMS_ID);
+}
+
+TEST(HarmonyBmsModelTest, InitializesUnreceivedMeasurementsToNaN) {
+    auto model = suchm::can::HarmonyBmsModel(BMS_ID);
+    const auto result = model.decode(make_frame(
+        suchm::can::HarmonyBmsModel::PacketId::Balancing,
+        {std::byte{0}, std::byte{0}, std::byte{0}, std::byte{0}, std::byte{0}, std::byte{0},
+         std::byte{0}, std::byte{0}}));
+
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(result.value());
+    const auto & state = result.value().value();
+    EXPECT_TRUE(std::isnan(state.pack_voltage));
+    EXPECT_TRUE(std::isnan(state.charger_voltage));
+    EXPECT_TRUE(std::isnan(state.input_current));
+    EXPECT_TRUE(std::isnan(state.measured_current));
+    EXPECT_TRUE(std::isnan(state.net_consumed_charge));
+    EXPECT_TRUE(std::isnan(state.net_consumed_energy));
+    EXPECT_TRUE(std::isnan(state.humidity_sensor_temperature));
+    EXPECT_TRUE(std::isnan(state.relative_humidity));
+    EXPECT_TRUE(std::isnan(state.balance_ic_temperature));
+    EXPECT_TRUE(std::isnan(state.state_of_charge));
+    EXPECT_TRUE(std::isnan(state.state_of_health));
+    EXPECT_TRUE(std::isnan(state.cell_voltage_min));
+    EXPECT_TRUE(std::isnan(state.cell_voltage_max));
+    EXPECT_TRUE(std::isnan(state.cell_temperature_max));
+    EXPECT_TRUE(std::isnan(state.total_charged_charge));
+    EXPECT_TRUE(std::isnan(state.total_charged_energy));
+    EXPECT_TRUE(std::isnan(state.total_discharged_charge));
+    EXPECT_TRUE(std::isnan(state.total_discharged_energy));
+    for (const auto voltage : state.cell_voltages) {
+        EXPECT_TRUE(std::isnan(voltage));
+    }
+    for (const auto temperature : state.temperatures) {
+        EXPECT_TRUE(std::isnan(temperature));
+    }
 }
 
 TEST(HarmonyBmsModelTest, IgnoresFramesFromOtherNodes) {

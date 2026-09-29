@@ -41,11 +41,26 @@ auto contains(const std::string & value, const std::string & token) -> bool {
 
 can::HarmonyBmsModel::HarmonyBmsModel(Id id) : id(id) {
     const auto nan = std::numeric_limits<double>::quiet_NaN();
+    this->state.pack_voltage = nan;
+    this->state.charger_voltage = nan;
+    this->state.input_current = nan;
+    this->state.measured_current = nan;
+    this->state.net_consumed_charge = nan;
+    this->state.net_consumed_energy = nan;
     this->state.cell_voltages.fill(nan);
     this->state.temperatures.fill(nan);
     this->state.humidity_sensor_temperature = nan;
     this->state.relative_humidity = nan;
     this->state.balance_ic_temperature = nan;
+    this->state.state_of_charge = nan;
+    this->state.state_of_health = nan;
+    this->state.cell_voltage_min = nan;
+    this->state.cell_voltage_max = nan;
+    this->state.cell_temperature_max = nan;
+    this->state.total_charged_charge = nan;
+    this->state.total_charged_energy = nan;
+    this->state.total_discharged_charge = nan;
+    this->state.total_discharged_energy = nan;
 }
 
 auto can::HarmonyBmsModel::get_id() const -> Id { return this->id; }
