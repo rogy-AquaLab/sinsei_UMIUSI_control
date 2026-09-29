@@ -4,6 +4,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <algorithm>
+#include <boost/math/constants/constants.hpp>
 #include <cmath>
 #include <optional>
 
@@ -20,16 +21,56 @@ struct AttitudeFeedbackGains {
     double ki_roll{0.0};
     double ki_pitch{0.0};
     double i_max{0.2};  // 積分項自体をクランプする簡易アンチワインドアップ
+
+    // --- 方位保持 (hold_yaw) 用。hold_yaw = false のときは一切効かない ---
+    // 方位誤差 [rad] を目標ヨーレート [rad/s] へ直すゲイン。レート制御の外側に被せる。
+    // **実機未検証の値**。プールで振ってから確定すること。
+    double kp_yaw_hold{1.0};
+    // 方位誤差がこれを超えたら「IMUの方位が飛んだ」とみなし、追いかけずにラッチし直す [rad]。
+    // 実測では跳躍が 169 deg、通常の追従誤差が 6.7〜29.2 deg なので、その間に置く。
+    double yaw_hold_relatch_error{boost::math::constants::half_pi<double>()};  // 90 deg
 };
 
 // Roll/pitch は body-up の向きだけを合わせる reduced-attitude 制御、yaw はレート制御。
 // 目標 quaternion の yaw は意図的に無視する。
+//
+// `hold_yaw` が true の間だけ、レート制御の外側に方位保持ループが乗る。保持する方位は
+// **false -> true のエッジで実測方位をラッチ**して決める。「ヨーレートがほぼ 0 なら保持」
+// のような推定はしない — 閾値と継続時間というノブが増えるうえ、閾値の境目でラッチし直して
+// 方位が少しずつずれるため、「流されても気付けない」という保持を入れたい理由そのものが壊れる。
 class AttitudeFeedback {
   private:
     AttitudeFeedbackGains gains;
     // moment() は const だが、積分項は制御周期をまたいで蓄積する必要があるため mutable にする。
     mutable double i_err_roll{0.0};
     mutable double i_err_pitch{0.0};
+    // 方位保持の状態。同じ理由で mutable。
+    mutable bool yaw_latched{false};
+    mutable double latched_heading{0.0};
+    // 直近の update でラッチし直したか（IMUの方位が飛んだことの検出）。呼び出し側がログに使う。
+    mutable bool yaw_relatched{false};
+
+    static constexpr auto PI = boost::math::constants::pi<double>();
+
+    // [-pi, pi) へ畳む。
+    static auto wrap_to_pi(double angle) -> double {
+        constexpr auto TWO_PI = 2.0 * PI;
+        angle = std::fmod(angle + PI, TWO_PI);
+        if (angle < 0.0) {
+            angle += TWO_PI;
+        }
+        return angle - PI;
+    }
+
+    // 重力基準 world 系での鉛直まわりの回転角 = BNO055 の磁気基準の方位。
+    // roll/pitch は重力基準で壊れないが、**この軸だけは磁気外乱で飛ぶ**（known_issues A-1）。
+    static auto heading_of(const Eigen::Quaterniond & attitude) -> double {
+        const auto w = attitude.w();
+        const auto x = attitude.x();
+        const auto y = attitude.y();
+        const auto z = attitude.z();
+        return std::atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
+    }
 
     static auto valid_quaternion(const Eigen::Quaterniond & quaternion) -> bool {
         if (!quaternion.coeffs().allFinite()) {
@@ -76,12 +117,28 @@ class AttitudeFeedback {
   public:
     explicit AttitudeFeedback(AttitudeFeedbackGains gains = {}) : gains(gains) {}
 
+    // disarm やモード切替で状態を持ち越さないための初期化。
+    void reset() const {
+        this->i_err_roll = 0.0;
+        this->i_err_pitch = 0.0;
+        this->yaw_latched = false;
+        this->latched_heading = 0.0;
+        this->yaw_relatched = false;
+    }
+
+    // 直近の moment() で方位をラッチし直したか。IMUの方位が飛んだ合図なので、呼び出し側は
+    // これを見て警告を出す。**目標方位は飛ぶ前の基準で与えられていたので、飛んだあとは
+    // 保持している方位の意味が変わっている**（known_issues A-1 と同じ話）。
+    auto yaw_was_relatched() const -> bool { return this->yaw_relatched; }
+    auto holding_yaw() const -> bool { return this->yaw_latched; }
+    auto latched_yaw() const -> double { return this->latched_heading; }
+
     // duration (制御周期 [s]) は既定 0.0 のままなら積分項が蓄積しないため、既存呼び出しの
-    // 挙動は変えない。
+    // 挙動は変えない。hold_yaw も既定 false なので、既存呼び出しは従来どおりレート制御。
     auto moment(
         Eigen::Quaterniond target_attitude, Eigen::Quaterniond current_attitude,
-        const Eigen::Vector3d & angular_velocity,
-        double target_yaw_rate, double duration = 0.0) const -> std::optional<Eigen::Vector3d> {
+        const Eigen::Vector3d & angular_velocity, double target_yaw_rate, double duration = 0.0,
+        bool hold_yaw = false) const -> std::optional<Eigen::Vector3d> {
         if (!valid_quaternion(target_attitude) || !valid_quaternion(current_attitude) ||
             !angular_velocity.allFinite() || !std::isfinite(target_yaw_rate) ||
             !std::isfinite(duration) || duration < 0.0) {
@@ -109,14 +166,55 @@ class AttitudeFeedback {
             this->i_err_pitch + tilt_error_body.y() * duration, -this->gains.i_max,
             this->gains.i_max);
 
+        const auto commanded_yaw_rate =
+            this->update_yaw_hold(current_attitude, target_yaw_rate, duration, hold_yaw);
+
         return Eigen::Vector3d{
             this->gains.kp_roll * tilt_error_body.x() - this->gains.kd_roll * angular_velocity.x() +
                 this->gains.ki_roll * this->i_err_roll,
             this->gains.kp_pitch * tilt_error_body.y() -
                 this->gains.kd_pitch * angular_velocity.y() +
                 this->gains.ki_pitch * this->i_err_pitch,
-            this->gains.kp_yaw_rate * (target_yaw_rate - angular_velocity.z()),
+            this->gains.kp_yaw_rate * (commanded_yaw_rate - angular_velocity.z()),
         };
+    }
+
+  private:
+    // 方位保持のラッチを進め、レート制御へ渡す目標ヨーレートを返す。
+    // hold_yaw が false の間はラッチを捨て、target_yaw_rate をそのまま通す（従来の挙動）。
+    auto update_yaw_hold(
+        const Eigen::Quaterniond & current_attitude, double target_yaw_rate, double duration,
+        bool hold_yaw) const -> double {
+        this->yaw_relatched = false;
+
+        if (!hold_yaw) {
+            this->yaw_latched = false;
+            return target_yaw_rate;
+        }
+
+        const auto heading = heading_of(current_attitude);
+
+        if (!this->yaw_latched) {
+            // false -> true のエッジ。**いまの方位**を保持対象にする。
+            this->latched_heading = heading;
+            this->yaw_latched = true;
+            return target_yaw_rate;
+        }
+
+        // 保持中の yaw_rate は「保持したまま向きを変える」指令として扱う。ラッチ値を同じだけ
+        // 動かし、同時にフィードフォワードとしても渡す。こうすると保持とレートが別モードでは
+        // なく連続になり、小さな修正のたびに hold_yaw をトグルしなくてよい。
+        this->latched_heading = wrap_to_pi(this->latched_heading + target_yaw_rate * duration);
+
+        const auto error = wrap_to_pi(this->latched_heading - heading);
+        if (std::abs(error) > this->gains.yaw_hold_relatch_error) {
+            // 追いかけない。**追いかけると跳躍がそのまま「180度回れ」という指令に化ける。**
+            this->latched_heading = heading;
+            this->yaw_relatched = true;
+            return target_yaw_rate;
+        }
+
+        return target_yaw_rate + this->gains.kp_yaw_hold * error;
     }
 };
 

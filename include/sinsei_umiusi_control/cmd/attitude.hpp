@@ -10,6 +10,9 @@ struct AttitudeTarget {
     double z;
     double w;
     double yaw_rate;  // [rad/s]
+    // true: hold the heading latched at the false -> true edge. yaw_rate then slews that heading.
+    // false: plain yaw rate control, no state. Defaults to false so the behaviour is unchanged.
+    bool hold_yaw;
 };
 struct Velocity {
     double x;

@@ -24,6 +24,10 @@ class FeedBack : public AttitudeController::Logic {
     auto init(
         double /*time*/, const AttitudeController::Input & /*input*/,
         const AttitudeController::Output & /*output*/) -> AttitudeController::Output override {
+        // 積分項と方位ラッチを持ち越さない。モード切替では `FeedBack` 自体が作り直されるので
+        // 冗長だが、disarm 経由で init() だけが呼ばれる経路（fix/attitude-reset-on-disarm）でも
+        // 効かせるために明示する。
+        this->attitude_feedback.reset();
         return {};
     }
 
@@ -39,7 +43,7 @@ class FeedBack : public AttitudeController::Logic {
         };
         const auto moment = this->attitude_feedback.moment(
             target_attitude, current_attitude, angular_velocity,
-            input.cmd.target_attitude.yaw_rate, duration);
+            input.cmd.target_attitude.yaw_rate, duration, input.cmd.target_attitude.hold_yaw);
         if (!moment || !target_velocity.allFinite()) {
             return hold_current_servo_angles(input.state.servo_estimated_angles);
         }
