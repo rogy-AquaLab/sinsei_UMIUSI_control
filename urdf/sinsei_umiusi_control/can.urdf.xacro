@@ -68,24 +68,16 @@
         </state_interface>
       </xacro:macro>
       <xacro:macro name="bms_cell" params="index">
-        <xacro:bms_state name="cell_voltage_${index}" />
-        <xacro:bms_state name="cell_balancing_${index}" />
+        <xacro:bms_state name="cell_${index}" />
       </xacro:macro>
 
       <sensor name="bms">
         <xacro:bms_state name="health" />
-        <xacro:bms_state name="pack_voltage" />
-        <xacro:bms_state name="charger_voltage" />
-        <xacro:bms_state name="input_current" />
-        <xacro:bms_state name="measured_current" />
-        <xacro:bms_state name="state_of_charge" />
-        <xacro:bms_state name="state_of_health" />
-        <xacro:bms_state name="cell_voltage_min" />
-        <xacro:bms_state name="cell_voltage_max" />
-        <xacro:bms_state name="cell_temperature_max" />
-        <xacro:bms_state name="charging" />
-        <xacro:bms_state name="balancing" />
-        <xacro:bms_state name="charge_allowed" />
+        <xacro:bms_state name="voltages" />
+        <xacro:bms_state name="currents" />
+        <xacro:bms_state name="capacity_state" />
+        <xacro:bms_state name="cell_voltage_range" />
+        <xacro:bms_state name="status" />
         <xacro:bms_state name="cell_count" />
         <xacro:bms_cell index="0" />
         <xacro:bms_cell index="1" />
@@ -99,20 +91,14 @@
         <xacro:bms_cell index="9" />
         <xacro:bms_cell index="10" />
         <xacro:bms_cell index="11" />
-        <xacro:bms_state name="temperature_count" />
-        <xacro:bms_state name="temperature_0" />
-        <xacro:bms_state name="temperature_1" />
-        <xacro:bms_state name="temperature_2" />
-        <xacro:bms_state name="temperature_3" />
-        <xacro:bms_state name="temperature_4" />
-        <xacro:bms_state name="temperature_5" />
-        <xacro:bms_state name="temperature_6" />
-        <xacro:bms_state name="temperature_7" />
-        <xacro:bms_state name="temperature_8" />
-        <xacro:bms_state name="temperature_9" />
         <xacro:bms_state name="balance_ic_temperature" />
-        <xacro:bms_state name="power_switch_state" />
-        <xacro:bms_state name="fault_flags" />
+        <xacro:bms_state name="mosfet_temperature" />
+        <xacro:bms_state name="ambient_temperature" />
+        <xacro:bms_state name="additional_temperature_0" />
+        <xacro:bms_state name="additional_temperature_1" />
+        <xacro:bms_state name="additional_temperature_2" />
+        <xacro:bms_state name="additional_temperature_3" />
+        <xacro:bms_state name="additional_temperature_4" />
       </sensor>
 
       <gpio name="led_tape">

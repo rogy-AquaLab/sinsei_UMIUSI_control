@@ -45,27 +45,15 @@ class GateController : public controller_interface::ControllerInterface {
     struct Input {
         // State interfaces (in)
         struct State {
-            sinsei_umiusi_control::state::bms::Boolean bms_health;
-            sinsei_umiusi_control::state::bms::Scalar bms_pack_voltage;
-            sinsei_umiusi_control::state::bms::Scalar bms_charger_voltage;
-            sinsei_umiusi_control::state::bms::Scalar bms_input_current;
-            sinsei_umiusi_control::state::bms::Scalar bms_measured_current;
-            sinsei_umiusi_control::state::bms::Scalar bms_state_of_charge;
-            sinsei_umiusi_control::state::bms::Scalar bms_state_of_health;
-            sinsei_umiusi_control::state::bms::Scalar bms_cell_voltage_min;
-            sinsei_umiusi_control::state::bms::Scalar bms_cell_voltage_max;
-            sinsei_umiusi_control::state::bms::Scalar bms_cell_temperature_max;
-            sinsei_umiusi_control::state::bms::Boolean bms_charging;
-            sinsei_umiusi_control::state::bms::Boolean bms_balancing;
-            sinsei_umiusi_control::state::bms::Boolean bms_charge_allowed;
-            sinsei_umiusi_control::state::bms::Count bms_cell_count;
-            std::array<sinsei_umiusi_control::state::bms::Scalar, 12> bms_cell_voltages;
-            std::array<sinsei_umiusi_control::state::bms::Boolean, 12> bms_cell_balancing;
-            sinsei_umiusi_control::state::bms::Count bms_temperature_count;
-            std::array<sinsei_umiusi_control::state::bms::Scalar, 10> bms_temperatures;
-            sinsei_umiusi_control::state::bms::Scalar bms_balance_ic_temperature;
-            sinsei_umiusi_control::state::bms::PowerSwitchState bms_power_switch_state;
-            sinsei_umiusi_control::state::bms::FaultFlags bms_fault_flags;
+            bool bms_health;
+            sinsei_umiusi_control::state::bms::Voltages bms_voltages;
+            sinsei_umiusi_control::state::bms::Currents bms_currents;
+            sinsei_umiusi_control::state::bms::CapacityState bms_capacity;
+            sinsei_umiusi_control::state::bms::CellVoltageRange bms_cell_voltage_range;
+            sinsei_umiusi_control::state::bms::Status bms_status;
+            uint8_t bms_cell_count;
+            std::array<sinsei_umiusi_control::state::bms::Cell, 12> bms_cells;
+            sinsei_umiusi_control::state::bms::Temperatures bms_temperatures;
             sinsei_umiusi_control::state::imu::Temperature imu_temperature;
             sinsei_umiusi_control::state::imu::Quaternion imu_quaternion;
             sinsei_umiusi_control::state::imu::Acceleration imu_acceleration;

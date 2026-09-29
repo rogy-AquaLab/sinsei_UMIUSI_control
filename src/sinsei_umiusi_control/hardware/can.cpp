@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -131,7 +132,7 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
     -> hardware_interface::return_type {
     if (!this->model) {
         this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
-        this->set_state("bms/health", util::to_interface_data(state::bms::Boolean{false}));
+        this->set_state("bms/health", util::to_interface_data(false));
         for (const auto & name : this->thruster_names) {
             this->set_state(
                 name + "/esc/health", util::to_interface_data(state::thruster::esc::Health{false}));
@@ -146,7 +147,7 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
     auto res = this->model->on_read();
     if (!res) {
         this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
-        this->set_state("bms/health", util::to_interface_data(state::bms::Boolean{false}));
+        this->set_state("bms/health", util::to_interface_data(false));
         for (const auto & name : this->thruster_names) {
             this->set_state(
                 name + "/esc/health", util::to_interface_data(state::thruster::esc::Health{false}));
@@ -206,43 +207,49 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
             }
             case 4: {  // Harmony BMS
                 const auto & bms = std::get<hardware_model::can::HarmonyBmsModel::State>(state);
-                const auto set_scalar = [this](const std::string & name, double value) {
-                    this->set_state(name, util::to_interface_data(state::bms::Scalar{value}));
-                };
-                const auto set_bool = [this](const std::string & name, bool value) {
-                    this->set_state(name, util::to_interface_data(state::bms::Boolean{value}));
+                const auto set_bms_state = [this](const std::string & name, const auto & value) {
+                    this->set_state(name, util::to_interface_data(value));
                 };
 
-                set_scalar("bms/pack_voltage", bms.pack_voltage);
-                set_scalar("bms/charger_voltage", bms.charger_voltage);
-                set_scalar("bms/input_current", bms.input_current);
-                set_scalar("bms/measured_current", bms.measured_current);
-                set_scalar("bms/state_of_charge", bms.state_of_charge);
-                set_scalar("bms/state_of_health", bms.state_of_health);
-                set_scalar("bms/cell_voltage_min", bms.cell_voltage_min);
-                set_scalar("bms/cell_voltage_max", bms.cell_voltage_max);
-                set_scalar("bms/cell_temperature_max", bms.cell_temperature_max);
-                set_bool("bms/charging", bms.charging);
-                set_bool("bms/balancing", bms.balancing);
-                set_bool("bms/charge_allowed", bms.charge_allowed);
-                set_scalar("bms/balance_ic_temperature", bms.balance_ic_temperature);
-                this->set_state(
-                    "bms/cell_count", util::to_interface_data(state::bms::Count{bms.cell_count}));
-                this->set_state(
-                    "bms/temperature_count",
-                    util::to_interface_data(state::bms::Count{bms.temperature_count}));
-                this->set_state(
-                    "bms/power_switch_state", util::to_interface_data(state::bms::PowerSwitchState{
-                                                  static_cast<uint8_t>(bms.power_switch_state)}));
-                this->set_state(
-                    "bms/fault_flags",
-                    util::to_interface_data(state::bms::FaultFlags{bms.fault_flags}));
+                set_bms_state(
+                    "bms/voltages", state::bms::Voltages{
+                                        static_cast<float>(bms.pack_voltage),
+                                        static_cast<float>(bms.charger_voltage)});
+                set_bms_state(
+                    "bms/currents", state::bms::Currents{
+                                        static_cast<float>(bms.input_current),
+                                        static_cast<float>(bms.measured_current)});
+                set_bms_state(
+                    "bms/capacity_state", state::bms::CapacityState{
+                                              static_cast<float>(bms.state_of_charge),
+                                              static_cast<float>(bms.state_of_health)});
+                set_bms_state(
+                    "bms/cell_voltage_range", state::bms::CellVoltageRange{
+                                                  static_cast<float>(bms.cell_voltage_min),
+                                                  static_cast<float>(bms.cell_voltage_max)});
+                set_bms_state(
+                    "bms/status", state::bms::Status{
+                                      bms.fault_flags, static_cast<uint8_t>(bms.power_switch_state),
+                                      bms.charging, bms.balancing, bms.charge_allowed});
+                set_bms_state("bms/balance_ic_temperature", bms.balance_ic_temperature);
+                set_bms_state("bms/cell_count", bms.cell_count);
                 for (std::size_t i = 0; i < bms.cell_voltages.size(); ++i) {
-                    set_scalar("bms/cell_voltage_" + std::to_string(i), bms.cell_voltages[i]);
-                    set_bool("bms/cell_balancing_" + std::to_string(i), bms.cell_balancing[i]);
+                    set_bms_state(
+                        "bms/cell_" + std::to_string(i),
+                        state::bms::Cell{
+                            static_cast<float>(bms.cell_voltages[i]), bms.cell_balancing[i]});
                 }
-                for (std::size_t i = 0; i < bms.temperatures.size(); ++i) {
-                    set_scalar("bms/temperature_" + std::to_string(i), bms.temperatures[i]);
+
+                const auto temperature_or_nan = [&bms](std::size_t index) {
+                    return index < bms.temperature_count ? bms.temperatures[index]
+                                                         : std::numeric_limits<double>::quiet_NaN();
+                };
+                set_bms_state("bms/mosfet_temperature", temperature_or_nan(3));
+                set_bms_state("bms/ambient_temperature", temperature_or_nan(4));
+                for (std::size_t i = 0; i < 5; ++i) {
+                    set_bms_state(
+                        "bms/additional_temperature_" + std::to_string(i),
+                        temperature_or_nan(i + 5));
                 }
                 if (bms.status_updated) {
                     const auto status_end = std::find(bms.status.begin(), bms.status.end(), '\0');
@@ -302,8 +309,8 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
         ++this->cycles_without_bms_updates;
     }
     this->set_state(
-        "bms/health", util::to_interface_data(state::bms::Boolean{
-                          this->cycles_without_bms_updates < MAX_CYCLES_WITHOUT_NODE_UPDATES}));
+        "bms/health", util::to_interface_data(
+                          this->cycles_without_bms_updates < MAX_CYCLES_WITHOUT_NODE_UPDATES));
 
     for (std::size_t i = 0; i < this->thruster_names.size(); ++i) {
         if (esc_updated[i]) {
