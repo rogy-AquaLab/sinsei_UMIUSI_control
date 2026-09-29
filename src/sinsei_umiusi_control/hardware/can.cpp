@@ -92,8 +92,8 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     }
 
     this->thruster_names = std::move(thruster_names);
-    this->cycles_without_bms_updates = 50;
-    this->cycles_without_esc_updates.fill(50);
+    this->cycles_since_bms_update = 50;
+    this->cycles_since_esc_update.fill(50);
     this->bms_status_initialized = false;
     this->last_bms_status.clear();
     this->last_bms_power_switch_state =
@@ -302,34 +302,34 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
         }
     }
 
-    constexpr std::size_t MAX_CYCLES_WITHOUT_NODE_UPDATES = 50;
+    constexpr std::size_t MAX_CYCLES_SINCE_NODE_UPDATE = 50;
     if (bms_updated) {
-        this->cycles_without_bms_updates = 0;
-    } else if (this->cycles_without_bms_updates < MAX_CYCLES_WITHOUT_NODE_UPDATES) {
-        ++this->cycles_without_bms_updates;
+        this->cycles_since_bms_update = 0;
+    } else if (this->cycles_since_bms_update < MAX_CYCLES_SINCE_NODE_UPDATE) {
+        ++this->cycles_since_bms_update;
     }
     this->set_state(
-        "bms/health", util::to_interface_data(
-                          this->cycles_without_bms_updates < MAX_CYCLES_WITHOUT_NODE_UPDATES));
+        "bms/health",
+        util::to_interface_data(this->cycles_since_bms_update < MAX_CYCLES_SINCE_NODE_UPDATE));
 
     for (std::size_t i = 0; i < this->thruster_names.size(); ++i) {
         if (esc_updated[i]) {
-            this->cycles_without_esc_updates[i] = 0;
-        } else if (this->cycles_without_esc_updates[i] < MAX_CYCLES_WITHOUT_NODE_UPDATES) {
-            ++this->cycles_without_esc_updates[i];
+            this->cycles_since_esc_update[i] = 0;
+        } else if (this->cycles_since_esc_update[i] < MAX_CYCLES_SINCE_NODE_UPDATE) {
+            ++this->cycles_since_esc_update[i];
         }
         this->set_state(
             this->thruster_names[i] + "/esc/health",
             util::to_interface_data(state::thruster::esc::Health{
-                this->cycles_without_esc_updates[i] < MAX_CYCLES_WITHOUT_NODE_UPDATES}));
+                this->cycles_since_esc_update[i] < MAX_CYCLES_SINCE_NODE_UPDATE}));
     }
 
     if (!read_batch.states.empty()) {
-        this->cycles_without_updates = 0;
+        this->cycles_since_any_node_update = 0;
     }
 
     // この周期数だけ状態更新がなければCANを異常とみなす
-    constexpr std::size_t MAX_CYCLES_WITHOUT_UPDATES = 50;
+    constexpr std::size_t MAX_CYCLES_SINCE_ANY_NODE_UPDATE = 50;
     if (!read_batch.error_message.empty()) {
         this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
 
@@ -338,10 +338,10 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
             this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to read CAN data: %s",
             read_batch.error_message.c_str());
     } else if (read_batch.states.empty()) {
-        if (this->cycles_without_updates < MAX_CYCLES_WITHOUT_UPDATES) {
-            ++this->cycles_without_updates;
+        if (this->cycles_since_any_node_update < MAX_CYCLES_SINCE_ANY_NODE_UPDATE) {
+            ++this->cycles_since_any_node_update;
         }
-        if (this->cycles_without_updates >= MAX_CYCLES_WITHOUT_UPDATES) {
+        if (this->cycles_since_any_node_update >= MAX_CYCLES_SINCE_ANY_NODE_UPDATE) {
             this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
         }
     } else {

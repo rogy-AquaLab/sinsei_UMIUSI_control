@@ -101,6 +101,7 @@ class HarmonyBmsModel {
     std::size_t contiguous_temperatures = 0;
     uint8_t status_received_mask = 0;
 
+    auto id_matches(const interface::CanFrame & frame) const -> bool;
     auto update_status_flags() -> void;
 
   public:

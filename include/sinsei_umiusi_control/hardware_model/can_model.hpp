@@ -51,7 +51,6 @@ class CanModel {
   private:
     struct Thruster {
         std::string name;
-        can::VescModel::Id vesc_id;
         can::VescModel vesc_model;
     };
 

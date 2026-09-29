@@ -66,10 +66,11 @@ auto make_enabled_commands(size_t count) -> std::vector<suchm::CanModel::Thruste
     return commands;
 }
 
+template <typename PacketId>
 auto make_vesc_status_frame(
-    uint8_t vesc_id, uint32_t command_id, suchm::interface::CanFrame::Data data = {}) {
+    uint8_t vesc_id, PacketId packet_id, suchm::interface::CanFrame::Data data = {}) {
     return suchm::interface::CanFrame{
-        (static_cast<suchm::interface::CanFrame::Id>(command_id) << 8) | vesc_id,
+        (static_cast<suchm::interface::CanFrame::Id>(packet_id) << 8) | vesc_id,
         8,
         data,
         true,
@@ -117,7 +118,7 @@ TEST(CanModelTest, CanModelOnReadPacketStatusReturnsRpmUpdateTest) {
     auto can = std::make_shared<Can>();
 
     const auto frame = make_vesc_status_frame(
-        VESC_ID_1, suchm::can::PacketStatus::ID,
+        VESC_ID_1, suchm::can::VescModel::PacketStatus::ID,
         {std::byte{0x00}, std::byte{0x00}, std::byte{0x05}, std::byte{0x78}, std::byte{0x00},
          std::byte{0x7B}, std::byte{0x01}, std::byte{0xF4}});
 
@@ -141,7 +142,7 @@ TEST(CanModelTest, CanModelOnReadPacketStatusReturnsRpmUpdateTest) {
 TEST(CanModelTest, CanModelOnReadRoutesHarmonyBmsFrameTest) {
     auto can = std::make_shared<Can>();
     const auto frame = make_vesc_status_frame(
-        10, static_cast<uint32_t>(suchm::can::HarmonyBmsModel::PacketId::Summary),
+        10, suchm::can::HarmonyBmsModel::PacketId::Summary,
         {std::byte{0x0E}, std::byte{0x74}, std::byte{0x10}, std::byte{0x04}, std::byte{0x80},
          std::byte{0xFF}, std::byte{42}, std::byte{0x17}});
 
@@ -168,8 +169,10 @@ TEST(CanModelTest, CanModelOnReadProcessesAllReceivedFramesTest) {
     const auto data = suchm::interface::CanFrame::Data{
         std::byte{0x00}, std::byte{0x00}, std::byte{0x05}, std::byte{0x78},
         std::byte{0x00}, std::byte{0x7B}, std::byte{0x01}, std::byte{0xF4}};
-    const auto frame1 = make_vesc_status_frame(VESC_ID_1, suchm::can::PacketStatus::ID, data);
-    const auto frame2 = make_vesc_status_frame(VESC_ID_2, suchm::can::PacketStatus::ID, data);
+    const auto frame1 =
+        make_vesc_status_frame(VESC_ID_1, suchm::can::VescModel::PacketStatus::ID, data);
+    const auto frame2 =
+        make_vesc_status_frame(VESC_ID_2, suchm::can::VescModel::PacketStatus::ID, data);
 
     EXPECT_CALL(*can, recv_frames())
         .Times(1)
@@ -196,14 +199,17 @@ TEST(CanModelTest, CanModelOnReadUsesUnusedStatusAsHeartbeatTest) {
     const auto data = suchm::interface::CanFrame::Data{
         std::byte{0x00}, std::byte{0x00}, std::byte{0x05}, std::byte{0x78},
         std::byte{0x00}, std::byte{0x7B}, std::byte{0x01}, std::byte{0xF4}};
-    const auto frame1 = make_vesc_status_frame(VESC_ID_1, suchm::can::PacketStatus::ID, data);
-    const auto unsupported_frame = make_vesc_status_frame(VESC_ID_1, suchm::can::PacketStatus2::ID);
-    const auto frame2 = make_vesc_status_frame(VESC_ID_2, suchm::can::PacketStatus::ID, data);
+    const auto frame1 =
+        make_vesc_status_frame(VESC_ID_1, suchm::can::VescModel::PacketStatus::ID, data);
+    const auto unused_frame =
+        make_vesc_status_frame(VESC_ID_1, suchm::can::VescModel::PacketStatus2::ID);
+    const auto frame2 =
+        make_vesc_status_frame(VESC_ID_2, suchm::can::VescModel::PacketStatus::ID, data);
 
     EXPECT_CALL(*can, recv_frames())
         .Times(1)
         .WillOnce(Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{
-            {frame1, unsupported_frame, frame2}}));
+            {frame1, unused_frame, frame2}}));
 
     auto can_model = suchm::CanModel(can, THRUSTERS);
     const auto result = can_model.on_read();
@@ -225,7 +231,7 @@ TEST(CanModelTest, CanModelOnReadUsesUnusedStatusAsHeartbeatTest) {
 TEST(CanModelTest, CanModelOnReadUnusedPacketStatusReturnsHeartbeatTest) {
     auto can = std::make_shared<Can>();
 
-    const auto frame = make_vesc_status_frame(VESC_ID_1, suchm::can::PacketStatus2::ID);
+    const auto frame = make_vesc_status_frame(VESC_ID_1, suchm::can::VescModel::PacketStatus2::ID);
 
     EXPECT_CALL(*can, recv_frames())
         .Times(1)
@@ -245,7 +251,7 @@ TEST(CanModelTest, CanModelOnReadUnusedPacketStatusReturnsHeartbeatTest) {
 TEST(CanModelTest, CanModelOnReadUndecodableFrameReturnsErrorTest) {
     auto can = std::make_shared<Can>();
 
-    const auto frame = make_vesc_status_frame(0x21, suchm::can::PacketStatus::ID);
+    const auto frame = make_vesc_status_frame(0x21, suchm::can::VescModel::PacketStatus::ID);
 
     EXPECT_CALL(*can, recv_frames())
         .Times(1)
@@ -413,7 +419,7 @@ TEST_P(CanModelVariableThrusterCountTest, WritesEachDynamicThrusterInAlternating
     for (size_t i = 0; i < thruster_count; ++i) {
         expected_frame_ids.push_back(
             (static_cast<suchm::interface::CanFrame::Id>(
-                 suchm::can::VescSimpleCommandID::CAN_PACKET_SET_SERVO)
+                 suchm::can::VescModel::PacketId::CAN_PACKET_SET_SERVO)
              << 8) |
             static_cast<uint8_t>(i + 1));
     }
@@ -453,7 +459,7 @@ TEST(CanModelTest, OnWriteDoesNotReplaceDisabledCommandsWithZero) {
     EXPECT_EQ(sent_frames[0].id, VESC_ID_2);
     EXPECT_EQ(
         sent_frames[1].id, (static_cast<suchm::interface::CanFrame::Id>(
-                                suchm::can::VescSimpleCommandID::CAN_PACKET_SET_SERVO)
+                                suchm::can::VescModel::PacketId::CAN_PACKET_SET_SERVO)
                             << 8) |
                                VESC_ID_1);
 }
@@ -463,7 +469,7 @@ TEST_P(CanModelVariableThrusterCountTest, RoutesReceivedStatusToConfiguredThrust
     auto can = std::make_shared<Can>();
     const auto vesc_id = static_cast<uint8_t>(thruster_count);
     const auto frame = make_vesc_status_frame(
-        vesc_id, suchm::can::PacketStatus::ID,
+        vesc_id, suchm::can::VescModel::PacketStatus::ID,
         {std::byte{0x00}, std::byte{0x00}, std::byte{0x05}, std::byte{0x78}, std::byte{0x00},
          std::byte{0x7B}, std::byte{0x01}, std::byte{0xF4}});
 

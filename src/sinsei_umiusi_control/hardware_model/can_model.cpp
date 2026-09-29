@@ -17,8 +17,7 @@ CanModel::CanModel(
 : can(can), harmony_bms_model(harmony_bms_id) {
     this->thrusters.reserve(thruster_configs.size());
     for (auto & config : thruster_configs) {
-        this->thrusters.push_back(
-            Thruster{std::move(config.name), config.vesc_id, can::VescModel(config.vesc_id)});
+        this->thrusters.push_back(Thruster{std::move(config.name), can::VescModel(config.vesc_id)});
     }
 }
 
@@ -30,18 +29,19 @@ auto CanModel::validate_configuration() const -> tl::expected<void, std::string>
     auto names = std::unordered_set<std::string>{};
     auto vesc_ids = std::unordered_set<can::VescModel::Id>{};
     for (const auto & thruster : this->thrusters) {
+        const auto vesc_id = thruster.vesc_model.get_id();
         if (thruster.name.empty()) {
             return tl::make_unexpected("Thruster name must not be empty");
         }
         if (!names.insert(thruster.name).second) {
             return tl::make_unexpected("Duplicate thruster name: " + thruster.name);
         }
-        if (!vesc_ids.insert(thruster.vesc_id).second) {
-            return tl::make_unexpected("Duplicate VESC ID: " + std::to_string(thruster.vesc_id));
+        if (!vesc_ids.insert(vesc_id).second) {
+            return tl::make_unexpected("Duplicate VESC ID: " + std::to_string(vesc_id));
         }
-        if (thruster.vesc_id == this->harmony_bms_model.get_id()) {
+        if (vesc_id == this->harmony_bms_model.get_id()) {
             return tl::make_unexpected(
-                "Harmony BMS ID conflicts with VESC ID: " + std::to_string(thruster.vesc_id));
+                "Harmony BMS ID conflicts with VESC ID: " + std::to_string(vesc_id));
         }
     }
     return {};
@@ -84,10 +84,10 @@ auto CanModel::decode_frame(const interface::CanFrame & frame)
     }
 
     for (const auto & thruster : this->thrusters) {
-        const auto description =
-            "'" + thruster.name + "' (VESC " + std::to_string(thruster.vesc_id) + ")";
+        const auto vesc_id = thruster.vesc_model.get_id();
+        const auto description = "'" + thruster.name + "' (VESC " + std::to_string(vesc_id) + ")";
 
-        const auto packet_status_res = thruster.vesc_model.get_packet_status(frame);
+        const auto packet_status_res = thruster.vesc_model.decode(frame);
         if (!packet_status_res) {
             error_message += "    " + description + ": " + packet_status_res.error() + "\n";
             continue;

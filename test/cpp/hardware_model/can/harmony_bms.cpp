@@ -52,6 +52,11 @@ auto two_floats(float first, float second) -> suchm::interface::CanFrame::Data {
 
 }  // namespace
 
+TEST(HarmonyBmsModelTest, ExposesConfiguredId) {
+    const auto model = suchm::can::HarmonyBmsModel(BMS_ID);
+    EXPECT_EQ(model.get_id(), BMS_ID);
+}
+
 TEST(HarmonyBmsModelTest, IgnoresFramesFromOtherNodes) {
     auto model = suchm::can::HarmonyBmsModel(BMS_ID);
     const auto result = model.decode(make_frame(
@@ -59,6 +64,15 @@ TEST(HarmonyBmsModelTest, IgnoresFramesFromOtherNodes) {
 
     ASSERT_TRUE(result);
     EXPECT_FALSE(result.value().has_value());
+}
+
+TEST(HarmonyBmsModelTest, RejectsUnknownPacketFromConfiguredNode) {
+    auto model = suchm::can::HarmonyBmsModel(BMS_ID);
+    const auto unknown_packet_id = static_cast<suchm::can::HarmonyBmsModel::PacketId>(0x7F);
+    const auto result = model.decode(make_frame(unknown_packet_id, {}));
+
+    ASSERT_FALSE(result);
+    EXPECT_EQ(result.error(), "Harmony BMS received unknown packet ID: 127");
 }
 
 TEST(HarmonyBmsModelTest, DecodesVoltageCurrentAndSummary) {

@@ -7,6 +7,8 @@
 #include <limits>
 #include <string>
 
+#include "sinsei_umiusi_control/util/byte.hpp"
+
 using namespace sinsei_umiusi_control::hardware_model;
 
 namespace {
@@ -15,22 +17,9 @@ auto byte_at(const interface::CanFrame::Data & data, std::size_t offset) -> uint
     return std::to_integer<uint8_t>(data[offset]);
 }
 
-auto int16_be(const interface::CanFrame::Data & data, std::size_t offset) -> int16_t {
-    const auto raw = static_cast<uint16_t>(
-        (static_cast<uint16_t>(byte_at(data, offset)) << 8) | byte_at(data, offset + 1));
-    return static_cast<int16_t>(raw);
-}
-
-auto uint32_be(const interface::CanFrame::Data & data, std::size_t offset) -> uint32_t {
-    return (static_cast<uint32_t>(byte_at(data, offset)) << 24) |
-           (static_cast<uint32_t>(byte_at(data, offset + 1)) << 16) |
-           (static_cast<uint32_t>(byte_at(data, offset + 2)) << 8) |
-           static_cast<uint32_t>(byte_at(data, offset + 3));
-}
-
 // VESC buffer_get_float32_auto encoding (custom 23-bit-significand float).
 auto float32_auto(const interface::CanFrame::Data & data, std::size_t offset) -> double {
-    const auto raw = uint32_be(data, offset);
+    const auto raw = sinsei_umiusi_control::util::to_uint32_be(data, offset).value();
     auto exponent = static_cast<int>((raw >> 23) & 0xFFU);
     const auto significand_raw = raw & 0x7FFFFFU;
     double significand = 0.0;
@@ -60,6 +49,11 @@ can::HarmonyBmsModel::HarmonyBmsModel(Id id) : id(id) {
 }
 
 auto can::HarmonyBmsModel::get_id() const -> Id { return this->id; }
+
+auto can::HarmonyBmsModel::id_matches(const interface::CanFrame & frame) const -> bool {
+    const auto bms_id = static_cast<Id>(frame.id & 0xFFU);
+    return frame.is_extended && bms_id == this->id;
+}
 
 auto can::HarmonyBmsModel::update_status_flags() -> void {
     const auto end = std::find(this->state.status.begin(), this->state.status.end(), '\0');
@@ -97,7 +91,7 @@ auto can::HarmonyBmsModel::update_status_flags() -> void {
 
 auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
     -> tl::expected<std::optional<State>, std::string> {
-    if (!frame.is_extended || static_cast<Id>(frame.id & 0xFFU) != this->id) {
+    if (!this->id_matches(frame)) {
         return std::nullopt;
     }
 
@@ -159,7 +153,8 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             for (std::size_t data_offset = 2; data_offset + 1 < frame.len; data_offset += 2) {
                 if (offset < CELL_COUNT) {
                     this->state.cell_voltages[offset] =
-                        static_cast<double>(int16_be(frame.data, data_offset)) / 1000.0;
+                        static_cast<double>(util::to_int16_be(frame.data, data_offset).value()) /
+                        1000.0;
                 }
                 ++offset;
             }
@@ -202,7 +197,8 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             for (std::size_t data_offset = 2; data_offset + 1 < frame.len; data_offset += 2) {
                 if (offset < TEMPERATURE_COUNT) {
                     this->state.temperatures[offset] =
-                        static_cast<double>(int16_be(frame.data, data_offset)) / 100.0;
+                        static_cast<double>(util::to_int16_be(frame.data, data_offset).value()) /
+                        100.0;
                 }
                 ++offset;
             }
@@ -220,10 +216,11 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
                     "Harmony BMS humidity packet has invalid length: " + std::to_string(frame.len));
             }
             this->state.humidity_sensor_temperature =
-                static_cast<double>(int16_be(frame.data, 0)) / 100.0;
-            this->state.relative_humidity = static_cast<double>(int16_be(frame.data, 2)) / 100.0;
+                static_cast<double>(util::to_int16_be<0>(frame.data).value()) / 100.0;
+            this->state.relative_humidity =
+                static_cast<double>(util::to_int16_be<2>(frame.data).value()) / 100.0;
             this->state.balance_ic_temperature =
-                static_cast<double>(int16_be(frame.data, 4)) / 100.0;
+                static_cast<double>(util::to_int16_be<4>(frame.data).value()) / 100.0;
             break;
         }
         case PacketId::Summary: {
@@ -231,8 +228,10 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             if (!length) {
                 return tl::make_unexpected(length.error());
             }
-            this->state.cell_voltage_min = static_cast<double>(int16_be(frame.data, 0)) / 1000.0;
-            this->state.cell_voltage_max = static_cast<double>(int16_be(frame.data, 2)) / 1000.0;
+            this->state.cell_voltage_min =
+                static_cast<double>(util::to_int16_be<0>(frame.data).value()) / 1000.0;
+            this->state.cell_voltage_max =
+                static_cast<double>(util::to_int16_be<2>(frame.data).value()) / 1000.0;
             this->state.state_of_charge = static_cast<double>(byte_at(frame.data, 4)) / 255.0;
             this->state.state_of_health = static_cast<double>(byte_at(frame.data, 5)) / 255.0;
             this->state.cell_temperature_max =
@@ -290,7 +289,8 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             break;
         }
         default:
-            return std::nullopt;
+            return tl::make_unexpected(
+                "Harmony BMS received unknown packet ID: " + std::to_string(packet_id));
     }
 
     return this->state;
