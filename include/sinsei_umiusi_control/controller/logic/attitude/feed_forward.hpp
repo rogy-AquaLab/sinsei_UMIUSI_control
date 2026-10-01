@@ -29,7 +29,7 @@ class FeedForward : public AttitudeController::Logic {
         return output;
     }
 
-    auto update(double /*time*/, double /*duration*/, const AttitudeController::Input & input)
+    auto update(double /*time*/, double duration, const AttitudeController::Input & input)
         -> AttitudeController::Output override {
         const auto target_attitude = to_eigen_quaternion(input.cmd.target_attitude);
         const auto target_velocity = to_eigen_vector(input.cmd.target_velocity);
@@ -43,7 +43,9 @@ class FeedForward : public AttitudeController::Logic {
             target_velocity[2],                               // 目標並進(z)
         };
 
-        return mix_to_thrusters_open_loop(u);
+        return mix_to_thrusters(
+            u, input.state.servo_estimated_angles, input.state.servo_max_angular_velocities,
+            duration);
     }
 };
 
