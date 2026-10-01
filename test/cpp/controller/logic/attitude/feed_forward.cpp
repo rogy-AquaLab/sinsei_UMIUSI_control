@@ -9,6 +9,7 @@ namespace sinsei_umiusi_control::test::controller::logic::attitude {
 
 using sinsei_umiusi_control::controller::AttitudeController;
 using sinsei_umiusi_control::controller::logic::attitude::FeedForward;
+using sinsei_umiusi_control::controller::logic::attitude::FeedForwardGains;
 using EstimatedAngle = state::thruster::servo::EstimatedAngle;
 using MaxAngularVelocity = state::thruster::servo::MaxAngularVelocity;
 
@@ -50,6 +51,20 @@ TEST(FeedForwardTest, PreservesPreviousUiYawCommandRange) {
 
     const auto output = FeedForward{}.update(0.0, 0.02, input);
     const auto expected_thrust = 0.2 / ROOT_TWO;
+
+    for (const auto & thrust : output.cmd.esc_thrusts) {
+        EXPECT_NEAR(thrust.value, expected_thrust, EPS);
+    }
+}
+
+TEST(FeedForwardTest, UsesConfiguredYawRateGain) {
+    auto input = make_input();
+    input.cmd.target_attitude.yaw_rate = 1.0;
+    auto gains = FeedForwardGains{};
+    gains.k_yaw_rate = 0.1;
+
+    const auto output = FeedForward{gains}.update(0.0, 0.02, input);
+    const auto expected_thrust = 0.1 / ROOT_TWO;
 
     for (const auto & thrust : output.cmd.esc_thrusts) {
         EXPECT_NEAR(thrust.value, expected_thrust, EPS);

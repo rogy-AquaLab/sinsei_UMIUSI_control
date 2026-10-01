@@ -14,6 +14,7 @@
 
   <depend>rclcpp</depend>
   <depend>rclcpp_lifecycle</depend>
+  <depend>rcl_interfaces</depend>
   <depend>rcpputils</depend>
   <depend>pluginlib</depend>
   <depend>ros2_control</depend>
