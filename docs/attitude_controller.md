@@ -1,5 +1,21 @@
 # `AttitudeController`の制御
 
+## ゲイン設定
+
+姿勢制御ゲインは`attitude_controller.ros__parameters`で設定する。
+
+| モード | パラメータ | 既定値 | 用途 |
+| --- | --- | ---: | --- |
+| FF | `feed_forward.k_attitude` | 2.0 | roll/pitch目標姿勢から操作量への変換ゲイン |
+| FF | `feed_forward.k_yaw_rate` | 0.2 | yawレート目標から操作量への変換ゲイン |
+| FB | `feedback.kp_roll`, `feedback.kp_pitch` | 1.0 | roll/pitch姿勢誤差の比例ゲイン |
+| FB | `feedback.kd_roll`, `feedback.kd_pitch` | 0.35 | roll/pitch角速度の減衰ゲイン |
+| FB | `feedback.kp_yaw_rate` | 1.0 | yawレート誤差の比例ゲイン |
+| FB | `feedback.ki_roll`, `feedback.ki_pitch` | 0.0 | roll/pitch姿勢誤差の積分ゲイン |
+| FB | `feedback.i_max` | 0.2 | roll/pitch積分誤差の絶対値上限 |
+
+値はconfigure時に読み込むため、変更後は`attitude_controller`を再configureする。
+
 ## `logic::attitude::FeedForward`
 
 ### TL;DR
