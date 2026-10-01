@@ -13,9 +13,10 @@ namespace sinsei_umiusi_control::controller::logic::attitude {
 class FeedForward : public AttitudeController::Logic {
   private:
     // 目標姿勢(クオータニオンのベクトル部、≒ロール・ピッチの傾き量)からモーメント要求への変換ゲイン
-    static constexpr double K_ATTITUDE = 1.0;
-    // 目標ヨーレートからモーメント要求への変換ゲイン
-    static constexpr double K_YAW_RATE = 1.0;
+    // UIは角度をquaternionへ変換するため、小角時にはベクトル部が従来操作量の約半分になる。
+    static constexpr double K_ATTITUDE = 2.0;
+    // UIの目標yawレート範囲(±1 rad/s)を従来のFF yaw操作量(±0.2)へ変換する。
+    static constexpr double K_YAW_RATE = 0.2;
 
   public:
     auto control_mode() const -> logic::ControlMode override {
