@@ -24,9 +24,7 @@ class FeedBack : public AttitudeController::Logic {
     auto init(
         double /*time*/, const AttitudeController::Input & /*input*/,
         const AttitudeController::Output & /*output*/) -> AttitudeController::Output override {
-        // 積分項と方位ラッチを持ち越さない。モード切替では `FeedBack` 自体が作り直されるので
-        // 冗長だが、disarm 経由で init() だけが呼ばれる経路（fix/attitude-reset-on-disarm）でも
-        // 効かせるために明示する。
+        // 積分項と方位ラッチを持ち越さない
         this->attitude_feedback.reset();
         return {};
     }

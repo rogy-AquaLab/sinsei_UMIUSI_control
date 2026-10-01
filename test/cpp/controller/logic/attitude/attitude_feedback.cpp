@@ -209,11 +209,8 @@ TEST(AttitudeFeedbackTest, IntegralTermIsClampedByIMax) {
     EXPECT_NEAR(last->x(), clamped->x(), EPS);
 }
 
-// --- 方位保持 (hold_yaw) ---------------------------------------------------------------------
-
 namespace {
 
-// 鉛直 (world +Z) まわりに `yaw` だけ回した姿勢。
 auto heading_quat(double yaw) -> Eigen::Quaterniond {
     return Eigen::Quaterniond{Eigen::AngleAxisd{yaw, Eigen::Vector3d::UnitZ()}};
 }
@@ -226,7 +223,6 @@ TEST(AttitudeFeedbackHoldYawTest, HoldFalseKeepsPlainRateControl) {
     const auto feedback = AttitudeFeedback{};
     constexpr auto TARGET_RATE = 0.3;
 
-    // 方位が大きくずれていても、hold_yaw が false なら yaw はレート指令だけで決まる。
     const auto moment = feedback.moment(
         Eigen::Quaterniond::Identity(), heading_quat(1.0), Eigen::Vector3d::Zero(), TARGET_RATE, DT,
         false);
@@ -247,7 +243,6 @@ TEST(AttitudeFeedbackHoldYawTest, LatchesHeadingOnRisingEdge) {
     ASSERT_TRUE(first);
     EXPECT_TRUE(feedback.holding_yaw());
     EXPECT_NEAR(feedback.latched_yaw(), HEADING, 1e-9);
-    // ラッチした直後は誤差 0 なので、レート指令 0 に対して yaw モーメントも 0。
     EXPECT_NEAR(first->z(), 0.0, EPS);
 }
 
@@ -258,7 +253,6 @@ TEST(AttitudeFeedbackHoldYawTest, DriftingAwayProducesRestoringYawMoment) {
     feedback.moment(
         Eigen::Quaterniond::Identity(), heading_quat(HEADING), Eigen::Vector3d::Zero(), 0.0, DT,
         true);
-    // ラッチした方位から +0.2 rad 流された。戻す向き (負) のモーメントが出る。
     const auto drifted = feedback.moment(
         Eigen::Quaterniond::Identity(), heading_quat(HEADING + 0.2), Eigen::Vector3d::Zero(), 0.0,
         DT, true);
@@ -278,14 +272,12 @@ TEST(AttitudeFeedbackHoldYawTest, YawRateSlewsTheLatchedHeading) {
     feedback.moment(
         Eigen::Quaterniond::Identity(), heading_quat(0.0), Eigen::Vector3d::Zero(), RATE, DT, true);
 
-    // 保持中の yaw_rate は「保持したまま向きを変える」指令。ラッチ値が rate * dt だけ動く。
     EXPECT_NEAR(feedback.latched_yaw() - before, RATE * DT, 1e-9);
 }
 
 TEST(AttitudeFeedbackHoldYawTest, RelatchesInsteadOfChasingAnImuHeadingJump) {
     const auto feedback = AttitudeFeedback{};
-    // 実機 (2026-08-21, bag `data/imu/20260821-080906-imu-motion` t=6.040s) で観測した跳躍。
-    // 20.1 ms で yaw だけ -169.03 deg 飛び、roll/pitch はほぼ動かなかった。
+    // 実機で観測した値 (sinsei_UMIUSI_autonomy docs/known_issues.md A-1)
     constexpr auto JUMP = -169.03 * boost::math::constants::pi<double>() / 180.0;
 
     feedback.moment(
@@ -295,15 +287,12 @@ TEST(AttitudeFeedbackHoldYawTest, RelatchesInsteadOfChasingAnImuHeadingJump) {
 
     ASSERT_TRUE(jumped);
     EXPECT_TRUE(feedback.yaw_was_relatched());
-    // 追いかけない。追いかけると跳躍がそのまま「180 度回れ」という指令に化ける。
     EXPECT_NEAR(jumped->z(), 0.0, EPS);
     EXPECT_NEAR(feedback.latched_yaw(), JUMP, 1e-9);
 }
 
 TEST(AttitudeFeedbackHoldYawTest, NormalTrackingErrorDoesNotRelatch) {
     const auto feedback = AttitudeFeedback{};
-    // 実機の追従誤差は最大でも 29.2 deg (docs/known_issues.md B-14 まわり)。既定のクランプ
-    // 90 deg では誤爆しないこと。
     constexpr auto ERROR = 29.2 * boost::math::constants::pi<double>() / 180.0;
 
     feedback.moment(
@@ -318,12 +307,36 @@ TEST(AttitudeFeedbackHoldYawTest, NormalTrackingErrorDoesNotRelatch) {
     EXPECT_NEAR(feedback.latched_yaw(), 0.0, 1e-9);
 }
 
+TEST(AttitudeFeedbackHoldYawTest, SlewingFasterThanTheVehicleTurnsIsNotAJump) {
+    const auto feedback = AttitudeFeedback{};
+
+    feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(0.0), Eigen::Vector3d::Zero(), 0.0, DT, true);
+    for (auto i = 0; i < 150; ++i) {  // 3 s
+        feedback.moment(
+            Eigen::Quaterniond::Identity(), heading_quat(0.0), Eigen::Vector3d::Zero(), 1.0, DT,
+            true);
+        ASSERT_FALSE(feedback.yaw_was_relatched()) << "step " << i;
+    }
+}
+
+TEST(AttitudeFeedbackHoldYawTest, DisturbanceBeyondMaxLeadDoesNotMoveTheLatch) {
+    const auto feedback = AttitudeFeedback{};
+
+    feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(0.0), Eigen::Vector3d::Zero(), 0.0, DT, true);
+    const auto pushed = feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(0.6), Eigen::Vector3d::Zero(), 0.0, DT, true);
+
+    ASSERT_TRUE(pushed);
+    EXPECT_NEAR(feedback.latched_yaw(), 0.0, 1e-9);
+    EXPECT_NEAR(pushed->z(), -0.6, 1e-9);
+}
+
 TEST(AttitudeFeedbackHoldYawTest, HoldErrorWrapsAcrossPi) {
     const auto feedback = AttitudeFeedback{};
     constexpr auto PI = boost::math::constants::pi<double>();
 
-    // +pi のすぐ手前でラッチし、-pi 側へ 0.2 rad だけ回った。折り返しを跨ぐが実際の誤差は
-    // 0.2 rad しかないので、ラッチし直さず小さな戻しが出るだけ。
     feedback.moment(
         Eigen::Quaterniond::Identity(), heading_quat(PI - 0.1), Eigen::Vector3d::Zero(), 0.0, DT,
         true);
@@ -348,7 +361,6 @@ TEST(AttitudeFeedbackHoldYawTest, DroppingHoldClearsTheLatch) {
         Eigen::Quaterniond::Identity(), heading_quat(0.5), Eigen::Vector3d::Zero(), 0.0, DT, false);
     EXPECT_FALSE(feedback.holding_yaw());
 
-    // 再度立てたら、そのときの方位を改めてラッチする (古い値を持ち越さない)。
     feedback.moment(
         Eigen::Quaterniond::Identity(), heading_quat(-0.3), Eigen::Vector3d::Zero(), 0.0, DT, true);
     EXPECT_NEAR(feedback.latched_yaw(), -0.3, 1e-9);
@@ -361,7 +373,6 @@ TEST(AttitudeFeedbackHoldYawTest, ResetDropsTheLatch) {
         Eigen::Quaterniond::Identity(), heading_quat(0.5), Eigen::Vector3d::Zero(), 0.0, DT, true);
     ASSERT_TRUE(feedback.holding_yaw());
 
-    // disarm / モード切替で持ち越さない。
     feedback.reset();
     EXPECT_FALSE(feedback.holding_yaw());
 }
@@ -377,7 +388,6 @@ TEST(AttitudeFeedbackHoldYawTest, HoldDoesNotDisturbRollAndPitch) {
 
     ASSERT_TRUE(rate_only);
     ASSERT_TRUE(held);
-    // yaw の保持は roll/pitch の軸に影響しない。
     EXPECT_NEAR(held->x(), rate_only->x(), EPS);
     EXPECT_NEAR(held->y(), rate_only->y(), EPS);
 }

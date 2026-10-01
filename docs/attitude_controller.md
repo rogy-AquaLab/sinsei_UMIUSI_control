@@ -110,44 +110,26 @@ A = \begin{bmatrix}
 
 ---
 
-## `logic::attitude::FeedBack` の yaw — レート制御と方位保持
+## `logic::attitude::FeedBack` の yaw
 
-roll/pitch は body-up の向きだけを合わせる reduced-attitude 制御で、**目標 quaternion の yaw は
-意図的に無視する**。yaw は既定で**レート制御**（`AttitudeTarget.yaw_rate` [rad/s]）。
-
-`AttitudeTarget.hold_yaw`（bool、既定 `false`）を立てると、そのレート制御の**外側**に方位保持
-ループが乗る。
+yaw は既定でレート制御（`AttitudeTarget.yaw_rate` [rad/s]）。目標 quaternion の yaw は無視する。
+`AttitudeTarget.hold_yaw` が true の間は、その外側に方位保持が乗る。
 
 | `hold_yaw` | 挙動 |
 |---|---|
-| `false` | 従来どおりのレート制御。**状態を持たない** |
-| `false` → `true` のエッジ | **そのときの実測方位をラッチ**して保持対象にする |
-| `true` の間 | ラッチした方位を保つ。`yaw_rate` は**ラッチ値を slew** する（`latched += yaw_rate * dt`）ので、小さな修正のたびにトグルしなくてよい |
+| `false` | レート制御。状態を持たない |
+| `false` → `true` | その時点の実測方位をラッチする |
+| `true` | ラッチ方位を保つ。`yaw_rate` はラッチ方位を回す（先行は `yaw_hold_max_lead` まで） |
 | `true` → `false` | ラッチを捨てる |
 
-出力は 2 段の縦続で、内側は今までと同じレートループ:
-
 ```
-hold_yaw なら  commanded_rate = yaw_rate + kp_yaw_hold * wrap(latched - heading)
-そうでなければ commanded_rate = yaw_rate
-yaw モーメント = kp_yaw_rate * (commanded_rate - omega_z)
+commanded_rate = yaw_rate + kp_yaw_hold * wrap(latched - heading)   (hold_yaw のとき)
+yaw モーメント  = kp_yaw_rate * (commanded_rate - omega_z)
 ```
 
-### なぜ「ヨーレートがほぼ 0 なら保持」にしないのか
-
-閾値と継続時間というノブが 2 つ増えるうえ、**閾値の境目でチャタるとラッチし直すたびに方位が
-少しずつずれる**。「流されても気付けない」という、保持を入れたい理由そのものが壊れる。
-`hold_yaw` が明示的な bool なら bag にも残り、`ros2 topic echo` でも見える。
-
-### 誤差クランプ（`yaw_hold_relatch_error`、既定 90 deg）
-
-方位誤差がこれを超えたら、**IMU の方位が飛んだ**とみなして追いかけずに現在方位へラッチし直す。
-
-BNO055 は NDOF モード（磁気基準）で動いており、**yaw だけが磁気外乱で飛ぶ**。実機 bag では
-**20.1 ms で yaw だけ −169.03 deg 跳び、roll/pitch はほぼ動かず、`|q|` は 1.00000**、
-同時刻の `omega_z` は −0.03 rad/s だった（回っていない）。**追いかけると、この跳躍がそのまま
-「180 度回れ」という指令に化ける。** 通常の追従誤差は実測で最大 29.2 deg なので、90 deg なら
-誤爆しない。
-
-> ⚠ `kp_yaw_hold` と `yaw_hold_relatch_error` は**実機未検証**。プールで振ってから確定すること。
-> ⚠ ラッチは disarm で捨てる必要がある（`FeedBack::init()` で `reset()` している）。
+- 方位誤差が `yaw_hold_relatch_error`（90 deg）を超えたら、IMU の方位が飛んだとみなして現在方位へ
+  ラッチし直す。BNO055 の方位は磁気基準で、yaw だけが跳ぶ（`sinsei_UMIUSI_autonomy` の
+  `docs/known_issues.md` A-1）
+- 先行の上限は slew だけに掛かる。外乱で開いた誤差は削らない
+- 積分項とラッチは `FeedBack::init()` で捨てる
+- `kp_yaw_hold` / `yaw_hold_max_lead` / `yaw_hold_relatch_error` は実機未検証。パラメータ化はしていない
