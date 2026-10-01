@@ -137,6 +137,16 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
             "servo_max_angular_velocity must be finite and non-negative");
         return controller_interface::CallbackReturn::ERROR;
     }
+    // 0 は「推定を無効化する」ではなく「サーボ角が永久に未確定」を意味する。mixer は 1 基でも
+    // 未確定なら指令を出さないので、この設定では推力が一切出ない (B-20)。黙って静かになると
+    // 現場で気付けないので、ここで必ず鳴らす。
+    if (servo_max_angular_velocity == 0.0) {
+        RCLCPP_ERROR(
+            this->get_node()->get_logger(),
+            "servo_max_angular_velocity is 0: the servo angle estimate will NEVER resolve, so "
+            "this thruster produces NO THRUST AT ALL. Set it to the servo's (under-)estimated "
+            "rate in rad/s. See params/controllers.yaml and known_issues.md B-20.");
+    }
 
     this->logic = std::make_unique<logic::thruster::LinearAcceleration>(
         duty_per_thrust, max_duty_cycle, max_duty_step_per_sec);
