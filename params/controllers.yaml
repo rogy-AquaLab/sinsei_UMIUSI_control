@@ -26,6 +26,18 @@
       type: sinsei_umiusi_control/controller/AttitudeController
       update_rate: 50 # Hz
       control_mode: "fb" # Control mode (ff: feedforward / fb: feedback)
+      feed_forward:
+        k_attitude: 2.0 # Open-loop roll/pitch attitude gain
+        k_yaw_rate: 0.2 # Open-loop yaw-rate gain
+      feedback:
+        kp_roll: 1.0 # Roll proportional gain
+        kp_pitch: 1.0 # Pitch proportional gain
+        kd_roll: 0.35 # Roll derivative gain
+        kd_pitch: 0.35 # Pitch derivative gain
+        kp_yaw_rate: 1.0 # Yaw-rate proportional gain
+        ki_roll: 0.0 # Roll integral gain (0 disables integral control)
+        ki_pitch: 0.0 # Pitch integral gain (0 disables integral control)
+        i_max: 0.2 # Roll/pitch integral error clamp
 
   thruster_controller_lf: # Left Front Thruster
     ros__parameters:

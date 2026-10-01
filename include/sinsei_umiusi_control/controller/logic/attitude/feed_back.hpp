@@ -17,6 +17,8 @@ class FeedBack : public AttitudeController::Logic {
     AttitudeFeedback attitude_feedback;
 
   public:
+    explicit FeedBack(AttitudeFeedbackGains gains = {}) : attitude_feedback(gains) {}
+
     auto control_mode() const -> logic::ControlMode override {
         return logic::ControlMode::FeedBack;
     }
