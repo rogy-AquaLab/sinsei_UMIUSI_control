@@ -9,18 +9,12 @@ namespace sinsei_umiusi_control::test::controller::logic::attitude {
 
 using sinsei_umiusi_control::controller::AttitudeController;
 using sinsei_umiusi_control::controller::logic::attitude::FeedForward;
-using EstimatedAngle = state::thruster::servo::EstimatedAngle;
-using MaxAngularVelocity = state::thruster::servo::MaxAngularVelocity;
-
-constexpr auto HALF_PI = boost::math::constants::pi<double>() / 2.0;
 constexpr auto ROOT_TWO = boost::math::constants::root_two<double>();
 constexpr auto EPS = 1e-12;
 
 auto make_input() -> AttitudeController::Input {
     auto input = AttitudeController::Input{};
     input.cmd.target_attitude.w = 1.0;
-    input.state.servo_estimated_angles.fill(EstimatedAngle{0.0});
-    input.state.servo_max_angular_velocities.fill(MaxAngularVelocity{1.57});
     return input;
 }
 
@@ -29,13 +23,6 @@ TEST(FeedForwardTest, RestoresUiRollCommandScaleFromQuaternionHalfAngle) {
     auto input = make_input();
     input.cmd.target_attitude.x = std::sin(ROLL / 2.0);
     input.cmd.target_attitude.w = std::cos(ROLL / 2.0);
-    input.state.servo_estimated_angles = {
-        EstimatedAngle{HALF_PI},
-        EstimatedAngle{HALF_PI},
-        EstimatedAngle{-HALF_PI},
-        EstimatedAngle{-HALF_PI},
-    };
-
     const auto output = FeedForward{}.update(0.0, 0.02, input);
     const auto expected_thrust = 2.0 * std::sin(ROLL / 2.0) / ROOT_TWO;
 
@@ -53,6 +40,21 @@ TEST(FeedForwardTest, PreservesPreviousUiYawCommandRange) {
 
     for (const auto & thrust : output.cmd.esc_thrusts) {
         EXPECT_NEAR(thrust.value, expected_thrust, EPS);
+    }
+}
+
+TEST(FeedForwardTest, MapsUiDpadLeftToLateralThrustPattern) {
+    auto input = make_input();
+    input.cmd.target_velocity.y = 0.5;
+
+    const auto output = FeedForward{}.update(0.0, 0.02, input);
+
+    EXPECT_NEAR(output.cmd.esc_thrusts[0].value, 0.5, EPS);
+    EXPECT_NEAR(output.cmd.esc_thrusts[1].value, -0.5, EPS);
+    EXPECT_NEAR(output.cmd.esc_thrusts[2].value, -0.5, EPS);
+    EXPECT_NEAR(output.cmd.esc_thrusts[3].value, 0.5, EPS);
+    for (const auto & angle : output.cmd.servo_angles) {
+        EXPECT_NEAR(angle.value, 0.0, EPS);
     }
 }
 

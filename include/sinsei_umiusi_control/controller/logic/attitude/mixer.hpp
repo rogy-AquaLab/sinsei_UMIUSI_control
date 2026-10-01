@@ -56,7 +56,46 @@ inline auto move_towards(double current, double target, double max_delta) -> dou
     return std::clamp(target, current - max_delta, current + max_delta);
 }
 
+inline auto allocate(const Eigen::Vector<double, 6> & u) -> Eigen::Vector<double, 8> {
+    // -> f1h, f1v, f2h, f2v, f3h, f3v, f4h, f4v (h: horizontal, v: vertical)
+    // z軸まわりに半時計周りをfの番号順とhorizontalの正の方向とする。
+    const auto a = Eigen::Matrix<double, 8, 6>{
+        {0.0, 0.0, 1.0, -sqrt(2.0), sqrt(2.0), 0.0},   // スラスタ1 (:lf) 水平出力
+        {1.0, -1.0, 0.0, 0.0, 0.0, 1.0},               // スラスタ1 (:lf) 垂直出力
+        {0.0, 0.0, 1.0, -sqrt(2.0), -sqrt(2.0), 0.0},  // スラスタ2 (:lb) 水平出力
+        {1.0, 1.0, 0.0, 0.0, 0.0, 1.0},                // スラスタ2 (:lb) 垂直出力
+        {0.0, 0.0, 1.0, sqrt(2.0), -sqrt(2.0), 0.0},   // スラスタ3 (:rb) 水平出力
+        {-1.0, 1.0, 0.0, 0.0, 0.0, 1.0},               // スラスタ3 (:rb) 垂直出力
+        {0.0, 0.0, 1.0, sqrt(2.0), sqrt(2.0), 0.0},    // スラスタ4 (:rf) 水平出力
+        {-1.0, -1.0, 0.0, 0.0, 0.0, 1.0},              // スラスタ4 (:rf) 垂直出力
+    };
+    return a * u;
+}
+
 }  // namespace detail
+
+// 従来のFFと同じく、目標ベクトルからサーボ角と推力を直接決める。
+// 現在角への射影や角速度制限はFB用mix_to_thrustersのみで行う。
+inline auto mix_to_thrusters_open_loop(const Eigen::Vector<double, 6> & u)
+    -> AttitudeController::Output {
+    auto output = AttitudeController::Output{};
+    if (!u.allFinite()) {
+        return output;
+    }
+
+    const auto y = detail::allocate(u);
+    constexpr auto MAX_THRUST = boost::math::constants::root_two<double>();
+    for (size_t i = 0; i < output.cmd.esc_thrusts.size(); ++i) {
+        const auto horizontal = y[2 * i];
+        const auto vertical = y[2 * i + 1];
+        const auto angle = detail::canonical_servo_angle(horizontal, vertical);
+
+        output.cmd.servo_angles[i].value = angle;
+        output.cmd.esc_thrusts[i].value =
+            (horizontal * std::cos(angle) + vertical * std::sin(angle)) / MAX_THRUST;
+    }
+    return output;
+}
 
 inline auto hold_current_servo_angles(
     const std::array<std::optional<state::thruster::servo::EstimatedAngle>, 4> &
@@ -97,19 +136,7 @@ inline auto mix_to_thrusters(
         }
     }
 
-    //  -> f1h, f1v, f2h, f2v, f3h, f3v, f4h, f4v (h: horizontal, v: vertical)
-    // z軸まわりに半時計周りをfの番号順とhorizontalの正の方向とする
-    const auto a = Eigen::Matrix<double, 8, 6>{
-        {0.0, 0.0, 1.0, -sqrt(2.0), sqrt(2.0), 0.0},   // スラスタ1 (:lf) 水平出力
-        {1.0, -1.0, 0.0, 0.0, 0.0, 1.0},               // スラスタ1 (:lf) 垂直出力
-        {0.0, 0.0, 1.0, -sqrt(2.0), -sqrt(2.0), 0.0},  // スラスタ2 (:lb) 水平出力
-        {1.0, 1.0, 0.0, 0.0, 0.0, 1.0},                // スラスタ2 (:lb) 垂直出力
-        {0.0, 0.0, 1.0, sqrt(2.0), -sqrt(2.0), 0.0},   // スラスタ3 (:rb) 水平出力
-        {-1.0, 1.0, 0.0, 0.0, 0.0, 1.0},               // スラスタ3 (:rb) 垂直出力
-        {0.0, 0.0, 1.0, sqrt(2.0), sqrt(2.0), 0.0},    // スラスタ4 (:rf) 水平出力
-        {-1.0, -1.0, 0.0, 0.0, 0.0, 1.0},              // スラスタ4 (:rf) 垂直出力
-    };
-    const auto y = a * u;
+    const auto y = detail::allocate(u);
 
     constexpr auto MAX_THRUST = boost::math::constants::root_two<double>();
     for (size_t i = 0; i < servo_estimated_angles.size(); ++i) {
