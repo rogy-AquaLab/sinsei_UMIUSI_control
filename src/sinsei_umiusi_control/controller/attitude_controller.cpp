@@ -1,9 +1,14 @@
 #include "sinsei_umiusi_control/controller/attitude_controller.hpp"
 
+#include <algorithm>
+#include <array>
 #include <cmath>
 #include <controller_interface/controller_interface_base.hpp>
 #include <cstddef>
 #include <limits>
+#include <optional>
+#include <rcl_interfaces/msg/floating_point_range.hpp>
+#include <rcl_interfaces/msg/parameter_descriptor.hpp>
 #include <rclcpp/logging.hpp>
 #include <string>
 
@@ -14,6 +19,64 @@
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
 using namespace sinsei_umiusi_control::controller;
+
+namespace {
+
+using rcl_interfaces::msg::FloatingPointRange;
+using rcl_interfaces::msg::ParameterDescriptor;
+using sinsei_umiusi_control::controller::logic::attitude::AttitudeFeedbackGains;
+using sinsei_umiusi_control::controller::logic::attitude::FeedForwardGains;
+
+auto nonnegative_gain_descriptor(const std::string & description) -> ParameterDescriptor {
+    return ParameterDescriptor{}
+        .set__description(description)
+        .set__type(rclcpp::PARAMETER_DOUBLE)
+        .set__floating_point_range({FloatingPointRange{}.set__from_value(0.0).set__to_value(
+            std::numeric_limits<double>::max())});
+}
+
+auto read_feedback_gains(const rclcpp_lifecycle::LifecycleNode::SharedPtr & node)
+    -> std::optional<AttitudeFeedbackGains> {
+    auto gains = AttitudeFeedbackGains{
+        node->get_parameter("feedback.kp_roll").as_double(),
+        node->get_parameter("feedback.kp_pitch").as_double(),
+        node->get_parameter("feedback.kd_roll").as_double(),
+        node->get_parameter("feedback.kd_pitch").as_double(),
+        node->get_parameter("feedback.kp_yaw_rate").as_double(),
+        node->get_parameter("feedback.ki_roll").as_double(),
+        node->get_parameter("feedback.ki_pitch").as_double(),
+        node->get_parameter("feedback.i_max").as_double(),
+    };
+    const auto values = std::array<double, 8>{
+        gains.kp_roll,     gains.kp_pitch, gains.kd_roll,  gains.kd_pitch,
+        gains.kp_yaw_rate, gains.ki_roll,  gains.ki_pitch, gains.i_max,
+    };
+    if (!std::all_of(values.begin(), values.end(), [](double value) {
+            return std::isfinite(value) && value >= 0.0;
+        })) {
+        RCLCPP_ERROR(node->get_logger(), "Feedback gains must be finite and non-negative");
+        return std::nullopt;
+    }
+    return gains;
+}
+
+auto read_feed_forward_gains(const rclcpp_lifecycle::LifecycleNode::SharedPtr & node)
+    -> std::optional<FeedForwardGains> {
+    auto gains = FeedForwardGains{
+        node->get_parameter("feed_forward.k_attitude").as_double(),
+        node->get_parameter("feed_forward.k_yaw_rate").as_double(),
+    };
+    const auto values = std::array<double, 2>{gains.k_attitude, gains.k_yaw_rate};
+    if (!std::all_of(values.begin(), values.end(), [](double value) {
+            return std::isfinite(value) && value >= 0.0;
+        })) {
+        RCLCPP_ERROR(node->get_logger(), "Feed-forward gains must be finite and non-negative");
+        return std::nullopt;
+    }
+    return gains;
+}
+
+}  // namespace
 
 auto AttitudeController::command_interface_configuration() const
     -> controller_interface::InterfaceConfiguration {
@@ -43,6 +106,27 @@ auto AttitudeController::state_interface_configuration() const
 
 auto AttitudeController::on_init() -> controller_interface::CallbackReturn {
     this->get_node()->declare_parameter("control_mode", "fb");
+    this->get_node()->declare_parameter(
+        "feed_forward.k_attitude", 2.0,
+        nonnegative_gain_descriptor("Open-loop roll/pitch attitude gain"));
+    this->get_node()->declare_parameter(
+        "feed_forward.k_yaw_rate", 0.2, nonnegative_gain_descriptor("Open-loop yaw-rate gain"));
+    this->get_node()->declare_parameter(
+        "feedback.kp_roll", 1.0, nonnegative_gain_descriptor("Roll proportional gain"));
+    this->get_node()->declare_parameter(
+        "feedback.kp_pitch", 1.0, nonnegative_gain_descriptor("Pitch proportional gain"));
+    this->get_node()->declare_parameter(
+        "feedback.kd_roll", 0.35, nonnegative_gain_descriptor("Roll derivative gain"));
+    this->get_node()->declare_parameter(
+        "feedback.kd_pitch", 0.35, nonnegative_gain_descriptor("Pitch derivative gain"));
+    this->get_node()->declare_parameter(
+        "feedback.kp_yaw_rate", 1.0, nonnegative_gain_descriptor("Yaw-rate proportional gain"));
+    this->get_node()->declare_parameter(
+        "feedback.ki_roll", 0.0, nonnegative_gain_descriptor("Roll integral gain"));
+    this->get_node()->declare_parameter(
+        "feedback.ki_pitch", 0.0, nonnegative_gain_descriptor("Pitch integral gain"));
+    this->get_node()->declare_parameter(
+        "feedback.i_max", 0.2, nonnegative_gain_descriptor("Roll/pitch integral error clamp"));
 
     this->input = AttitudeController::Input{};
     this->input.cmd.target_attitude.w = 1.0;
@@ -65,11 +149,19 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
     }
     switch (control_mode_res.value()) {
         case logic::ControlMode::FeedForward: {
-            this->logic = std::make_unique<logic::attitude::FeedForward>();
+            const auto gains = read_feed_forward_gains(this->get_node());
+            if (!gains) {
+                return controller_interface::CallbackReturn::ERROR;
+            }
+            this->logic = std::make_unique<logic::attitude::FeedForward>(*gains);
             break;
         }
         case logic::ControlMode::FeedBack: {
-            this->logic = std::make_unique<logic::attitude::FeedBack>();
+            const auto gains = read_feedback_gains(this->get_node());
+            if (!gains) {
+                return controller_interface::CallbackReturn::ERROR;
+            }
+            this->logic = std::make_unique<logic::attitude::FeedBack>(*gains);
             break;
         }
         default: {
@@ -246,11 +338,19 @@ auto AttitudeController::update_and_write_commands(
         // モードが変わった場合はロジックを変更して初期化
         switch (control_mode_res.value()) {
             case logic::ControlMode::FeedForward: {
-                this->logic = std::make_unique<logic::attitude::FeedForward>();
+                const auto gains = read_feed_forward_gains(this->get_node());
+                if (!gains) {
+                    return controller_interface::return_type::ERROR;
+                }
+                this->logic = std::make_unique<logic::attitude::FeedForward>(*gains);
                 break;
             }
             case logic::ControlMode::FeedBack: {
-                this->logic = std::make_unique<logic::attitude::FeedBack>();
+                const auto gains = read_feedback_gains(this->get_node());
+                if (!gains) {
+                    return controller_interface::return_type::ERROR;
+                }
+                this->logic = std::make_unique<logic::attitude::FeedBack>(*gains);
                 break;
             }
             default: {

@@ -68,7 +68,7 @@ TEST(VescModelTest, VescModelMakeServoAngleFrameValidTest) {
                    0xFF) << 8 |
                       DUMMY_ID);
     EXPECT_EQ(frame.len, 4);
-    EXPECT_EQ(sucutil::to_int32_be(frame.data), 10000);  // pi/2 rad -> 1.0 -> 10000
+    EXPECT_EQ(sucutil::to_int32_be(frame.data), 0);  // pi/2 rad -> 0.0 -> 0
 }
 
 TEST(VescModelTest, VescModelConvertsServoAngleFromRadiansAtSendBoundaryTest) {
@@ -81,7 +81,11 @@ TEST(VescModelTest, VescModelConvertsServoAngleFromRadiansAtSendBoundaryTest) {
 
     const auto negative_result = vesc_model.make_servo_angle_frame(-QUARTER_PI);
     ASSERT_TRUE(negative_result);
-    EXPECT_EQ(sucutil::to_int32_be(negative_result->data), 2500);
+    EXPECT_EQ(sucutil::to_int32_be(negative_result->data), 7500);
+
+    const auto positive_result = vesc_model.make_servo_angle_frame(QUARTER_PI);
+    ASSERT_TRUE(positive_result);
+    EXPECT_EQ(sucutil::to_int32_be(positive_result->data), 2500);
 }
 
 TEST(VescModelTest, VescModelMakeServoAngleFrameInvalidTest) {

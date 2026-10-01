@@ -54,7 +54,8 @@ auto can::VescModel::make_servo_frame(double value) const
 
 auto can::VescModel::make_servo_angle_frame(double rad) const
     -> tl::expected<interface::CanFrame, std::string> {
-    // -pi/2 ~ pi/2の角度を0.0 ~ 1.0に変換
+    // 論理角の正方向と実機サーボの回転方向が逆なので、
+    // -pi/2 ~ pi/2の角度を1.0 ~ 0.0へ反転して変換する。
 
     constexpr auto PI = boost::math::constants::pi<double>();
     if (rad < -PI / 2.0 || rad > PI / 2.0) {
@@ -63,7 +64,7 @@ auto can::VescModel::make_servo_angle_frame(double rad) const
             ")");
     }
 
-    return this->make_servo_frame((rad + PI / 2.0) / PI);
+    return this->make_servo_frame((PI / 2.0 - rad) / PI);
 }
 
 auto can::VescModel::id_matches(const interface::CanFrame & frame) const -> bool {
