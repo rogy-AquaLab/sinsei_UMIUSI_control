@@ -20,7 +20,7 @@ constexpr auto EPS = 1e-12;
 
 auto mixer_parameters() -> MixerParameters {
     constexpr auto DEG_TO_RAD = boost::math::constants::pi<double>() / 180.0;
-    return {5.0 * DEG_TO_RAD, 10.0 * DEG_TO_RAD};
+    return {5.0 * DEG_TO_RAD, 10.0 * DEG_TO_RAD, 0.10, 0.06};
 }
 
 auto make_input() -> AttitudeController::Input {

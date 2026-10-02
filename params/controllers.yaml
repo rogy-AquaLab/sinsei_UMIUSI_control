@@ -28,6 +28,8 @@
       mixer:
         servo_direction_deadband_deg: 5.0 # Ignore servo-axis direction changes within this angle
         servo_reversal_deadband_deg: 10.0 # Hold an end stop near the +/-90 deg wrap boundary
+        servo_retarget_thrust_enter: 0.10 # Start servo direction tracking above this normalized thrust
+        servo_retarget_thrust_exit: 0.06 # Stop tracking below this normalized thrust
 
   thruster_controller_lf: # Left Front Thruster
     ros__parameters:

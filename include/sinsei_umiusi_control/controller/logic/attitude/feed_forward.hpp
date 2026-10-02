@@ -23,6 +23,7 @@ class FeedForward : public AttitudeController::Logic {
   private:
     FeedForwardGains gains;
     MixerParameters mixer_parameters;
+    MixerState mixer_state;
 
   public:
     FeedForward(FeedForwardGains gains, MixerParameters mixer_parameters)
@@ -54,7 +55,7 @@ class FeedForward : public AttitudeController::Logic {
 
         return mix_to_thrusters(
             u, input.state.servo_estimated_angles, input.state.servo_max_angular_velocities,
-            duration, this->mixer_parameters);
+            duration, this->mixer_parameters, this->mixer_state);
     }
 };
 

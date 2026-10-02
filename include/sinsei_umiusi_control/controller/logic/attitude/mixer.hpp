@@ -22,6 +22,12 @@ constexpr auto HALF_PI = PI / 2.0;
 struct MixerParameters {
     double servo_direction_deadband;
     double servo_reversal_deadband;
+    double servo_retarget_thrust_enter;
+    double servo_retarget_thrust_exit;
+};
+
+struct MixerState {
+    std::array<bool, 4> servo_retargeting{};
 };
 
 namespace detail {
@@ -88,9 +94,11 @@ inline auto mix_to_thrusters(
     const std::array<std::optional<state::thruster::servo::EstimatedAngle>, 4> &
         servo_estimated_angles,
     const std::array<state::thruster::servo::MaxAngularVelocity, 4> & servo_max_angular_velocities,
-    double duration, const MixerParameters & parameters) -> AttitudeController::Output {
+    double duration, const MixerParameters & parameters,
+    MixerState & mixer_state) -> AttitudeController::Output {
     auto output = hold_current_servo_angles(servo_estimated_angles);
     if (!u.allFinite() || !std::isfinite(duration) || duration < 0.0) {
+        mixer_state.servo_retargeting.fill(false);
         return output;
     }
     if (!std::isfinite(parameters.servo_direction_deadband) ||
@@ -98,7 +106,14 @@ inline auto mix_to_thrusters(
         parameters.servo_direction_deadband > detail::HALF_PI ||
         !std::isfinite(parameters.servo_reversal_deadband) ||
         parameters.servo_reversal_deadband < 0.0 ||
-        parameters.servo_reversal_deadband > detail::HALF_PI) {
+        parameters.servo_reversal_deadband > detail::HALF_PI ||
+        !std::isfinite(parameters.servo_retarget_thrust_enter) ||
+        parameters.servo_retarget_thrust_enter < 0.0 ||
+        parameters.servo_retarget_thrust_enter > 1.0 ||
+        !std::isfinite(parameters.servo_retarget_thrust_exit) ||
+        parameters.servo_retarget_thrust_exit < 0.0 ||
+        parameters.servo_retarget_thrust_exit > parameters.servo_retarget_thrust_enter) {
+        mixer_state.servo_retargeting.fill(false);
         return output;
     }
 
@@ -110,6 +125,7 @@ inline auto mix_to_thrusters(
             servo_estimated_angles[i]->value > detail::HALF_PI ||
             !std::isfinite(servo_max_angular_velocities[i].value) ||
             servo_max_angular_velocities[i].value < 0.0) {
+            mixer_state.servo_retargeting.fill(false);
             return {};
         }
     }
@@ -133,8 +149,20 @@ inline auto mix_to_thrusters(
         const auto horizontal = y[2 * i];
         const auto vertical = y[2 * i + 1];
         const auto current_angle = servo_estimated_angles[i]->value;
-        const auto target_angle =
-            detail::target_servo_angle(horizontal, vertical, current_angle, parameters);
+        // 小推力域では現在角を維持する。開始・停止の閾値を分けることで、
+        // 閾値付近のノイズによる追従状態の頻繁な切り替えを防ぐ。
+        const auto requested_thrust = std::hypot(horizontal, vertical) / MAX_THRUST;
+        if (mixer_state.servo_retargeting[i]) {
+            if (requested_thrust <= parameters.servo_retarget_thrust_exit) {
+                mixer_state.servo_retargeting[i] = false;
+            }
+        } else if (requested_thrust >= parameters.servo_retarget_thrust_enter) {
+            mixer_state.servo_retargeting[i] = true;
+        }
+        const auto target_angle = mixer_state.servo_retargeting[i]
+                                      ? detail::target_servo_angle(
+                                            horizontal, vertical, current_angle, parameters)
+                                      : current_angle;
         const auto max_angle_step =
             std::min(servo_max_angular_velocities[i].value * duration, detail::PI);
         const auto commanded_angle = std::clamp(
