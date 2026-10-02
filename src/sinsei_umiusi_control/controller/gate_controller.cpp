@@ -232,6 +232,7 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                     this->output.cmd.target_attitude_ref.z = input->attitude.z;
                     this->output.cmd.target_attitude_ref.w = input->attitude.w;
                     this->output.cmd.target_attitude_ref.yaw_rate = input->yaw_rate;
+                    this->output.cmd.target_attitude_ref.hold_yaw = input->hold_yaw;
                 });
     }
     {  // Output
@@ -279,6 +280,10 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
             "attitude_controller/target_attitude.yaw_rate",
             to_interface_data_ptr(this->output.cmd.target_attitude_ref.yaw_rate),
             sizeof(this->output.cmd.target_attitude_ref.yaw_rate)));
+        this->command_interface_data.push_back(std::make_tuple(
+            "attitude_controller/target_attitude.hold_yaw",
+            to_interface_data_ptr(this->output.cmd.target_attitude_ref.hold_yaw),
+            sizeof(this->output.cmd.target_attitude_ref.hold_yaw)));
         this->command_interface_data.push_back(std::make_tuple(
             "attitude_controller/target_velocity.x",
             to_interface_data_ptr(this->output.cmd.target_velocity_ref.x),

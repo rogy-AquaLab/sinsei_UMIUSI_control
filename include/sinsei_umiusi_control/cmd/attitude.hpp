@@ -10,6 +10,7 @@ struct AttitudeTarget {
     double z;
     double w;
     double yaw_rate;  // [rad/s]
+    bool hold_yaw;  // see AttitudeTarget.msg
 };
 struct Velocity {
     double x;

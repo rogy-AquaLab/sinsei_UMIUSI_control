@@ -26,6 +26,8 @@ class FeedBack : public AttitudeController::Logic {
     auto init(
         double /*time*/, const AttitudeController::Input & /*input*/,
         const AttitudeController::Output & /*output*/) -> AttitudeController::Output override {
+        // 積分項と方位ラッチを持ち越さない
+        this->attitude_feedback.reset();
         return {};
     }
 
@@ -40,8 +42,8 @@ class FeedBack : public AttitudeController::Logic {
             input.state.imu_angular_velocity.z,
         };
         const auto moment = this->attitude_feedback.moment(
-            target_attitude, current_attitude, angular_velocity, input.cmd.target_attitude.yaw_rate,
-            duration);
+            target_attitude, current_attitude, angular_velocity,
+            input.cmd.target_attitude.yaw_rate, duration, input.cmd.target_attitude.hold_yaw);
         if (!moment || !target_velocity.allFinite()) {
             return hold_current_servo_angles(input.state.servo_estimated_angles);
         }

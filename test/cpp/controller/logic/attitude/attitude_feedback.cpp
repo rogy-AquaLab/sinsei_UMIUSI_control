@@ -4,6 +4,8 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <boost/math/constants/constants.hpp>
+#include <cmath>
 #include <limits>
 
 namespace sinsei_umiusi_control::test::controller::logic::attitude {
@@ -205,6 +207,189 @@ TEST(AttitudeFeedbackTest, IntegralTermIsClampedByIMax) {
     ASSERT_TRUE(clamped);
     // i_max でクランプされているので、これ以上呼び出しても積分項の寄与は増えない。
     EXPECT_NEAR(last->x(), clamped->x(), EPS);
+}
+
+namespace {
+
+auto heading_quat(double yaw) -> Eigen::Quaterniond {
+    return Eigen::Quaterniond{Eigen::AngleAxisd{yaw, Eigen::Vector3d::UnitZ()}};
+}
+
+constexpr auto DT = 0.02;  // 50 Hz
+
+}  // namespace
+
+TEST(AttitudeFeedbackHoldYawTest, HoldFalseKeepsPlainRateControl) {
+    const auto feedback = AttitudeFeedback{};
+    constexpr auto TARGET_RATE = 0.3;
+
+    const auto moment = feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(1.0), Eigen::Vector3d::Zero(), TARGET_RATE, DT,
+        false);
+
+    ASSERT_TRUE(moment);
+    EXPECT_NEAR(moment->z(), TARGET_RATE, EPS);
+    EXPECT_FALSE(feedback.holding_yaw());
+}
+
+TEST(AttitudeFeedbackHoldYawTest, LatchesHeadingOnRisingEdge) {
+    const auto feedback = AttitudeFeedback{};
+    constexpr auto HEADING = 0.7;
+
+    const auto first = feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(HEADING), Eigen::Vector3d::Zero(), 0.0, DT,
+        true);
+
+    ASSERT_TRUE(first);
+    EXPECT_TRUE(feedback.holding_yaw());
+    EXPECT_NEAR(feedback.latched_yaw(), HEADING, 1e-9);
+    EXPECT_NEAR(first->z(), 0.0, EPS);
+}
+
+TEST(AttitudeFeedbackHoldYawTest, DriftingAwayProducesRestoringYawMoment) {
+    const auto feedback = AttitudeFeedback{};
+    constexpr auto HEADING = 0.0;
+
+    feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(HEADING), Eigen::Vector3d::Zero(), 0.0, DT,
+        true);
+    const auto drifted = feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(HEADING + 0.2), Eigen::Vector3d::Zero(), 0.0,
+        DT, true);
+
+    ASSERT_TRUE(drifted);
+    EXPECT_LT(drifted->z(), 0.0);
+    EXPECT_FALSE(feedback.yaw_was_relatched());
+}
+
+TEST(AttitudeFeedbackHoldYawTest, YawRateSlewsTheLatchedHeading) {
+    const auto feedback = AttitudeFeedback{};
+    constexpr auto RATE = 0.5;
+
+    feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(0.0), Eigen::Vector3d::Zero(), 0.0, DT, true);
+    const auto before = feedback.latched_yaw();
+    feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(0.0), Eigen::Vector3d::Zero(), RATE, DT, true);
+
+    EXPECT_NEAR(feedback.latched_yaw() - before, RATE * DT, 1e-9);
+}
+
+TEST(AttitudeFeedbackHoldYawTest, RelatchesInsteadOfChasingAnImuHeadingJump) {
+    const auto feedback = AttitudeFeedback{};
+    // 実機で観測した値 (sinsei_UMIUSI_autonomy docs/known_issues.md A-1)
+    constexpr auto JUMP = -169.03 * boost::math::constants::pi<double>() / 180.0;
+
+    feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(0.0), Eigen::Vector3d::Zero(), 0.0, DT, true);
+    const auto jumped = feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(JUMP), Eigen::Vector3d::Zero(), 0.0, DT, true);
+
+    ASSERT_TRUE(jumped);
+    EXPECT_TRUE(feedback.yaw_was_relatched());
+    EXPECT_NEAR(jumped->z(), 0.0, EPS);
+    EXPECT_NEAR(feedback.latched_yaw(), JUMP, 1e-9);
+}
+
+TEST(AttitudeFeedbackHoldYawTest, NormalTrackingErrorDoesNotRelatch) {
+    const auto feedback = AttitudeFeedback{};
+    constexpr auto ERROR = 29.2 * boost::math::constants::pi<double>() / 180.0;
+
+    feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(0.0), Eigen::Vector3d::Zero(), 0.0, DT, true);
+    const auto tracking = feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(ERROR), Eigen::Vector3d::Zero(), 0.0, DT,
+        true);
+
+    ASSERT_TRUE(tracking);
+    EXPECT_FALSE(feedback.yaw_was_relatched());
+    EXPECT_LT(tracking->z(), 0.0);
+    EXPECT_NEAR(feedback.latched_yaw(), 0.0, 1e-9);
+}
+
+TEST(AttitudeFeedbackHoldYawTest, SlewingFasterThanTheVehicleTurnsIsNotAJump) {
+    const auto feedback = AttitudeFeedback{};
+
+    feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(0.0), Eigen::Vector3d::Zero(), 0.0, DT, true);
+    for (auto i = 0; i < 150; ++i) {  // 3 s
+        feedback.moment(
+            Eigen::Quaterniond::Identity(), heading_quat(0.0), Eigen::Vector3d::Zero(), 1.0, DT,
+            true);
+        ASSERT_FALSE(feedback.yaw_was_relatched()) << "step " << i;
+    }
+}
+
+TEST(AttitudeFeedbackHoldYawTest, DisturbanceBeyondMaxLeadDoesNotMoveTheLatch) {
+    const auto feedback = AttitudeFeedback{};
+
+    feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(0.0), Eigen::Vector3d::Zero(), 0.0, DT, true);
+    const auto pushed = feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(0.6), Eigen::Vector3d::Zero(), 0.0, DT, true);
+
+    ASSERT_TRUE(pushed);
+    EXPECT_NEAR(feedback.latched_yaw(), 0.0, 1e-9);
+    EXPECT_NEAR(pushed->z(), -0.6, 1e-9);
+}
+
+TEST(AttitudeFeedbackHoldYawTest, HoldErrorWrapsAcrossPi) {
+    const auto feedback = AttitudeFeedback{};
+    constexpr auto PI = boost::math::constants::pi<double>();
+
+    feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(PI - 0.1), Eigen::Vector3d::Zero(), 0.0, DT,
+        true);
+    const auto wrapped = feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(-PI + 0.1), Eigen::Vector3d::Zero(), 0.0, DT,
+        true);
+
+    ASSERT_TRUE(wrapped);
+    EXPECT_FALSE(feedback.yaw_was_relatched());
+    EXPECT_LT(wrapped->z(), 0.0);
+    EXPECT_NEAR(std::abs(wrapped->z()), 0.2, 1e-9);
+}
+
+TEST(AttitudeFeedbackHoldYawTest, DroppingHoldClearsTheLatch) {
+    const auto feedback = AttitudeFeedback{};
+
+    feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(0.5), Eigen::Vector3d::Zero(), 0.0, DT, true);
+    ASSERT_TRUE(feedback.holding_yaw());
+
+    feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(0.5), Eigen::Vector3d::Zero(), 0.0, DT, false);
+    EXPECT_FALSE(feedback.holding_yaw());
+
+    feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(-0.3), Eigen::Vector3d::Zero(), 0.0, DT, true);
+    EXPECT_NEAR(feedback.latched_yaw(), -0.3, 1e-9);
+}
+
+TEST(AttitudeFeedbackHoldYawTest, ResetDropsTheLatch) {
+    const auto feedback = AttitudeFeedback{};
+
+    feedback.moment(
+        Eigen::Quaterniond::Identity(), heading_quat(0.5), Eigen::Vector3d::Zero(), 0.0, DT, true);
+    ASSERT_TRUE(feedback.holding_yaw());
+
+    feedback.reset();
+    EXPECT_FALSE(feedback.holding_yaw());
+}
+
+TEST(AttitudeFeedbackHoldYawTest, HoldDoesNotDisturbRollAndPitch) {
+    const auto feedback = AttitudeFeedback{};
+    const auto current = heading_quat(0.6);
+
+    const auto rate_only = feedback.moment(
+        Eigen::Quaterniond::Identity(), current, Eigen::Vector3d::Zero(), 0.0, DT, false);
+    const auto held = feedback.moment(
+        Eigen::Quaterniond::Identity(), current, Eigen::Vector3d::Zero(), 0.0, DT, true);
+
+    ASSERT_TRUE(rate_only);
+    ASSERT_TRUE(held);
+    EXPECT_NEAR(held->x(), rate_only->x(), EPS);
+    EXPECT_NEAR(held->y(), rate_only->y(), EPS);
 }
 
 }  // namespace sinsei_umiusi_control::test::controller::logic::attitude

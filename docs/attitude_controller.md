@@ -123,3 +123,29 @@ A = \begin{bmatrix}
     V^\text{ref}_z
 \end{bmatrix}
 ```
+
+---
+
+## `logic::attitude::FeedBack` の yaw
+
+yaw は既定でレート制御（`AttitudeTarget.yaw_rate` [rad/s]）。目標 quaternion の yaw は無視する。
+`AttitudeTarget.hold_yaw` が true の間は、その外側に方位保持が乗る。
+
+| `hold_yaw` | 挙動 |
+|---|---|
+| `false` | レート制御。状態を持たない |
+| `false` → `true` | その時点の実測方位をラッチする |
+| `true` | ラッチ方位を保つ。`yaw_rate` はラッチ方位を回す（先行は `yaw_hold_max_lead` まで） |
+| `true` → `false` | ラッチを捨てる |
+
+```
+commanded_rate = yaw_rate + kp_yaw_hold * wrap(latched - heading)   (hold_yaw のとき)
+yaw モーメント  = kp_yaw_rate * (commanded_rate - omega_z)
+```
+
+- 方位誤差が `yaw_hold_relatch_error`（90 deg）を超えたら、IMU の方位が飛んだとみなして現在方位へ
+  ラッチし直す。BNO055 の方位は磁気基準で、yaw だけが跳ぶ（`sinsei_UMIUSI_autonomy` の
+  `docs/known_issues.md` A-1）
+- 先行の上限は slew だけに掛かる。外乱で開いた誤差は削らない
+- 積分項とラッチは `FeedBack::init()` で捨てる
+- `kp_yaw_hold` / `yaw_hold_max_lead` / `yaw_hold_relatch_error` は実機未検証。パラメータ化はしていない

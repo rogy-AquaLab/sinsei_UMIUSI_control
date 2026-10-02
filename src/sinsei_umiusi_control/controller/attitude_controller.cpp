@@ -253,6 +253,10 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
         util::to_interface_data_ptr(this->input.cmd.target_attitude.yaw_rate),
         sizeof(this->input.cmd.target_attitude.yaw_rate)));
     this->ref_interface_data.push_back(std::make_tuple(
+        "target_attitude.hold_yaw",
+        util::to_interface_data_ptr(this->input.cmd.target_attitude.hold_yaw),
+        sizeof(this->input.cmd.target_attitude.hold_yaw)));
+    this->ref_interface_data.push_back(std::make_tuple(
         "target_velocity.x", util::to_interface_data_ptr(this->input.cmd.target_velocity.x),
         sizeof(this->input.cmd.target_velocity.x)));
     this->ref_interface_data.push_back(std::make_tuple(
