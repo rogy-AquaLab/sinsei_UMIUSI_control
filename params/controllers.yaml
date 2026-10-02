@@ -25,6 +25,9 @@
         ki_roll: 0.0 # Roll integral gain (0 disables integral control)
         ki_pitch: 0.0 # Pitch integral gain (0 disables integral control)
         i_max: 0.2 # Roll/pitch integral error clamp
+      mixer:
+        servo_direction_deadband_deg: 5.0 # Ignore servo-axis direction changes within this angle
+        servo_reversal_deadband_deg: 10.0 # Hold an end stop near the +/-90 deg wrap boundary
 
   thruster_controller_lf: # Left Front Thruster
     ros__parameters:
@@ -37,7 +40,7 @@
       duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
       max_duty: 0.5 # Maximum duty cycle (0.0 to 1.0)
       max_duty_step_per_sec: 1.0 # Maximum change in duty cycle per second
-      servo_max_angular_velocity: 0.0 # Maximum servo angular velocity [rad/s] (0 disables estimation)
+      servo_max_angular_velocity: 3.0 # Maximum servo angular velocity [rad/s]
 
   thruster_controller_lb: # Left Back Thruster
     ros__parameters:
@@ -50,7 +53,7 @@
       duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
       max_duty: 0.5 # Maximum duty cycle (0.0 to 1.0)
       max_duty_step_per_sec: 1.0 # Maximum change in duty cycle per second
-      servo_max_angular_velocity: 0.0 # Maximum servo angular velocity [rad/s] (0 disables estimation)
+      servo_max_angular_velocity: 3.0 # Maximum servo angular velocity [rad/s]
 
   thruster_controller_rb: # Right Back Thruster
     ros__parameters:
@@ -63,7 +66,7 @@
       duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
       max_duty: 0.5 # Maximum duty cycle (0.0 to 1.0)
       max_duty_step_per_sec: 1.0 # Maximum change in duty cycle per second
-      servo_max_angular_velocity: 0.0 # Maximum servo angular velocity [rad/s] (0 disables estimation)
+      servo_max_angular_velocity: 3.0 # Maximum servo angular velocity [rad/s]
 
   thruster_controller_rf: # Right Front Thruster
     ros__parameters:
@@ -76,4 +79,4 @@
       duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
       max_duty: 0.5 # Maximum duty cycle (0.0 to 1.0)
       max_duty_step_per_sec: 1.0 # Maximum change in duty cycle per second
-      servo_max_angular_velocity: 0.0 # Maximum servo angular velocity [rad/s] (0 disables estimation)
+      servo_max_angular_velocity: 3.0 # Maximum servo angular velocity [rad/s]

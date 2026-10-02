@@ -16,8 +16,15 @@ namespace detail {
 
 constexpr auto PI = boost::math::constants::pi<double>();
 constexpr auto HALF_PI = PI / 2.0;
-constexpr auto SERVO_DIRECTION_DEADBAND = PI / 90.0;  // 2 deg
-constexpr auto SERVO_REVERSAL_DEADBAND = PI / 18.0;   // 10 deg
+
+}  // namespace detail
+
+struct MixerParameters {
+    double servo_direction_deadband;
+    double servo_reversal_deadband;
+};
+
+namespace detail {
 
 inline auto canonical_servo_angle(double horizontal, double vertical) -> double {
     auto angle = std::atan2(vertical, horizontal);
@@ -29,7 +36,9 @@ inline auto canonical_servo_angle(double horizontal, double vertical) -> double 
     return angle;
 }
 
-inline auto target_servo_angle(double horizontal, double vertical, double current_angle) -> double {
+inline auto target_servo_angle(
+    double horizontal, double vertical, double current_angle,
+    const MixerParameters & parameters) -> double {
     if (horizontal == 0.0 && vertical == 0.0) {
         return current_angle;
     }
@@ -39,14 +48,14 @@ inline auto target_servo_angle(double horizontal, double vertical, double curren
     const auto axis_distance = std::min(direct_distance, PI - direct_distance);
 
     // 小さな方向変化は現在角での推力射影に任せ、サーボの微動を抑える。
-    if (axis_distance <= SERVO_DIRECTION_DEADBAND) {
+    if (axis_distance <= parameters.servo_direction_deadband) {
         return current_angle;
     }
 
     // ±90 deg は、ESC の符号を反転すればほぼ同じ推力軸を表せる。
     // 境界のごく近傍では反対側へ180 deg回さず、現在側の端点を維持する。
     if (current_angle * exact_angle < 0.0 && direct_distance > HALF_PI &&
-        PI - direct_distance <= SERVO_REVERSAL_DEADBAND) {
+        PI - direct_distance <= parameters.servo_reversal_deadband) {
         return std::copysign(HALF_PI, current_angle);
     }
     return exact_angle;
@@ -79,9 +88,17 @@ inline auto mix_to_thrusters(
     const std::array<std::optional<state::thruster::servo::EstimatedAngle>, 4> &
         servo_estimated_angles,
     const std::array<state::thruster::servo::MaxAngularVelocity, 4> & servo_max_angular_velocities,
-    double duration) -> AttitudeController::Output {
+    double duration, const MixerParameters & parameters) -> AttitudeController::Output {
     auto output = hold_current_servo_angles(servo_estimated_angles);
     if (!u.allFinite() || !std::isfinite(duration) || duration < 0.0) {
+        return output;
+    }
+    if (!std::isfinite(parameters.servo_direction_deadband) ||
+        parameters.servo_direction_deadband < 0.0 ||
+        parameters.servo_direction_deadband > detail::HALF_PI ||
+        !std::isfinite(parameters.servo_reversal_deadband) ||
+        parameters.servo_reversal_deadband < 0.0 ||
+        parameters.servo_reversal_deadband > detail::HALF_PI) {
         return output;
     }
 
@@ -116,7 +133,8 @@ inline auto mix_to_thrusters(
         const auto horizontal = y[2 * i];
         const auto vertical = y[2 * i + 1];
         const auto current_angle = servo_estimated_angles[i]->value;
-        const auto target_angle = detail::target_servo_angle(horizontal, vertical, current_angle);
+        const auto target_angle =
+            detail::target_servo_angle(horizontal, vertical, current_angle, parameters);
         const auto max_angle_step =
             std::min(servo_max_angular_velocities[i].value * duration, detail::PI);
         const auto commanded_angle = std::clamp(

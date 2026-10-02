@@ -15,9 +15,11 @@ namespace sinsei_umiusi_control::controller::logic::attitude {
 class FeedBack : public AttitudeController::Logic {
   private:
     AttitudeFeedback attitude_feedback;
+    MixerParameters mixer_parameters;
 
   public:
-    explicit FeedBack(AttitudeFeedbackGains gains = {}) : attitude_feedback(gains) {}
+    FeedBack(AttitudeFeedbackGains gains, MixerParameters mixer_parameters)
+    : attitude_feedback(gains), mixer_parameters(mixer_parameters) {}
 
     auto control_mode() const -> logic::ControlMode override {
         return logic::ControlMode::FeedBack;
@@ -57,7 +59,7 @@ class FeedBack : public AttitudeController::Logic {
 
         return mix_to_thrusters(
             u, input.state.servo_estimated_angles, input.state.servo_max_angular_velocities,
-            duration);
+            duration, this->mixer_parameters);
     }
 };
 
