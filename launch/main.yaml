@@ -37,6 +37,9 @@ launch:
         exec: "gst_camera_node"
         name: "pi_camera"
         if: "$(var enable_cameras)"
+        # パイプラインのエラーでプロセスごと終わるので、上げ直す (2026-10-01 に前カメラが戻らなかった)
+        respawn: "true"
+        respawn_delay: 2.0
         param:
         - from: "$(var cameras_param_file)"
     - node:
@@ -44,5 +47,8 @@ launch:
         exec: "gst_camera_node"
         name: "usb_camera"
         if: "$(var enable_cameras)"
+        # パイプラインのエラーでプロセスごと終わるので、上げ直す (2026-10-01 に前カメラが戻らなかった)
+        respawn: "true"
+        respawn_delay: 2.0
         param:
         - from: "$(var cameras_param_file)"
