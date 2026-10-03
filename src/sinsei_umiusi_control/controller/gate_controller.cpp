@@ -291,6 +291,12 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
         this->output.pub.main_power_enabled_publisher =
             this->get_node()->create_publisher<msg::MainPowerEnabled>(
                 state_prefix + "main_power_enabled", qos);
+        this->output.pub.indicator_led_enabled_publisher =
+            this->get_node()->create_publisher<msg::IndicatorLedEnabled>(
+                state_prefix + "indicator_led_enabled", qos);
+        this->output.pub.headlights_enabled_publisher =
+            this->get_node()->create_publisher<msg::HeadlightsEnabled>(
+                state_prefix + "headlights_enabled", qos);
         this->output.pub.thruster_state_all_publisher =
             this->get_node()->create_publisher<msg::ThrusterStateAll>(
                 state_prefix + "thruster_state_all", qos);
@@ -333,6 +339,13 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
             .set__temperature(this->input.state.imu_temperature.value));
     this->output.pub.main_power_enabled_publisher->publish(
         msg::MainPowerEnabled().set__enabled(this->output.cmd.main_power_enabled_ref.value));
+    this->output.pub.indicator_led_enabled_publisher->publish(
+        msg::IndicatorLedEnabled().set__enabled(this->output.cmd.indicator_led_enabled_ref.value));
+    this->output.pub.headlights_enabled_publisher->publish(
+        msg::HeadlightsEnabled()
+            .set__high_beam_enabled(this->output.cmd.high_beam_enabled_ref.value)
+            .set__low_beam_enabled(this->output.cmd.low_beam_enabled_ref.value)
+            .set__ir_enabled(this->output.cmd.ir_enabled_ref.value));
     this->output.pub.thruster_state_all_publisher->publish(
         msg::ThrusterStateAll()
             .set__lf(msg::ThrusterState()

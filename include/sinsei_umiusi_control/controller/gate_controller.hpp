@@ -25,8 +25,10 @@
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
 #include "sinsei_umiusi_control/state/thruster/servo.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
+#include "sinsei_umiusi_msgs/msg/headlights_enabled.hpp"
 #include "sinsei_umiusi_msgs/msg/headlights_output.hpp"
 #include "sinsei_umiusi_msgs/msg/high_power_circuit_info.hpp"
+#include "sinsei_umiusi_msgs/msg/indicator_led_enabled.hpp"
 #include "sinsei_umiusi_msgs/msg/indicator_led_output.hpp"
 #include "sinsei_umiusi_msgs/msg/led_tape_output.hpp"
 #include "sinsei_umiusi_msgs/msg/low_power_circuit_info.hpp"
@@ -105,6 +107,10 @@ class GateController : public controller_interface::ControllerInterface {
                 imu_temperature_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::MainPowerEnabled>::SharedPtr
                 main_power_enabled_publisher;
+            rclcpp::Publisher<sinsei_umiusi_msgs::msg::IndicatorLedEnabled>::SharedPtr
+                indicator_led_enabled_publisher;
+            rclcpp::Publisher<sinsei_umiusi_msgs::msg::HeadlightsEnabled>::SharedPtr
+                headlights_enabled_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::ThrusterStateAll>::SharedPtr
                 thruster_state_all_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::LowPowerCircuitInfo>::SharedPtr
