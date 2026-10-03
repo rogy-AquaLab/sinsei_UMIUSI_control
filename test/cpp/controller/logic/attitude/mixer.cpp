@@ -113,6 +113,16 @@ TEST(AttitudeMixerTest, ProjectsRequestedForceOntoCurrentServoAxis) {
     EXPECT_NEAR(output.cmd.esc_thrusts[3].value, 0.5, EPS);
 }
 
+TEST(AttitudeMixerTest, ScalesVerticalTranslationLikeHorizontalTranslation) {
+    const Eigen::Vector<double, 6> request{0.0, 0.0, 0.0, 0.0, 0.0, 0.5};
+
+    const auto output = mix(request, estimates(HALF_PI), velocities(1.0), 0.02);
+
+    for (const auto & thrust : output.cmd.esc_thrusts) {
+        EXPECT_NEAR(thrust.value, 0.5, EPS);
+    }
+}
+
 TEST(AttitudeMixerTest, BuildsVerticalThrustAsServosActuallyMove) {
     auto servo_estimates = estimates(0.1);
     servo_estimates[2] = EstimatedAngle{-0.1};
@@ -188,7 +198,7 @@ TEST(AttitudeMixerTest, InvalidThrustLimitStopsThrust) {
 }
 
 TEST(AttitudeMixerTest, DoesNotCrossTheFullServoRangeForEndStopNoise) {
-    const Eigen::Vector<double, 6> request{0.0, 0.0, -0.01, 0.0, 0.0, 1.0};
+    const Eigen::Vector<double, 6> request{0.0, 0.0, -0.01, 0.0, 0.0, 1.0 / ROOT_TWO};
 
     const auto output = mix(request, estimates(HALF_PI), velocities(1.57), 0.02);
 
@@ -201,7 +211,7 @@ TEST(AttitudeMixerTest, DoesNotCrossTheFullServoRangeForEndStopNoise) {
 TEST(AttitudeMixerTest, IgnoresSmallDirectionChangesAtAnyServoAngle) {
     constexpr auto FOUR_DEGREES = boost::math::constants::pi<double>() / 45.0;
     const Eigen::Vector<double, 6> request{
-        0.0, 0.0, std::cos(FOUR_DEGREES), 0.0, 0.0, std::sin(FOUR_DEGREES)};
+        0.0, 0.0, std::cos(FOUR_DEGREES), 0.0, 0.0, std::sin(FOUR_DEGREES) / ROOT_TWO};
 
     const auto output = mix(request, estimates(0.0), velocities(1.57), 0.02);
 
@@ -213,7 +223,7 @@ TEST(AttitudeMixerTest, IgnoresSmallDirectionChangesAtAnyServoAngle) {
 TEST(AttitudeMixerTest, MovesServoOnceDirectionChangeExceedsDeadband) {
     constexpr auto SIX_DEGREES = boost::math::constants::pi<double>() / 30.0;
     const Eigen::Vector<double, 6> request{
-        0.0, 0.0, std::cos(SIX_DEGREES), 0.0, 0.0, std::sin(SIX_DEGREES)};
+        0.0, 0.0, std::cos(SIX_DEGREES), 0.0, 0.0, std::sin(SIX_DEGREES) / ROOT_TWO};
 
     const auto output = mix(request, estimates(0.0), velocities(1.57), 0.1);
 
@@ -225,7 +235,7 @@ TEST(AttitudeMixerTest, MovesServoOnceDirectionChangeExceedsDeadband) {
 TEST(AttitudeMixerTest, UsesConfiguredDirectionDeadband) {
     constexpr auto SIX_DEGREES = boost::math::constants::pi<double>() / 30.0;
     const Eigen::Vector<double, 6> request{
-        0.0, 0.0, std::cos(SIX_DEGREES), 0.0, 0.0, std::sin(SIX_DEGREES)};
+        0.0, 0.0, std::cos(SIX_DEGREES), 0.0, 0.0, std::sin(SIX_DEGREES) / ROOT_TWO};
 
     const auto output = mix(request, estimates(0.0), velocities(1.57), 0.1, parameters(7.0));
 
@@ -279,7 +289,7 @@ TEST(AttitudeMixerTest, RetargetThrustThresholdsProvideHysteresis) {
 }
 
 TEST(AttitudeMixerTest, TraversesServoRangeWhenEndStopApproximationIsInsufficient) {
-    const Eigen::Vector<double, 6> request{0.0, 0.0, -0.2, 0.0, 0.0, 1.0};
+    const Eigen::Vector<double, 6> request{0.0, 0.0, -0.2, 0.0, 0.0, 1.0 / ROOT_TWO};
 
     const auto output = mix(request, estimates(HALF_PI), velocities(1.0), 0.1);
 
@@ -289,7 +299,7 @@ TEST(AttitudeMixerTest, TraversesServoRangeWhenEndStopApproximationIsInsufficien
 }
 
 TEST(AttitudeMixerTest, UsesConfiguredReversalDeadband) {
-    const Eigen::Vector<double, 6> request{0.0, 0.0, -0.2, 0.0, 0.0, 1.0};
+    const Eigen::Vector<double, 6> request{0.0, 0.0, -0.2, 0.0, 0.0, 1.0 / ROOT_TWO};
 
     const auto output =
         mix(request, estimates(HALF_PI), velocities(1.0), 0.1, parameters(5.0, 15.0));
