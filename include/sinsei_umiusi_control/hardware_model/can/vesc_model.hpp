@@ -134,11 +134,13 @@ class VescModel {
     // static constexpr double SET_CURRENT_HANDBRAKE_SCALE = 1000;
     // static constexpr double SET_CURRENT_HANDBRAKE_REL_SCALE = 100000;
 
+    // lispBMにより実装
     static constexpr double SET_SERVO_SCALE = 10000;
 
     auto make_frame(PacketId packet_id, const interface::CanFrame::Data & data) const
         -> interface::CanFrame;
-    auto make_servo_frame(double value) const -> tl::expected<interface::CanFrame, std::string>;
+    auto make_servo_frame(double value) const
+        -> tl::expected<interface::CanFrame, std::string>;  // lispBMにより実装。0 ~ 1.0
     auto id_matches(const interface::CanFrame & frame) const -> bool;
 
   public:

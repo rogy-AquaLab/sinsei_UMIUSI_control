@@ -7,8 +7,6 @@
 #include <utility>
 #include <vector>
 
-#include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
-
 using namespace sinsei_umiusi_control::hardware_model;
 
 CanModel::CanModel(
@@ -91,7 +89,7 @@ auto CanModel::decode_frame(const interface::CanFrame & frame)
     -> tl::expected<std::optional<DecodedState>, std::string> {
     // CANフレームをデコードするため、各モデルを順番に試す
 
-    // 受信途中のフレームは無視する
+    // 受信途中のVESCのフレームは無視する
     if (is_vesc_transport_frame(frame)) {
         return std::nullopt;
     }
@@ -104,6 +102,8 @@ auto CanModel::decode_frame(const interface::CanFrame & frame)
     } else if (bms_state_res.value()) {
         return std::optional<DecodedState>{DecodedState{std::move(bms_state_res.value().value())}};
     }
+
+    // TODO: STM32側の仕様確定後に`can::PowerDistributionModel`の処理を追加する
 
     for (const auto & thruster : this->thrusters) {
         const auto vesc_id = thruster.vesc_model.get_id();

@@ -18,7 +18,7 @@ namespace sinsei_umiusi_control::test::hardware_model::can::harmony_bms {
 
 namespace {
 
-constexpr uint8_t BMS_ID = 10;
+constexpr uint8_t BMS_ID = 3;
 
 auto make_frame(
     suchm::can::HarmonyBmsModel::PacketId packet_id, suchm::interface::CanFrame::Data data,
