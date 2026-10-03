@@ -17,7 +17,7 @@ auto byte_at(const interface::CanFrame::Data & data, std::size_t offset) -> uint
     return std::to_integer<uint8_t>(data[offset]);
 }
 
-// VESC buffer_get_float32_auto encoding (custom 23-bit-significand float).
+// VESC独自のfloat32_auto形式で格納された4バイトをdoubleへ変換する
 auto float32_auto(const interface::CanFrame::Data & data, std::size_t offset) -> double {
     const auto raw = sinsei_umiusi_control::util::to_uint32_be(data, offset).value();
     auto exponent = static_cast<int>((raw >> 23) & 0xFFU);
@@ -39,29 +39,31 @@ auto contains(const std::string & value, const std::string & token) -> bool {
 
 }  // namespace
 
-can::HarmonyBmsModel::HarmonyBmsModel(Id id) : id(id) {
+can::HarmonyBmsModel::State::State() {
     const auto nan = std::numeric_limits<double>::quiet_NaN();
-    this->state.pack_voltage = nan;
-    this->state.charger_voltage = nan;
-    this->state.input_current = nan;
-    this->state.measured_current = nan;
-    this->state.net_consumed_charge = nan;
-    this->state.net_consumed_energy = nan;
-    this->state.cell_voltages.fill(nan);
-    this->state.temperatures.fill(nan);
-    this->state.humidity_sensor_temperature = nan;
-    this->state.relative_humidity = nan;
-    this->state.balance_ic_temperature = nan;
-    this->state.state_of_charge = nan;
-    this->state.state_of_health = nan;
-    this->state.cell_voltage_min = nan;
-    this->state.cell_voltage_max = nan;
-    this->state.cell_temperature_max = nan;
-    this->state.total_charged_charge = nan;
-    this->state.total_charged_energy = nan;
-    this->state.total_discharged_charge = nan;
-    this->state.total_discharged_energy = nan;
+    this->pack_voltage = nan;
+    this->charger_voltage = nan;
+    this->input_current = nan;
+    this->measured_current = nan;
+    this->net_consumed_charge = nan;
+    this->net_consumed_energy = nan;
+    this->cell_voltages.fill(nan);
+    this->temperatures.fill(nan);
+    this->humidity_sensor_temperature = nan;
+    this->relative_humidity = nan;
+    this->balance_ic_temperature = nan;
+    this->state_of_charge = nan;
+    this->state_of_health = nan;
+    this->cell_voltage_min = nan;
+    this->cell_voltage_max = nan;
+    this->cell_temperature_max = nan;
+    this->total_charged_charge = nan;
+    this->total_charged_energy = nan;
+    this->total_discharged_charge = nan;
+    this->total_discharged_energy = nan;
 }
+
+can::HarmonyBmsModel::HarmonyBmsModel(Id id) : id(id) {}
 
 auto can::HarmonyBmsModel::get_id() const -> Id { return this->id; }
 
@@ -110,7 +112,6 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
         return std::nullopt;
     }
 
-    // This is an event flag for the state returned by this decode call, not persistent state.
     this->state.status_updated = false;
 
     const auto packet_id = static_cast<uint8_t>((frame.id >> 8) & 0xFFU);

@@ -10,9 +10,9 @@
 
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
 
-// VESC BMS CAN protocol used by the Harmony16-compatible circuit.
-// ref: https://github.com/vedderb/bldc/blob/master/datatypes.h
-// ref: https://github.com/vedderb/bldc/blob/master/bms.c
+// VESC BMS CANプロトコルに基づいたHarmony 16 BMSに対応
+// ref: https://github.com/vedderb/bldc/blob/4fd8279ea45a17c0d69357438ae2f7237a32514f/datatypes.h
+// ref: https://github.com/vedderb/bldc/blob/4fd8279ea45a17c0d69357438ae2f7237a32514f/bms.c
 
 namespace sinsei_umiusi_control::hardware_model::can {
 
@@ -21,7 +21,7 @@ class HarmonyBmsModel {
     using Id = uint8_t;
 
     static constexpr std::size_t CELL_COUNT = 12;
-    // Five standardized temperatures followed by five board-specific sensors.
+    // 0〜2: セル、3: MOSFET、4: 周囲温度、5〜9: Harmony16基板上の追加温度センサー
     static constexpr std::size_t TEMPERATURE_COUNT = 10;
     static constexpr std::size_t STATUS_LENGTH = 40;
 
@@ -61,33 +61,35 @@ class HarmonyBmsModel {
     };
 
     struct State {
-        double pack_voltage = 0.0;
-        double charger_voltage = 0.0;
-        double input_current = 0.0;
-        double measured_current = 0.0;
-        double net_consumed_charge = 0.0;
-        double net_consumed_energy = 0.0;
-        std::array<double, CELL_COUNT> cell_voltages{};
+        State();
+
+        double pack_voltage;
+        double charger_voltage;
+        double input_current;
+        double measured_current;
+        double net_consumed_charge;
+        double net_consumed_energy;
+        std::array<double, CELL_COUNT> cell_voltages;
         std::array<bool, CELL_COUNT> cell_balancing{};
         uint8_t cell_count = 0;
-        std::array<double, TEMPERATURE_COUNT> temperatures{};
+        std::array<double, TEMPERATURE_COUNT> temperatures;
         uint8_t temperature_count = 0;
-        double humidity_sensor_temperature = 0.0;
-        double relative_humidity = 0.0;
-        double balance_ic_temperature = 0.0;
-        double state_of_charge = 0.0;
-        double state_of_health = 0.0;
-        double cell_voltage_min = 0.0;
-        double cell_voltage_max = 0.0;
-        double cell_temperature_max = 0.0;
+        double humidity_sensor_temperature;
+        double relative_humidity;
+        double balance_ic_temperature;
+        double state_of_charge;
+        double state_of_health;
+        double cell_voltage_min;
+        double cell_voltage_max;
+        double cell_temperature_max;
         bool charging = false;
         bool balancing = false;
         bool charge_allowed = false;
         uint8_t data_version = 0;
-        double total_charged_charge = 0.0;
-        double total_charged_energy = 0.0;
-        double total_discharged_charge = 0.0;
-        double total_discharged_energy = 0.0;
+        double total_charged_charge;
+        double total_charged_energy;
+        double total_discharged_charge;
+        double total_discharged_energy;
         std::array<char, STATUS_LENGTH> status{};
         bool status_updated = false;
         PowerSwitchState power_switch_state = PowerSwitchState::Unknown;

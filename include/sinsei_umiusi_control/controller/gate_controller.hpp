@@ -45,13 +45,13 @@ class GateController : public controller_interface::ControllerInterface {
     struct Input {
         // State interfaces (in)
         struct State {
-            bool bms_health;
+            sinsei_umiusi_control::state::bms::Health bms_health;
             sinsei_umiusi_control::state::bms::Voltages bms_voltages;
             sinsei_umiusi_control::state::bms::Currents bms_currents;
             sinsei_umiusi_control::state::bms::CapacityState bms_capacity;
             sinsei_umiusi_control::state::bms::CellVoltageRange bms_cell_voltage_range;
             sinsei_umiusi_control::state::bms::Status bms_status;
-            uint8_t bms_cell_count;
+            sinsei_umiusi_control::state::bms::CellCount bms_cell_count;
             std::array<sinsei_umiusi_control::state::bms::Cell, 12> bms_cells;
             sinsei_umiusi_control::state::bms::Temperatures bms_temperatures;
             sinsei_umiusi_control::state::imu::Temperature imu_temperature;

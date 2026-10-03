@@ -17,6 +17,10 @@ namespace sinsei_umiusi_control::hardware {
 
 class Can : public hardware_interface::SystemInterface {
   private:
+    static constexpr std::size_t LEGACY_THRUSTER_COUNT = 4;
+    static constexpr std::size_t MAX_CYCLES_SINCE_NODE_UPDATE = 50;
+    static constexpr std::size_t MAX_CYCLES_SINCE_ANY_NODE_UPDATE = 50;
+
     std::optional<hardware_model::CanModel> model;
     // CanModelへ渡したスラスタ設定と同じ順序で保持する
     std::vector<std::string> thruster_names;
@@ -24,7 +28,7 @@ class Can : public hardware_interface::SystemInterface {
     // 最後の状態更新から経過した周期数
     std::size_t cycles_since_any_node_update = 0;
     std::size_t cycles_since_bms_update = 0;
-    std::array<std::size_t, 4> cycles_since_esc_update{};
+    std::array<std::size_t, LEGACY_THRUSTER_COUNT> cycles_since_esc_update{};
 
     bool bms_status_initialized = false;
     std::string last_bms_status;

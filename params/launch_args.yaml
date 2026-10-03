@@ -19,7 +19,7 @@ launch:
   - arg:
       description: "CAN ID for the Harmony16-compatible BMS"
       name: harmony_bms_id
-      default: "10"
+      default: "3"
 
   - arg:
       description: "GPIO chip device path"

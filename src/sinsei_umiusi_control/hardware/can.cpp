@@ -62,7 +62,6 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
 
     // FIXME: URDF側での名前付きGPIO設定を導入するまでは、既存のハードウェアパラメータを維持する。
     // CanModel自体は、この固定長の表現には依存していない
-    constexpr size_t LEGACY_THRUSTER_COUNT = 4;
     auto thruster_configs = std::vector<hardware_model::CanModel::ThrusterConfig>{};
     auto thruster_names = std::vector<std::string>{};
     thruster_configs.reserve(LEGACY_THRUSTER_COUNT);
@@ -92,8 +91,8 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     }
 
     this->thruster_names = std::move(thruster_names);
-    this->cycles_since_bms_update = 50;
-    this->cycles_since_esc_update.fill(50);
+    this->cycles_since_bms_update = MAX_CYCLES_SINCE_NODE_UPDATE;
+    this->cycles_since_esc_update.fill(MAX_CYCLES_SINCE_NODE_UPDATE);
     this->bms_status_initialized = false;
     this->last_bms_status.clear();
     this->last_bms_power_switch_state =
@@ -132,7 +131,7 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
     -> hardware_interface::return_type {
     if (!this->model) {
         this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
-        this->set_state("bms/health", util::to_interface_data(false));
+        this->set_state("bms/health", util::to_interface_data(state::bms::Health{false}));
         for (const auto & name : this->thruster_names) {
             this->set_state(
                 name + "/esc/health", util::to_interface_data(state::thruster::esc::Health{false}));
@@ -147,7 +146,7 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
     auto res = this->model->on_read();
     if (!res) {
         this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
-        this->set_state("bms/health", util::to_interface_data(false));
+        this->set_state("bms/health", util::to_interface_data(state::bms::Health{false}));
         for (const auto & name : this->thruster_names) {
             this->set_state(
                 name + "/esc/health", util::to_interface_data(state::thruster::esc::Health{false}));
@@ -161,7 +160,7 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
     }
 
     const auto & read_batch = res.value();
-    auto esc_updated = std::array<bool, 4>{};
+    auto esc_updated = std::array<bool, LEGACY_THRUSTER_COUNT>{};
     auto bms_updated = false;
     for (const auto & state : read_batch.states) {
         switch (state.index()) {
@@ -232,7 +231,7 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
                                       bms.fault_flags, static_cast<uint8_t>(bms.power_switch_state),
                                       bms.charging, bms.balancing, bms.charge_allowed});
                 set_bms_state("bms/balance_ic_temperature", bms.balance_ic_temperature);
-                set_bms_state("bms/cell_count", bms.cell_count);
+                set_bms_state("bms/cell_count", state::bms::CellCount{bms.cell_count});
                 for (std::size_t i = 0; i < bms.cell_voltages.size(); ++i) {
                     set_bms_state(
                         "bms/cell_" + std::to_string(i),
@@ -302,15 +301,14 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
         }
     }
 
-    constexpr std::size_t MAX_CYCLES_SINCE_NODE_UPDATE = 50;
     if (bms_updated) {
         this->cycles_since_bms_update = 0;
     } else if (this->cycles_since_bms_update < MAX_CYCLES_SINCE_NODE_UPDATE) {
         ++this->cycles_since_bms_update;
     }
     this->set_state(
-        "bms/health",
-        util::to_interface_data(this->cycles_since_bms_update < MAX_CYCLES_SINCE_NODE_UPDATE));
+        "bms/health", util::to_interface_data(state::bms::Health{
+                          this->cycles_since_bms_update < MAX_CYCLES_SINCE_NODE_UPDATE}));
 
     for (std::size_t i = 0; i < this->thruster_names.size(); ++i) {
         if (esc_updated[i]) {
@@ -329,7 +327,6 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
     }
 
     // この周期数だけ状態更新がなければCANを異常とみなす
-    constexpr std::size_t MAX_CYCLES_SINCE_ANY_NODE_UPDATE = 50;
     if (!read_batch.error_message.empty()) {
         this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
 

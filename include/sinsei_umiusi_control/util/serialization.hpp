@@ -52,7 +52,7 @@ inline auto to_interface_data(T && value) -> InterfaceData {
     static_assert(std::is_trivially_copyable<ValueType>::value, "T must be trivially copyable");
 
     InterfaceData result = 0.0;
-    std::memcpy(&result, &value, sizeof(T));
+    std::memcpy(&result, &value, sizeof(ValueType));
     return result;
 }
 

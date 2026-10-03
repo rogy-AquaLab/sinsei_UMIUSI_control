@@ -6,6 +6,10 @@
 
 namespace sinsei_umiusi_control::state::bms {
 
+struct Health {
+    bool is_ok;
+};
+
 struct Voltages {
     float pack;
     float charger;
@@ -37,6 +41,10 @@ struct Status {
 struct Cell {
     float voltage;
     bool balancing;
+};
+
+struct CellCount {
+    uint8_t value;
 };
 
 struct Temperatures {

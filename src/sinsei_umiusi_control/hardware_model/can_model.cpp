@@ -50,7 +50,7 @@ auto CanModel::validate_configuration() const -> tl::expected<void, std::string>
 auto CanModel::on_init() -> tl::expected<void, std::string> {
     const auto validation_res = this->validate_configuration();
     if (!validation_res) {
-        return tl::make_unexpected("Invalid thruster configuration: " + validation_res.error());
+        return tl::make_unexpected("Invalid CAN node configuration: " + validation_res.error());
     }
 
     const auto res = this->can->init("can0");
@@ -70,9 +70,31 @@ auto CanModel::on_destroy() -> tl::expected<void, std::string> {
     return {};
 }
 
+auto CanModel::is_vesc_transport_frame(const interface::CanFrame & frame) -> bool {
+    if (!frame.is_extended) {
+        return false;
+    }
+
+    const auto packet_id = static_cast<can::VescModel::PacketId>((frame.id >> 8) & 0xFFU);
+    switch (packet_id) {
+        case can::VescModel::PacketId::CAN_PACKET_FILL_RX_BUFFER:
+        case can::VescModel::PacketId::CAN_PACKET_FILL_RX_BUFFER_LONG:
+        case can::VescModel::PacketId::CAN_PACKET_PROCESS_RX_BUFFER:
+        case can::VescModel::PacketId::CAN_PACKET_PROCESS_SHORT_BUFFER:
+            return true;
+        default:
+            return false;
+    }
+}
+
 auto CanModel::decode_frame(const interface::CanFrame & frame)
-    -> tl::expected<DecodedState, std::string> {
+    -> tl::expected<std::optional<DecodedState>, std::string> {
     // CANフレームをデコードするため、各モデルを順番に試す
+
+    // 受信途中のフレームは無視する
+    if (is_vesc_transport_frame(frame)) {
+        return std::nullopt;
+    }
 
     auto error_message = std::string("");
 
@@ -80,7 +102,7 @@ auto CanModel::decode_frame(const interface::CanFrame & frame)
     if (!bms_state_res) {
         error_message += "    Harmony BMS: " + bms_state_res.error() + "\n";
     } else if (bms_state_res.value()) {
-        return DecodedState{std::move(bms_state_res.value().value())};
+        return std::optional<DecodedState>{DecodedState{std::move(bms_state_res.value().value())}};
     }
 
     for (const auto & thruster : this->thrusters) {
@@ -104,26 +126,26 @@ auto CanModel::decode_frame(const interface::CanFrame & frame)
                 const auto & status = std::get<0>(packet_status_opt.value());
                 constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
                 // ERPMを極対数で割ってRPMに変換
-                return DecodedState{std::make_tuple(
-                    thruster.name, state::thruster::esc::Rpm{status.erpm / BLDC_POLE_PAIR})};
+                return std::optional<DecodedState>{DecodedState{std::make_tuple(
+                    thruster.name, state::thruster::esc::Rpm{status.erpm / BLDC_POLE_PAIR})}};
             }
             case 4: {  // PacketStatus5
                 const auto & status = std::get<4>(packet_status_opt.value());
                 const auto volts_in = status.volts_in;
-                return DecodedState{
-                    std::make_tuple(thruster.name, state::thruster::esc::Voltage{volts_in})};
+                return std::optional<DecodedState>{DecodedState{
+                    std::make_tuple(thruster.name, state::thruster::esc::Voltage{volts_in})}};
             }
             case 5: {  // PacketStatus6
                 const auto & status = std::get<5>(packet_status_opt.value());
                 // 浸水センサーはADC1に接続されている
                 const auto water_leaked = status.adc1 < WATER_LEAKED_VOLTAGE_THRESHOLD;
-                return DecodedState{std::make_tuple(
-                    thruster.name, state::thruster::esc::WaterLeaked{water_leaked})};
+                return std::optional<DecodedState>{DecodedState{std::make_tuple(
+                    thruster.name, state::thruster::esc::WaterLeaked{water_leaked})}};
             }
             default: {
-                // STATUS_2/3/4は現時点では公開しないが、正常なVESC通信として扱う。
-                return DecodedState{
-                    std::make_tuple(thruster.name, state::thruster::esc::Health{true})};
+                // STATUS_2/3/4はVESCの生存確認のためにのみ使用
+                return std::optional<DecodedState>{DecodedState{
+                    std::make_tuple(thruster.name, state::thruster::esc::Health{true})}};
             }
         }
     }
@@ -150,7 +172,9 @@ auto CanModel::on_read() -> tl::expected<ReadBatch, std::string> {
     for (const auto & frame : frames_res.value()) {
         auto state_res = this->decode_frame(frame);
         if (state_res) {
-            read_batch.states.push_back(std::move(state_res.value()));
+            if (state_res.value()) {
+                read_batch.states.push_back(std::move(state_res.value().value()));
+            }
             continue;
         }
 

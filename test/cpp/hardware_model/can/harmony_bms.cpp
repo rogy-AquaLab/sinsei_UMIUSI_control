@@ -59,15 +59,7 @@ TEST(HarmonyBmsModelTest, ExposesConfiguredId) {
 }
 
 TEST(HarmonyBmsModelTest, InitializesUnreceivedMeasurementsToNaN) {
-    auto model = suchm::can::HarmonyBmsModel(BMS_ID);
-    const auto result = model.decode(make_frame(
-        suchm::can::HarmonyBmsModel::PacketId::Balancing,
-        {std::byte{0}, std::byte{0}, std::byte{0}, std::byte{0}, std::byte{0}, std::byte{0},
-         std::byte{0}, std::byte{0}}));
-
-    ASSERT_TRUE(result);
-    ASSERT_TRUE(result.value());
-    const auto & state = result.value().value();
+    const auto state = suchm::can::HarmonyBmsModel::State{};
     EXPECT_TRUE(std::isnan(state.pack_voltage));
     EXPECT_TRUE(std::isnan(state.charger_voltage));
     EXPECT_TRUE(std::isnan(state.input_current));

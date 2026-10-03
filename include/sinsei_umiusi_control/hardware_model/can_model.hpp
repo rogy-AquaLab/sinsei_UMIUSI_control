@@ -2,6 +2,7 @@
 #define SINSEI_UMIUSI_CONTROL_hardware_model_CAN_MODEL_HPP
 
 #include <memory>
+#include <optional>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 #include <tuple>
@@ -75,12 +76,14 @@ class CanModel {
     static constexpr double WATER_LEAKED_VOLTAGE_THRESHOLD = 2.0;
 
     auto validate_configuration() const -> tl::expected<void, std::string>;
-    auto decode_frame(const interface::CanFrame & frame) -> tl::expected<DecodedState, std::string>;
+    static auto is_vesc_transport_frame(const interface::CanFrame & frame) -> bool;
+    auto decode_frame(const interface::CanFrame & frame)
+        -> tl::expected<std::optional<DecodedState>, std::string>;
 
   public:
     CanModel(
         std::shared_ptr<interface::Can> can, std::vector<ThrusterConfig> thruster_configs,
-        can::HarmonyBmsModel::Id harmony_bms_id = 10);
+        can::HarmonyBmsModel::Id harmony_bms_id);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_destroy() -> tl::expected<void, std::string>;
     auto on_read() -> tl::expected<ReadBatch, std::string>;

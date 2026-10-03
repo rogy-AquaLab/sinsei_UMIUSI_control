@@ -356,7 +356,7 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
     auto battery_state = sensor_msgs::msg::BatteryState{};
     battery_state.header = std_msgs::msg::Header().set__stamp(time).set__frame_id("harmony_bms");
     battery_state.voltage = this->input.state.bms_voltages.pack;
-    // VESC BMS reports positive current while discharging; BatteryState uses the opposite sign.
+    // VESC BMSは放電時を正、BatteryStateは充電時を正とするため、符号を反転する
     battery_state.current = -this->input.state.bms_currents.measured;
     battery_state.temperature = std::numeric_limits<float>::quiet_NaN();
     battery_state.charge = std::numeric_limits<float>::quiet_NaN();
@@ -370,14 +370,14 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                    ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING
                    : sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_NOT_CHARGING);
     battery_state.power_supply_health =
-        this->input.state.bms_health && this->input.state.bms_status.fault_flags == 0
+        this->input.state.bms_health.is_ok && this->input.state.bms_status.fault_flags == 0
             ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_GOOD
             : sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_UNSPEC_FAILURE;
     battery_state.power_supply_technology =
         sensor_msgs::msg::BatteryState::POWER_SUPPLY_TECHNOLOGY_LIPO;
-    battery_state.present = this->input.state.bms_health;
-    const auto cell_count =
-        std::min<std::size_t>(this->input.state.bms_cell_count, this->input.state.bms_cells.size());
+    battery_state.present = this->input.state.bms_health.is_ok;
+    const auto cell_count = std::min<std::size_t>(
+        this->input.state.bms_cell_count.value, this->input.state.bms_cells.size());
     battery_state.cell_voltage.reserve(cell_count);
     for (std::size_t i = 0; i < cell_count; ++i) {
         battery_state.cell_voltage.push_back(this->input.state.bms_cells[i].voltage);
@@ -472,10 +472,11 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
     this->output.pub.high_power_circuit_info_publisher->publish(
         msg::HighPowerCircuitInfo()
             .set__bms(
-                this->input.state.bms_health ? msg::HighPowerCircuitInfo::OK
-                                             : msg::HighPowerCircuitInfo::ERROR)
+                this->input.state.bms_health.is_ok ? msg::HighPowerCircuitInfo::OK
+                                                   : msg::HighPowerCircuitInfo::ERROR)
             .set__battery(
-                this->input.state.bms_health && this->input.state.bms_status.fault_flags == 0 &&
+                this->input.state.bms_health.is_ok &&
+                        this->input.state.bms_status.fault_flags == 0 &&
                         this->input.state.bms_voltages.pack > 0.0F
                     ? msg::HighPowerCircuitInfo::OK
                     : msg::HighPowerCircuitInfo::ERROR)
