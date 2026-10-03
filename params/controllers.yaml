@@ -7,10 +7,10 @@
 #   (thruster_controller.cpp:354-363)、区間は **disarm ごとに開き直る**。
 #   この値は「サーボはこれより速くは動けない」という**下限の保証**として使う。
 #   実測より大きいと、まだ動いている途中で「指令角に到達した」と誤って確定する。
-#   4.0 rad/s (= 229 deg/s) の根拠: サーボは Hitec HS-646WP、データシート無負荷
-#   300-350 deg/s。水中負荷でのディレートとして umiusi_sim は 250 deg/s を使っている
+#   3.0 rad/s (= 172 deg/s) は dev-0921 (10b966d, 2026-10-03) で入った値。参考: サーボは
+#   Hitec HS-646WP、データシート無負荷 300-350 deg/s、umiusi_sim は水中負荷で 250 deg/s
 #   (umiusi_sim/configs/umiusi.yaml の servo_slew_deg_per_s)。その下に置いた値。
-#   **実測ではない。** arm から最初の推力までの死に時間は最悪 pi/4.0 = 0.79 s になる。
+#   **実測ではない。** arm から最初の推力までの死に時間は最悪 pi/3.0 = 1.05 s になる。
 /**:
   controller_manager:
     ros__parameters:
@@ -38,6 +38,11 @@
         ki_roll: 0.0 # Roll integral gain (0 disables integral control)
         ki_pitch: 0.0 # Pitch integral gain (0 disables integral control)
         i_max: 0.2 # Roll/pitch integral error clamp
+      mixer:
+        servo_direction_deadband_deg: 5.0 # Ignore servo-axis direction changes within this angle
+        servo_reversal_deadband_deg: 10.0 # Hold an end stop near the +/-90 deg wrap boundary
+        servo_retarget_thrust_enter: 0.10 # Start servo direction tracking above this normalized thrust
+        servo_retarget_thrust_exit: 0.06 # Stop tracking below this normalized thrust
 
   thruster_controller_lf: # Left Front Thruster
     ros__parameters:
@@ -50,7 +55,7 @@
       duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
       max_duty: 0.5 # Maximum duty cycle (0.0 to 1.0)
       max_duty_step_per_sec: 1.0 # Maximum change in duty cycle per second
-      servo_max_angular_velocity: 4.0 # Maximum servo angular velocity [rad/s] (0 = 推定が永久に未確定 = 推力が一切出ない)
+      servo_max_angular_velocity: 3.0 # Maximum servo angular velocity [rad/s] (0 = 推定が永久に未確定 = 推力が一切出ない)
 
   thruster_controller_lb: # Left Back Thruster
     ros__parameters:
@@ -63,7 +68,7 @@
       duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
       max_duty: 0.5 # Maximum duty cycle (0.0 to 1.0)
       max_duty_step_per_sec: 1.0 # Maximum change in duty cycle per second
-      servo_max_angular_velocity: 4.0 # Maximum servo angular velocity [rad/s] (0 = 推定が永久に未確定 = 推力が一切出ない)
+      servo_max_angular_velocity: 3.0 # Maximum servo angular velocity [rad/s] (0 = 推定が永久に未確定 = 推力が一切出ない)
 
   thruster_controller_rb: # Right Back Thruster
     ros__parameters:
@@ -76,7 +81,7 @@
       duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
       max_duty: 0.5 # Maximum duty cycle (0.0 to 1.0)
       max_duty_step_per_sec: 1.0 # Maximum change in duty cycle per second
-      servo_max_angular_velocity: 4.0 # Maximum servo angular velocity [rad/s] (0 = 推定が永久に未確定 = 推力が一切出ない)
+      servo_max_angular_velocity: 3.0 # Maximum servo angular velocity [rad/s] (0 = 推定が永久に未確定 = 推力が一切出ない)
 
   thruster_controller_rf: # Right Front Thruster
     ros__parameters:
@@ -89,4 +94,4 @@
       duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
       max_duty: 0.5 # Maximum duty cycle (0.0 to 1.0)
       max_duty_step_per_sec: 1.0 # Maximum change in duty cycle per second
-      servo_max_angular_velocity: 4.0 # Maximum servo angular velocity [rad/s] (0 = 推定が永久に未確定 = 推力が一切出ない)
+      servo_max_angular_velocity: 3.0 # Maximum servo angular velocity [rad/s] (0 = 推定が永久に未確定 = 推力が一切出ない)

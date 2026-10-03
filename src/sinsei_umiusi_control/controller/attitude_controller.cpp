@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <boost/math/constants/constants.hpp>
 #include <cmath>
 #include <controller_interface/controller_interface_base.hpp>
 #include <cstddef>
@@ -27,6 +28,13 @@ using rcl_interfaces::msg::FloatingPointRange;
 using rcl_interfaces::msg::ParameterDescriptor;
 using sinsei_umiusi_control::controller::logic::attitude::AttitudeFeedbackGains;
 using sinsei_umiusi_control::controller::logic::attitude::FeedForwardGains;
+using sinsei_umiusi_control::controller::logic::attitude::MixerParameters;
+
+constexpr auto DEFAULT_SERVO_DIRECTION_DEADBAND_DEG = 5.0;
+constexpr auto DEFAULT_SERVO_REVERSAL_DEADBAND_DEG = 10.0;
+constexpr auto DEFAULT_SERVO_RETARGET_THRUST_ENTER = 0.10;
+constexpr auto DEFAULT_SERVO_RETARGET_THRUST_EXIT = 0.06;
+constexpr auto MAX_SERVO_DEADBAND_DEG = 90.0;
 
 auto nonnegative_gain_descriptor(const std::string & description) -> ParameterDescriptor {
     return ParameterDescriptor{}
@@ -34,6 +42,58 @@ auto nonnegative_gain_descriptor(const std::string & description) -> ParameterDe
         .set__type(rclcpp::PARAMETER_DOUBLE)
         .set__floating_point_range({FloatingPointRange{}.set__from_value(0.0).set__to_value(
             std::numeric_limits<double>::max())});
+}
+
+auto servo_deadband_descriptor(const std::string & description) -> ParameterDescriptor {
+    return ParameterDescriptor{}
+        .set__description(description)
+        .set__type(rclcpp::PARAMETER_DOUBLE)
+        .set__floating_point_range({FloatingPointRange{}
+                                        .set__from_value(0.0)
+                                        .set__to_value(MAX_SERVO_DEADBAND_DEG)});
+}
+
+auto normalized_thrust_descriptor(const std::string & description) -> ParameterDescriptor {
+    return ParameterDescriptor{}
+        .set__description(description)
+        .set__type(rclcpp::PARAMETER_DOUBLE)
+        .set__floating_point_range(
+            {FloatingPointRange{}.set__from_value(0.0).set__to_value(1.0)});
+}
+
+auto read_mixer_parameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & node)
+    -> std::optional<MixerParameters> {
+    const auto direction_deadband_deg =
+        node->get_parameter("mixer.servo_direction_deadband_deg").as_double();
+    const auto reversal_deadband_deg =
+        node->get_parameter("mixer.servo_reversal_deadband_deg").as_double();
+    const auto retarget_thrust_enter =
+        node->get_parameter("mixer.servo_retarget_thrust_enter").as_double();
+    const auto retarget_thrust_exit =
+        node->get_parameter("mixer.servo_retarget_thrust_exit").as_double();
+    const auto deadbands = std::array<double, 2>{direction_deadband_deg, reversal_deadband_deg};
+    if (!std::all_of(deadbands.begin(), deadbands.end(), [](double value) {
+            return std::isfinite(value) && value >= 0.0 && value <= MAX_SERVO_DEADBAND_DEG;
+        })) {
+        RCLCPP_ERROR(node->get_logger(), "Servo deadbands must be finite and between 0 and 90 deg");
+        return std::nullopt;
+    }
+    if (!std::isfinite(retarget_thrust_enter) || retarget_thrust_enter < 0.0 ||
+        retarget_thrust_enter > 1.0 || !std::isfinite(retarget_thrust_exit) ||
+        retarget_thrust_exit < 0.0 || retarget_thrust_exit > retarget_thrust_enter) {
+        RCLCPP_ERROR(
+            node->get_logger(),
+            "Servo retarget thrust thresholds must satisfy 0 <= exit <= enter <= 1");
+        return std::nullopt;
+    }
+
+    constexpr auto DEG_TO_RAD = boost::math::constants::pi<double>() / 180.0;
+    return MixerParameters{
+        direction_deadband_deg * DEG_TO_RAD,
+        reversal_deadband_deg * DEG_TO_RAD,
+        retarget_thrust_enter,
+        retarget_thrust_exit,
+    };
 }
 
 auto read_feedback_gains(const rclcpp_lifecycle::LifecycleNode::SharedPtr & node)
@@ -128,6 +188,18 @@ auto AttitudeController::on_init() -> controller_interface::CallbackReturn {
         "feedback.ki_pitch", 0.0, nonnegative_gain_descriptor("Pitch integral gain"));
     this->get_node()->declare_parameter(
         "feedback.i_max", 0.2, nonnegative_gain_descriptor("Roll/pitch integral error clamp"));
+    this->get_node()->declare_parameter(
+        "mixer.servo_direction_deadband_deg", DEFAULT_SERVO_DIRECTION_DEADBAND_DEG,
+        servo_deadband_descriptor("Servo direction deadband [deg]"));
+    this->get_node()->declare_parameter(
+        "mixer.servo_reversal_deadband_deg", DEFAULT_SERVO_REVERSAL_DEADBAND_DEG,
+        servo_deadband_descriptor("Servo end-stop reversal deadband [deg]"));
+    this->get_node()->declare_parameter(
+        "mixer.servo_retarget_thrust_enter", DEFAULT_SERVO_RETARGET_THRUST_ENTER,
+        normalized_thrust_descriptor("Normalized thrust to start servo direction tracking"));
+    this->get_node()->declare_parameter(
+        "mixer.servo_retarget_thrust_exit", DEFAULT_SERVO_RETARGET_THRUST_EXIT,
+        normalized_thrust_descriptor("Normalized thrust to stop servo direction tracking"));
 
     this->input = AttitudeController::Input{};
     this->input.cmd.target_attitude.w = 1.0;
@@ -148,13 +220,18 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
             this->get_node()->get_logger(), "Invalid control mode: %s", control_mode_str.c_str());
         return controller_interface::CallbackReturn::ERROR;
     }
+    const auto mixer_parameters = read_mixer_parameters(this->get_node());
+    if (!mixer_parameters) {
+        return controller_interface::CallbackReturn::ERROR;
+    }
     switch (control_mode_res.value()) {
         case logic::ControlMode::FeedForward: {
             const auto gains = read_feed_forward_gains(this->get_node());
             if (!gains) {
                 return controller_interface::CallbackReturn::ERROR;
             }
-            this->logic = std::make_unique<logic::attitude::FeedForward>(*gains);
+            this->logic =
+                std::make_unique<logic::attitude::FeedForward>(*gains, *mixer_parameters);
             break;
         }
         case logic::ControlMode::FeedBack: {
@@ -162,7 +239,7 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
             if (!gains) {
                 return controller_interface::CallbackReturn::ERROR;
             }
-            this->logic = std::make_unique<logic::attitude::FeedBack>(*gains);
+            this->logic = std::make_unique<logic::attitude::FeedBack>(*gains, *mixer_parameters);
             break;
         }
         default: {
@@ -359,13 +436,18 @@ auto AttitudeController::update_and_write_commands(
             logic::control_mode_to_str(control_mode_res.value()).data());
 
         // モードが変わった場合はロジックを変更して初期化
+        const auto mixer_parameters = read_mixer_parameters(this->get_node());
+        if (!mixer_parameters) {
+            return controller_interface::return_type::ERROR;
+        }
         switch (control_mode_res.value()) {
             case logic::ControlMode::FeedForward: {
                 const auto gains = read_feed_forward_gains(this->get_node());
                 if (!gains) {
                     return controller_interface::return_type::ERROR;
                 }
-                this->logic = std::make_unique<logic::attitude::FeedForward>(*gains);
+                this->logic =
+                    std::make_unique<logic::attitude::FeedForward>(*gains, *mixer_parameters);
                 break;
             }
             case logic::ControlMode::FeedBack: {
@@ -373,7 +455,8 @@ auto AttitudeController::update_and_write_commands(
                 if (!gains) {
                     return controller_interface::return_type::ERROR;
                 }
-                this->logic = std::make_unique<logic::attitude::FeedBack>(*gains);
+                this->logic =
+                    std::make_unique<logic::attitude::FeedBack>(*gains, *mixer_parameters);
                 break;
             }
             default: {

@@ -22,9 +22,12 @@ struct FeedForwardGains {
 class FeedForward : public AttitudeController::Logic {
   private:
     FeedForwardGains gains;
+    MixerParameters mixer_parameters;
+    MixerState mixer_state;
 
   public:
-    explicit FeedForward(FeedForwardGains gains = {}) : gains(gains) {}
+    FeedForward(FeedForwardGains gains, MixerParameters mixer_parameters)
+    : gains(gains), mixer_parameters(mixer_parameters) {}
 
     auto control_mode() const -> logic::ControlMode override {
         return logic::ControlMode::FeedForward;
@@ -52,7 +55,7 @@ class FeedForward : public AttitudeController::Logic {
 
         return mix_to_thrusters(
             u, input.state.servo_estimated_angles, input.state.servo_max_angular_velocities,
-            duration);
+            duration, this->mixer_parameters, this->mixer_state);
     }
 };
 
