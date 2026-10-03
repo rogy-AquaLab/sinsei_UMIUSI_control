@@ -24,8 +24,7 @@ struct MixerParameters {
     double servo_reversal_deadband;
     double servo_retarget_thrust_enter;
     double servo_retarget_thrust_exit;
-    // ESC 推力（正規化）の上限。thruster 側の max_duty / duty_per_thrust に合わせる。
-    // 超える分は並進を縮めて吸収し、姿勢モーメントを優先して残す。
+    // ESC 推力（正規化）の上限。thruster 側の max_duty / duty_per_thrust に合わせること。
     double esc_thrust_limit = 1.0;
 };
 
@@ -165,8 +164,7 @@ inline auto mix_to_thrusters(
         {-1.0, -1.0, 0.0, 0.0, 0.0, sqrt(2.0)},        // スラスタ4 (:rf) 垂直出力
     };
 
-    // 上限を超える要求をそのまま出すと thruster 側の clip で全基が同じ値に張り付き、
-    // 姿勢モーメントが消える。モーメントを優先し、並進だけを一様に縮めて上限内に収める。
+    // 上限超えを thruster 側の clip に任せると全基が同じ値に張り付き、姿勢モーメントが消える。
     constexpr auto MAX_THRUST = boost::math::constants::root_two<double>();
     const auto limit = parameters.esc_thrust_limit * MAX_THRUST;
     auto u_moment = u;
@@ -179,7 +177,6 @@ inline auto mix_to_thrusters(
     for (size_t i = 0; i < servo_estimated_angles.size(); ++i) {
         moment_peak = std::max(moment_peak, y_moment.segment<2>(2 * i).norm());
     }
-    // モーメントだけで上限を超えるときは、モーメントも一様に縮めて向きを保つ。
     if (moment_peak > limit) {
         y_moment *= limit / moment_peak;
     }
