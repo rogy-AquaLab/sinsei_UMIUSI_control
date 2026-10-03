@@ -24,6 +24,9 @@ struct MixerParameters {
     double servo_reversal_deadband;
     double servo_retarget_thrust_enter;
     double servo_retarget_thrust_exit;
+    // ESC 推力（正規化）の上限。thruster 側の max_duty / duty_per_thrust に合わせる。
+    // 超える分は並進を縮めて吸収し、姿勢モーメントを優先して残す。
+    double esc_thrust_limit = 1.0;
 };
 
 struct MixerState {
@@ -71,6 +74,18 @@ inline auto move_towards(double current, double target, double max_delta) -> dou
     return std::clamp(target, current - max_delta, current + max_delta);
 }
 
+// |moment + s * translation| <= limit を満たす最大の s (0..1)。|moment| <= limit が前提。
+inline auto translation_scale(
+    const Eigen::Vector2d & moment, const Eigen::Vector2d & translation, double limit) -> double {
+    const auto tt = translation.squaredNorm();
+    if (tt == 0.0) {
+        return 1.0;
+    }
+    const auto mt = moment.dot(translation);
+    const auto discriminant = mt * mt - tt * (moment.squaredNorm() - limit * limit);
+    return std::clamp((-mt + std::sqrt(std::max(discriminant, 0.0))) / tt, 0.0, 1.0);
+}
+
 }  // namespace detail
 
 inline auto hold_current_servo_angles(
@@ -112,7 +127,9 @@ inline auto mix_to_thrusters(
         parameters.servo_retarget_thrust_enter > 1.0 ||
         !std::isfinite(parameters.servo_retarget_thrust_exit) ||
         parameters.servo_retarget_thrust_exit < 0.0 ||
-        parameters.servo_retarget_thrust_exit > parameters.servo_retarget_thrust_enter) {
+        parameters.servo_retarget_thrust_exit > parameters.servo_retarget_thrust_enter ||
+        !std::isfinite(parameters.esc_thrust_limit) || parameters.esc_thrust_limit <= 0.0 ||
+        parameters.esc_thrust_limit > 1.0) {
         mixer_state.servo_retargeting.fill(false);
         return output;
     }
@@ -142,9 +159,33 @@ inline auto mix_to_thrusters(
         {0.0, 0.0, 1.0, sqrt(2.0), sqrt(2.0), 0.0},    // スラスタ4 (:rf) 水平出力
         {-1.0, -1.0, 0.0, 0.0, 0.0, 1.0},              // スラスタ4 (:rf) 垂直出力
     };
-    const auto y = a * u;
 
+    // 上限を超える要求をそのまま出すと thruster 側の clip で全基が同じ値に張り付き、
+    // 姿勢モーメントが消える。モーメントを優先し、並進だけを一様に縮めて上限内に収める。
     constexpr auto MAX_THRUST = boost::math::constants::root_two<double>();
+    const auto limit = parameters.esc_thrust_limit * MAX_THRUST;
+    auto u_moment = u;
+    u_moment.tail<3>().setZero();
+    auto u_translation = u;
+    u_translation.head<3>().setZero();
+    Eigen::Vector<double, 8> y_moment = a * u_moment;
+    const Eigen::Vector<double, 8> y_translation = a * u_translation;
+    auto moment_peak = 0.0;
+    for (size_t i = 0; i < servo_estimated_angles.size(); ++i) {
+        moment_peak = std::max(moment_peak, y_moment.segment<2>(2 * i).norm());
+    }
+    // モーメントだけで上限を超えるときは、モーメントも一様に縮めて向きを保つ。
+    if (moment_peak > limit) {
+        y_moment *= limit / moment_peak;
+    }
+    auto scale = 1.0;
+    for (size_t i = 0; i < servo_estimated_angles.size(); ++i) {
+        scale = std::min(
+            scale, detail::translation_scale(
+                       y_moment.segment<2>(2 * i), y_translation.segment<2>(2 * i), limit));
+    }
+    const Eigen::Vector<double, 8> y = y_moment + scale * y_translation;
+
     for (size_t i = 0; i < servo_estimated_angles.size(); ++i) {
         const auto horizontal = y[2 * i];
         const auto vertical = y[2 * i + 1];

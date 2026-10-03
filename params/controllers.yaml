@@ -43,6 +43,7 @@
         servo_reversal_deadband_deg: 10.0 # Hold an end stop near the +/-90 deg wrap boundary
         servo_retarget_thrust_enter: 0.10 # Start servo direction tracking above this normalized thrust
         servo_retarget_thrust_exit: 0.06 # Stop tracking below this normalized thrust
+        esc_thrust_limit: 0.5 # = max_duty / duty_per_thrust. Translation is scaled down above this to keep attitude moments
 
   thruster_controller_lf: # Left Front Thruster
     ros__parameters:

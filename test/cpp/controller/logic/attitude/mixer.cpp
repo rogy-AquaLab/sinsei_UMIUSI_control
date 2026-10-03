@@ -4,6 +4,7 @@
 
 #include <array>
 #include <boost/math/constants/constants.hpp>
+#include <cmath>
 #include <limits>
 #include <optional>
 
@@ -123,6 +124,66 @@ TEST(AttitudeMixerTest, BuildsVerticalThrustAsServosActuallyMove) {
 
     for (const auto & thrust : output.cmd.esc_thrusts) {
         EXPECT_NEAR(thrust.value, expected_thrust, EPS);
+    }
+}
+
+auto limited_parameters(double esc_thrust_limit) -> MixerParameters {
+    auto limited = parameters();
+    limited.esc_thrust_limit = esc_thrust_limit;
+    return limited;
+}
+
+TEST(AttitudeMixerTest, ShrinksTranslationToKeepYawMomentUnderThrustLimit) {
+    // 前進 1.0 + yaw。上限 0.5 で並進だけを縮め、全基が同じ値に張り付かないこと。
+    const Eigen::Vector<double, 6> request{0.0, 0.0, 0.2, 1.0, 0.0, 0.0};
+
+    const auto output =
+        mix(request, estimates(0.0), velocities(1.0), 0.02, limited_parameters(0.5));
+
+    auto yaw_sum = 0.0;
+    for (const auto & thrust : output.cmd.esc_thrusts) {
+        EXPECT_LE(std::abs(thrust.value), 0.5 + EPS);
+        yaw_sum += thrust.value;
+    }
+    EXPECT_NEAR(yaw_sum, 4.0 * 0.2 / ROOT_TWO, EPS);
+    EXPECT_NEAR(output.cmd.esc_thrusts[2].value, 0.5, EPS);
+    EXPECT_NEAR(output.cmd.esc_thrusts[3].value, 0.5, EPS);
+    EXPECT_LT(output.cmd.esc_thrusts[0].value, 0.0);
+    EXPECT_GT(output.cmd.esc_thrusts[0].value, -0.5);
+}
+
+TEST(AttitudeMixerTest, ScalesMomentUniformlyWhenMomentAloneExceedsThrustLimit) {
+    const Eigen::Vector<double, 6> request{0.0, 0.0, 1.0, 1.0, 0.0, 0.0};
+
+    const auto output =
+        mix(request, estimates(0.0), velocities(1.0), 0.02, limited_parameters(0.5));
+
+    for (const auto & thrust : output.cmd.esc_thrusts) {
+        EXPECT_NEAR(thrust.value, 0.5, EPS);
+    }
+}
+
+TEST(AttitudeMixerTest, LeavesRequestsWithinThrustLimitUnchanged) {
+    const Eigen::Vector<double, 6> request{0.0, 0.0, 0.1, 0.3, 0.0, 0.0};
+
+    const auto limited =
+        mix(request, estimates(0.0), velocities(1.0), 0.02, limited_parameters(0.5));
+    const auto unlimited = mix(request, estimates(0.0), velocities(1.0), 0.02);
+
+    for (size_t i = 0; i < 4; ++i) {
+        EXPECT_NEAR(limited.cmd.esc_thrusts[i].value, unlimited.cmd.esc_thrusts[i].value, EPS);
+    }
+}
+
+TEST(AttitudeMixerTest, InvalidThrustLimitStopsThrust) {
+    const Eigen::Vector<double, 6> request{0.0, 0.0, 0.0, 1.0, 0.0, 0.0};
+
+    const auto output =
+        mix(request, estimates(0.4), velocities(1.0), 0.02, limited_parameters(0.0));
+
+    for (size_t i = 0; i < 4; ++i) {
+        EXPECT_DOUBLE_EQ(output.cmd.esc_thrusts[i].value, 0.0);
+        EXPECT_DOUBLE_EQ(output.cmd.servo_angles[i].value, 0.4);
     }
 }
 

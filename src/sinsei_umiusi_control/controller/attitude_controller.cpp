@@ -34,6 +34,7 @@ constexpr auto DEFAULT_SERVO_DIRECTION_DEADBAND_DEG = 5.0;
 constexpr auto DEFAULT_SERVO_REVERSAL_DEADBAND_DEG = 10.0;
 constexpr auto DEFAULT_SERVO_RETARGET_THRUST_ENTER = 0.10;
 constexpr auto DEFAULT_SERVO_RETARGET_THRUST_EXIT = 0.06;
+constexpr auto DEFAULT_ESC_THRUST_LIMIT = 1.0;
 constexpr auto MAX_SERVO_DEADBAND_DEG = 90.0;
 
 auto nonnegative_gain_descriptor(const std::string & description) -> ParameterDescriptor {
@@ -71,6 +72,7 @@ auto read_mixer_parameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & no
         node->get_parameter("mixer.servo_retarget_thrust_enter").as_double();
     const auto retarget_thrust_exit =
         node->get_parameter("mixer.servo_retarget_thrust_exit").as_double();
+    const auto esc_thrust_limit = node->get_parameter("mixer.esc_thrust_limit").as_double();
     const auto deadbands = std::array<double, 2>{direction_deadband_deg, reversal_deadband_deg};
     if (!std::all_of(deadbands.begin(), deadbands.end(), [](double value) {
             return std::isfinite(value) && value >= 0.0 && value <= MAX_SERVO_DEADBAND_DEG;
@@ -86,6 +88,10 @@ auto read_mixer_parameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & no
             "Servo retarget thrust thresholds must satisfy 0 <= exit <= enter <= 1");
         return std::nullopt;
     }
+    if (!std::isfinite(esc_thrust_limit) || esc_thrust_limit <= 0.0 || esc_thrust_limit > 1.0) {
+        RCLCPP_ERROR(node->get_logger(), "ESC thrust limit must satisfy 0 < limit <= 1");
+        return std::nullopt;
+    }
 
     constexpr auto DEG_TO_RAD = boost::math::constants::pi<double>() / 180.0;
     return MixerParameters{
@@ -93,6 +99,7 @@ auto read_mixer_parameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & no
         reversal_deadband_deg * DEG_TO_RAD,
         retarget_thrust_enter,
         retarget_thrust_exit,
+        esc_thrust_limit,
     };
 }
 
@@ -200,6 +207,10 @@ auto AttitudeController::on_init() -> controller_interface::CallbackReturn {
     this->get_node()->declare_parameter(
         "mixer.servo_retarget_thrust_exit", DEFAULT_SERVO_RETARGET_THRUST_EXIT,
         normalized_thrust_descriptor("Normalized thrust to stop servo direction tracking"));
+    this->get_node()->declare_parameter(
+        "mixer.esc_thrust_limit", DEFAULT_ESC_THRUST_LIMIT,
+        normalized_thrust_descriptor(
+            "Normalized ESC thrust limit (match max_duty / duty_per_thrust)"));
 
     this->input = AttitudeController::Input{};
     this->input.cmd.target_attitude.w = 1.0;
