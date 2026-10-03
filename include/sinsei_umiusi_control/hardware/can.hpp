@@ -1,7 +1,9 @@
 #ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_CAN_HPP
 #define SINSEI_UMIUSI_CONTROL_HARDWARE_CAN_HPP
 
+#include <array>
 #include <cstddef>
+#include <cstdint>
 #include <hardware_interface/system_interface.hpp>
 #include <hardware_interface/types/hardware_component_interface_params.hpp>
 #include <optional>
@@ -15,12 +17,24 @@ namespace sinsei_umiusi_control::hardware {
 
 class Can : public hardware_interface::SystemInterface {
   private:
+    static constexpr std::size_t LEGACY_THRUSTER_COUNT = 4;
+    static constexpr std::size_t MAX_CYCLES_SINCE_NODE_UPDATE = 50;
+    static constexpr std::size_t MAX_CYCLES_SINCE_ANY_NODE_UPDATE = 50;
+
     std::optional<hardware_model::CanModel> model;
     // CanModelへ渡したスラスタ設定と同じ順序で保持する
     std::vector<std::string> thruster_names;
 
-    // 状態更新がなかった連続周期数
-    std::size_t cycles_without_updates = 0;
+    // 最後の状態更新から経過した周期数
+    std::size_t cycles_since_any_node_update = 0;
+    std::size_t cycles_since_bms_update = 0;
+    std::array<std::size_t, LEGACY_THRUSTER_COUNT> cycles_since_esc_update{};
+
+    bool bms_status_initialized = false;
+    std::string last_bms_status;
+    hardware_model::can::HarmonyBmsModel::PowerSwitchState last_bms_power_switch_state =
+        hardware_model::can::HarmonyBmsModel::PowerSwitchState::Unknown;
+    uint32_t last_bms_fault_flags = hardware_model::can::HarmonyBmsModel::FaultNone;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(Can)

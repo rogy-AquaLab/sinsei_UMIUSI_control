@@ -7,21 +7,19 @@
 #include <utility>
 #include <vector>
 
-#include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
-
 using namespace sinsei_umiusi_control::hardware_model;
 
 CanModel::CanModel(
-    std::shared_ptr<interface::Can> can, std::vector<ThrusterConfig> thruster_configs)
-: can(can) {
+    std::shared_ptr<interface::Can> can, std::vector<ThrusterConfig> thruster_configs,
+    can::HarmonyBmsModel::Id harmony_bms_id)
+: can(can), harmony_bms_model(harmony_bms_id) {
     this->thrusters.reserve(thruster_configs.size());
     for (auto & config : thruster_configs) {
-        this->thrusters.push_back(
-            Thruster{std::move(config.name), config.vesc_id, can::VescModel(config.vesc_id)});
+        this->thrusters.push_back(Thruster{std::move(config.name), can::VescModel(config.vesc_id)});
     }
 }
 
-auto CanModel::validate_thruster_configs() const -> tl::expected<void, std::string> {
+auto CanModel::validate_configuration() const -> tl::expected<void, std::string> {
     if (this->thrusters.empty()) {
         return tl::make_unexpected("At least one thruster must be configured");
     }
@@ -29,23 +27,28 @@ auto CanModel::validate_thruster_configs() const -> tl::expected<void, std::stri
     auto names = std::unordered_set<std::string>{};
     auto vesc_ids = std::unordered_set<can::VescModel::Id>{};
     for (const auto & thruster : this->thrusters) {
+        const auto vesc_id = thruster.vesc_model.get_id();
         if (thruster.name.empty()) {
             return tl::make_unexpected("Thruster name must not be empty");
         }
         if (!names.insert(thruster.name).second) {
             return tl::make_unexpected("Duplicate thruster name: " + thruster.name);
         }
-        if (!vesc_ids.insert(thruster.vesc_id).second) {
-            return tl::make_unexpected("Duplicate VESC ID: " + std::to_string(thruster.vesc_id));
+        if (!vesc_ids.insert(vesc_id).second) {
+            return tl::make_unexpected("Duplicate VESC ID: " + std::to_string(vesc_id));
+        }
+        if (vesc_id == this->harmony_bms_model.get_id()) {
+            return tl::make_unexpected(
+                "Harmony BMS ID conflicts with VESC ID: " + std::to_string(vesc_id));
         }
     }
     return {};
 }
 
 auto CanModel::on_init() -> tl::expected<void, std::string> {
-    const auto validation_res = this->validate_thruster_configs();
+    const auto validation_res = this->validate_configuration();
     if (!validation_res) {
-        return tl::make_unexpected("Invalid thruster configuration: " + validation_res.error());
+        return tl::make_unexpected("Invalid CAN node configuration: " + validation_res.error());
     }
 
     const auto res = this->can->init("can0");
@@ -65,19 +68,48 @@ auto CanModel::on_destroy() -> tl::expected<void, std::string> {
     return {};
 }
 
-auto CanModel::decode_frame(const interface::CanFrame & frame) const
-    -> tl::expected<DecodedState, std::string> {
+auto CanModel::is_vesc_transport_frame(const interface::CanFrame & frame) -> bool {
+    if (!frame.is_extended) {
+        return false;
+    }
+
+    const auto packet_id = static_cast<can::VescModel::PacketId>((frame.id >> 8) & 0xFFU);
+    switch (packet_id) {
+        case can::VescModel::PacketId::CAN_PACKET_FILL_RX_BUFFER:
+        case can::VescModel::PacketId::CAN_PACKET_FILL_RX_BUFFER_LONG:
+        case can::VescModel::PacketId::CAN_PACKET_PROCESS_RX_BUFFER:
+        case can::VescModel::PacketId::CAN_PACKET_PROCESS_SHORT_BUFFER:
+            return true;
+        default:
+            return false;
+    }
+}
+
+auto CanModel::decode_frame(const interface::CanFrame & frame)
+    -> tl::expected<std::optional<DecodedState>, std::string> {
     // CANフレームをデコードするため、各モデルを順番に試す
+
+    // 受信途中のVESCのフレームは無視する
+    if (is_vesc_transport_frame(frame)) {
+        return std::nullopt;
+    }
 
     auto error_message = std::string("");
 
-    // TODO: この位置に`can::MainPowerModel`の処理を追加する
+    const auto bms_state_res = this->harmony_bms_model.decode(frame);
+    if (!bms_state_res) {
+        error_message += "    Harmony BMS: " + bms_state_res.error() + "\n";
+    } else if (bms_state_res.value()) {
+        return std::optional<DecodedState>{DecodedState{std::move(bms_state_res.value().value())}};
+    }
+
+    // TODO: STM32側の仕様確定後に`can::PowerDistributionModel`の処理を追加する
 
     for (const auto & thruster : this->thrusters) {
-        const auto description =
-            "'" + thruster.name + "' (VESC " + std::to_string(thruster.vesc_id) + ")";
+        const auto vesc_id = thruster.vesc_model.get_id();
+        const auto description = "'" + thruster.name + "' (VESC " + std::to_string(vesc_id) + ")";
 
-        const auto packet_status_res = thruster.vesc_model.get_packet_status(frame);
+        const auto packet_status_res = thruster.vesc_model.decode(frame);
         if (!packet_status_res) {
             error_message += "    " + description + ": " + packet_status_res.error() + "\n";
             continue;
@@ -94,26 +126,26 @@ auto CanModel::decode_frame(const interface::CanFrame & frame) const
                 const auto & status = std::get<0>(packet_status_opt.value());
                 constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
                 // ERPMを極対数で割ってRPMに変換
-                return DecodedState{std::make_tuple(
-                    thruster.name, state::thruster::esc::Rpm{status.erpm / BLDC_POLE_PAIR})};
+                return std::optional<DecodedState>{DecodedState{std::make_tuple(
+                    thruster.name, state::thruster::esc::Rpm{status.erpm / BLDC_POLE_PAIR})}};
             }
             case 4: {  // PacketStatus5
                 const auto & status = std::get<4>(packet_status_opt.value());
                 const auto volts_in = status.volts_in;
-                return DecodedState{
-                    std::make_tuple(thruster.name, state::thruster::esc::Voltage{volts_in})};
+                return std::optional<DecodedState>{DecodedState{
+                    std::make_tuple(thruster.name, state::thruster::esc::Voltage{volts_in})}};
             }
             case 5: {  // PacketStatus6
                 const auto & status = std::get<5>(packet_status_opt.value());
                 // 浸水センサーはADC1に接続されている
                 const auto water_leaked = status.adc1 < WATER_LEAKED_VOLTAGE_THRESHOLD;
-                return DecodedState{std::make_tuple(
-                    thruster.name, state::thruster::esc::WaterLeaked{water_leaked})};
+                return std::optional<DecodedState>{DecodedState{std::make_tuple(
+                    thruster.name, state::thruster::esc::WaterLeaked{water_leaked})}};
             }
             default: {
-                return tl::make_unexpected(
-                    "Unsupported VESC packet status variant received (" + description +
-                    ", variant index: " + std::to_string(packet_status_opt.value().index()) + ")");
+                // STATUS_2/3/4はVESCの生存確認のためにのみ使用
+                return std::optional<DecodedState>{DecodedState{
+                    std::make_tuple(thruster.name, state::thruster::esc::Health{true})}};
             }
         }
     }
@@ -129,7 +161,7 @@ auto CanModel::decode_frame(const interface::CanFrame & frame) const
         error_message);
 }
 
-auto CanModel::on_read() const -> tl::expected<ReadBatch, std::string> {
+auto CanModel::on_read() -> tl::expected<ReadBatch, std::string> {
     const auto frames_res = this->can->recv_frames();
     if (!frames_res) {
         return tl::make_unexpected("Failed to receive CAN frames: " + frames_res.error());
@@ -140,7 +172,9 @@ auto CanModel::on_read() const -> tl::expected<ReadBatch, std::string> {
     for (const auto & frame : frames_res.value()) {
         auto state_res = this->decode_frame(frame);
         if (state_res) {
-            read_batch.states.push_back(std::move(state_res.value()));
+            if (state_res.value()) {
+                read_batch.states.push_back(std::move(state_res.value().value()));
+            }
             continue;
         }
 
@@ -153,7 +187,7 @@ auto CanModel::on_read() const -> tl::expected<ReadBatch, std::string> {
 }
 
 auto CanModel::on_write(
-    cmd::main_power::Enabled /*main_power_enabled*/,
+    cmd::power_distribution::Enabled /*power_distribution_enabled*/,
     const std::vector<ThrusterCommand> & thruster_commands,
     cmd::led_tape::Color /*led_tape_color*/) -> tl::expected<void, std::string> {
     if (this->thrusters.empty()) {
@@ -170,7 +204,7 @@ auto CanModel::on_write(
     const auto phase = this->write_phase;
     this->write_phase = phase == WritePhase::Esc ? WritePhase::Servo : WritePhase::Esc;
 
-    // TODO: main_power_enabledとled_tape_colorのCAN送信を実装する
+    // TODO: STM32側の仕様確定後にpower_distribution_enabledとled_tape_colorを送信する
     // TODO: esc_allowed/servo_allowedはLispBMが未実装
 
     auto error_message = std::string("");

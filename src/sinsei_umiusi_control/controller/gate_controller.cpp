@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 #include <rclcpp/logging.hpp>
 #include <rclcpp_lifecycle/state.hpp>
 #include <string>
@@ -56,20 +57,28 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
         // State interface (in)
         using util::to_interface_data_ptr;
 
-        this->state_interface_data.emplace_back(
-            "main_power/battery_voltage",
-            to_interface_data_ptr(this->input.state.main_power_battery_voltage),
-            sizeof(this->input.state.main_power_battery_voltage));
-        this->state_interface_data.emplace_back(
-            "main_power/battery_current",
-            to_interface_data_ptr(this->input.state.main_power_battery_current),
-            sizeof(this->input.state.main_power_battery_current));
-        this->state_interface_data.emplace_back(
-            "main_power/temperature", to_interface_data_ptr(this->input.state.main_temperature),
-            sizeof(this->input.state.main_temperature));
-        this->state_interface_data.emplace_back(
-            "main_power/water_leaked", to_interface_data_ptr(this->input.state.water_leaked),
-            sizeof(this->input.state.water_leaked));
+        const auto add_bms_state = [this](const std::string & name, auto & value) {
+            this->state_interface_data.emplace_back(
+                "bms/" + name, util::to_interface_data_ptr(value), sizeof(value));
+        };
+        add_bms_state("health", this->input.state.bms_health);
+        add_bms_state("voltages", this->input.state.bms_voltages);
+        add_bms_state("currents", this->input.state.bms_currents);
+        add_bms_state("capacity_state", this->input.state.bms_capacity);
+        add_bms_state("cell_voltage_range", this->input.state.bms_cell_voltage_range);
+        add_bms_state("status", this->input.state.bms_status);
+        add_bms_state("cell_count", this->input.state.bms_cell_count);
+        for (std::size_t i = 0; i < this->input.state.bms_cells.size(); ++i) {
+            add_bms_state("cell_" + std::to_string(i), this->input.state.bms_cells[i]);
+        }
+        add_bms_state("balance_ic_temperature", this->input.state.bms_temperatures.balance_ic);
+        add_bms_state("mosfet_temperature", this->input.state.bms_temperatures.mosfet);
+        add_bms_state("ambient_temperature", this->input.state.bms_temperatures.ambient);
+        for (std::size_t i = 0; i < this->input.state.bms_temperatures.additional.size(); ++i) {
+            add_bms_state(
+                "additional_temperature_" + std::to_string(i),
+                this->input.state.bms_temperatures.additional[i]);
+        }
         this->state_interface_data.emplace_back(
             "imu/temperature", to_interface_data_ptr(this->input.state.imu_temperature),
             sizeof(this->input.state.imu_temperature));
@@ -150,11 +159,14 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                 tc_prefix + "thruster/esc/water_leaked",
                 to_interface_data_ptr(this->input.state.esc_water_leaked_flags[i]),
                 sizeof(this->input.state.esc_water_leaked_flags[i]));
+            this->state_interface_data.emplace_back(
+                tc_prefix + "thruster/esc/health",
+                to_interface_data_ptr(this->input.state.esc_health[i]),
+                sizeof(this->input.state.esc_health[i]));
 
             // RPMのみ`attitude_controller`経由で取得する
-            const auto ac_prefix =
-                "attitude_controller/thruster_controller" + std::string(THRUSTER_SUFFIX[i]) +
-                "/thruster/";
+            const auto ac_prefix = "attitude_controller/thruster_controller" +
+                                   std::string(THRUSTER_SUFFIX[i]) + "/thruster/";
             this->state_interface_data.emplace_back(
                 ac_prefix + "esc/rpm", to_interface_data_ptr(this->input.state.esc_rpms[i]),
                 sizeof(this->input.state.esc_rpms[i]));
@@ -169,11 +181,11 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                 [this](const msg::IndicatorLedOutput::SharedPtr input) {
                     this->output.cmd.indicator_led_enabled_ref.value = input->enabled;
                 });
-        this->input.sub.main_power_output_subscriber =
-            this->get_node()->create_subscription<msg::MainPowerOutput>(
-                cmd_prefix + "main_power_output", qos,
-                [this](const msg::MainPowerOutput::SharedPtr input) {
-                    this->output.cmd.main_power_enabled_ref.value = input->enabled;
+        this->input.sub.power_distribution_output_subscriber =
+            this->get_node()->create_subscription<msg::PowerDistributionOutput>(
+                cmd_prefix + "power_distribution_output", qos,
+                [this](const msg::PowerDistributionOutput::SharedPtr input) {
+                    this->output.cmd.power_distribution_enabled_ref.value = input->enabled;
                 });
         this->input.sub.led_tape_output_subscriber =
             this->get_node()->create_subscription<msg::LedTapeOutput>(
@@ -227,8 +239,9 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
             to_interface_data_ptr(this->output.cmd.indicator_led_enabled_ref),
             sizeof(this->output.cmd.indicator_led_enabled_ref)));
         this->command_interface_data.push_back(std::make_tuple(
-            "main_power/enabled", to_interface_data_ptr(this->output.cmd.main_power_enabled_ref),
-            sizeof(this->output.cmd.main_power_enabled_ref)));
+            "power_distribution/enabled",
+            to_interface_data_ptr(this->output.cmd.power_distribution_enabled_ref),
+            sizeof(this->output.cmd.power_distribution_enabled_ref)));
         this->command_interface_data.push_back(std::make_tuple(
             "headlights/high_beam_enabled",
             to_interface_data_ptr(this->output.cmd.high_beam_enabled_ref),
@@ -288,9 +301,14 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
         this->output.pub.imu_temperature_publisher =
             this->get_node()->create_publisher<sensor_msgs::msg::Temperature>(
                 state_prefix + "imu_temperature", qos);
-        this->output.pub.main_power_enabled_publisher =
-            this->get_node()->create_publisher<msg::MainPowerEnabled>(
-                state_prefix + "main_power_enabled", qos);
+        this->output.pub.power_distribution_enabled_publisher =
+            this->get_node()->create_publisher<msg::PowerDistributionEnabled>(
+                state_prefix + "power_distribution_enabled", qos);
+        this->output.pub.battery_state_publisher =
+            this->get_node()->create_publisher<sensor_msgs::msg::BatteryState>(
+                state_prefix + "power/battery", qos);
+        this->output.pub.bms_state_publisher =
+            this->get_node()->create_publisher<msg::BmsState>(state_prefix + "power/bms", qos);
         this->output.pub.thruster_state_all_publisher =
             this->get_node()->create_publisher<msg::ThrusterStateAll>(
                 state_prefix + "thruster_state_all", qos);
@@ -331,8 +349,66 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
         sensor_msgs::msg::Temperature()
             .set__header(std_msgs::msg::Header().set__stamp(time).set__frame_id("imu"))
             .set__temperature(this->input.state.imu_temperature.value));
-    this->output.pub.main_power_enabled_publisher->publish(
-        msg::MainPowerEnabled().set__enabled(this->output.cmd.main_power_enabled_ref.value));
+    this->output.pub.power_distribution_enabled_publisher->publish(
+        msg::PowerDistributionEnabled().set__enabled(
+            this->output.cmd.power_distribution_enabled_ref.value));
+
+    auto battery_state = sensor_msgs::msg::BatteryState{};
+    battery_state.header = std_msgs::msg::Header().set__stamp(time).set__frame_id("harmony_bms");
+    battery_state.voltage = this->input.state.bms_voltages.pack;
+    // VESC BMSは放電時を正、BatteryStateは充電時を正とするため、符号を反転する
+    battery_state.current = -this->input.state.bms_currents.measured;
+    battery_state.temperature = std::numeric_limits<float>::quiet_NaN();
+    battery_state.charge = std::numeric_limits<float>::quiet_NaN();
+    battery_state.capacity = std::numeric_limits<float>::quiet_NaN();
+    battery_state.design_capacity = std::numeric_limits<float>::quiet_NaN();
+    battery_state.percentage = this->input.state.bms_capacity.state_of_charge;
+    battery_state.power_supply_status =
+        this->input.state.bms_status.charging
+            ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_CHARGING
+            : (this->input.state.bms_currents.measured > 0.0F
+                   ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING
+                   : sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_NOT_CHARGING);
+    battery_state.power_supply_health =
+        this->input.state.bms_health.is_ok && this->input.state.bms_status.fault_flags == 0
+            ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_GOOD
+            : sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_UNSPEC_FAILURE;
+    battery_state.power_supply_technology =
+        sensor_msgs::msg::BatteryState::POWER_SUPPLY_TECHNOLOGY_LIPO;
+    battery_state.present = this->input.state.bms_health.is_ok;
+    const auto cell_count = std::min<std::size_t>(
+        this->input.state.bms_cell_count.value, this->input.state.bms_cells.size());
+    battery_state.cell_voltage.reserve(cell_count);
+    for (std::size_t i = 0; i < cell_count; ++i) {
+        battery_state.cell_voltage.push_back(this->input.state.bms_cells[i].voltage);
+    }
+    this->output.pub.battery_state_publisher->publish(battery_state);
+
+    auto bms_state = msg::BmsState{};
+    bms_state.header = std_msgs::msg::Header().set__stamp(time).set__frame_id("harmony_bms");
+    bms_state.state_of_health = this->input.state.bms_capacity.state_of_health;
+    bms_state.cell_voltage_min = this->input.state.bms_cell_voltage_range.min;
+    bms_state.cell_voltage_max = this->input.state.bms_cell_voltage_range.max;
+    bms_state.balancing = this->input.state.bms_status.balancing;
+    bms_state.charge_allowed = this->input.state.bms_status.charge_allowed;
+    bms_state.cell_balancing.reserve(cell_count);
+    for (std::size_t i = 0; i < cell_count; ++i) {
+        bms_state.cell_balancing.push_back(this->input.state.bms_cells[i].balancing);
+    }
+    bms_state.charger_voltage = this->input.state.bms_voltages.charger;
+
+    bms_state.balance_ic_temperature =
+        static_cast<float>(this->input.state.bms_temperatures.balance_ic);
+    bms_state.mosfet_temperature = static_cast<float>(this->input.state.bms_temperatures.mosfet);
+    bms_state.ambient_temperature = static_cast<float>(this->input.state.bms_temperatures.ambient);
+    for (std::size_t i = 0; i < bms_state.additional_temperatures.size(); ++i) {
+        bms_state.additional_temperatures[i] =
+            static_cast<float>(this->input.state.bms_temperatures.additional[i]);
+    }
+    bms_state.power_switch_state = this->input.state.bms_status.power_switch_state;
+    bms_state.fault_flags = this->input.state.bms_status.fault_flags;
+    this->output.pub.bms_state_publisher->publish(bms_state);
+
     this->output.pub.thruster_state_all_publisher->publish(
         msg::ThrusterStateAll()
             .set__lf(msg::ThrusterState()
@@ -343,7 +419,9 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                                             this->input.state.servo_modes[0].value)))
                          .set__duty_cycle(this->input.state.esc_duty_cycles[0].value)
                          .set__angle(this->input.state.servo_angles[0].value)
-                         .set__rpm(this->input.state.esc_rpms[0].value))
+                         .set__rpm(this->input.state.esc_rpms[0].value)
+                         .set__input_voltage(this->input.state.esc_voltages[0].value)
+                         .set__water_leaked(this->input.state.esc_water_leaked_flags[0].value))
             .set__lb(msg::ThrusterState()
                          .set__mode(msg::ThrusterMode()
                                         .set__esc(static_cast<int8_t>(
@@ -352,7 +430,9 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                                             this->input.state.servo_modes[1].value)))
                          .set__duty_cycle(this->input.state.esc_duty_cycles[1].value)
                          .set__angle(this->input.state.servo_angles[1].value)
-                         .set__rpm(this->input.state.esc_rpms[1].value))
+                         .set__rpm(this->input.state.esc_rpms[1].value)
+                         .set__input_voltage(this->input.state.esc_voltages[1].value)
+                         .set__water_leaked(this->input.state.esc_water_leaked_flags[1].value))
             .set__rb(msg::ThrusterState()
                          .set__mode(msg::ThrusterMode()
                                         .set__esc(static_cast<int8_t>(
@@ -361,7 +441,9 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                                             this->input.state.servo_modes[2].value)))
                          .set__duty_cycle(this->input.state.esc_duty_cycles[2].value)
                          .set__angle(this->input.state.servo_angles[2].value)
-                         .set__rpm(this->input.state.esc_rpms[2].value))
+                         .set__rpm(this->input.state.esc_rpms[2].value)
+                         .set__input_voltage(this->input.state.esc_voltages[2].value)
+                         .set__water_leaked(this->input.state.esc_water_leaked_flags[2].value))
             .set__rf(msg::ThrusterState()
                          .set__mode(msg::ThrusterMode()
                                         .set__esc(static_cast<int8_t>(
@@ -370,7 +452,9 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                                             this->input.state.servo_modes[3].value)))
                          .set__duty_cycle(this->input.state.esc_duty_cycles[3].value)
                          .set__angle(this->input.state.servo_angles[3].value)
-                         .set__rpm(this->input.state.esc_rpms[3].value)));
+                         .set__rpm(this->input.state.esc_rpms[3].value)
+                         .set__input_voltage(this->input.state.esc_voltages[3].value)
+                         .set__water_leaked(this->input.state.esc_water_leaked_flags[3].value)));
     this->output.pub.low_power_circuit_info_publisher->publish(
         msg::LowPowerCircuitInfo()
             .set__can(
@@ -387,26 +471,39 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                                                              : msg::LowPowerCircuitInfo::ERROR));
     this->output.pub.high_power_circuit_info_publisher->publish(
         msg::HighPowerCircuitInfo()
-            .set__voltage(this->input.state.main_power_battery_voltage.value)
-            .set__current(this->input.state.main_power_battery_current.value)
-            .set__temperature(this->input.state.main_temperature.value)
-            .set__water_leaked(this->input.state.water_leaked.value)
-            .set__esc_lf_state(
-                msg::EscState()
-                    .set__voltage(this->input.state.esc_voltages[0].value)
-                    .set__water_leaked(this->input.state.esc_water_leaked_flags[0].value))
-            .set__esc_lb_state(
-                msg::EscState()
-                    .set__voltage(this->input.state.esc_voltages[1].value)
-                    .set__water_leaked(this->input.state.esc_water_leaked_flags[1].value))
-            .set__esc_rb_state(
-                msg::EscState()
-                    .set__voltage(this->input.state.esc_voltages[2].value)
-                    .set__water_leaked(this->input.state.esc_water_leaked_flags[2].value))
-            .set__esc_rf_state(
-                msg::EscState()
-                    .set__voltage(this->input.state.esc_voltages[3].value)
-                    .set__water_leaked(this->input.state.esc_water_leaked_flags[3].value)));
+            .set__bms(
+                this->input.state.bms_health.is_ok ? msg::HighPowerCircuitInfo::OK
+                                                   : msg::HighPowerCircuitInfo::ERROR)
+            .set__battery(
+                this->input.state.bms_health.is_ok &&
+                        this->input.state.bms_status.fault_flags == 0 &&
+                        this->input.state.bms_voltages.pack > 0.0F
+                    ? msg::HighPowerCircuitInfo::OK
+                    : msg::HighPowerCircuitInfo::ERROR)
+            .set__esc_lf(
+                this->input.state.esc_health[0].is_ok &&
+                        this->input.state.esc_voltages[0].value > 0.0 &&
+                        !this->input.state.esc_water_leaked_flags[0].value
+                    ? msg::HighPowerCircuitInfo::OK
+                    : msg::HighPowerCircuitInfo::ERROR)
+            .set__esc_lb(
+                this->input.state.esc_health[1].is_ok &&
+                        this->input.state.esc_voltages[1].value > 0.0 &&
+                        !this->input.state.esc_water_leaked_flags[1].value
+                    ? msg::HighPowerCircuitInfo::OK
+                    : msg::HighPowerCircuitInfo::ERROR)
+            .set__esc_rb(
+                this->input.state.esc_health[2].is_ok &&
+                        this->input.state.esc_voltages[2].value > 0.0 &&
+                        !this->input.state.esc_water_leaked_flags[2].value
+                    ? msg::HighPowerCircuitInfo::OK
+                    : msg::HighPowerCircuitInfo::ERROR)
+            .set__esc_rf(
+                this->input.state.esc_health[3].is_ok &&
+                        this->input.state.esc_voltages[3].value > 0.0 &&
+                        !this->input.state.esc_water_leaked_flags[3].value
+                    ? msg::HighPowerCircuitInfo::OK
+                    : msg::HighPowerCircuitInfo::ERROR));
 
     // コマンドを送信
     util::interface_accessor::set_commands_to_loaned_interfaces(

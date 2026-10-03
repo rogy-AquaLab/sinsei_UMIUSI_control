@@ -37,29 +37,60 @@ inline auto to_bytes_be(int64_t value) -> std::array<std::byte, 8> {
 
 // Convert 8-byte array in big-endian order to int16_t
 template <size_t OFFSET = 0>
-inline auto to_int16_be(std::array<std::byte, 8> bytes) -> std::optional<int16_t> {
-    static_assert(OFFSET + 2 <= bytes.size(), "Offset out of range");
-    return static_cast<int16_t>(
-        (std::to_integer<int16_t>(bytes[0 + OFFSET]) << 8) |
-        std::to_integer<int16_t>(bytes[1 + OFFSET]));
+inline auto to_int16_be(const std::array<std::byte, 8> & bytes) -> std::optional<int16_t> {
+    static_assert(OFFSET + 2 <= 8, "Offset out of range");
+    const auto raw = static_cast<uint16_t>(
+        (static_cast<uint16_t>(std::to_integer<uint8_t>(bytes[OFFSET])) << 8) |
+        std::to_integer<uint8_t>(bytes[OFFSET + 1]));
+    return static_cast<int16_t>(raw);
 }
 
 // Convert 8-byte array in big-endian order to int32_t
 template <size_t OFFSET = 0>
-inline auto to_int32_be(std::array<std::byte, 8> bytes) -> std::optional<int32_t> {
-    static_assert(OFFSET + 4 <= bytes.size(), "Offset out of range");
-    return (std::to_integer<int32_t>(bytes[0]) << 24) | (std::to_integer<int32_t>(bytes[1]) << 16) |
-           (std::to_integer<int32_t>(bytes[2]) << 8) | std::to_integer<int32_t>(bytes[3]);
+inline auto to_int32_be(const std::array<std::byte, 8> & bytes) -> std::optional<int32_t> {
+    static_assert(OFFSET + 4 <= 8, "Offset out of range");
+    const auto raw = (static_cast<uint32_t>(std::to_integer<uint8_t>(bytes[OFFSET])) << 24) |
+                     (static_cast<uint32_t>(std::to_integer<uint8_t>(bytes[OFFSET + 1])) << 16) |
+                     (static_cast<uint32_t>(std::to_integer<uint8_t>(bytes[OFFSET + 2])) << 8) |
+                     std::to_integer<uint8_t>(bytes[OFFSET + 3]);
+    return static_cast<int32_t>(raw);
 }
 
 // Convert 8-byte array in big-endian order to int64_t
 template <size_t OFFSET = 0>
-inline auto to_int64_be(std::array<std::byte, 8> bytes) -> std::optional<int64_t> {
-    static_assert(OFFSET + 8 <= bytes.size(), "Offset out of range");
-    return (std::to_integer<int64_t>(bytes[0]) << 56) | (std::to_integer<int64_t>(bytes[1]) << 48) |
-           (std::to_integer<int64_t>(bytes[2]) << 40) | (std::to_integer<int64_t>(bytes[3]) << 32) |
-           (std::to_integer<int64_t>(bytes[4]) << 24) | (std::to_integer<int64_t>(bytes[5]) << 16) |
-           (std::to_integer<int64_t>(bytes[6]) << 8) | std::to_integer<int64_t>(bytes[7]);
+inline auto to_int64_be(const std::array<std::byte, 8> & bytes) -> std::optional<int64_t> {
+    static_assert(OFFSET + 8 <= 8, "Offset out of range");
+    const auto raw = (static_cast<uint64_t>(std::to_integer<uint8_t>(bytes[OFFSET])) << 56) |
+                     (static_cast<uint64_t>(std::to_integer<uint8_t>(bytes[OFFSET + 1])) << 48) |
+                     (static_cast<uint64_t>(std::to_integer<uint8_t>(bytes[OFFSET + 2])) << 40) |
+                     (static_cast<uint64_t>(std::to_integer<uint8_t>(bytes[OFFSET + 3])) << 32) |
+                     (static_cast<uint64_t>(std::to_integer<uint8_t>(bytes[OFFSET + 4])) << 24) |
+                     (static_cast<uint64_t>(std::to_integer<uint8_t>(bytes[OFFSET + 5])) << 16) |
+                     (static_cast<uint64_t>(std::to_integer<uint8_t>(bytes[OFFSET + 6])) << 8) |
+                     std::to_integer<uint8_t>(bytes[OFFSET + 7]);
+    return static_cast<int64_t>(raw);
+}
+
+inline auto to_int16_be(const std::array<std::byte, 8> & bytes, std::size_t offset)
+    -> std::optional<int16_t> {
+    if (offset + 2 > bytes.size()) {
+        return std::nullopt;
+    }
+    const auto raw = static_cast<uint16_t>(
+        (static_cast<uint16_t>(std::to_integer<uint8_t>(bytes[offset])) << 8) |
+        std::to_integer<uint8_t>(bytes[offset + 1]));
+    return static_cast<int16_t>(raw);
+}
+
+inline auto to_uint32_be(const std::array<std::byte, 8> & bytes, std::size_t offset = 0)
+    -> std::optional<uint32_t> {
+    if (offset + 4 > bytes.size()) {
+        return std::nullopt;
+    }
+    return (static_cast<uint32_t>(std::to_integer<uint8_t>(bytes[offset])) << 24) |
+           (static_cast<uint32_t>(std::to_integer<uint8_t>(bytes[offset + 1])) << 16) |
+           (static_cast<uint32_t>(std::to_integer<uint8_t>(bytes[offset + 2])) << 8) |
+           std::to_integer<uint8_t>(bytes[offset + 3]);
 }
 
 }  // namespace sinsei_umiusi_control::util

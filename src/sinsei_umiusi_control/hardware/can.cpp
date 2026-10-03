@@ -1,16 +1,45 @@
 #include "sinsei_umiusi_control/hardware/can.hpp"
 
+#include <algorithm>
 #include <cstdint>
+#include <limits>
 #include <utility>
 #include <vector>
 
 #include "sinsei_umiusi_control/hardware_model/impl/linux_can.hpp"
+#include "sinsei_umiusi_control/state/bms.hpp"
 #include "sinsei_umiusi_control/state/can.hpp"
 #include "sinsei_umiusi_control/util/params.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 #include "sinsei_umiusi_control/util/string.hpp"
 
 using namespace sinsei_umiusi_control::hardware;
+
+namespace {
+
+auto power_switch_state_name(
+    sinsei_umiusi_control::hardware_model::can::HarmonyBmsModel::PowerSwitchState state) -> const
+    char * {
+    using PowerSwitchState =
+        sinsei_umiusi_control::hardware_model::can::HarmonyBmsModel::PowerSwitchState;
+    switch (state) {
+        case PowerSwitchState::Unknown:
+            return "unknown";
+        case PowerSwitchState::Initializing:
+            return "initializing";
+        case PowerSwitchState::Off:
+            return "off";
+        case PowerSwitchState::Precharge:
+            return "precharge";
+        case PowerSwitchState::On:
+            return "on";
+        case PowerSwitchState::Fault:
+            return "fault";
+    }
+    return "unknown";
+}
+
+}  // namespace
 
 Can::~Can() {
     if (!this->model) {
@@ -33,7 +62,6 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
 
     // FIXME: URDF側での名前付きGPIO設定を導入するまでは、既存のハードウェアパラメータを維持する。
     // CanModel自体は、この固定長の表現には依存していない
-    constexpr size_t LEGACY_THRUSTER_COUNT = 4;
     auto thruster_configs = std::vector<hardware_model::CanModel::ThrusterConfig>{};
     auto thruster_names = std::vector<std::string>{};
     thruster_configs.reserve(LEGACY_THRUSTER_COUNT);
@@ -63,8 +91,31 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     }
 
     this->thruster_names = std::move(thruster_names);
+    this->cycles_since_bms_update = MAX_CYCLES_SINCE_NODE_UPDATE;
+    this->cycles_since_esc_update.fill(MAX_CYCLES_SINCE_NODE_UPDATE);
+    this->bms_status_initialized = false;
+    this->last_bms_status.clear();
+    this->last_bms_power_switch_state =
+        hardware_model::can::HarmonyBmsModel::PowerSwitchState::Unknown;
+    this->last_bms_fault_flags = hardware_model::can::HarmonyBmsModel::FaultNone;
+
+    auto harmony_bms_id_str =
+        util::find_param(params.hardware_info.hardware_parameters, "harmony_bms_id");
+    if (!harmony_bms_id_str) {
+        RCLCPP_ERROR(this->get_logger(), "Parameter 'harmony_bms_id' not found.");
+        return hardware_interface::CallbackReturn::ERROR;
+    }
+    const auto harmony_bms_id_res =
+        util::from_chars_expected<unsigned int>(harmony_bms_id_str.value());
+    if (!harmony_bms_id_res || harmony_bms_id_res.value() > UINT8_MAX) {
+        RCLCPP_ERROR(
+            this->get_logger(), "Invalid Harmony BMS ID '%s'", harmony_bms_id_str.value().c_str());
+        return hardware_interface::CallbackReturn::ERROR;
+    }
+
     this->model.emplace(
-        std::make_shared<hardware_model::impl::LinuxCan>(), std::move(thruster_configs));
+        std::make_shared<hardware_model::impl::LinuxCan>(), std::move(thruster_configs),
+        static_cast<hardware_model::can::HarmonyBmsModel::Id>(harmony_bms_id_res.value()));
 
     auto res = this->model->on_init();
     if (!res) {
@@ -80,6 +131,11 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
     -> hardware_interface::return_type {
     if (!this->model) {
         this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
+        this->set_state("bms/health", util::to_interface_data(state::bms::Health{false}));
+        for (const auto & name : this->thruster_names) {
+            this->set_state(
+                name + "/esc/health", util::to_interface_data(state::thruster::esc::Health{false}));
+        }
 
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_WARN_THROTTLE(
@@ -90,6 +146,11 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
     auto res = this->model->on_read();
     if (!res) {
         this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
+        this->set_state("bms/health", util::to_interface_data(state::bms::Health{false}));
+        for (const auto & name : this->thruster_names) {
+            this->set_state(
+                name + "/esc/health", util::to_interface_data(state::thruster::esc::Health{false}));
+        }
 
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(
@@ -99,59 +160,173 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
     }
 
     const auto & read_batch = res.value();
+    auto esc_updated = std::array<bool, LEGACY_THRUSTER_COUNT>{};
+    auto bms_updated = false;
     for (const auto & state : read_batch.states) {
         switch (state.index()) {
             case 0: {  // Rpm
                 const auto & [thruster_name, rpm] = std::get<0>(state);
                 this->set_state(thruster_name + "/esc/rpm", util::to_interface_data(rpm));
+                const auto it = std::find(
+                    this->thruster_names.begin(), this->thruster_names.end(), thruster_name);
+                if (it != this->thruster_names.end()) {
+                    esc_updated[static_cast<std::size_t>(it - this->thruster_names.begin())] = true;
+                }
                 break;
             }
             case 1: {  // ESC Voltage
                 const auto & [thruster_name, voltage] = std::get<1>(state);
                 this->set_state(thruster_name + "/esc/voltage", util::to_interface_data(voltage));
+                const auto it = std::find(
+                    this->thruster_names.begin(), this->thruster_names.end(), thruster_name);
+                if (it != this->thruster_names.end()) {
+                    esc_updated[static_cast<std::size_t>(it - this->thruster_names.begin())] = true;
+                }
                 break;
             }
             case 2: {  // ESC WaterLeaked
                 const auto & [thruster_name, water_leaked] = std::get<2>(state);
                 this->set_state(
                     thruster_name + "/esc/water_leaked", util::to_interface_data(water_leaked));
+                const auto it = std::find(
+                    this->thruster_names.begin(), this->thruster_names.end(), thruster_name);
+                if (it != this->thruster_names.end()) {
+                    esc_updated[static_cast<std::size_t>(it - this->thruster_names.begin())] = true;
+                }
                 break;
             }
-            case 3: {  // BatteryCurrent
-                const auto battery_current =
-                    std::get<sinsei_umiusi_control::state::main_power::BatteryCurrent>(state);
-                this->set_state(
-                    "main_power/battery_current", util::to_interface_data(battery_current));
+            case 3: {  // ESC heartbeat
+                const auto & [thruster_name, _health] = std::get<3>(state);
+                const auto it = std::find(
+                    this->thruster_names.begin(), this->thruster_names.end(), thruster_name);
+                if (it != this->thruster_names.end()) {
+                    esc_updated[static_cast<std::size_t>(it - this->thruster_names.begin())] = true;
+                }
                 break;
             }
-            case 4: {  // BatteryVoltage
-                const auto battery_voltage =
-                    std::get<sinsei_umiusi_control::state::main_power::BatteryVoltage>(state);
-                this->set_state(
-                    "main_power/battery_voltage", util::to_interface_data(battery_voltage));
-                break;
-            }
-            case 5: {  // Temperature
-                const auto temperature =
-                    std::get<sinsei_umiusi_control::state::main_power::Temperature>(state);
-                this->set_state("main_power/temperature", util::to_interface_data(temperature));
-                break;
-            }
-            case 6: {  // WaterLeaked
-                const auto water_leaked =
-                    std::get<sinsei_umiusi_control::state::main_power::WaterLeaked>(state);
-                this->set_state("main_power/water_leaked", util::to_interface_data(water_leaked));
+            case 4: {  // Harmony BMS
+                const auto & bms = std::get<hardware_model::can::HarmonyBmsModel::State>(state);
+                const auto set_bms_state = [this](const std::string & name, const auto & value) {
+                    this->set_state(name, util::to_interface_data(value));
+                };
+
+                set_bms_state(
+                    "bms/voltages", state::bms::Voltages{
+                                        static_cast<float>(bms.pack_voltage),
+                                        static_cast<float>(bms.charger_voltage)});
+                set_bms_state(
+                    "bms/currents", state::bms::Currents{
+                                        static_cast<float>(bms.input_current),
+                                        static_cast<float>(bms.measured_current)});
+                set_bms_state(
+                    "bms/capacity_state", state::bms::CapacityState{
+                                              static_cast<float>(bms.state_of_charge),
+                                              static_cast<float>(bms.state_of_health)});
+                set_bms_state(
+                    "bms/cell_voltage_range", state::bms::CellVoltageRange{
+                                                  static_cast<float>(bms.cell_voltage_min),
+                                                  static_cast<float>(bms.cell_voltage_max)});
+                set_bms_state(
+                    "bms/status", state::bms::Status{
+                                      bms.fault_flags, static_cast<uint8_t>(bms.power_switch_state),
+                                      bms.charging, bms.balancing, bms.charge_allowed});
+                set_bms_state("bms/balance_ic_temperature", bms.balance_ic_temperature);
+                set_bms_state("bms/cell_count", state::bms::CellCount{bms.cell_count});
+                for (std::size_t i = 0; i < bms.cell_voltages.size(); ++i) {
+                    set_bms_state(
+                        "bms/cell_" + std::to_string(i),
+                        state::bms::Cell{
+                            static_cast<float>(bms.cell_voltages[i]), bms.cell_balancing[i]});
+                }
+
+                const auto temperature_or_nan = [&bms](std::size_t index) {
+                    return index < bms.temperature_count ? bms.temperatures[index]
+                                                         : std::numeric_limits<double>::quiet_NaN();
+                };
+                set_bms_state("bms/mosfet_temperature", temperature_or_nan(3));
+                set_bms_state("bms/ambient_temperature", temperature_or_nan(4));
+                for (std::size_t i = 0; i < 5; ++i) {
+                    set_bms_state(
+                        "bms/additional_temperature_" + std::to_string(i),
+                        temperature_or_nan(i + 5));
+                }
+                if (bms.status_updated) {
+                    const auto status_end = std::find(bms.status.begin(), bms.status.end(), '\0');
+                    const auto status = std::string(bms.status.begin(), status_end);
+                    const auto status_changed =
+                        !this->bms_status_initialized || status != this->last_bms_status;
+
+                    if (!this->bms_status_initialized ||
+                        bms.power_switch_state != this->last_bms_power_switch_state) {
+                        RCLCPP_INFO(
+                            this->get_logger(), "Harmony BMS power switch state: %s",
+                            power_switch_state_name(bms.power_switch_state));
+                    }
+
+                    const auto asserted_faults = bms.fault_flags & ~this->last_bms_fault_flags;
+                    const auto cleared_faults = this->last_bms_fault_flags & ~bms.fault_flags;
+                    if (asserted_faults != 0) {
+                        RCLCPP_ERROR(
+                            this->get_logger(),
+                            "Harmony BMS fault asserted: new=0x%08X active=0x%08X status='%s'",
+                            static_cast<unsigned int>(asserted_faults),
+                            static_cast<unsigned int>(bms.fault_flags), status.c_str());
+                    }
+                    if (cleared_faults != 0) {
+                        RCLCPP_INFO(
+                            this->get_logger(),
+                            "Harmony BMS fault cleared: cleared=0x%08X active=0x%08X",
+                            static_cast<unsigned int>(cleared_faults),
+                            static_cast<unsigned int>(bms.fault_flags));
+                    }
+                    if (status_changed && !status.empty() &&
+                        bms.power_switch_state ==
+                            hardware_model::can::HarmonyBmsModel::PowerSwitchState::Unknown) {
+                        RCLCPP_WARN(
+                            this->get_logger(), "Unknown Harmony BMS status: '%s'", status.c_str());
+                    }
+                    if (status_changed) {
+                        RCLCPP_DEBUG(
+                            this->get_logger(), "Harmony BMS raw status: '%s'", status.c_str());
+                    }
+
+                    this->bms_status_initialized = true;
+                    this->last_bms_status = status;
+                    this->last_bms_power_switch_state = bms.power_switch_state;
+                    this->last_bms_fault_flags = bms.fault_flags;
+                }
+                bms_updated = true;
                 break;
             }
         }
     }
 
+    if (bms_updated) {
+        this->cycles_since_bms_update = 0;
+    } else if (this->cycles_since_bms_update < MAX_CYCLES_SINCE_NODE_UPDATE) {
+        ++this->cycles_since_bms_update;
+    }
+    this->set_state(
+        "bms/health", util::to_interface_data(state::bms::Health{
+                          this->cycles_since_bms_update < MAX_CYCLES_SINCE_NODE_UPDATE}));
+
+    for (std::size_t i = 0; i < this->thruster_names.size(); ++i) {
+        if (esc_updated[i]) {
+            this->cycles_since_esc_update[i] = 0;
+        } else if (this->cycles_since_esc_update[i] < MAX_CYCLES_SINCE_NODE_UPDATE) {
+            ++this->cycles_since_esc_update[i];
+        }
+        this->set_state(
+            this->thruster_names[i] + "/esc/health",
+            util::to_interface_data(state::thruster::esc::Health{
+                this->cycles_since_esc_update[i] < MAX_CYCLES_SINCE_NODE_UPDATE}));
+    }
+
     if (!read_batch.states.empty()) {
-        this->cycles_without_updates = 0;
+        this->cycles_since_any_node_update = 0;
     }
 
     // この周期数だけ状態更新がなければCANを異常とみなす
-    constexpr std::size_t MAX_CYCLES_WITHOUT_UPDATES = 50;
     if (!read_batch.error_message.empty()) {
         this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
 
@@ -160,10 +335,10 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
             this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to read CAN data: %s",
             read_batch.error_message.c_str());
     } else if (read_batch.states.empty()) {
-        if (this->cycles_without_updates < MAX_CYCLES_WITHOUT_UPDATES) {
-            ++this->cycles_without_updates;
+        if (this->cycles_since_any_node_update < MAX_CYCLES_SINCE_ANY_NODE_UPDATE) {
+            ++this->cycles_since_any_node_update;
         }
-        if (this->cycles_without_updates >= MAX_CYCLES_WITHOUT_UPDATES) {
+        if (this->cycles_since_any_node_update >= MAX_CYCLES_SINCE_ANY_NODE_UPDATE) {
             this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
         }
     } else {
@@ -182,8 +357,9 @@ auto Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period
         return hardware_interface::return_type::OK;
     }
 
-    auto && main_power_enabled = util::from_interface_data<cmd::main_power::Enabled>(
-        this->get_command("main_power/enabled"));
+    auto && power_distribution_enabled =
+        util::from_interface_data<cmd::power_distribution::Enabled>(
+            this->get_command("power_distribution/enabled"));
     auto && led_tape_color =
         util::from_interface_data<cmd::led_tape::Color>(this->get_command("led_tape/color"));
 
@@ -202,7 +378,8 @@ auto Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period
         });
     }
 
-    const auto res = this->model->on_write(main_power_enabled, thruster_commands, led_tape_color);
+    const auto res =
+        this->model->on_write(power_distribution_enabled, thruster_commands, led_tape_color);
     if (!res) {
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(
