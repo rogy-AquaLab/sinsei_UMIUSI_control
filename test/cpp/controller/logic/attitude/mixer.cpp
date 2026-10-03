@@ -288,6 +288,32 @@ TEST(AttitudeMixerTest, RetargetThrustThresholdsProvideHysteresis) {
     }
 }
 
+TEST(AttitudeMixerTest, KeepsTurningTowardVerticalWhileSmallYawFlipsSign) {
+    // 垂直推力に yaw の小さな水平成分が正負交互に乗っても、0 deg 付近から
+    // 同じ側の端点へ向かい続けること (10/03 実機で z 並進が出なかった)。
+    auto mixer_state = MixerState{};
+    auto servo_estimates = estimates(0.05);
+
+    for (auto step = 0; step < 40; ++step) {
+        const auto yaw = (step % 2 == 0) ? 0.1 : -0.1;
+        const Eigen::Vector<double, 6> request{0.0, 0.0, yaw, 0.0, 0.0, 0.5};
+
+        const auto output = mix_to_thrusters(
+            request, servo_estimates, velocities(3.0), 0.02, parameters(), mixer_state);
+
+        for (size_t i = 0; i < 4; ++i) {
+            EXPECT_GT(output.cmd.servo_angles[i].value, 0.0);
+            servo_estimates[i] = EstimatedAngle{output.cmd.servo_angles[i].value};
+        }
+    }
+
+    // atan2(0.5 * √2, 0.1) ≈ 82 deg。端点を含め、垂直付近に着いていればよい。
+    constexpr auto FIFTEEN_DEGREES = boost::math::constants::pi<double>() / 12.0;
+    for (const auto & angle : servo_estimates) {
+        EXPECT_GT(angle->value, HALF_PI - FIFTEEN_DEGREES);
+    }
+}
+
 TEST(AttitudeMixerTest, TraversesServoRangeWhenEndStopApproximationIsInsufficient) {
     const Eigen::Vector<double, 6> request{0.0, 0.0, -0.2, 0.0, 0.0, 1.0 / ROOT_TWO};
 

@@ -62,9 +62,12 @@ inline auto target_servo_angle(
     }
 
     // ±90 deg は、ESC の符号を反転すればほぼ同じ推力軸を表せる。
-    // 境界のごく近傍では反対側へ180 deg回さず、現在側の端点を維持する。
-    if (current_angle * exact_angle < 0.0 && direct_distance > HALF_PI &&
-        PI - direct_distance <= parameters.servo_reversal_deadband) {
+    // 目標が境界のごく近傍なら反対側へ回さず、現在角と同じ側の端点を目標にする。
+    // 判定を現在角ではなく目標角の境界距離で行うのは、垂直推力に yaw 等の小さな水平成分が
+    // 正負に揺れて乗ると目標が ±(90 - ε) deg で反転し続け、端点から遠い現在角
+    // (0 deg 付近) のサーボが往復するだけで垂直へ向かえなくなるため。
+    if (current_angle * exact_angle < 0.0 &&
+        HALF_PI - std::abs(exact_angle) <= parameters.servo_reversal_deadband) {
         return std::copysign(HALF_PI, current_angle);
     }
     return exact_angle;
