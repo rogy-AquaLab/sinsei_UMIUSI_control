@@ -4,6 +4,7 @@
 
 #include <array>
 #include <boost/math/constants/constants.hpp>
+#include <cmath>
 #include <limits>
 #include <optional>
 
@@ -112,6 +113,16 @@ TEST(AttitudeMixerTest, ProjectsRequestedForceOntoCurrentServoAxis) {
     EXPECT_NEAR(output.cmd.esc_thrusts[3].value, 0.5, EPS);
 }
 
+TEST(AttitudeMixerTest, ScalesVerticalTranslationLikeHorizontalTranslation) {
+    const Eigen::Vector<double, 6> request{0.0, 0.0, 0.0, 0.0, 0.0, 0.5};
+
+    const auto output = mix(request, estimates(HALF_PI), velocities(1.0), 0.02);
+
+    for (const auto & thrust : output.cmd.esc_thrusts) {
+        EXPECT_NEAR(thrust.value, 0.5, EPS);
+    }
+}
+
 TEST(AttitudeMixerTest, BuildsVerticalThrustAsServosActuallyMove) {
     auto servo_estimates = estimates(0.1);
     servo_estimates[2] = EstimatedAngle{-0.1};
@@ -126,8 +137,68 @@ TEST(AttitudeMixerTest, BuildsVerticalThrustAsServosActuallyMove) {
     }
 }
 
+auto limited_parameters(double esc_thrust_limit) -> MixerParameters {
+    auto limited = parameters();
+    limited.esc_thrust_limit = esc_thrust_limit;
+    return limited;
+}
+
+TEST(AttitudeMixerTest, ShrinksTranslationToKeepYawMomentUnderThrustLimit) {
+    // 前進 1.0 + yaw。上限 0.5 で並進だけを縮め、全基が同じ値に張り付かないこと。
+    const Eigen::Vector<double, 6> request{0.0, 0.0, 0.2, 1.0, 0.0, 0.0};
+
+    const auto output =
+        mix(request, estimates(0.0), velocities(1.0), 0.02, limited_parameters(0.5));
+
+    auto yaw_sum = 0.0;
+    for (const auto & thrust : output.cmd.esc_thrusts) {
+        EXPECT_LE(std::abs(thrust.value), 0.5 + EPS);
+        yaw_sum += thrust.value;
+    }
+    EXPECT_NEAR(yaw_sum, 4.0 * 0.2 / ROOT_TWO, EPS);
+    EXPECT_NEAR(output.cmd.esc_thrusts[2].value, 0.5, EPS);
+    EXPECT_NEAR(output.cmd.esc_thrusts[3].value, 0.5, EPS);
+    EXPECT_LT(output.cmd.esc_thrusts[0].value, 0.0);
+    EXPECT_GT(output.cmd.esc_thrusts[0].value, -0.5);
+}
+
+TEST(AttitudeMixerTest, ScalesMomentUniformlyWhenMomentAloneExceedsThrustLimit) {
+    const Eigen::Vector<double, 6> request{0.0, 0.0, 1.0, 1.0, 0.0, 0.0};
+
+    const auto output =
+        mix(request, estimates(0.0), velocities(1.0), 0.02, limited_parameters(0.5));
+
+    for (const auto & thrust : output.cmd.esc_thrusts) {
+        EXPECT_NEAR(thrust.value, 0.5, EPS);
+    }
+}
+
+TEST(AttitudeMixerTest, LeavesRequestsWithinThrustLimitUnchanged) {
+    const Eigen::Vector<double, 6> request{0.0, 0.0, 0.1, 0.3, 0.0, 0.0};
+
+    const auto limited =
+        mix(request, estimates(0.0), velocities(1.0), 0.02, limited_parameters(0.5));
+    const auto unlimited = mix(request, estimates(0.0), velocities(1.0), 0.02);
+
+    for (size_t i = 0; i < 4; ++i) {
+        EXPECT_NEAR(limited.cmd.esc_thrusts[i].value, unlimited.cmd.esc_thrusts[i].value, EPS);
+    }
+}
+
+TEST(AttitudeMixerTest, InvalidThrustLimitStopsThrust) {
+    const Eigen::Vector<double, 6> request{0.0, 0.0, 0.0, 1.0, 0.0, 0.0};
+
+    const auto output =
+        mix(request, estimates(0.4), velocities(1.0), 0.02, limited_parameters(0.0));
+
+    for (size_t i = 0; i < 4; ++i) {
+        EXPECT_DOUBLE_EQ(output.cmd.esc_thrusts[i].value, 0.0);
+        EXPECT_DOUBLE_EQ(output.cmd.servo_angles[i].value, 0.4);
+    }
+}
+
 TEST(AttitudeMixerTest, DoesNotCrossTheFullServoRangeForEndStopNoise) {
-    const Eigen::Vector<double, 6> request{0.0, 0.0, -0.01, 0.0, 0.0, 1.0};
+    const Eigen::Vector<double, 6> request{0.0, 0.0, -0.01, 0.0, 0.0, 1.0 / ROOT_TWO};
 
     const auto output = mix(request, estimates(HALF_PI), velocities(1.57), 0.02);
 
@@ -140,7 +211,7 @@ TEST(AttitudeMixerTest, DoesNotCrossTheFullServoRangeForEndStopNoise) {
 TEST(AttitudeMixerTest, IgnoresSmallDirectionChangesAtAnyServoAngle) {
     constexpr auto FOUR_DEGREES = boost::math::constants::pi<double>() / 45.0;
     const Eigen::Vector<double, 6> request{
-        0.0, 0.0, std::cos(FOUR_DEGREES), 0.0, 0.0, std::sin(FOUR_DEGREES)};
+        0.0, 0.0, std::cos(FOUR_DEGREES), 0.0, 0.0, std::sin(FOUR_DEGREES) / ROOT_TWO};
 
     const auto output = mix(request, estimates(0.0), velocities(1.57), 0.02);
 
@@ -152,7 +223,7 @@ TEST(AttitudeMixerTest, IgnoresSmallDirectionChangesAtAnyServoAngle) {
 TEST(AttitudeMixerTest, MovesServoOnceDirectionChangeExceedsDeadband) {
     constexpr auto SIX_DEGREES = boost::math::constants::pi<double>() / 30.0;
     const Eigen::Vector<double, 6> request{
-        0.0, 0.0, std::cos(SIX_DEGREES), 0.0, 0.0, std::sin(SIX_DEGREES)};
+        0.0, 0.0, std::cos(SIX_DEGREES), 0.0, 0.0, std::sin(SIX_DEGREES) / ROOT_TWO};
 
     const auto output = mix(request, estimates(0.0), velocities(1.57), 0.1);
 
@@ -164,7 +235,7 @@ TEST(AttitudeMixerTest, MovesServoOnceDirectionChangeExceedsDeadband) {
 TEST(AttitudeMixerTest, UsesConfiguredDirectionDeadband) {
     constexpr auto SIX_DEGREES = boost::math::constants::pi<double>() / 30.0;
     const Eigen::Vector<double, 6> request{
-        0.0, 0.0, std::cos(SIX_DEGREES), 0.0, 0.0, std::sin(SIX_DEGREES)};
+        0.0, 0.0, std::cos(SIX_DEGREES), 0.0, 0.0, std::sin(SIX_DEGREES) / ROOT_TWO};
 
     const auto output = mix(request, estimates(0.0), velocities(1.57), 0.1, parameters(7.0));
 
@@ -217,8 +288,34 @@ TEST(AttitudeMixerTest, RetargetThrustThresholdsProvideHysteresis) {
     }
 }
 
+TEST(AttitudeMixerTest, KeepsTurningTowardVerticalWhileSmallYawFlipsSign) {
+    // 垂直推力に yaw の小さな水平成分が正負交互に乗っても、0 deg 付近から
+    // 同じ側の端点へ向かい続けること (10/03 実機で z 並進が出なかった)。
+    auto mixer_state = MixerState{};
+    auto servo_estimates = estimates(0.05);
+
+    for (auto step = 0; step < 40; ++step) {
+        const auto yaw = (step % 2 == 0) ? 0.1 : -0.1;
+        const Eigen::Vector<double, 6> request{0.0, 0.0, yaw, 0.0, 0.0, 0.5};
+
+        const auto output = mix_to_thrusters(
+            request, servo_estimates, velocities(3.0), 0.02, parameters(), mixer_state);
+
+        for (size_t i = 0; i < 4; ++i) {
+            EXPECT_GT(output.cmd.servo_angles[i].value, 0.0);
+            servo_estimates[i] = EstimatedAngle{output.cmd.servo_angles[i].value};
+        }
+    }
+
+    // atan2(0.5 * √2, 0.1) ≈ 82 deg。端点を含め、垂直付近に着いていればよい。
+    constexpr auto FIFTEEN_DEGREES = boost::math::constants::pi<double>() / 12.0;
+    for (const auto & angle : servo_estimates) {
+        EXPECT_GT(angle->value, HALF_PI - FIFTEEN_DEGREES);
+    }
+}
+
 TEST(AttitudeMixerTest, TraversesServoRangeWhenEndStopApproximationIsInsufficient) {
-    const Eigen::Vector<double, 6> request{0.0, 0.0, -0.2, 0.0, 0.0, 1.0};
+    const Eigen::Vector<double, 6> request{0.0, 0.0, -0.2, 0.0, 0.0, 1.0 / ROOT_TWO};
 
     const auto output = mix(request, estimates(HALF_PI), velocities(1.0), 0.1);
 
@@ -228,7 +325,7 @@ TEST(AttitudeMixerTest, TraversesServoRangeWhenEndStopApproximationIsInsufficien
 }
 
 TEST(AttitudeMixerTest, UsesConfiguredReversalDeadband) {
-    const Eigen::Vector<double, 6> request{0.0, 0.0, -0.2, 0.0, 0.0, 1.0};
+    const Eigen::Vector<double, 6> request{0.0, 0.0, -0.2, 0.0, 0.0, 1.0 / ROOT_TWO};
 
     const auto output =
         mix(request, estimates(HALF_PI), velocities(1.0), 0.1, parameters(5.0, 15.0));

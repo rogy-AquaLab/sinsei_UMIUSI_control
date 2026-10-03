@@ -16,6 +16,15 @@
 
 値はconfigure時に読み込むため、変更後は`attitude_controller`を再configureする。
 
+## ミキサー設定
+
+| パラメータ | 既定値 | 用途 |
+| --- | ---: | --- |
+| `mixer.servo_direction_deadband_deg` | 5.0 | この角度以内の推力方向の変化ではサーボを動かさない |
+| `mixer.servo_reversal_deadband_deg` | 10.0 | ±90 deg の境界付近で反対側の端へ回さない幅 |
+| `mixer.servo_retarget_thrust_enter` / `exit` | 0.10 / 0.06 | サーボが推力方向へ追従し始める / やめる正規化推力 |
+| `mixer.esc_thrust_limit` | 1.0（yaml 0.5） | ESC 推力の上限。`max_duty / duty_per_thrust` に合わせる。超えるときは姿勢モーメントを優先して並進を一様に縮める |
+
 ## `logic::attitude::FeedForward`
 
 ### TL;DR

@@ -24,6 +24,8 @@ struct MixerParameters {
     double servo_reversal_deadband;
     double servo_retarget_thrust_enter;
     double servo_retarget_thrust_exit;
+    // ESC 推力（正規化）の上限。thruster 側の max_duty / duty_per_thrust に合わせること。
+    double esc_thrust_limit = 1.0;
 };
 
 struct MixerState {
@@ -59,9 +61,12 @@ inline auto target_servo_angle(
     }
 
     // ±90 deg は、ESC の符号を反転すればほぼ同じ推力軸を表せる。
-    // 境界のごく近傍では反対側へ180 deg回さず、現在側の端点を維持する。
-    if (current_angle * exact_angle < 0.0 && direct_distance > HALF_PI &&
-        PI - direct_distance <= parameters.servo_reversal_deadband) {
+    // 目標が境界のごく近傍なら反対側へ回さず、現在角と同じ側の端点を目標にする。
+    // 判定を現在角ではなく目標角の境界距離で行うのは、垂直推力に yaw 等の小さな水平成分が
+    // 正負に揺れて乗ると目標が ±(90 - ε) deg で反転し続け、端点から遠い現在角
+    // (0 deg 付近) のサーボが往復するだけで垂直へ向かえなくなるため。
+    if (current_angle * exact_angle < 0.0 &&
+        HALF_PI - std::abs(exact_angle) <= parameters.servo_reversal_deadband) {
         return std::copysign(HALF_PI, current_angle);
     }
     return exact_angle;
@@ -69,6 +74,18 @@ inline auto target_servo_angle(
 
 inline auto move_towards(double current, double target, double max_delta) -> double {
     return std::clamp(target, current - max_delta, current + max_delta);
+}
+
+// |moment + s * translation| <= limit を満たす最大の s (0..1)。|moment| <= limit が前提。
+inline auto translation_scale(
+    const Eigen::Vector2d & moment, const Eigen::Vector2d & translation, double limit) -> double {
+    const auto tt = translation.squaredNorm();
+    if (tt == 0.0) {
+        return 1.0;
+    }
+    const auto mt = moment.dot(translation);
+    const auto discriminant = mt * mt - tt * (moment.squaredNorm() - limit * limit);
+    return std::clamp((-mt + std::sqrt(std::max(discriminant, 0.0))) / tt, 0.0, 1.0);
 }
 
 }  // namespace detail
@@ -112,7 +129,9 @@ inline auto mix_to_thrusters(
         parameters.servo_retarget_thrust_enter > 1.0 ||
         !std::isfinite(parameters.servo_retarget_thrust_exit) ||
         parameters.servo_retarget_thrust_exit < 0.0 ||
-        parameters.servo_retarget_thrust_exit > parameters.servo_retarget_thrust_enter) {
+        parameters.servo_retarget_thrust_exit > parameters.servo_retarget_thrust_enter ||
+        !std::isfinite(parameters.esc_thrust_limit) || parameters.esc_thrust_limit <= 0.0 ||
+        parameters.esc_thrust_limit > 1.0) {
         mixer_state.servo_retargeting.fill(false);
         return output;
     }
@@ -132,19 +151,43 @@ inline auto mix_to_thrusters(
 
     //  -> f1h, f1v, f2h, f2v, f3h, f3v, f4h, f4v (h: horizontal, v: vertical)
     // z軸まわりに半時計周りをfの番号順とhorizontalの正の方向とする
+    // 並進 (vx, vy, vz) は軸によらず「入力 1.0 で各基の正規化推力 1.0」になるよう、
+    // 列を MAX_THRUST (= √2) 倍にそろえる。z だけ 1 倍だと同じ入力で xy の 1/√2 しか出ない。
     const auto a = Eigen::Matrix<double, 8, 6>{
         {0.0, 0.0, 1.0, -sqrt(2.0), sqrt(2.0), 0.0},   // スラスタ1 (:lf) 水平出力
-        {1.0, -1.0, 0.0, 0.0, 0.0, 1.0},               // スラスタ1 (:lf) 垂直出力
+        {1.0, -1.0, 0.0, 0.0, 0.0, sqrt(2.0)},         // スラスタ1 (:lf) 垂直出力
         {0.0, 0.0, 1.0, -sqrt(2.0), -sqrt(2.0), 0.0},  // スラスタ2 (:lb) 水平出力
-        {1.0, 1.0, 0.0, 0.0, 0.0, 1.0},                // スラスタ2 (:lb) 垂直出力
+        {1.0, 1.0, 0.0, 0.0, 0.0, sqrt(2.0)},          // スラスタ2 (:lb) 垂直出力
         {0.0, 0.0, 1.0, sqrt(2.0), -sqrt(2.0), 0.0},   // スラスタ3 (:rb) 水平出力
-        {-1.0, 1.0, 0.0, 0.0, 0.0, 1.0},               // スラスタ3 (:rb) 垂直出力
+        {-1.0, 1.0, 0.0, 0.0, 0.0, sqrt(2.0)},         // スラスタ3 (:rb) 垂直出力
         {0.0, 0.0, 1.0, sqrt(2.0), sqrt(2.0), 0.0},    // スラスタ4 (:rf) 水平出力
-        {-1.0, -1.0, 0.0, 0.0, 0.0, 1.0},              // スラスタ4 (:rf) 垂直出力
+        {-1.0, -1.0, 0.0, 0.0, 0.0, sqrt(2.0)},        // スラスタ4 (:rf) 垂直出力
     };
-    const auto y = a * u;
 
+    // 上限超えを thruster 側の clip に任せると全基が同じ値に張り付き、姿勢モーメントが消える。
     constexpr auto MAX_THRUST = boost::math::constants::root_two<double>();
+    const auto limit = parameters.esc_thrust_limit * MAX_THRUST;
+    auto u_moment = u;
+    u_moment.tail<3>().setZero();
+    auto u_translation = u;
+    u_translation.head<3>().setZero();
+    Eigen::Vector<double, 8> y_moment = a * u_moment;
+    const Eigen::Vector<double, 8> y_translation = a * u_translation;
+    auto moment_peak = 0.0;
+    for (size_t i = 0; i < servo_estimated_angles.size(); ++i) {
+        moment_peak = std::max(moment_peak, y_moment.segment<2>(2 * i).norm());
+    }
+    if (moment_peak > limit) {
+        y_moment *= limit / moment_peak;
+    }
+    auto scale = 1.0;
+    for (size_t i = 0; i < servo_estimated_angles.size(); ++i) {
+        scale = std::min(
+            scale, detail::translation_scale(
+                       y_moment.segment<2>(2 * i), y_translation.segment<2>(2 * i), limit));
+    }
+    const Eigen::Vector<double, 8> y = y_moment + scale * y_translation;
+
     for (size_t i = 0; i < servo_estimated_angles.size(); ++i) {
         const auto horizontal = y[2 * i];
         const auto vertical = y[2 * i + 1];
