@@ -1,5 +1,5 @@
-#ifndef SINSEI_UMIUSI_CONTROL_hardware_model_CAN_MODEL_HPP
-#define SINSEI_UMIUSI_CONTROL_hardware_model_CAN_MODEL_HPP
+#ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_CAN_MODEL_HPP
+#define SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_CAN_MODEL_HPP
 
 #include <memory>
 #include <optional>
@@ -96,4 +96,4 @@ class CanModel {
 
 }  // namespace sinsei_umiusi_control::hardware_model
 
-#endif  // SINSEI_UMIUSI_CONTROL_hardware_model_CAN_MODEL_HPP
+#endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_CAN_MODEL_HPP

@@ -1,5 +1,5 @@
-#ifndef SINSEI_UMIUSI_CONTROL_hardware_model_INDICATOR_LED_MODEL_HPP
-#define SINSEI_UMIUSI_CONTROL_hardware_model_INDICATOR_LED_MODEL_HPP
+#ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INDICATOR_LED_MODEL_HPP
+#define SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INDICATOR_LED_MODEL_HPP
 
 #include <memory>
 #include <rcpputils/tl_expected/expected.hpp>
@@ -27,4 +27,4 @@ class IndicatorLedModel {
 
 }  // namespace sinsei_umiusi_control::hardware_model
 
-#endif  // SINSEI_UMIUSI_CONTROL_hardware_model_INDICATOR_LED_MODEL_HPP
+#endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INDICATOR_LED_MODEL_HPP
