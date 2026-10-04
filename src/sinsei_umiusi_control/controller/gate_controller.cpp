@@ -304,6 +304,12 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
         this->output.pub.power_distribution_enabled_publisher =
             this->get_node()->create_publisher<msg::PowerDistributionEnabled>(
                 state_prefix + "power_distribution_enabled", qos);
+        this->output.pub.indicator_led_enabled_publisher =
+            this->get_node()->create_publisher<msg::IndicatorLedEnabled>(
+                state_prefix + "indicator_led_enabled", qos);
+        this->output.pub.headlights_enabled_publisher =
+            this->get_node()->create_publisher<msg::HeadlightsEnabled>(
+                state_prefix + "headlights_enabled", qos);
         this->output.pub.battery_state_publisher =
             this->get_node()->create_publisher<sensor_msgs::msg::BatteryState>(
                 state_prefix + "power/battery", qos);
@@ -352,6 +358,13 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
     this->output.pub.power_distribution_enabled_publisher->publish(
         msg::PowerDistributionEnabled().set__enabled(
             this->output.cmd.power_distribution_enabled_ref.value));
+    this->output.pub.indicator_led_enabled_publisher->publish(
+        msg::IndicatorLedEnabled().set__enabled(this->output.cmd.indicator_led_enabled_ref.value));
+    this->output.pub.headlights_enabled_publisher->publish(
+        msg::HeadlightsEnabled()
+            .set__high_beam_enabled(this->output.cmd.high_beam_enabled_ref.value)
+            .set__low_beam_enabled(this->output.cmd.low_beam_enabled_ref.value)
+            .set__ir_enabled(this->output.cmd.ir_enabled_ref.value));
 
     auto battery_state = sensor_msgs::msg::BatteryState{};
     battery_state.header = std_msgs::msg::Header().set__stamp(time).set__frame_id("harmony_bms");

@@ -19,7 +19,7 @@ flowchart LR
     subgraph ROS["ROS Topics"]
         CMD["cmd/(indicator_led, power_distribution, led_tape, headlights)_output<br/>cmd/thruster_runnable_all<br/>cmd/target"]
         MANUAL["cmd/direct/thruster_controller/output_*<br/>cmd/direct/thruster_controller/output_all"]
-        STATE["state/(imu, imu_temperature, power_distribution_enabled, thruster_state_all)<br/>state/power/(battery, bms)<br/>state/(low_power_circuit_info, high_power_circuit_info)"]
+        STATE["state/(imu, imu_temperature, power_distribution_enabled, indicator_led_enabled, headlights_enabled, thruster_state_all)<br/>state/power/(battery, bms)<br/>state/(low_power_circuit_info, high_power_circuit_info)"]
     end
 
     subgraph CTRL["Controllers"]
@@ -129,6 +129,8 @@ All types of messages are defined in [sinsei_UMIUSI_msgs](https://github.com/rog
 | `state/imu`                        | [`sensor_msgs/Imu`](https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/Imu.html)                                               | IMU orientation, linear acceleration, and angular velocity                            |
 | `state/imu_temperature`            | [`sensor_msgs/Temperature`](https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/Temperature.html)                               | IMU temperature                                                                       |
 | `state/power_distribution_enabled` | [`PowerDistributionEnabled`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/PowerDistributionEnabled.msg) | Power distribution enabled / disabled status                                          |
+| `state/indicator_led_enabled`      | [`IndicatorLedEnabled`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/IndicatorLedEnabled.msg)           | Indicator LED enabled / disabled status                                               |
+| `state/headlights_enabled`         | [`HeadlightsEnabled`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/HeadlightsEnabled.msg)               | Headlights enabled / disabled status for each of High beam, Low beam, and IR          |
 | `state/power/battery`              | [`sensor_msgs/BatteryState`](https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/BatteryState.html)                             | Standard battery voltage, current, SOC, and cell voltages; temperature is unavailable |
 | `state/power/bms`                  | [`BmsState`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/BmsState.msg)                                 | Harmony16-compatible BMS state of health, temperatures, balancing, and fault state    |
 | `state/thruster_state_all`         | [`ThrusterStateAll`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterStateAll.msg)                 | Thruster status including input voltage and water leak state                          |
