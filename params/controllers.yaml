@@ -22,6 +22,7 @@
       esc_disabled: false # Whether to disable ESC
       servo_disabled: false # Whether to disable servo
       is_forward: true # Thruster direction (true for forward, false for reverse)
+      servo_sign: 1.0 # Servo rotation sense (+1.0 normal / -1.0 reversed mounting)
       duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
       max_duty: 0.5 # Maximum duty cycle (0.0 to 1.0)
       max_duty_step_per_sec: 1.0 # Maximum change in duty cycle per second
@@ -34,6 +35,7 @@
       esc_disabled: false # Whether to disable ESC
       servo_disabled: false # Whether to disable servo
       is_forward: true # Thruster direction (true for forward, false for reverse)
+      servo_sign: 1.0 # Servo rotation sense (+1.0 normal / -1.0 reversed mounting)
       duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
       max_duty: 0.5 # Maximum duty cycle (0.0 to 1.0)
       max_duty_step_per_sec: 1.0 # Maximum change in duty cycle per second
@@ -46,6 +48,7 @@
       esc_disabled: false # Whether to disable ESC
       servo_disabled: false # Whether to disable servo
       is_forward: true # Thruster direction (true for forward, false for reverse)
+      servo_sign: 1.0 # Servo rotation sense (+1.0 normal / -1.0 reversed mounting)
       duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
       max_duty: 0.5 # Maximum duty cycle (0.0 to 1.0)
       max_duty_step_per_sec: 1.0 # Maximum change in duty cycle per second
@@ -58,6 +61,7 @@
       esc_disabled: false # Whether to disable ESC
       servo_disabled: false # Whether to disable servo
       is_forward: true # Thruster direction (true for forward, false for reverse)
+      servo_sign: 1.0 # Servo rotation sense (+1.0 normal / -1.0 reversed mounting)
       duty_per_thrust: 1.0 # Duty cycle per unit thrust [/N]
       max_duty: 0.5 # Maximum duty cycle (0.0 to 1.0)
       max_duty_step_per_sec: 1.0 # Maximum change in duty cycle per second
