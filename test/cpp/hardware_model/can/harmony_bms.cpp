@@ -246,9 +246,7 @@ TEST(HarmonyBmsModelTest, ReassemblesStatusAndMapsHarmonyFaults) {
 
     ASSERT_TRUE(state);
     EXPECT_EQ(state->power_switch_state, suchm::can::HarmonyBmsModel::PowerSwitchState::Fault);
-    EXPECT_EQ(
-        state->fault_flags,
-        static_cast<uint32_t>(suchm::can::HarmonyBmsModel::FaultSwitchOverTemperature));
+    EXPECT_EQ(state->fault_flags, suchm::can::HarmonyBmsModel::FAULT_SWITCH_OVER_TEMPERATURE);
     EXPECT_EQ(std::string(state->status.data()), text);
 }
 

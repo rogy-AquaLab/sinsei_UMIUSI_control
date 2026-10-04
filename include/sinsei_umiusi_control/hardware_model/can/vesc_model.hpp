@@ -18,6 +18,8 @@ class VescModel {
   public:
     using Id = uint8_t;
 
+    // 本家ファームウェアの`CAN_PACKET_ID`に合わせた命名
+    // ref: https://github.com/vedderb/bldc/blob/822d270/datatypes.h
     enum class PacketId : uint32_t {
         CAN_PACKET_SET_DUTY = 0,
         CAN_PACKET_SET_CURRENT = 1,

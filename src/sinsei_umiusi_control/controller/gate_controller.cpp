@@ -62,22 +62,30 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                 "bms/" + name, util::to_interface_data_ptr(value), sizeof(value));
         };
         add_bms_state("health", this->input.state.bms_health);
-        add_bms_state("voltages", this->input.state.bms_voltages);
-        add_bms_state("currents", this->input.state.bms_currents);
-        add_bms_state("capacity_state", this->input.state.bms_capacity);
-        add_bms_state("cell_voltage_range", this->input.state.bms_cell_voltage_range);
+        add_bms_state("voltages.pack", this->input.state.bms_voltages.pack);
+        add_bms_state("voltages.charger", this->input.state.bms_voltages.charger);
+        add_bms_state("currents.input", this->input.state.bms_currents.input);
+        add_bms_state("currents.measured", this->input.state.bms_currents.measured);
+        add_bms_state(
+            "capacity_state.state_of_charge", this->input.state.bms_capacity.state_of_charge);
+        add_bms_state(
+            "capacity_state.state_of_health", this->input.state.bms_capacity.state_of_health);
+        add_bms_state("cell_voltage_range.min", this->input.state.bms_cell_voltage_range.min);
+        add_bms_state("cell_voltage_range.max", this->input.state.bms_cell_voltage_range.max);
         add_bms_state("status", this->input.state.bms_status);
         add_bms_state("cell_count", this->input.state.bms_cell_count);
         for (std::size_t i = 0; i < this->input.state.bms_cells.size(); ++i) {
-            add_bms_state("cell_" + std::to_string(i), this->input.state.bms_cells[i]);
+            const auto prefix = "cell_" + std::to_string(i);
+            add_bms_state(prefix + ".voltage", this->input.state.bms_cells[i].voltage);
+            add_bms_state(prefix + ".balancing", this->input.state.bms_cells[i].balancing);
         }
-        add_bms_state("balance_ic_temperature", this->input.state.bms_temperatures.balance_ic);
-        add_bms_state("mosfet_temperature", this->input.state.bms_temperatures.mosfet);
-        add_bms_state("ambient_temperature", this->input.state.bms_temperatures.ambient);
-        for (std::size_t i = 0; i < this->input.state.bms_temperatures.additional.size(); ++i) {
+        add_bms_state("balance_ic_temperature", this->input.state.bms_balance_ic_temperature);
+        add_bms_state("mosfet_temperature", this->input.state.bms_mosfet_temperature);
+        add_bms_state("ambient_temperature", this->input.state.bms_ambient_temperature);
+        for (std::size_t i = 0; i < this->input.state.bms_additional_temperatures.size(); ++i) {
             add_bms_state(
                 "additional_temperature_" + std::to_string(i),
-                this->input.state.bms_temperatures.additional[i]);
+                this->input.state.bms_additional_temperatures[i]);
         }
         this->state_interface_data.emplace_back(
             "imu/temperature", to_interface_data_ptr(this->input.state.imu_temperature),
@@ -368,18 +376,18 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
 
     auto battery_state = sensor_msgs::msg::BatteryState{};
     battery_state.header = std_msgs::msg::Header().set__stamp(time).set__frame_id("harmony_bms");
-    battery_state.voltage = this->input.state.bms_voltages.pack;
+    battery_state.voltage = static_cast<float>(this->input.state.bms_voltages.pack);
     // VESC BMSは放電時を正、BatteryStateは充電時を正とするため、符号を反転する
-    battery_state.current = -this->input.state.bms_currents.measured;
+    battery_state.current = static_cast<float>(-this->input.state.bms_currents.measured);
     battery_state.temperature = std::numeric_limits<float>::quiet_NaN();
     battery_state.charge = std::numeric_limits<float>::quiet_NaN();
     battery_state.capacity = std::numeric_limits<float>::quiet_NaN();
     battery_state.design_capacity = std::numeric_limits<float>::quiet_NaN();
-    battery_state.percentage = this->input.state.bms_capacity.state_of_charge;
+    battery_state.percentage = static_cast<float>(this->input.state.bms_capacity.state_of_charge);
     battery_state.power_supply_status =
         this->input.state.bms_status.charging
             ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_CHARGING
-            : (this->input.state.bms_currents.measured > 0.0F
+            : (this->input.state.bms_currents.measured > 0.0
                    ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING
                    : sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_NOT_CHARGING);
     battery_state.power_supply_health =
@@ -393,30 +401,33 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
         this->input.state.bms_cell_count.value, this->input.state.bms_cells.size());
     battery_state.cell_voltage.reserve(cell_count);
     for (std::size_t i = 0; i < cell_count; ++i) {
-        battery_state.cell_voltage.push_back(this->input.state.bms_cells[i].voltage);
+        battery_state.cell_voltage.push_back(
+            static_cast<float>(this->input.state.bms_cells[i].voltage));
     }
     this->output.pub.battery_state_publisher->publish(battery_state);
 
     auto bms_state = msg::BmsState{};
     bms_state.header = std_msgs::msg::Header().set__stamp(time).set__frame_id("harmony_bms");
-    bms_state.state_of_health = this->input.state.bms_capacity.state_of_health;
-    bms_state.cell_voltage_min = this->input.state.bms_cell_voltage_range.min;
-    bms_state.cell_voltage_max = this->input.state.bms_cell_voltage_range.max;
+    bms_state.state_of_health = static_cast<float>(this->input.state.bms_capacity.state_of_health);
+    bms_state.cell_voltage_min = static_cast<float>(this->input.state.bms_cell_voltage_range.min);
+    bms_state.cell_voltage_max = static_cast<float>(this->input.state.bms_cell_voltage_range.max);
     bms_state.balancing = this->input.state.bms_status.balancing;
     bms_state.charge_allowed = this->input.state.bms_status.charge_allowed;
     bms_state.cell_balancing.reserve(cell_count);
     for (std::size_t i = 0; i < cell_count; ++i) {
         bms_state.cell_balancing.push_back(this->input.state.bms_cells[i].balancing);
     }
-    bms_state.charger_voltage = this->input.state.bms_voltages.charger;
+    bms_state.charger_voltage = static_cast<float>(this->input.state.bms_voltages.charger);
 
     bms_state.balance_ic_temperature =
-        static_cast<float>(this->input.state.bms_temperatures.balance_ic);
-    bms_state.mosfet_temperature = static_cast<float>(this->input.state.bms_temperatures.mosfet);
-    bms_state.ambient_temperature = static_cast<float>(this->input.state.bms_temperatures.ambient);
+        static_cast<float>(this->input.state.bms_balance_ic_temperature.value);
+    bms_state.mosfet_temperature =
+        static_cast<float>(this->input.state.bms_mosfet_temperature.value);
+    bms_state.ambient_temperature =
+        static_cast<float>(this->input.state.bms_ambient_temperature.value);
     for (std::size_t i = 0; i < bms_state.additional_temperatures.size(); ++i) {
         bms_state.additional_temperatures[i] =
-            static_cast<float>(this->input.state.bms_temperatures.additional[i]);
+            static_cast<float>(this->input.state.bms_additional_temperatures[i].value);
     }
     bms_state.power_switch_state = this->input.state.bms_status.power_switch_state;
     bms_state.fault_flags = this->input.state.bms_status.fault_flags;
@@ -490,7 +501,7 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
             .set__battery(
                 this->input.state.bms_health.is_ok &&
                         this->input.state.bms_status.fault_flags == 0 &&
-                        this->input.state.bms_voltages.pack > 0.0F
+                        this->input.state.bms_voltages.pack > 0.0
                     ? msg::HighPowerCircuitInfo::OK
                     : msg::HighPowerCircuitInfo::ERROR)
             .set__esc_lf(

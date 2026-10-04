@@ -52,13 +52,12 @@ class HarmonyBmsModel {
         Fault = 5,
     };
 
-    enum FaultFlag : uint32_t {
-        FaultNone = 0,
-        FaultPrecharge = 1U << 0,
-        FaultShortCircuit = 1U << 1,
-        FaultSwitchOverTemperature = 1U << 2,
-        FaultChargeOvercurrent = 1U << 3,
-    };
+    // `State::fault_flags`のビット定義
+    static constexpr uint32_t FAULT_NONE = 0;
+    static constexpr uint32_t FAULT_PRECHARGE = 1U << 0;
+    static constexpr uint32_t FAULT_SHORT_CIRCUIT = 1U << 1;
+    static constexpr uint32_t FAULT_SWITCH_OVER_TEMPERATURE = 1U << 2;
+    static constexpr uint32_t FAULT_CHARGE_OVERCURRENT = 1U << 3;
 
     struct State {
         State();
@@ -93,7 +92,7 @@ class HarmonyBmsModel {
         std::array<char, STATUS_LENGTH> status{};
         bool status_updated = false;
         PowerSwitchState power_switch_state = PowerSwitchState::Unknown;
-        uint32_t fault_flags = FaultNone;
+        uint32_t fault_flags = FAULT_NONE;
     };
 
   private:

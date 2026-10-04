@@ -34,7 +34,7 @@ class Can : public hardware_interface::SystemInterface {
     std::string last_bms_status;
     hardware_model::can::HarmonyBmsModel::PowerSwitchState last_bms_power_switch_state =
         hardware_model::can::HarmonyBmsModel::PowerSwitchState::Unknown;
-    uint32_t last_bms_fault_flags = hardware_model::can::HarmonyBmsModel::FaultNone;
+    uint32_t last_bms_fault_flags = hardware_model::can::HarmonyBmsModel::FAULT_NONE;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(Can)

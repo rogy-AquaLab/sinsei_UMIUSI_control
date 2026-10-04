@@ -1,7 +1,6 @@
 #ifndef SINSEI_UMIUSI_CONTROL_STATE_BMS_HPP
 #define SINSEI_UMIUSI_CONTROL_STATE_BMS_HPP
 
-#include <array>
 #include <cstdint>
 
 namespace sinsei_umiusi_control::state::bms {
@@ -11,23 +10,23 @@ struct Health {
 };
 
 struct Voltages {
-    float pack;
-    float charger;
+    double pack;
+    double charger;
 };
 
 struct Currents {
-    float input;
-    float measured;
+    double input;
+    double measured;
 };
 
 struct CapacityState {
-    float state_of_charge;
-    float state_of_health;
+    double state_of_charge;
+    double state_of_health;
 };
 
 struct CellVoltageRange {
-    float min;
-    float max;
+    double min;
+    double max;
 };
 
 struct Status {
@@ -39,7 +38,7 @@ struct Status {
 };
 
 struct Cell {
-    float voltage;
+    double voltage;
     bool balancing;
 };
 
@@ -47,11 +46,8 @@ struct CellCount {
     uint8_t value;
 };
 
-struct Temperatures {
-    double balance_ic;
-    double mosfet;
-    double ambient;
-    std::array<double, 5> additional;
+struct Temperature {
+    double value;
 };
 
 }  // namespace sinsei_umiusi_control::state::bms

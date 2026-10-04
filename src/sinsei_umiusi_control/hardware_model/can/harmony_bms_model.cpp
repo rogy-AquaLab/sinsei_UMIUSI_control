@@ -76,22 +76,22 @@ auto can::HarmonyBmsModel::update_status_flags() -> void {
     const auto end = std::find(this->state.status.begin(), this->state.status.end(), '\0');
     const auto status_text = std::string(this->state.status.begin(), end);
 
-    uint32_t flags = FaultNone;
+    uint32_t flags = FAULT_NONE;
     if (contains(status_text, "FLT_PCHG")) {
-        flags |= FaultPrecharge;
+        flags |= FAULT_PRECHARGE;
     }
     if (contains(status_text, "FLT_PSW_SHORT")) {
-        flags |= FaultShortCircuit;
+        flags |= FAULT_SHORT_CIRCUIT;
     }
     if (contains(status_text, "FLT_PSW_OT")) {
-        flags |= FaultSwitchOverTemperature;
+        flags |= FAULT_SWITCH_OVER_TEMPERATURE;
     }
     if (contains(status_text, "FLT_CHG_OC")) {
-        flags |= FaultChargeOvercurrent;
+        flags |= FAULT_CHARGE_OVERCURRENT;
     }
     this->state.fault_flags = flags;
 
-    if (flags != FaultNone) {
+    if (flags != FAULT_NONE) {
         this->state.power_switch_state = PowerSwitchState::Fault;
     } else if (contains(status_text, "PSW_PCHG")) {
         this->state.power_switch_state = PowerSwitchState::Precharge;

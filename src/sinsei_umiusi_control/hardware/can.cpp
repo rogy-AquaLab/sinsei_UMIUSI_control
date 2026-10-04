@@ -97,7 +97,7 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     this->last_bms_status.clear();
     this->last_bms_power_switch_state =
         hardware_model::can::HarmonyBmsModel::PowerSwitchState::Unknown;
-    this->last_bms_fault_flags = hardware_model::can::HarmonyBmsModel::FaultNone;
+    this->last_bms_fault_flags = hardware_model::can::HarmonyBmsModel::FAULT_NONE;
 
     auto harmony_bms_id_str =
         util::find_param(params.hardware_info.hardware_parameters, "harmony_bms_id");
@@ -210,38 +210,32 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
                     this->set_state(name, util::to_interface_data(value));
                 };
 
-                set_bms_state(
-                    "bms/voltages", state::bms::Voltages{
-                                        static_cast<float>(bms.pack_voltage),
-                                        static_cast<float>(bms.charger_voltage)});
-                set_bms_state(
-                    "bms/currents", state::bms::Currents{
-                                        static_cast<float>(bms.input_current),
-                                        static_cast<float>(bms.measured_current)});
-                set_bms_state(
-                    "bms/capacity_state", state::bms::CapacityState{
-                                              static_cast<float>(bms.state_of_charge),
-                                              static_cast<float>(bms.state_of_health)});
-                set_bms_state(
-                    "bms/cell_voltage_range", state::bms::CellVoltageRange{
-                                                  static_cast<float>(bms.cell_voltage_min),
-                                                  static_cast<float>(bms.cell_voltage_max)});
+                this->set_state("bms/voltages.pack", bms.pack_voltage);
+                this->set_state("bms/voltages.charger", bms.charger_voltage);
+                this->set_state("bms/currents.input", bms.input_current);
+                this->set_state("bms/currents.measured", bms.measured_current);
+                this->set_state("bms/capacity_state.state_of_charge", bms.state_of_charge);
+                this->set_state("bms/capacity_state.state_of_health", bms.state_of_health);
+                this->set_state("bms/cell_voltage_range.min", bms.cell_voltage_min);
+                this->set_state("bms/cell_voltage_range.max", bms.cell_voltage_max);
                 set_bms_state(
                     "bms/status", state::bms::Status{
                                       bms.fault_flags, static_cast<uint8_t>(bms.power_switch_state),
                                       bms.charging, bms.balancing, bms.charge_allowed});
-                set_bms_state("bms/balance_ic_temperature", bms.balance_ic_temperature);
+                set_bms_state(
+                    "bms/balance_ic_temperature",
+                    state::bms::Temperature{bms.balance_ic_temperature});
                 set_bms_state("bms/cell_count", state::bms::CellCount{bms.cell_count});
                 for (std::size_t i = 0; i < bms.cell_voltages.size(); ++i) {
-                    set_bms_state(
-                        "bms/cell_" + std::to_string(i),
-                        state::bms::Cell{
-                            static_cast<float>(bms.cell_voltages[i]), bms.cell_balancing[i]});
+                    const auto prefix = "bms/cell_" + std::to_string(i);
+                    this->set_state(prefix + ".voltage", bms.cell_voltages[i]);
+                    set_bms_state(prefix + ".balancing", bms.cell_balancing[i]);
                 }
 
                 const auto temperature_or_nan = [&bms](std::size_t index) {
-                    return index < bms.temperature_count ? bms.temperatures[index]
-                                                         : std::numeric_limits<double>::quiet_NaN();
+                    return state::bms::Temperature{
+                        index < bms.temperature_count ? bms.temperatures[index]
+                                                      : std::numeric_limits<double>::quiet_NaN()};
                 };
                 set_bms_state("bms/mosfet_temperature", temperature_or_nan(3));
                 set_bms_state("bms/ambient_temperature", temperature_or_nan(4));

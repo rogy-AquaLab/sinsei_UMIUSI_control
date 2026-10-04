@@ -55,7 +55,11 @@ class GateController : public controller_interface::ControllerInterface {
             sinsei_umiusi_control::state::bms::Status bms_status;
             sinsei_umiusi_control::state::bms::CellCount bms_cell_count;
             std::array<sinsei_umiusi_control::state::bms::Cell, 12> bms_cells;
-            sinsei_umiusi_control::state::bms::Temperatures bms_temperatures;
+            sinsei_umiusi_control::state::bms::Temperature bms_balance_ic_temperature;
+            sinsei_umiusi_control::state::bms::Temperature bms_mosfet_temperature;
+            sinsei_umiusi_control::state::bms::Temperature bms_ambient_temperature;
+            std::array<sinsei_umiusi_control::state::bms::Temperature, 5>
+                bms_additional_temperatures;
             sinsei_umiusi_control::state::imu::Temperature imu_temperature;
             sinsei_umiusi_control::state::imu::Quaternion imu_quaternion;
             sinsei_umiusi_control::state::imu::Acceleration imu_acceleration;
