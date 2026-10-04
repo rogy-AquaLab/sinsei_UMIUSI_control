@@ -33,34 +33,47 @@ auto float32_auto(const interface::CanFrame::Data & data, std::size_t offset) ->
     return std::ldexp(significand, exponent);
 }
 
+auto require_length(const interface::CanFrame & frame, uint8_t expected)
+    -> tl::expected<void, std::string> {
+    if (frame.len != expected) {
+        const auto packet_id = (frame.id >> 8) & 0xFFU;
+        return tl::make_unexpected(
+            "Harmony BMS packet " + std::to_string(packet_id) + " has invalid length: expected " +
+            std::to_string(expected) + ", received " + std::to_string(frame.len));
+    }
+    return {};
+}
+
 auto contains(const std::string & value, const std::string & token) -> bool {
     return value.find(token) != std::string::npos;
+}
+
+auto to_temperature(double raw, std::size_t index, std::size_t received_count)
+    -> sinsei_umiusi_control::state::bms::Temperature {
+    // まだ受信していない温度はNaNとする
+    return sinsei_umiusi_control::state::bms::Temperature{
+        index < received_count ? raw : std::numeric_limits<double>::quiet_NaN()};
 }
 
 }  // namespace
 
 can::HarmonyBmsModel::State::State() {
+    // 未受信の値はNaNとする
     const auto nan = std::numeric_limits<double>::quiet_NaN();
-    this->pack_voltage = nan;
-    this->charger_voltage = nan;
-    this->input_current = nan;
-    this->measured_current = nan;
-    this->net_consumed_charge = nan;
-    this->net_consumed_energy = nan;
-    this->cell_voltages.fill(nan);
-    this->temperatures.fill(nan);
-    this->humidity_sensor_temperature = nan;
-    this->relative_humidity = nan;
-    this->balance_ic_temperature = nan;
-    this->state_of_charge = nan;
-    this->state_of_health = nan;
-    this->cell_voltage_min = nan;
-    this->cell_voltage_max = nan;
-    this->cell_temperature_max = nan;
-    this->total_charged_charge = nan;
-    this->total_charged_energy = nan;
-    this->total_discharged_charge = nan;
-    this->total_discharged_energy = nan;
+    this->voltages = state::bms::Voltages{nan, nan};
+    this->currents = state::bms::Currents{nan, nan};
+    this->capacity = state::bms::CapacityState{nan, nan};
+    this->cell_voltage_range = state::bms::CellVoltageRange{nan, nan};
+    this->status = state::bms::Status{
+        util::BmsFaults{false, false, false, false}, util::BmsPowerSwitchState::Unknown, false,
+        false, false};
+    this->cell_count = state::bms::CellCount{0};
+    this->cells.fill(state::bms::Cell{nan, false});
+    this->balance_ic_temperature = state::bms::Temperature{nan};
+    this->mosfet_temperature = state::bms::Temperature{nan};
+    this->ambient_temperature = state::bms::Temperature{nan};
+    this->additional_temperatures.fill(state::bms::Temperature{nan});
+    this->status_updated = false;
 }
 
 can::HarmonyBmsModel::HarmonyBmsModel(Id id) : id(id) {}
@@ -72,37 +85,45 @@ auto can::HarmonyBmsModel::id_matches(const interface::CanFrame & frame) const -
     return frame.is_extended && bms_id == this->id;
 }
 
-auto can::HarmonyBmsModel::update_status_flags() -> void {
-    const auto end = std::find(this->state.status.begin(), this->state.status.end(), '\0');
-    const auto status_text = std::string(this->state.status.begin(), end);
+auto can::HarmonyBmsModel::update_temperatures() -> void {
+    this->state.mosfet_temperature = to_temperature(
+        this->temperatures[MOSFET_TEMPERATURE_INDEX], MOSFET_TEMPERATURE_INDEX,
+        this->temperature_count);
+    this->state.ambient_temperature = to_temperature(
+        this->temperatures[AMBIENT_TEMPERATURE_INDEX], AMBIENT_TEMPERATURE_INDEX,
+        this->temperature_count);
+    for (std::size_t i = 0; i < this->state.additional_temperatures.size(); ++i) {
+        const auto index = ADDITIONAL_TEMPERATURE_OFFSET + i;
+        this->state.additional_temperatures[i] =
+            to_temperature(this->temperatures[index], index, this->temperature_count);
+    }
+}
 
-    uint32_t flags = FAULT_NONE;
-    if (contains(status_text, "FLT_PCHG")) {
-        flags |= FAULT_PRECHARGE;
-    }
-    if (contains(status_text, "FLT_PSW_SHORT")) {
-        flags |= FAULT_SHORT_CIRCUIT;
-    }
-    if (contains(status_text, "FLT_PSW_OT")) {
-        flags |= FAULT_SWITCH_OVER_TEMPERATURE;
-    }
-    if (contains(status_text, "FLT_CHG_OC")) {
-        flags |= FAULT_CHARGE_OVERCURRENT;
-    }
-    this->state.fault_flags = flags;
+auto can::HarmonyBmsModel::update_status() -> void {
+    const auto end = std::find(this->status_buffer.begin(), this->status_buffer.end(), '\0');
+    this->state.status_text = std::string(this->status_buffer.begin(), end);
+    const auto & status_text = this->state.status_text;
 
-    if (flags != FAULT_NONE) {
-        this->state.power_switch_state = PowerSwitchState::Fault;
+    auto & status = this->state.status;
+    status.faults = util::BmsFaults{
+        contains(status_text, "FLT_PCHG"),
+        contains(status_text, "FLT_PSW_SHORT"),
+        contains(status_text, "FLT_PSW_OT"),
+        contains(status_text, "FLT_CHG_OC"),
+    };
+
+    if (util::has_bms_fault(status.faults)) {
+        status.power_switch_state = util::BmsPowerSwitchState::Fault;
     } else if (contains(status_text, "PSW_PCHG")) {
-        this->state.power_switch_state = PowerSwitchState::Precharge;
+        status.power_switch_state = util::BmsPowerSwitchState::Precharge;
     } else if (contains(status_text, "PSW_ON")) {
-        this->state.power_switch_state = PowerSwitchState::On;
+        status.power_switch_state = util::BmsPowerSwitchState::On;
     } else if (contains(status_text, "PSW_OFF")) {
-        this->state.power_switch_state = PowerSwitchState::Off;
+        status.power_switch_state = util::BmsPowerSwitchState::Off;
     } else if (contains(status_text, "PSW_WAIT")) {
-        this->state.power_switch_state = PowerSwitchState::Initializing;
+        status.power_switch_state = util::BmsPowerSwitchState::Initializing;
     } else {
-        this->state.power_switch_state = PowerSwitchState::Unknown;
+        status.power_switch_state = util::BmsPowerSwitchState::Unknown;
     }
 }
 
@@ -115,43 +136,33 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
     this->state.status_updated = false;
 
     const auto packet_id = static_cast<uint8_t>((frame.id >> 8) & 0xFFU);
-    const auto require_length = [&frame,
-                                 packet_id](uint8_t expected) -> tl::expected<void, std::string> {
-        if (frame.len != expected) {
-            return tl::make_unexpected(
-                "Harmony BMS packet " + std::to_string(packet_id) +
-                " has invalid length: expected " + std::to_string(expected) + ", received " +
-                std::to_string(frame.len));
-        }
-        return {};
-    };
-
     switch (static_cast<PacketId>(packet_id)) {
         case PacketId::Voltage: {
-            const auto length = require_length(8);
+            const auto length = require_length(frame, 8);
             if (!length) {
                 return tl::make_unexpected(length.error());
             }
-            this->state.pack_voltage = float32_auto(frame.data, 0);
-            this->state.charger_voltage = float32_auto(frame.data, 4);
+            this->state.voltages.pack = float32_auto(frame.data, 0);
+            this->state.voltages.charger = float32_auto(frame.data, 4);
             break;
         }
         case PacketId::Current: {
-            const auto length = require_length(8);
+            const auto length = require_length(frame, 8);
             if (!length) {
                 return tl::make_unexpected(length.error());
             }
-            this->state.input_current = float32_auto(frame.data, 0);
-            this->state.measured_current = float32_auto(frame.data, 4);
+            this->state.currents.input = float32_auto(frame.data, 0);
+            this->state.currents.measured = float32_auto(frame.data, 4);
             break;
         }
-        case PacketId::Counters: {
-            const auto length = require_length(8);
+        case PacketId::Counters:
+        case PacketId::ChargeTotals:
+        case PacketId::DischargeTotals: {
+            // 累積値は使用しない
+            const auto length = require_length(frame, 8);
             if (!length) {
                 return tl::make_unexpected(length.error());
             }
-            this->state.net_consumed_charge = float32_auto(frame.data, 0);
-            this->state.net_consumed_energy = float32_auto(frame.data, 4);
             break;
         }
         case PacketId::CellVoltage: {
@@ -161,14 +172,15 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
                     std::to_string(frame.len));
             }
             auto offset = static_cast<std::size_t>(byte_at(frame.data, 0));
-            const auto count = std::min<std::size_t>(byte_at(frame.data, 1), CELL_COUNT);
+            const auto count =
+                std::min<std::size_t>(byte_at(frame.data, 1), state::bms::CELL_COUNT);
             if (offset == 0) {
                 this->contiguous_cells = 0;
             }
             const auto contiguous = offset == this->contiguous_cells;
             for (std::size_t data_offset = 2; data_offset + 1 < frame.len; data_offset += 2) {
-                if (offset < CELL_COUNT) {
-                    this->state.cell_voltages[offset] =
+                if (offset < state::bms::CELL_COUNT) {
+                    this->state.cells[offset].voltage =
                         static_cast<double>(util::to_int16_be(frame.data, data_offset).value()) /
                         1000.0;
                 }
@@ -177,24 +189,24 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             if (contiguous) {
                 this->contiguous_cells = offset;
                 if (this->contiguous_cells >= count) {
-                    this->state.cell_count = static_cast<uint8_t>(count);
+                    this->state.cell_count = state::bms::CellCount{static_cast<uint8_t>(count)};
                 }
             }
             break;
         }
         case PacketId::Balancing: {
-            const auto length = require_length(8);
+            const auto length = require_length(frame, 8);
             if (!length) {
                 return tl::make_unexpected(length.error());
             }
-            const auto count = std::min<std::size_t>(byte_at(frame.data, 0), CELL_COUNT);
+            const auto count =
+                std::min<std::size_t>(byte_at(frame.data, 0), state::bms::CELL_COUNT);
             uint64_t bits = 0;
             for (std::size_t i = 1; i < 8; ++i) {
                 bits = (bits << 8) | byte_at(frame.data, i);
             }
-            this->state.cell_balancing.fill(false);
-            for (std::size_t i = 0; i < count; ++i) {
-                this->state.cell_balancing[i] = ((bits >> i) & 1U) != 0U;
+            for (std::size_t i = 0; i < this->state.cells.size(); ++i) {
+                this->state.cells[i].balancing = i < count && ((bits >> i) & 1U) != 0U;
             }
             break;
         }
@@ -212,7 +224,7 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             const auto contiguous = offset == this->contiguous_temperatures;
             for (std::size_t data_offset = 2; data_offset + 1 < frame.len; data_offset += 2) {
                 if (offset < TEMPERATURE_COUNT) {
-                    this->state.temperatures[offset] =
+                    this->temperatures[offset] =
                         static_cast<double>(util::to_int16_be(frame.data, data_offset).value()) /
                         100.0;
                 }
@@ -221,9 +233,10 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             if (contiguous) {
                 this->contiguous_temperatures = offset;
                 if (this->contiguous_temperatures >= count) {
-                    this->state.temperature_count = static_cast<uint8_t>(count);
+                    this->temperature_count = count;
                 }
             }
+            this->update_temperatures();
             break;
         }
         case PacketId::Humidity: {
@@ -231,49 +244,28 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
                 return tl::make_unexpected(
                     "Harmony BMS humidity packet has invalid length: " + std::to_string(frame.len));
             }
-            this->state.humidity_sensor_temperature =
-                static_cast<double>(util::to_int16_be<0>(frame.data).value()) / 100.0;
-            this->state.relative_humidity =
-                static_cast<double>(util::to_int16_be<2>(frame.data).value()) / 100.0;
-            this->state.balance_ic_temperature =
-                static_cast<double>(util::to_int16_be<4>(frame.data).value()) / 100.0;
+            // 湿度センサーは互換基板に搭載されていないため、バランスICの温度のみ取り出す
+            this->state.balance_ic_temperature = state::bms::Temperature{
+                static_cast<double>(util::to_int16_be<4>(frame.data).value()) / 100.0};
             break;
         }
         case PacketId::Summary: {
-            const auto length = require_length(8);
+            const auto length = require_length(frame, 8);
             if (!length) {
                 return tl::make_unexpected(length.error());
             }
-            this->state.cell_voltage_min =
+            this->state.cell_voltage_range.min =
                 static_cast<double>(util::to_int16_be<0>(frame.data).value()) / 1000.0;
-            this->state.cell_voltage_max =
+            this->state.cell_voltage_range.max =
                 static_cast<double>(util::to_int16_be<2>(frame.data).value()) / 1000.0;
-            this->state.state_of_charge = static_cast<double>(byte_at(frame.data, 4)) / 255.0;
-            this->state.state_of_health = static_cast<double>(byte_at(frame.data, 5)) / 255.0;
-            this->state.cell_temperature_max =
-                static_cast<double>(static_cast<int8_t>(byte_at(frame.data, 6)));
+            this->state.capacity.state_of_charge =
+                static_cast<double>(byte_at(frame.data, 4)) / 255.0;
+            this->state.capacity.state_of_health =
+                static_cast<double>(byte_at(frame.data, 5)) / 255.0;
             const auto flags = byte_at(frame.data, 7);
-            this->state.charging = (flags & (1U << 0)) != 0U;
-            this->state.balancing = (flags & (1U << 1)) != 0U;
-            this->state.charge_allowed = (flags & (1U << 2)) != 0U;
-            this->state.data_version = static_cast<uint8_t>((flags >> 4) & 0x0FU);
-            break;
-        }
-        case PacketId::ChargeTotals:
-        case PacketId::DischargeTotals: {
-            const auto length = require_length(8);
-            if (!length) {
-                return tl::make_unexpected(length.error());
-            }
-            const auto charge = float32_auto(frame.data, 0);
-            const auto energy = float32_auto(frame.data, 4);
-            if (static_cast<PacketId>(packet_id) == PacketId::ChargeTotals) {
-                this->state.total_charged_charge = charge;
-                this->state.total_charged_energy = energy;
-            } else {
-                this->state.total_discharged_charge = charge;
-                this->state.total_discharged_energy = energy;
-            }
+            this->state.status.charging = (flags & (1U << 0)) != 0U;
+            this->state.status.balancing = (flags & (1U << 1)) != 0U;
+            this->state.status.charge_allowed = (flags & (1U << 2)) != 0U;
             break;
         }
         case PacketId::Status1:
@@ -288,18 +280,18 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             const auto chunk = packet_id - static_cast<uint8_t>(PacketId::Status1);
             const auto destination = static_cast<std::size_t>(chunk) * 8;
             if (chunk == 0) {
-                this->state.status.fill('\0');
+                this->status_buffer.fill('\0');
                 this->status_received_mask = 0;
             }
-            std::fill_n(this->state.status.begin() + destination, 8, '\0');
+            std::fill_n(this->status_buffer.begin() + destination, 8, '\0');
             for (std::size_t i = 0; i < frame.len; ++i) {
-                this->state.status[destination + i] = static_cast<char>(byte_at(frame.data, i));
+                this->status_buffer[destination + i] = static_cast<char>(byte_at(frame.data, i));
             }
             this->status_received_mask |= static_cast<uint8_t>(1U << chunk);
             constexpr uint8_t ALL_STATUS_CHUNKS_RECEIVED = 0x1FU;
             if (chunk == 4 && this->status_received_mask == ALL_STATUS_CHUNKS_RECEIVED) {
                 this->state.status_updated = true;
-                this->update_status_flags();
+                this->update_status();
                 this->status_received_mask = 0;
             }
             break;

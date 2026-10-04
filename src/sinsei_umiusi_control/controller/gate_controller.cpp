@@ -57,35 +57,70 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
         // State interface (in)
         using util::to_interface_data_ptr;
 
-        const auto add_bms_state = [this](const std::string & name, auto & value) {
-            this->state_interface_data.emplace_back(
-                "bms/" + name, util::to_interface_data_ptr(value), sizeof(value));
-        };
-        add_bms_state("health", this->input.state.bms_health);
-        add_bms_state("voltages.pack", this->input.state.bms_voltages.pack);
-        add_bms_state("voltages.charger", this->input.state.bms_voltages.charger);
-        add_bms_state("currents.input", this->input.state.bms_currents.input);
-        add_bms_state("currents.measured", this->input.state.bms_currents.measured);
-        add_bms_state(
-            "capacity_state.state_of_charge", this->input.state.bms_capacity.state_of_charge);
-        add_bms_state(
-            "capacity_state.state_of_health", this->input.state.bms_capacity.state_of_health);
-        add_bms_state("cell_voltage_range.min", this->input.state.bms_cell_voltage_range.min);
-        add_bms_state("cell_voltage_range.max", this->input.state.bms_cell_voltage_range.max);
-        add_bms_state("status", this->input.state.bms_status);
-        add_bms_state("cell_count", this->input.state.bms_cell_count);
+        this->state_interface_data.emplace_back(
+            "bms/health", to_interface_data_ptr(this->input.state.bms_health),
+            sizeof(this->input.state.bms_health));
+        this->state_interface_data.emplace_back(
+            "bms/voltages.pack", to_interface_data_ptr(this->input.state.bms_voltages.pack),
+            sizeof(this->input.state.bms_voltages.pack));
+        this->state_interface_data.emplace_back(
+            "bms/voltages.charger", to_interface_data_ptr(this->input.state.bms_voltages.charger),
+            sizeof(this->input.state.bms_voltages.charger));
+        this->state_interface_data.emplace_back(
+            "bms/currents.input", to_interface_data_ptr(this->input.state.bms_currents.input),
+            sizeof(this->input.state.bms_currents.input));
+        this->state_interface_data.emplace_back(
+            "bms/currents.measured", to_interface_data_ptr(this->input.state.bms_currents.measured),
+            sizeof(this->input.state.bms_currents.measured));
+        this->state_interface_data.emplace_back(
+            "bms/capacity_state.state_of_charge",
+            to_interface_data_ptr(this->input.state.bms_capacity.state_of_charge),
+            sizeof(this->input.state.bms_capacity.state_of_charge));
+        this->state_interface_data.emplace_back(
+            "bms/capacity_state.state_of_health",
+            to_interface_data_ptr(this->input.state.bms_capacity.state_of_health),
+            sizeof(this->input.state.bms_capacity.state_of_health));
+        this->state_interface_data.emplace_back(
+            "bms/cell_voltage_range.min",
+            to_interface_data_ptr(this->input.state.bms_cell_voltage_range.min),
+            sizeof(this->input.state.bms_cell_voltage_range.min));
+        this->state_interface_data.emplace_back(
+            "bms/cell_voltage_range.max",
+            to_interface_data_ptr(this->input.state.bms_cell_voltage_range.max),
+            sizeof(this->input.state.bms_cell_voltage_range.max));
+        this->state_interface_data.emplace_back(
+            "bms/status", to_interface_data_ptr(this->input.state.bms_status),
+            sizeof(this->input.state.bms_status));
+        this->state_interface_data.emplace_back(
+            "bms/cell_count", to_interface_data_ptr(this->input.state.bms_cell_count),
+            sizeof(this->input.state.bms_cell_count));
         for (std::size_t i = 0; i < this->input.state.bms_cells.size(); ++i) {
-            const auto prefix = "cell_" + std::to_string(i);
-            add_bms_state(prefix + ".voltage", this->input.state.bms_cells[i].voltage);
-            add_bms_state(prefix + ".balancing", this->input.state.bms_cells[i].balancing);
+            const auto prefix = "bms/cell_" + std::to_string(i);
+            this->state_interface_data.emplace_back(
+                prefix + ".voltage", to_interface_data_ptr(this->input.state.bms_cells[i].voltage),
+                sizeof(this->input.state.bms_cells[i].voltage));
+            this->state_interface_data.emplace_back(
+                prefix + ".balancing",
+                to_interface_data_ptr(this->input.state.bms_cells[i].balancing),
+                sizeof(this->input.state.bms_cells[i].balancing));
         }
-        add_bms_state("balance_ic_temperature", this->input.state.bms_balance_ic_temperature);
-        add_bms_state("mosfet_temperature", this->input.state.bms_mosfet_temperature);
-        add_bms_state("ambient_temperature", this->input.state.bms_ambient_temperature);
+        this->state_interface_data.emplace_back(
+            "bms/balance_ic_temperature",
+            to_interface_data_ptr(this->input.state.bms_balance_ic_temperature),
+            sizeof(this->input.state.bms_balance_ic_temperature));
+        this->state_interface_data.emplace_back(
+            "bms/mosfet_temperature",
+            to_interface_data_ptr(this->input.state.bms_mosfet_temperature),
+            sizeof(this->input.state.bms_mosfet_temperature));
+        this->state_interface_data.emplace_back(
+            "bms/ambient_temperature",
+            to_interface_data_ptr(this->input.state.bms_ambient_temperature),
+            sizeof(this->input.state.bms_ambient_temperature));
         for (std::size_t i = 0; i < this->input.state.bms_additional_temperatures.size(); ++i) {
-            add_bms_state(
-                "additional_temperature_" + std::to_string(i),
-                this->input.state.bms_additional_temperatures[i]);
+            this->state_interface_data.emplace_back(
+                "bms/additional_temperature_" + std::to_string(i),
+                to_interface_data_ptr(this->input.state.bms_additional_temperatures[i]),
+                sizeof(this->input.state.bms_additional_temperatures[i]));
         }
         this->state_interface_data.emplace_back(
             "imu/temperature", to_interface_data_ptr(this->input.state.imu_temperature),
@@ -391,7 +426,8 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                    ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING
                    : sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_NOT_CHARGING);
     battery_state.power_supply_health =
-        this->input.state.bms_health.is_ok && this->input.state.bms_status.fault_flags == 0
+        this->input.state.bms_health.is_ok &&
+                !util::has_bms_fault(this->input.state.bms_status.faults)
             ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_GOOD
             : sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_UNSPEC_FAILURE;
     battery_state.power_supply_technology =
@@ -429,8 +465,16 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
         bms_state.additional_temperatures[i] =
             static_cast<float>(this->input.state.bms_additional_temperatures[i].value);
     }
-    bms_state.power_switch_state = this->input.state.bms_status.power_switch_state;
-    bms_state.fault_flags = this->input.state.bms_status.fault_flags;
+    // `BmsPowerSwitchState`の値は`BmsState`の`POWER_SWITCH_*`と揃えている
+    bms_state.power_switch_state =
+        static_cast<uint8_t>(this->input.state.bms_status.power_switch_state);
+    bms_state.faults =
+        msg::BmsFaults()
+            .set__precharge(this->input.state.bms_status.faults.precharge)
+            .set__short_circuit(this->input.state.bms_status.faults.short_circuit)
+            .set__switch_over_temperature(
+                this->input.state.bms_status.faults.switch_over_temperature)
+            .set__charge_overcurrent(this->input.state.bms_status.faults.charge_overcurrent);
     this->output.pub.bms_state_publisher->publish(bms_state);
 
     this->output.pub.thruster_state_all_publisher->publish(
@@ -500,7 +544,7 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                                                    : msg::HighPowerCircuitInfo::ERROR)
             .set__battery(
                 this->input.state.bms_health.is_ok &&
-                        this->input.state.bms_status.fault_flags == 0 &&
+                        !util::has_bms_fault(this->input.state.bms_status.faults) &&
                         this->input.state.bms_voltages.pack > 0.0
                     ? msg::HighPowerCircuitInfo::OK
                     : msg::HighPowerCircuitInfo::ERROR)

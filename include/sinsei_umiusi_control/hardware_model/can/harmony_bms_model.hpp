@@ -9,6 +9,7 @@
 #include <string>
 
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
+#include "sinsei_umiusi_control/state/bms.hpp"
 
 // VESC BMS CANプロトコルに基づいたHarmony 16 BMSに対応
 // ref: https://github.com/vedderb/bldc/blob/4fd8279ea45a17c0d69357438ae2f7237a32514f/datatypes.h
@@ -20,9 +21,12 @@ class HarmonyBmsModel {
   public:
     using Id = uint8_t;
 
-    static constexpr std::size_t CELL_COUNT = 12;
-    // 0〜2: セル、3: MOSFET、4: 周囲温度、5〜9: Harmony16基板上の追加温度センサー
-    static constexpr std::size_t TEMPERATURE_COUNT = 10;
+    // 0〜2: セル、3: MOSFET、4: 周囲温度、5〜: 基板上の追加温度センサー
+    static constexpr std::size_t MOSFET_TEMPERATURE_INDEX = 3;
+    static constexpr std::size_t AMBIENT_TEMPERATURE_INDEX = 4;
+    static constexpr std::size_t ADDITIONAL_TEMPERATURE_OFFSET = 5;
+    static constexpr std::size_t TEMPERATURE_COUNT =
+        ADDITIONAL_TEMPERATURE_OFFSET + state::bms::ADDITIONAL_TEMPERATURE_COUNT;
     static constexpr std::size_t STATUS_LENGTH = 40;
 
     enum class PacketId : uint8_t {
@@ -43,67 +47,41 @@ class HarmonyBmsModel {
         Status5 = 68,
     };
 
-    enum class PowerSwitchState : uint8_t {
-        Unknown = 0,
-        Initializing = 1,
-        Off = 2,
-        Precharge = 3,
-        On = 4,
-        Fault = 5,
-    };
-
-    // `State::fault_flags`のビット定義
-    static constexpr uint32_t FAULT_NONE = 0;
-    static constexpr uint32_t FAULT_PRECHARGE = 1U << 0;
-    static constexpr uint32_t FAULT_SHORT_CIRCUIT = 1U << 1;
-    static constexpr uint32_t FAULT_SWITCH_OVER_TEMPERATURE = 1U << 2;
-    static constexpr uint32_t FAULT_CHARGE_OVERCURRENT = 1U << 3;
-
     struct State {
         State();
 
-        double pack_voltage;
-        double charger_voltage;
-        double input_current;
-        double measured_current;
-        double net_consumed_charge;
-        double net_consumed_energy;
-        std::array<double, CELL_COUNT> cell_voltages;
-        std::array<bool, CELL_COUNT> cell_balancing{};
-        uint8_t cell_count = 0;
-        std::array<double, TEMPERATURE_COUNT> temperatures;
-        uint8_t temperature_count = 0;
-        double humidity_sensor_temperature;
-        double relative_humidity;
-        double balance_ic_temperature;
-        double state_of_charge;
-        double state_of_health;
-        double cell_voltage_min;
-        double cell_voltage_max;
-        double cell_temperature_max;
-        bool charging = false;
-        bool balancing = false;
-        bool charge_allowed = false;
-        uint8_t data_version = 0;
-        double total_charged_charge;
-        double total_charged_energy;
-        double total_discharged_charge;
-        double total_discharged_energy;
-        std::array<char, STATUS_LENGTH> status{};
-        bool status_updated = false;
-        PowerSwitchState power_switch_state = PowerSwitchState::Unknown;
-        uint32_t fault_flags = FAULT_NONE;
+        state::bms::Voltages voltages;
+        state::bms::Currents currents;
+        state::bms::CapacityState capacity;
+        state::bms::CellVoltageRange cell_voltage_range;
+        state::bms::Status status;
+        state::bms::CellCount cell_count;
+        std::array<state::bms::Cell, state::bms::CELL_COUNT> cells;
+        state::bms::Temperature balance_ic_temperature;
+        state::bms::Temperature mosfet_temperature;
+        state::bms::Temperature ambient_temperature;
+        std::array<state::bms::Temperature, state::bms::ADDITIONAL_TEMPERATURE_COUNT>
+            additional_temperatures;
+
+        std::string status_text;
+        // ステータス文字列を全て受信したかどうか
+        bool status_updated;
     };
 
   private:
     Id id;
     State state;
+    // 複数フレームに分割された温度とステータス文字列を組み立てるためのバッファ
+    std::array<double, TEMPERATURE_COUNT> temperatures{};
+    std::size_t temperature_count = 0;
+    std::array<char, STATUS_LENGTH> status_buffer{};
     std::size_t contiguous_cells = 0;
     std::size_t contiguous_temperatures = 0;
     uint8_t status_received_mask = 0;
 
     auto id_matches(const interface::CanFrame & frame) const -> bool;
-    auto update_status_flags() -> void;
+    auto update_temperatures() -> void;
+    auto update_status() -> void;
 
   public:
     explicit HarmonyBmsModel(Id id);

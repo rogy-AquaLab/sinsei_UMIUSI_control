@@ -30,11 +30,7 @@ class Can : public hardware_interface::SystemInterface {
     std::size_t cycles_since_bms_update = 0;
     std::array<std::size_t, LEGACY_THRUSTER_COUNT> cycles_since_esc_update{};
 
-    bool bms_status_initialized = false;
-    std::string last_bms_status;
-    hardware_model::can::HarmonyBmsModel::PowerSwitchState last_bms_power_switch_state =
-        hardware_model::can::HarmonyBmsModel::PowerSwitchState::Unknown;
-    uint32_t last_bms_fault_flags = hardware_model::can::HarmonyBmsModel::FAULT_NONE;
+    auto find_thruster_index(const std::string & thruster_name) const -> std::optional<std::size_t>;
 
   public:
     RCLCPP_SHARED_PTR_DEFINITIONS(Can)

@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <limits>
 #include <utility>
 #include <vector>
 
@@ -14,32 +13,6 @@
 #include "sinsei_umiusi_control/util/string.hpp"
 
 using namespace sinsei_umiusi_control::hardware;
-
-namespace {
-
-auto power_switch_state_name(
-    sinsei_umiusi_control::hardware_model::can::HarmonyBmsModel::PowerSwitchState state) -> const
-    char * {
-    using PowerSwitchState =
-        sinsei_umiusi_control::hardware_model::can::HarmonyBmsModel::PowerSwitchState;
-    switch (state) {
-        case PowerSwitchState::Unknown:
-            return "unknown";
-        case PowerSwitchState::Initializing:
-            return "initializing";
-        case PowerSwitchState::Off:
-            return "off";
-        case PowerSwitchState::Precharge:
-            return "precharge";
-        case PowerSwitchState::On:
-            return "on";
-        case PowerSwitchState::Fault:
-            return "fault";
-    }
-    return "unknown";
-}
-
-}  // namespace
 
 Can::~Can() {
     if (!this->model) {
@@ -93,11 +66,6 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     this->thruster_names = std::move(thruster_names);
     this->cycles_since_bms_update = MAX_CYCLES_SINCE_NODE_UPDATE;
     this->cycles_since_esc_update.fill(MAX_CYCLES_SINCE_NODE_UPDATE);
-    this->bms_status_initialized = false;
-    this->last_bms_status.clear();
-    this->last_bms_power_switch_state =
-        hardware_model::can::HarmonyBmsModel::PowerSwitchState::Unknown;
-    this->last_bms_fault_flags = hardware_model::can::HarmonyBmsModel::FAULT_NONE;
 
     auto harmony_bms_id_str =
         util::find_param(params.hardware_info.hardware_parameters, "harmony_bms_id");
@@ -125,6 +93,16 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     }
 
     return hardware_interface::CallbackReturn::SUCCESS;
+}
+
+auto Can::find_thruster_index(const std::string & thruster_name) const
+    -> std::optional<std::size_t> {
+    const auto it =
+        std::find(this->thruster_names.begin(), this->thruster_names.end(), thruster_name);
+    if (it == this->thruster_names.end()) {
+        return std::nullopt;
+    }
+    return static_cast<std::size_t>(it - this->thruster_names.begin());
 }
 
 auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
@@ -167,20 +145,16 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
             case 0: {  // Rpm
                 const auto & [thruster_name, rpm] = std::get<0>(state);
                 this->set_state(thruster_name + "/esc/rpm", util::to_interface_data(rpm));
-                const auto it = std::find(
-                    this->thruster_names.begin(), this->thruster_names.end(), thruster_name);
-                if (it != this->thruster_names.end()) {
-                    esc_updated[static_cast<std::size_t>(it - this->thruster_names.begin())] = true;
+                if (const auto index = this->find_thruster_index(thruster_name)) {
+                    esc_updated[index.value()] = true;
                 }
                 break;
             }
             case 1: {  // ESC Voltage
                 const auto & [thruster_name, voltage] = std::get<1>(state);
                 this->set_state(thruster_name + "/esc/voltage", util::to_interface_data(voltage));
-                const auto it = std::find(
-                    this->thruster_names.begin(), this->thruster_names.end(), thruster_name);
-                if (it != this->thruster_names.end()) {
-                    esc_updated[static_cast<std::size_t>(it - this->thruster_names.begin())] = true;
+                if (const auto index = this->find_thruster_index(thruster_name)) {
+                    esc_updated[index.value()] = true;
                 }
                 break;
             }
@@ -188,106 +162,61 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
                 const auto & [thruster_name, water_leaked] = std::get<2>(state);
                 this->set_state(
                     thruster_name + "/esc/water_leaked", util::to_interface_data(water_leaked));
-                const auto it = std::find(
-                    this->thruster_names.begin(), this->thruster_names.end(), thruster_name);
-                if (it != this->thruster_names.end()) {
-                    esc_updated[static_cast<std::size_t>(it - this->thruster_names.begin())] = true;
+                if (const auto index = this->find_thruster_index(thruster_name)) {
+                    esc_updated[index.value()] = true;
                 }
                 break;
             }
             case 3: {  // ESC heartbeat
                 const auto & [thruster_name, _health] = std::get<3>(state);
-                const auto it = std::find(
-                    this->thruster_names.begin(), this->thruster_names.end(), thruster_name);
-                if (it != this->thruster_names.end()) {
-                    esc_updated[static_cast<std::size_t>(it - this->thruster_names.begin())] = true;
+                if (const auto index = this->find_thruster_index(thruster_name)) {
+                    esc_updated[index.value()] = true;
                 }
                 break;
             }
             case 4: {  // Harmony BMS
                 const auto & bms = std::get<hardware_model::can::HarmonyBmsModel::State>(state);
-                const auto set_bms_state = [this](const std::string & name, const auto & value) {
-                    this->set_state(name, util::to_interface_data(value));
-                };
-
-                this->set_state("bms/voltages.pack", bms.pack_voltage);
-                this->set_state("bms/voltages.charger", bms.charger_voltage);
-                this->set_state("bms/currents.input", bms.input_current);
-                this->set_state("bms/currents.measured", bms.measured_current);
-                this->set_state("bms/capacity_state.state_of_charge", bms.state_of_charge);
-                this->set_state("bms/capacity_state.state_of_health", bms.state_of_health);
-                this->set_state("bms/cell_voltage_range.min", bms.cell_voltage_min);
-                this->set_state("bms/cell_voltage_range.max", bms.cell_voltage_max);
-                set_bms_state(
-                    "bms/status", state::bms::Status{
-                                      bms.fault_flags, static_cast<uint8_t>(bms.power_switch_state),
-                                      bms.charging, bms.balancing, bms.charge_allowed});
-                set_bms_state(
-                    "bms/balance_ic_temperature",
-                    state::bms::Temperature{bms.balance_ic_temperature});
-                set_bms_state("bms/cell_count", state::bms::CellCount{bms.cell_count});
-                for (std::size_t i = 0; i < bms.cell_voltages.size(); ++i) {
+                this->set_state("bms/voltages.pack", bms.voltages.pack);
+                this->set_state("bms/voltages.charger", bms.voltages.charger);
+                this->set_state("bms/currents.input", bms.currents.input);
+                this->set_state("bms/currents.measured", bms.currents.measured);
+                this->set_state("bms/capacity_state.state_of_charge", bms.capacity.state_of_charge);
+                this->set_state("bms/capacity_state.state_of_health", bms.capacity.state_of_health);
+                this->set_state("bms/cell_voltage_range.min", bms.cell_voltage_range.min);
+                this->set_state("bms/cell_voltage_range.max", bms.cell_voltage_range.max);
+                this->set_state("bms/status", util::to_interface_data(bms.status));
+                this->set_state("bms/cell_count", util::to_interface_data(bms.cell_count));
+                for (std::size_t i = 0; i < bms.cells.size(); ++i) {
                     const auto prefix = "bms/cell_" + std::to_string(i);
-                    this->set_state(prefix + ".voltage", bms.cell_voltages[i]);
-                    set_bms_state(prefix + ".balancing", bms.cell_balancing[i]);
+                    this->set_state(prefix + ".voltage", bms.cells[i].voltage);
+                    this->set_state(
+                        prefix + ".balancing", util::to_interface_data(bms.cells[i].balancing));
                 }
-
-                const auto temperature_or_nan = [&bms](std::size_t index) {
-                    return state::bms::Temperature{
-                        index < bms.temperature_count ? bms.temperatures[index]
-                                                      : std::numeric_limits<double>::quiet_NaN()};
-                };
-                set_bms_state("bms/mosfet_temperature", temperature_or_nan(3));
-                set_bms_state("bms/ambient_temperature", temperature_or_nan(4));
-                for (std::size_t i = 0; i < 5; ++i) {
-                    set_bms_state(
+                this->set_state(
+                    "bms/balance_ic_temperature",
+                    util::to_interface_data(bms.balance_ic_temperature));
+                this->set_state(
+                    "bms/mosfet_temperature", util::to_interface_data(bms.mosfet_temperature));
+                this->set_state(
+                    "bms/ambient_temperature", util::to_interface_data(bms.ambient_temperature));
+                for (std::size_t i = 0; i < bms.additional_temperatures.size(); ++i) {
+                    this->set_state(
                         "bms/additional_temperature_" + std::to_string(i),
-                        temperature_or_nan(i + 5));
+                        util::to_interface_data(bms.additional_temperatures[i]));
                 }
+
                 if (bms.status_updated) {
-                    const auto status_end = std::find(bms.status.begin(), bms.status.end(), '\0');
-                    const auto status = std::string(bms.status.begin(), status_end);
-                    const auto status_changed =
-                        !this->bms_status_initialized || status != this->last_bms_status;
-
-                    if (!this->bms_status_initialized ||
-                        bms.power_switch_state != this->last_bms_power_switch_state) {
-                        RCLCPP_INFO(
-                            this->get_logger(), "Harmony BMS power switch state: %s",
-                            power_switch_state_name(bms.power_switch_state));
+                    constexpr auto DURATION = 3000;  // ms
+                    if (util::has_bms_fault(bms.status.faults)) {
+                        RCLCPP_ERROR_THROTTLE(
+                            this->get_logger(), *this->get_clock(), DURATION,
+                            "\n  Harmony BMS fault: %s", bms.status_text.c_str());
+                    } else if (
+                        bms.status.power_switch_state == util::BmsPowerSwitchState::Unknown) {
+                        RCLCPP_WARN_THROTTLE(
+                            this->get_logger(), *this->get_clock(), DURATION,
+                            "\n  Unknown Harmony BMS status: %s", bms.status_text.c_str());
                     }
-
-                    const auto asserted_faults = bms.fault_flags & ~this->last_bms_fault_flags;
-                    const auto cleared_faults = this->last_bms_fault_flags & ~bms.fault_flags;
-                    if (asserted_faults != 0) {
-                        RCLCPP_ERROR(
-                            this->get_logger(),
-                            "Harmony BMS fault asserted: new=0x%08X active=0x%08X status='%s'",
-                            static_cast<unsigned int>(asserted_faults),
-                            static_cast<unsigned int>(bms.fault_flags), status.c_str());
-                    }
-                    if (cleared_faults != 0) {
-                        RCLCPP_INFO(
-                            this->get_logger(),
-                            "Harmony BMS fault cleared: cleared=0x%08X active=0x%08X",
-                            static_cast<unsigned int>(cleared_faults),
-                            static_cast<unsigned int>(bms.fault_flags));
-                    }
-                    if (status_changed && !status.empty() &&
-                        bms.power_switch_state ==
-                            hardware_model::can::HarmonyBmsModel::PowerSwitchState::Unknown) {
-                        RCLCPP_WARN(
-                            this->get_logger(), "Unknown Harmony BMS status: '%s'", status.c_str());
-                    }
-                    if (status_changed) {
-                        RCLCPP_DEBUG(
-                            this->get_logger(), "Harmony BMS raw status: '%s'", status.c_str());
-                    }
-
-                    this->bms_status_initialized = true;
-                    this->last_bms_status = status;
-                    this->last_bms_power_switch_state = bms.power_switch_state;
-                    this->last_bms_fault_flags = bms.fault_flags;
                 }
                 bms_updated = true;
                 break;

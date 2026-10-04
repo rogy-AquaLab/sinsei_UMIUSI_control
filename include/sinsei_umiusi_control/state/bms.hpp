@@ -1,9 +1,16 @@
 #ifndef SINSEI_UMIUSI_CONTROL_STATE_BMS_HPP
 #define SINSEI_UMIUSI_CONTROL_STATE_BMS_HPP
 
+#include <cstddef>
 #include <cstdint>
 
+#include "sinsei_umiusi_control/util/bms_status.hpp"
+
 namespace sinsei_umiusi_control::state::bms {
+
+constexpr std::size_t CELL_COUNT = 12;
+// 互換基板に搭載した追加の温度センサーは5個
+constexpr std::size_t ADDITIONAL_TEMPERATURE_COUNT = 5;
 
 struct Health {
     bool is_ok;
@@ -30,8 +37,8 @@ struct CellVoltageRange {
 };
 
 struct Status {
-    uint32_t fault_flags;
-    uint8_t power_switch_state;
+    util::BmsFaults faults;
+    util::BmsPowerSwitchState power_switch_state;
     bool charging;
     bool balancing;
     bool charge_allowed;

@@ -60,30 +60,28 @@ TEST(HarmonyBmsModelTest, ExposesConfiguredId) {
 
 TEST(HarmonyBmsModelTest, InitializesUnreceivedMeasurementsToNaN) {
     const auto state = suchm::can::HarmonyBmsModel::State{};
-    EXPECT_TRUE(std::isnan(state.pack_voltage));
-    EXPECT_TRUE(std::isnan(state.charger_voltage));
-    EXPECT_TRUE(std::isnan(state.input_current));
-    EXPECT_TRUE(std::isnan(state.measured_current));
-    EXPECT_TRUE(std::isnan(state.net_consumed_charge));
-    EXPECT_TRUE(std::isnan(state.net_consumed_energy));
-    EXPECT_TRUE(std::isnan(state.humidity_sensor_temperature));
-    EXPECT_TRUE(std::isnan(state.relative_humidity));
-    EXPECT_TRUE(std::isnan(state.balance_ic_temperature));
-    EXPECT_TRUE(std::isnan(state.state_of_charge));
-    EXPECT_TRUE(std::isnan(state.state_of_health));
-    EXPECT_TRUE(std::isnan(state.cell_voltage_min));
-    EXPECT_TRUE(std::isnan(state.cell_voltage_max));
-    EXPECT_TRUE(std::isnan(state.cell_temperature_max));
-    EXPECT_TRUE(std::isnan(state.total_charged_charge));
-    EXPECT_TRUE(std::isnan(state.total_charged_energy));
-    EXPECT_TRUE(std::isnan(state.total_discharged_charge));
-    EXPECT_TRUE(std::isnan(state.total_discharged_energy));
-    for (const auto voltage : state.cell_voltages) {
-        EXPECT_TRUE(std::isnan(voltage));
+    EXPECT_TRUE(std::isnan(state.voltages.pack));
+    EXPECT_TRUE(std::isnan(state.voltages.charger));
+    EXPECT_TRUE(std::isnan(state.currents.input));
+    EXPECT_TRUE(std::isnan(state.currents.measured));
+    EXPECT_TRUE(std::isnan(state.capacity.state_of_charge));
+    EXPECT_TRUE(std::isnan(state.capacity.state_of_health));
+    EXPECT_TRUE(std::isnan(state.cell_voltage_range.min));
+    EXPECT_TRUE(std::isnan(state.cell_voltage_range.max));
+    EXPECT_TRUE(std::isnan(state.balance_ic_temperature.value));
+    EXPECT_TRUE(std::isnan(state.mosfet_temperature.value));
+    EXPECT_TRUE(std::isnan(state.ambient_temperature.value));
+    for (const auto & cell : state.cells) {
+        EXPECT_TRUE(std::isnan(cell.voltage));
+        EXPECT_FALSE(cell.balancing);
     }
-    for (const auto temperature : state.temperatures) {
-        EXPECT_TRUE(std::isnan(temperature));
+    for (const auto & temperature : state.additional_temperatures) {
+        EXPECT_TRUE(std::isnan(temperature.value));
     }
+    EXPECT_EQ(state.cell_count.value, 0);
+    EXPECT_FALSE(sinsei_umiusi_control::util::has_bms_fault(state.status.faults));
+    EXPECT_EQ(
+        state.status.power_switch_state, sinsei_umiusi_control::util::BmsPowerSwitchState::Unknown);
 }
 
 TEST(HarmonyBmsModelTest, IgnoresFramesFromOtherNodes) {
@@ -111,15 +109,15 @@ TEST(HarmonyBmsModelTest, DecodesVoltageCurrentAndSummary) {
         make_frame(suchm::can::HarmonyBmsModel::PacketId::Voltage, two_floats(48.0F, 50.0F)));
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.value());
-    EXPECT_DOUBLE_EQ(result.value()->pack_voltage, 48.0);
-    EXPECT_DOUBLE_EQ(result.value()->charger_voltage, 50.0);
+    EXPECT_DOUBLE_EQ(result.value()->voltages.pack, 48.0);
+    EXPECT_DOUBLE_EQ(result.value()->voltages.charger, 50.0);
 
     result = model.decode(
         make_frame(suchm::can::HarmonyBmsModel::PacketId::Current, two_floats(12.5F, -12.25F)));
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.value());
-    EXPECT_DOUBLE_EQ(result.value()->input_current, 12.5);
-    EXPECT_DOUBLE_EQ(result.value()->measured_current, -12.25);
+    EXPECT_DOUBLE_EQ(result.value()->currents.input, 12.5);
+    EXPECT_DOUBLE_EQ(result.value()->currents.measured, -12.25);
 
     result = model.decode(make_frame(
         suchm::can::HarmonyBmsModel::PacketId::Summary,
@@ -128,42 +126,33 @@ TEST(HarmonyBmsModelTest, DecodesVoltageCurrentAndSummary) {
          std::byte{0x80}, std::byte{0xFF}, std::byte{42}, std::byte{0x17}}));
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.value());
-    EXPECT_DOUBLE_EQ(result.value()->cell_voltage_min, 3.7);
-    EXPECT_DOUBLE_EQ(result.value()->cell_voltage_max, 4.1);
-    EXPECT_NEAR(result.value()->state_of_charge, 128.0 / 255.0, 1e-12);
-    EXPECT_DOUBLE_EQ(result.value()->state_of_health, 1.0);
-    EXPECT_DOUBLE_EQ(result.value()->cell_temperature_max, 42.0);
-    EXPECT_TRUE(result.value()->charging);
-    EXPECT_TRUE(result.value()->balancing);
-    EXPECT_TRUE(result.value()->charge_allowed);
-    EXPECT_EQ(result.value()->data_version, 1);
+    EXPECT_DOUBLE_EQ(result.value()->cell_voltage_range.min, 3.7);
+    EXPECT_DOUBLE_EQ(result.value()->cell_voltage_range.max, 4.1);
+    EXPECT_NEAR(result.value()->capacity.state_of_charge, 128.0 / 255.0, 1e-12);
+    EXPECT_DOUBLE_EQ(result.value()->capacity.state_of_health, 1.0);
+    EXPECT_TRUE(result.value()->status.charging);
+    EXPECT_TRUE(result.value()->status.balancing);
+    EXPECT_TRUE(result.value()->status.charge_allowed);
 }
 
-TEST(HarmonyBmsModelTest, DecodesCountersTotalsAndHumidity) {
+TEST(HarmonyBmsModelTest, AcceptsUnusedCounterPackets) {
     auto model = suchm::can::HarmonyBmsModel(BMS_ID);
 
-    auto result = model.decode(
-        make_frame(suchm::can::HarmonyBmsModel::PacketId::Counters, two_floats(2.5F, 120.0F)));
-    ASSERT_TRUE(result);
-    ASSERT_TRUE(result.value());
-    EXPECT_DOUBLE_EQ(result.value()->net_consumed_charge, 2.5);
-    EXPECT_DOUBLE_EQ(result.value()->net_consumed_energy, 120.0);
+    for (const auto packet_id : {
+             suchm::can::HarmonyBmsModel::PacketId::Counters,
+             suchm::can::HarmonyBmsModel::PacketId::ChargeTotals,
+             suchm::can::HarmonyBmsModel::PacketId::DischargeTotals,
+         }) {
+        const auto result = model.decode(make_frame(packet_id, two_floats(1.0F, 2.0F)));
+        ASSERT_TRUE(result);
+        EXPECT_TRUE(result.value());
+    }
+}
 
-    result = model.decode(
-        make_frame(suchm::can::HarmonyBmsModel::PacketId::ChargeTotals, two_floats(9.0F, 420.0F)));
-    ASSERT_TRUE(result);
-    ASSERT_TRUE(result.value());
-    EXPECT_DOUBLE_EQ(result.value()->total_charged_charge, 9.0);
-    EXPECT_DOUBLE_EQ(result.value()->total_charged_energy, 420.0);
+TEST(HarmonyBmsModelTest, DecodesBalanceIcTemperatureFromHumidityPacket) {
+    auto model = suchm::can::HarmonyBmsModel(BMS_ID);
 
-    result = model.decode(make_frame(
-        suchm::can::HarmonyBmsModel::PacketId::DischargeTotals, two_floats(11.0F, 510.0F)));
-    ASSERT_TRUE(result);
-    ASSERT_TRUE(result.value());
-    EXPECT_DOUBLE_EQ(result.value()->total_discharged_charge, 11.0);
-    EXPECT_DOUBLE_EQ(result.value()->total_discharged_energy, 510.0);
-
-    result = model.decode(make_frame(
+    const auto result = model.decode(make_frame(
         suchm::can::HarmonyBmsModel::PacketId::Humidity,
         {std::byte{0x09}, std::byte{0xC4},  // 25.00 degC
          std::byte{0x13}, std::byte{0x88},  // 50.00 %RH
@@ -171,9 +160,7 @@ TEST(HarmonyBmsModelTest, DecodesCountersTotalsAndHumidity) {
          std::byte{0}, std::byte{0}}));
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.value());
-    EXPECT_DOUBLE_EQ(result.value()->humidity_sensor_temperature, 25.0);
-    EXPECT_DOUBLE_EQ(result.value()->relative_humidity, 50.0);
-    EXPECT_DOUBLE_EQ(result.value()->balance_ic_temperature, 30.0);
+    EXPECT_DOUBLE_EQ(result.value()->balance_ic_temperature.value, 30.0);
 }
 
 TEST(HarmonyBmsModelTest, ReassemblesCellsTemperaturesAndBalancing) {
@@ -185,25 +172,25 @@ TEST(HarmonyBmsModelTest, ReassemblesCellsTemperaturesAndBalancing) {
          std::byte{0xD8}, std::byte{0x0F}, std::byte{0x3C}}));
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.value());
-    EXPECT_EQ(result.value()->cell_count, 0);
+    EXPECT_EQ(result.value()->cell_count.value, 0);
 
     result = model.decode(make_frame(
         suchm::can::HarmonyBmsModel::PacketId::CellVoltage,
         {std::byte{3}, std::byte{4}, std::byte{0x0F}, std::byte{0xA0}}, 4));
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.value());
-    EXPECT_EQ(result.value()->cell_count, 4);
-    EXPECT_DOUBLE_EQ(result.value()->cell_voltages[0], 3.7);
-    EXPECT_DOUBLE_EQ(result.value()->cell_voltages[3], 4.0);
+    EXPECT_EQ(result.value()->cell_count.value, 4);
+    EXPECT_DOUBLE_EQ(result.value()->cells[0].voltage, 3.7);
+    EXPECT_DOUBLE_EQ(result.value()->cells[3].voltage, 4.0);
 
     result = model.decode(make_frame(
         suchm::can::HarmonyBmsModel::PacketId::Balancing,
         {std::byte{4}, std::byte{0}, std::byte{0}, std::byte{0}, std::byte{0}, std::byte{0},
          std::byte{0}, std::byte{0x05}}));
     ASSERT_TRUE(result);
-    EXPECT_TRUE(result.value()->cell_balancing[0]);
-    EXPECT_FALSE(result.value()->cell_balancing[1]);
-    EXPECT_TRUE(result.value()->cell_balancing[2]);
+    EXPECT_TRUE(result.value()->cells[0].balancing);
+    EXPECT_FALSE(result.value()->cells[1].balancing);
+    EXPECT_TRUE(result.value()->cells[2].balancing);
 
     for (uint8_t offset = 0; offset < 9; offset += 3) {
         result = model.decode(make_frame(
@@ -212,16 +199,18 @@ TEST(HarmonyBmsModelTest, ReassemblesCellsTemperaturesAndBalancing) {
              std::byte{0x28}, std::byte{0x0A}, std::byte{0x8C}}));
         ASSERT_TRUE(result);
         ASSERT_TRUE(result.value());
-        EXPECT_EQ(result.value()->temperature_count, 0);
+        EXPECT_TRUE(std::isnan(result.value()->mosfet_temperature.value));
     }
     result = model.decode(make_frame(
         suchm::can::HarmonyBmsModel::PacketId::Temperatures,
         {std::byte{9}, std::byte{10}, std::byte{0x0D}, std::byte{0x7A}}, 4));
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.value());
-    EXPECT_EQ(result.value()->temperature_count, 10);
-    EXPECT_DOUBLE_EQ(result.value()->temperatures[0], 25.0);
-    EXPECT_DOUBLE_EQ(result.value()->temperatures[9], 34.5);
+    // オフセット0, 3, 6のフレームは25.00, 26.00, 27.00 degCの順、最後のフレームは34.50 degC
+    EXPECT_DOUBLE_EQ(result.value()->mosfet_temperature.value, 25.0);
+    EXPECT_DOUBLE_EQ(result.value()->ambient_temperature.value, 26.0);
+    EXPECT_DOUBLE_EQ(result.value()->additional_temperatures[0].value, 27.0);
+    EXPECT_DOUBLE_EQ(result.value()->additional_temperatures[4].value, 34.5);
 }
 
 TEST(HarmonyBmsModelTest, ReassemblesStatusAndMapsHarmonyFaults) {
@@ -245,9 +234,13 @@ TEST(HarmonyBmsModelTest, ReassemblesStatusAndMapsHarmonyFaults) {
     }
 
     ASSERT_TRUE(state);
-    EXPECT_EQ(state->power_switch_state, suchm::can::HarmonyBmsModel::PowerSwitchState::Fault);
-    EXPECT_EQ(state->fault_flags, suchm::can::HarmonyBmsModel::FAULT_SWITCH_OVER_TEMPERATURE);
-    EXPECT_EQ(std::string(state->status.data()), text);
+    EXPECT_EQ(
+        state->status.power_switch_state, sinsei_umiusi_control::util::BmsPowerSwitchState::Fault);
+    EXPECT_FALSE(state->status.faults.precharge);
+    EXPECT_FALSE(state->status.faults.short_circuit);
+    EXPECT_TRUE(state->status.faults.switch_over_temperature);
+    EXPECT_FALSE(state->status.faults.charge_overcurrent);
+    EXPECT_EQ(state->status_text, text);
 }
 
 TEST(HarmonyBmsModelTest, DoesNotUpdateStatusWhenAChunkIsMissing) {

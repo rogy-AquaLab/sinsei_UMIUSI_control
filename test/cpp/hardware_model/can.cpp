@@ -152,10 +152,9 @@ TEST(CanModelTest, CanModelOnReadRoutesHarmonyBmsFrameTest) {
     ASSERT_EQ(result.value().states.size(), 1u);
     EXPECT_TRUE(result.value().error_message.empty());
     const auto & bms = std::get<suchm::can::HarmonyBmsModel::State>(result.value().states[0]);
-    EXPECT_DOUBLE_EQ(bms.cell_voltage_min, 3.7);
-    EXPECT_DOUBLE_EQ(bms.cell_voltage_max, 4.1);
-    EXPECT_TRUE(bms.charging);
-    EXPECT_EQ(bms.data_version, 1);
+    EXPECT_DOUBLE_EQ(bms.cell_voltage_range.min, 3.7);
+    EXPECT_DOUBLE_EQ(bms.cell_voltage_range.max, 4.1);
+    EXPECT_TRUE(bms.status.charging);
 }
 
 TEST(CanModelTest, CanModelOnReadProcessesAllReceivedFramesTest) {
