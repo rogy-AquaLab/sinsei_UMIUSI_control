@@ -19,7 +19,7 @@ flowchart LR
     subgraph ROS["ROS Topics"]
         CMD["cmd/(indicator_led, main_power, led_tape, headlights)_output<br/>cmd/thruster_runnable_all<br/>cmd/target"]
         MANUAL["cmd/direct/thruster_controller/output_*<br/>cmd/direct/thruster_controller/output_all"]
-        STATE["state/(imu, imu_temperature, main_power_enabled, thruster_state_all)<br/>state/(low_power_circuit_info, high_power_circuit_info)"]
+        STATE["state/(imu, imu_temperature, main_power_enabled, indicator_led_enabled, headlights_enabled, thruster_state_all)<br/>state/(low_power_circuit_info, high_power_circuit_info)"]
     end
 
     subgraph CTRL["Controllers"]
@@ -129,6 +129,8 @@ All types of messages are defined in [sinsei_UMIUSI_msgs](https://github.com/rog
 | `state/imu`                     | [`sensor_msgs/Imu`](https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/Imu.html)                                       | IMU orientation, linear acceleration, and angular velocity                              |
 | `state/imu_temperature`         | [`sensor_msgs/Temperature`](https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/Temperature.html)                       | IMU temperature                                                                         |
 | `state/main_power_enabled`      | [`MainPowerEnabled`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/MainPowerEnabled.msg)         | Main power enabled / disabled status                                                    |
+| `state/indicator_led_enabled`   | [`IndicatorLedEnabled`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/IndicatorLedEnabled.msg)   | Indicator LED enabled / disabled status                                                 |
+| `state/headlights_enabled`      | [`HeadlightsEnabled`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/HeadlightsEnabled.msg)       | Headlights enabled / disabled status for each of High beam, Low beam, and IR            |
 | `state/thruster_state_all`      | [`ThrusterStateAll`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/ThrusterStateAll.msg)         | Thruster status (Mode, Duty Cycle, Angle, and RPM) for each thruster                    |
 | `state/low_power_circuit_info`  | [`LowPowerCircuitInfo`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/LowPowerCircuitInfo.msg)   | Health status (`0` for ok / `1` for error) for each low-power circuit                   |
 | `state/high_power_circuit_info` | [`HighPowerCircuitInfo`](https://github.com/rogy-AquaLab/sinsei_UMIUSI_msgs/tree/main/msg/HighPowerCircuitInfo.msg) | Health-related values for each high-power circuit (Voltage, Current, WaterLeaked, etc.) |
