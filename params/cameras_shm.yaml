@@ -1,0 +1,43 @@
+# cameras.yaml の pi_camera を tee で分岐し、エンコード前の映像を共有メモリにも出す版。
+# 自律側 (umiusi_autonomy の camera_bridge_node, shm_socket) が H.264 をデコードせずに読む。
+#
+#   ros2 launch sinsei_umiusi_control main.yaml \
+#       cameras_param_file:=$(ros2 pkg prefix sinsei_umiusi_control)/share/sinsei_umiusi_control/params/cameras_shm.yaml
+#
+# 規約 (読む側と合わせる):
+#   * socket-path /tmp/umiusi_cam1.sock = umiusi_autonomy launch_common.SHM_SOCKET
+#   * BGR 320x240 = camera_bridge_node の width / height
+# 分岐側の禁止事項 (エラーはパイプライン全体を止め、RTSP = UI の映像も止まる):
+#   * 先頭の queue leaky=downstream を外さない (詰まっても tee を止めないため)
+#   * HW 専用要素 (v4l2convert) を入れない。使えないと negotiation に失敗して全体が落ちる
+#   * shmsink 直前の identity drop-allocation=true を外さない。外すと上流のバッファプールが
+#     共有メモリを抱え込み、読む側が一度止まる (SIGSTOP 等) と分岐側が再起動まで止まったままになる
+#     (GStreamer 1.24 で再現)
+/**:
+  pi_camera:
+    ros__parameters:
+      pipeline: >-
+        libcamerasrc af-mode=continuous !
+        video/x-raw,width=1280,height=720,framerate=30/1 !
+        tee name=t
+        t. ! videoconvert !
+        v4l2h264enc extra-controls="controls,video_bitrate=3000000,h264_i_frame_period=30" !
+        video/x-h264,level=(string)4,profile=main !
+        h264parse config-interval=1 !
+        queue max-size-buffers=100 !
+        rtspclientsink location=rtsp://localhost:8554/cam1
+        t. ! queue leaky=downstream max-size-buffers=1 !
+        videorate drop-only=true max-rate=15 !
+        videoconvertscale !
+        video/x-raw,format=BGR,width=320,height=240 !
+        identity drop-allocation=true !
+        shmsink socket-path=/tmp/umiusi_cam1.sock shm-size=2000000 wait-for-connection=false sync=false
+
+  usb_camera:
+    ros__parameters:
+      pipeline: >-
+        v4l2src device=/dev/v4l/by-id/usb-H264_USB_Camera_H264_USB_Camera_2020032801-video-index2 !
+        video/x-h264,width=1280,height=720,framerate=30/1 !
+        h264parse config-interval=1 !
+        queue max-size-buffers=100 !
+        rtspclientsink location=rtsp://localhost:8554/cam2
