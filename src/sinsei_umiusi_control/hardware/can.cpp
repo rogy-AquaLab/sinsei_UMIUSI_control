@@ -220,7 +220,10 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
                         this->set_state("bms/currents.measured", current.measured);
                         break;
                     }
-                    case 3: {  // PacketCellVoltage
+                    case 3:  // PacketCounters
+                        // 累積値は使用しない
+                        break;
+                    case 4: {  // PacketCellVoltage
                         const auto & cell_voltage =
                             std::get<HarmonyBmsModel::PacketCellVoltage>(packet);
                         this->set_state(
@@ -236,16 +239,16 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
                         }
                         break;
                     }
-                    case 4: {  // PacketBalancing
+                    case 5: {  // PacketBalancing
                         const auto & balancing = std::get<HarmonyBmsModel::PacketBalancing>(packet);
-                        for (std::size_t i = 0; i < balancing.balancing.size(); ++i) {
+                        for (std::size_t i = 0; i < state::bms::CELL_COUNT; ++i) {
                             this->set_state(
                                 "bms/cell_" + std::to_string(i) + ".balancing",
                                 util::to_interface_data(balancing.balancing[i]));
                         }
                         break;
                     }
-                    case 5: {  // PacketTemperatures
+                    case 6: {  // PacketTemperatures
                         const auto & temperatures =
                             std::get<HarmonyBmsModel::PacketTemperatures>(packet);
                         for (std::size_t i = 0; i < temperatures.value_count; ++i) {
@@ -269,7 +272,8 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
                         }
                         break;
                     }
-                    case 6: {  // PacketHumidity
+                    case 7: {  // PacketHumidity
+                        // 湿度センサーは互換基板に搭載されていないため、バランスICの温度のみ使う
                         const auto & humidity = std::get<HarmonyBmsModel::PacketHumidity>(packet);
                         this->set_state(
                             "bms/balance_ic_temperature",
@@ -277,7 +281,7 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
                                 state::bms::Temperature{humidity.balance_ic_temperature}));
                         break;
                     }
-                    case 7: {  // PacketSummary
+                    case 8: {  // PacketSummary
                         const auto & summary = std::get<HarmonyBmsModel::PacketSummary>(packet);
                         this->set_state("bms/cell_voltage_range.min", summary.cell_voltage_min);
                         this->set_state("bms/cell_voltage_range.max", summary.cell_voltage_max);
@@ -296,7 +300,11 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
                                                       summary.charge_allowed}));
                         break;
                     }
-                    case 8: {  // PacketStatus
+                    case 9:   // PacketChargeTotals
+                    case 10:  // PacketDischargeTotals
+                        // 累積値は使用しない
+                        break;
+                    case 11: {  // PacketStatus
                         const auto & status = std::get<HarmonyBmsModel::PacketStatus>(packet);
                         this->set_state(
                             "bms/status", util::to_interface_data(state::bms::Status{

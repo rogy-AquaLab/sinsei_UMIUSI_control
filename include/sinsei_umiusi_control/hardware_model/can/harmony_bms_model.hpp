@@ -61,6 +61,13 @@ class HarmonyBmsModel {
         double measured;
     };
 
+    struct PacketCounters {
+        static constexpr PacketId ID = PacketId::Counters;
+
+        double amp_hour;
+        double watt_hour;
+    };
+
     // 1フレームに最大3セル分の電圧を含む
     struct PacketCellVoltage {
         static constexpr PacketId ID = PacketId::CellVoltage;
@@ -75,8 +82,11 @@ class HarmonyBmsModel {
 
     struct PacketBalancing {
         static constexpr PacketId ID = PacketId::Balancing;
+        // セル数の1バイトを除いた7バイト分のビット
+        static constexpr std::size_t MAX_CELL_COUNT = 56;
 
-        std::array<bool, state::bms::CELL_COUNT> balancing;
+        uint8_t cell_count;  // BMSが報告したセル数
+        std::array<bool, MAX_CELL_COUNT> balancing;
     };
 
     // 1フレームに最大3個分の温度を含む
@@ -85,17 +95,22 @@ class HarmonyBmsModel {
         static constexpr std::size_t MAX_VALUE_COUNT = 3;
         static constexpr double TEMPERATURE_SCALE = 100;
 
-        uint8_t offset;  // 先頭の温度の番号
+        uint8_t offset;             // 先頭の温度の番号
+        uint8_t temperature_count;  // BMSが報告した温度の数
         std::array<double, MAX_VALUE_COUNT> temperatures;
         uint8_t value_count;  // このフレームに含まれる温度の数
     };
 
-    // 湿度センサーは互換基板に搭載されていないため、バランスICの温度のみ取り出す
     struct PacketHumidity {
         static constexpr PacketId ID = PacketId::Humidity;
         static constexpr double TEMPERATURE_SCALE = 100;
+        static constexpr double HUMIDITY_SCALE = 100;
+        static constexpr double PRESSURE_SCALE = 0.1;
 
+        double temperature;  // 湿度センサーの温度
+        double humidity;
         double balance_ic_temperature;
+        std::optional<double> pressure;  // 8バイトのフレームのみ含む
     };
 
     struct PacketSummary {
@@ -107,9 +122,25 @@ class HarmonyBmsModel {
         double cell_voltage_max;
         double state_of_charge;
         double state_of_health;
+        double cell_temperature_max;
         bool charging;
         bool balancing;
         bool charge_allowed;
+        uint8_t data_version;
+    };
+
+    struct PacketChargeTotals {
+        static constexpr PacketId ID = PacketId::ChargeTotals;
+
+        double amp_hour;
+        double watt_hour;
+    };
+
+    struct PacketDischargeTotals {
+        static constexpr PacketId ID = PacketId::DischargeTotals;
+
+        double amp_hour;
+        double watt_hour;
     };
 
     // Status1〜5の5フレームが順に揃った時のみ返す
@@ -119,11 +150,11 @@ class HarmonyBmsModel {
         std::string text;  // ログ出力用
     };
 
-    // std::monostate: このBMSのフレームだが、返す値がないもの
-    // (使用しない累積値のパケット、組み立て途中のステータス文字列)
+    // std::monostate: 組み立て途中のステータス文字列のフレーム
     using AnyPacket = std::variant<
-        std::monostate, PacketVoltage, PacketCurrent, PacketCellVoltage, PacketBalancing,
-        PacketTemperatures, PacketHumidity, PacketSummary, PacketStatus>;
+        std::monostate, PacketVoltage, PacketCurrent, PacketCounters, PacketCellVoltage,
+        PacketBalancing, PacketTemperatures, PacketHumidity, PacketSummary, PacketChargeTotals,
+        PacketDischargeTotals, PacketStatus>;
 
   private:
     Id id;

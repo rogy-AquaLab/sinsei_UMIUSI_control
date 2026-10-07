@@ -139,19 +139,37 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesVoltageAndCurrentTest) {
     EXPECT_DOUBLE_EQ(current->measured, -12.25);
 }
 
-TEST(HarmonyBmsModelTest, HarmonyBmsModelReturnsNoValueForUnusedCounterPacketsTest) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesCountersAndTotalsTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
-    for (const auto packet_id : {
-             HarmonyBmsModel::PacketId::Counters,
-             HarmonyBmsModel::PacketId::ChargeTotals,
-             HarmonyBmsModel::PacketId::DischargeTotals,
-         }) {
-        const auto result = model.decode(make_frame(packet_id, two_floats(1.0F, 2.0F)));
-        ASSERT_TRUE(result);
-        ASSERT_TRUE(result.value());
-        EXPECT_TRUE(std::holds_alternative<std::monostate>(result.value().value()));
-    }
+    auto result =
+        model.decode(make_frame(HarmonyBmsModel::PacketId::Counters, two_floats(2.5F, 120.0F)));
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(result.value());
+    const auto * counters = std::get_if<HarmonyBmsModel::PacketCounters>(&result.value().value());
+    ASSERT_NE(counters, nullptr);
+    EXPECT_DOUBLE_EQ(counters->amp_hour, 2.5);
+    EXPECT_DOUBLE_EQ(counters->watt_hour, 120.0);
+
+    result =
+        model.decode(make_frame(HarmonyBmsModel::PacketId::ChargeTotals, two_floats(9.0F, 420.0F)));
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(result.value());
+    const auto * charge_totals =
+        std::get_if<HarmonyBmsModel::PacketChargeTotals>(&result.value().value());
+    ASSERT_NE(charge_totals, nullptr);
+    EXPECT_DOUBLE_EQ(charge_totals->amp_hour, 9.0);
+    EXPECT_DOUBLE_EQ(charge_totals->watt_hour, 420.0);
+
+    result = model.decode(
+        make_frame(HarmonyBmsModel::PacketId::DischargeTotals, two_floats(11.0F, 510.0F)));
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(result.value());
+    const auto * discharge_totals =
+        std::get_if<HarmonyBmsModel::PacketDischargeTotals>(&result.value().value());
+    ASSERT_NE(discharge_totals, nullptr);
+    EXPECT_DOUBLE_EQ(discharge_totals->amp_hour, 11.0);
+    EXPECT_DOUBLE_EQ(discharge_totals->watt_hour, 510.0);
 }
 
 TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesCellVoltageTest) {
@@ -197,6 +215,7 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesBalancingTest) {
     ASSERT_TRUE(result.value());
     const auto * balancing = std::get_if<HarmonyBmsModel::PacketBalancing>(&result.value().value());
     ASSERT_NE(balancing, nullptr);
+    EXPECT_EQ(balancing->cell_count, 4);
     EXPECT_TRUE(balancing->balancing[0]);
     EXPECT_FALSE(balancing->balancing[1]);
     EXPECT_TRUE(balancing->balancing[2]);
@@ -219,25 +238,42 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesTemperaturesTest) {
         std::get_if<HarmonyBmsModel::PacketTemperatures>(&result.value().value());
     ASSERT_NE(temperatures, nullptr);
     EXPECT_EQ(temperatures->offset, 3);
+    EXPECT_EQ(temperatures->temperature_count, 10);
     EXPECT_EQ(temperatures->value_count, 3);
     EXPECT_DOUBLE_EQ(temperatures->temperatures[0], 25.0);
     EXPECT_DOUBLE_EQ(temperatures->temperatures[1], 26.0);
     EXPECT_DOUBLE_EQ(temperatures->temperatures[2], 34.5);
 }
 
-TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesBalanceIcTemperatureFromHumidityPacketTest) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesHumidityTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
-    const auto result = model.decode(make_frame(
-        HarmonyBmsModel::PacketId::Humidity, {std::byte{0x09}, std::byte{0xC4},  // 25.00 degC
-                                              std::byte{0x13}, std::byte{0x88},  // 50.00 %RH
-                                              std::byte{0x0B}, std::byte{0xB8},  // 30.00 degC
-                                              std::byte{0}, std::byte{0}}));
+    auto result = model.decode(make_frame(
+        HarmonyBmsModel::PacketId::Humidity, {std::byte{0x09}, std::byte{0xC4},     // 25.00 degC
+                                              std::byte{0x13}, std::byte{0x88},     // 50.00 %RH
+                                              std::byte{0x0B}, std::byte{0xB8},     // 30.00 degC
+                                              std::byte{0x27}, std::byte{0x8D}}));  // 101250 Pa
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.value());
     const auto * humidity = std::get_if<HarmonyBmsModel::PacketHumidity>(&result.value().value());
     ASSERT_NE(humidity, nullptr);
+    EXPECT_DOUBLE_EQ(humidity->temperature, 25.0);
+    EXPECT_DOUBLE_EQ(humidity->humidity, 50.0);
     EXPECT_DOUBLE_EQ(humidity->balance_ic_temperature, 30.0);
+    ASSERT_TRUE(humidity->pressure);
+    EXPECT_NEAR(humidity->pressure.value(), 101250.0, 1e-6);
+
+    // 6バイトのフレームは気圧を含まない
+    result = model.decode(make_frame(
+        HarmonyBmsModel::PacketId::Humidity,
+        {std::byte{0x09}, std::byte{0xC4}, std::byte{0x13}, std::byte{0x88}, std::byte{0x0B},
+         std::byte{0xB8}},
+        6));
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(result.value());
+    humidity = std::get_if<HarmonyBmsModel::PacketHumidity>(&result.value().value());
+    ASSERT_NE(humidity, nullptr);
+    EXPECT_FALSE(humidity->pressure);
 }
 
 TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesSummaryTest) {
@@ -259,6 +295,8 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesSummaryTest) {
     EXPECT_TRUE(summary->charging);
     EXPECT_TRUE(summary->balancing);
     EXPECT_TRUE(summary->charge_allowed);
+    EXPECT_DOUBLE_EQ(summary->cell_temperature_max, 42.0);
+    EXPECT_EQ(summary->data_version, 1);
 }
 
 TEST(HarmonyBmsModelTest, HarmonyBmsModelAssemblesStatusAndMapsHarmonyFaultsTest) {
