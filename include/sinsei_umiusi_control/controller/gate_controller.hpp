@@ -126,12 +126,12 @@ class GateController : public controller_interface::ControllerInterface {
             rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr imu_temperature_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::PowerDistributionEnabled>::SharedPtr
                 power_distribution_enabled_publisher;
-            rclcpp::Publisher<sensor_msgs::msg::BatteryState>::SharedPtr battery_state_publisher;
-            rclcpp::Publisher<sinsei_umiusi_msgs::msg::BmsState>::SharedPtr bms_state_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::IndicatorLedEnabled>::SharedPtr
                 indicator_led_enabled_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::HeadlightsEnabled>::SharedPtr
                 headlights_enabled_publisher;
+            rclcpp::Publisher<sensor_msgs::msg::BatteryState>::SharedPtr battery_state_publisher;
+            rclcpp::Publisher<sinsei_umiusi_msgs::msg::BmsState>::SharedPtr bms_state_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::ThrusterStateAll>::SharedPtr
                 thruster_state_all_publisher;
             rclcpp::Publisher<sinsei_umiusi_msgs::msg::LowPowerCircuitInfo>::SharedPtr

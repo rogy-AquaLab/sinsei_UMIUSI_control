@@ -15,11 +15,13 @@ auto contains(const std::string & value, const std::string & token) -> bool {
     return value.find(token) != std::string::npos;
 }
 
-auto invalid_length(const interface::CanFrame & frame) -> tl::unexpected<std::string> {
+auto invalid_length(const interface::CanFrame & frame, const std::string & expected)
+    -> tl::unexpected<std::string> {
     const auto packet_id = (frame.id >> 8) & 0xFFU;
     return tl::make_unexpected(
-        "Harmony BMS packet " + std::to_string(packet_id) +
-        " has invalid length: " + std::to_string(frame.len));
+        "Received Harmony BMS packet " + std::to_string(packet_id) +
+        " with invalid length (expected: " + expected + ", received: " + std::to_string(frame.len) +
+        ")");
 }
 
 auto parse_failed(const interface::CanFrame & frame) -> tl::unexpected<std::string> {
@@ -104,7 +106,7 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
     switch (packet_id) {
         case PacketVoltage::ID: {
             if (frame.len != 8) {
-                return invalid_length(frame);
+                return invalid_length(frame, "8");
             }
             const auto pack = util::to_float32_auto_be(frame.data, 0);
             const auto charger = util::to_float32_auto_be(frame.data, 4);
@@ -115,7 +117,7 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
         }
         case PacketCurrent::ID: {
             if (frame.len != 8) {
-                return invalid_length(frame);
+                return invalid_length(frame, "8");
             }
             const auto input = util::to_float32_auto_be(frame.data, 0);
             const auto measured = util::to_float32_auto_be(frame.data, 4);
@@ -129,13 +131,13 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
         case PacketId::DischargeTotals: {
             // 累積値は使用しない
             if (frame.len != 8) {
-                return invalid_length(frame);
+                return invalid_length(frame, "8");
             }
             return std::monostate{};
         }
         case PacketCellVoltage::ID: {
             if (!is_valid_indexed_frame_length(frame)) {
-                return invalid_length(frame);
+                return invalid_length(frame, "4, 6 or 8");
             }
             const auto offset = util::to_uint8(frame.data, 0);
             const auto cell_count = util::to_uint8(frame.data, 1);
@@ -158,7 +160,7 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
         }
         case PacketBalancing::ID: {
             if (frame.len != 8) {
-                return invalid_length(frame);
+                return invalid_length(frame, "8");
             }
             // 先頭1バイトがセル数、残り7バイトが各セルのバランシング状態のビット列
             const auto raw = util::to_uint_be<uint64_t>(frame.data, 0);
@@ -175,7 +177,7 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
         }
         case PacketTemperatures::ID: {
             if (!is_valid_indexed_frame_length(frame)) {
-                return invalid_length(frame);
+                return invalid_length(frame, "4, 6 or 8");
             }
             const auto offset = util::to_uint8(frame.data, 0);
             if (!offset) {
@@ -196,7 +198,7 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
         }
         case PacketHumidity::ID: {
             if (frame.len != 6 && frame.len != 8) {
-                return invalid_length(frame);
+                return invalid_length(frame, "6 or 8");
             }
             const auto scaled_temperature = util::to_int16_be(frame.data, 4);
             if (!scaled_temperature) {
@@ -208,7 +210,7 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
         }
         case PacketSummary::ID: {
             if (frame.len != 8) {
-                return invalid_length(frame);
+                return invalid_length(frame, "8");
             }
             const auto scaled_cell_voltage_min = util::to_int16_be(frame.data, 0);
             const auto scaled_cell_voltage_max = util::to_int16_be(frame.data, 2);
@@ -237,7 +239,7 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
         case PacketId::Status4:
         case PacketId::Status5: {
             if (frame.len == 0 || frame.len > 8) {
-                return invalid_length(frame);
+                return invalid_length(frame, "1 to 8");
             }
             const auto chunk =
                 static_cast<std::size_t>(packet_id) - static_cast<std::size_t>(PacketId::Status1);
@@ -249,7 +251,7 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
         }
         default:
             return tl::make_unexpected(
-                "Harmony BMS received unknown packet ID: " +
+                "Received Harmony BMS frame with unknown packet ID: " +
                 std::to_string(static_cast<uint32_t>(packet_id)));
     }
 }

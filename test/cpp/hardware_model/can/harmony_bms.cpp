@@ -66,12 +66,12 @@ using HarmonyBmsModel = suchm::can::HarmonyBmsModel;
 
 }  // namespace
 
-TEST(HarmonyBmsModelTest, ExposesConfiguredId) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelExposesConfiguredIdTest) {
     const auto model = HarmonyBmsModel(BMS_ID);
     EXPECT_EQ(model.get_id(), BMS_ID);
 }
 
-TEST(HarmonyBmsModelTest, IgnoresFramesFromOtherNodes) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelIgnoresFramesFromOtherNodesTest) {
     auto model = HarmonyBmsModel(BMS_ID);
     const auto result = model.decode(
         make_frame(HarmonyBmsModel::PacketId::Voltage, two_floats(48.0F, 50.0F), 8, 11));
@@ -80,24 +80,26 @@ TEST(HarmonyBmsModelTest, IgnoresFramesFromOtherNodes) {
     EXPECT_FALSE(result.value().has_value());
 }
 
-TEST(HarmonyBmsModelTest, RejectsUnknownPacketFromConfiguredNode) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelRejectsUnknownPacketFromConfiguredNodeTest) {
     auto model = HarmonyBmsModel(BMS_ID);
     const auto unknown_packet_id = static_cast<HarmonyBmsModel::PacketId>(0x7F);
     const auto result = model.decode(make_frame(unknown_packet_id, {}));
 
     ASSERT_FALSE(result);
-    EXPECT_EQ(result.error(), "Harmony BMS received unknown packet ID: 127");
+    EXPECT_EQ(result.error(), "Received Harmony BMS frame with unknown packet ID: 127");
 }
 
-TEST(HarmonyBmsModelTest, RejectsInvalidLength) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelRejectsInvalidLengthTest) {
     auto model = HarmonyBmsModel(BMS_ID);
     const auto result = model.decode(make_frame(HarmonyBmsModel::PacketId::Voltage, {}, 4));
 
     ASSERT_FALSE(result);
-    EXPECT_EQ(result.error(), "Harmony BMS packet 38 has invalid length: 4");
+    EXPECT_EQ(
+        result.error(),
+        "Received Harmony BMS packet 38 with invalid length (expected: 8, received: 4)");
 }
 
-TEST(HarmonyBmsModelTest, DecodesVoltageAndCurrent) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesVoltageAndCurrentTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
     auto result =
@@ -119,7 +121,7 @@ TEST(HarmonyBmsModelTest, DecodesVoltageAndCurrent) {
     EXPECT_DOUBLE_EQ(current->measured, -12.25);
 }
 
-TEST(HarmonyBmsModelTest, ReturnsNoValueForUnusedCounterPackets) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelReturnsNoValueForUnusedCounterPacketsTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
     for (const auto packet_id : {
@@ -134,7 +136,7 @@ TEST(HarmonyBmsModelTest, ReturnsNoValueForUnusedCounterPackets) {
     }
 }
 
-TEST(HarmonyBmsModelTest, DecodesCellVoltage) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesCellVoltageTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
     auto result = model.decode(make_frame(
@@ -166,7 +168,7 @@ TEST(HarmonyBmsModelTest, DecodesCellVoltage) {
     EXPECT_DOUBLE_EQ(cell->voltages[0], 3.7);
 }
 
-TEST(HarmonyBmsModelTest, DecodesBalancing) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesBalancingTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
     const auto result = model.decode(make_frame(
@@ -185,7 +187,7 @@ TEST(HarmonyBmsModelTest, DecodesBalancing) {
     EXPECT_FALSE(balancing->balancing[4]);
 }
 
-TEST(HarmonyBmsModelTest, DecodesTemperatures) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesTemperaturesTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
     const auto result = model.decode(make_frame(
@@ -205,7 +207,7 @@ TEST(HarmonyBmsModelTest, DecodesTemperatures) {
     EXPECT_DOUBLE_EQ(temperatures->temperatures[2], 34.5);
 }
 
-TEST(HarmonyBmsModelTest, DecodesBalanceIcTemperatureFromHumidityPacket) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesBalanceIcTemperatureFromHumidityPacketTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
     const auto result = model.decode(make_frame(
@@ -220,7 +222,7 @@ TEST(HarmonyBmsModelTest, DecodesBalanceIcTemperatureFromHumidityPacket) {
     EXPECT_DOUBLE_EQ(humidity->balance_ic_temperature, 30.0);
 }
 
-TEST(HarmonyBmsModelTest, DecodesSummary) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesSummaryTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
     const auto result = model.decode(make_frame(
@@ -241,7 +243,7 @@ TEST(HarmonyBmsModelTest, DecodesSummary) {
     EXPECT_TRUE(summary->charge_allowed);
 }
 
-TEST(HarmonyBmsModelTest, AssemblesStatusAndMapsHarmonyFaults) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelAssemblesStatusAndMapsHarmonyFaultsTest) {
     auto model = HarmonyBmsModel(BMS_ID);
     const auto text = std::string("PSW_ON | FLT_PSW_OT");
 
@@ -273,7 +275,7 @@ TEST(HarmonyBmsModelTest, AssemblesStatusAndMapsHarmonyFaults) {
     }
 }
 
-TEST(HarmonyBmsModelTest, DoesNotReturnStatusWhenAChunkIsMissing) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelDoesNotReturnStatusWhenAChunkIsMissingTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
     for (const auto chunk : {0, 1, 3, 4}) {
@@ -284,7 +286,7 @@ TEST(HarmonyBmsModelTest, DoesNotReturnStatusWhenAChunkIsMissing) {
     }
 }
 
-TEST(HarmonyBmsModelTest, DoesNotMixStatusChunksAcrossCycles) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelDoesNotMixStatusChunksAcrossCyclesTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
     // 1周期目: Status5を取りこぼす
@@ -312,7 +314,7 @@ TEST(HarmonyBmsModelTest, DoesNotMixStatusChunksAcrossCycles) {
     }
 }
 
-TEST(HarmonyBmsModelTest, AssemblesStatusWithInterleavedFrames) {
+TEST(HarmonyBmsModelTest, HarmonyBmsModelAssemblesStatusWithInterleavedFramesTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
     for (std::size_t chunk = 0; chunk < 3; ++chunk) {

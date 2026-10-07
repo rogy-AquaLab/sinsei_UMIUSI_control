@@ -63,12 +63,12 @@ auto int32_and_int16(int32_t first, int16_t second) -> suchm::interface::CanFram
 
 }  // namespace
 
-TEST(VescModelTest, ExposesConfiguredId) {
+TEST(VescModelTest, VescModelExposesConfiguredIdTest) {
     const auto model = VescModel{DUMMY_ID};
     EXPECT_EQ(model.get_id(), DUMMY_ID);
 }
 
-TEST(VescModelTest, MakesDutyFrame) {
+TEST(VescModelTest, VescModelMakeDutyFrameValidTest) {
     const auto model = VescModel{DUMMY_ID};
     const auto result = model.make_duty_frame(0.5);
     ASSERT_TRUE(result);
@@ -82,12 +82,12 @@ TEST(VescModelTest, MakesDutyFrame) {
     EXPECT_EQ(sucutil::to_int32_be(frame.data), 50000);
 }
 
-TEST(VescModelTest, RejectsInvalidDuty) {
+TEST(VescModelTest, VescModelMakeDutyFrameInvalidTest) {
     const auto model = VescModel{DUMMY_ID};
     EXPECT_FALSE(model.make_duty_frame(1.5));
 }
 
-TEST(VescModelTest, MakesRpmFrame) {
+TEST(VescModelTest, VescModelMakeRpmFrameTest) {
     const auto model = VescModel{DUMMY_ID};
     const auto result = model.make_rpm_frame(100);
     ASSERT_TRUE(result);
@@ -101,7 +101,7 @@ TEST(VescModelTest, MakesRpmFrame) {
     EXPECT_EQ(sucutil::to_int32_be(frame.data), 100);
 }
 
-TEST(VescModelTest, MakesServoAngleFrame) {
+TEST(VescModelTest, VescModelMakeServoAngleFrameValidTest) {
     const auto model = VescModel{DUMMY_ID};
     constexpr auto HALF_PI = boost::math::constants::pi<double>() / 2.0;
     const auto result = model.make_servo_angle_frame(HALF_PI);
@@ -116,7 +116,7 @@ TEST(VescModelTest, MakesServoAngleFrame) {
     EXPECT_EQ(sucutil::to_int32_be(frame.data), 10000);
 }
 
-TEST(VescModelTest, ConvertsServoAngleFromRadiansAtSendBoundary) {
+TEST(VescModelTest, VescModelConvertsServoAngleFromRadiansAtSendBoundaryTest) {
     const auto model = VescModel{DUMMY_ID};
     constexpr auto QUARTER_PI = boost::math::constants::pi<double>() / 4.0;
 
@@ -129,13 +129,13 @@ TEST(VescModelTest, ConvertsServoAngleFromRadiansAtSendBoundary) {
     EXPECT_EQ(sucutil::to_int32_be(negative_result->data), 2500);
 }
 
-TEST(VescModelTest, RejectsInvalidServoAngle) {
+TEST(VescModelTest, VescModelMakeServoAngleFrameInvalidTest) {
     const auto model = VescModel{DUMMY_ID};
     constexpr auto PI = boost::math::constants::pi<double>();
     EXPECT_FALSE(model.make_servo_angle_frame(PI));
 }
 
-TEST(VescModelTest, IgnoresFramesFromOtherNodesAndStandardFrames) {
+TEST(VescModelTest, VescModelIgnoresFramesFromOtherNodesAndStandardFramesTest) {
     const auto model = VescModel{DUMMY_ID};
 
     const auto other_node = model.decode(make_frame(VescModel::PacketStatus::ID, {}, 8, 0x02));
@@ -148,7 +148,7 @@ TEST(VescModelTest, IgnoresFramesFromOtherNodesAndStandardFrames) {
     EXPECT_FALSE(standard_frame.value());
 }
 
-TEST(VescModelTest, RejectsInvalidLengthAndUnknownPacket) {
+TEST(VescModelTest, VescModelRejectsInvalidLengthAndUnknownPacketTest) {
     const auto model = VescModel{DUMMY_ID};
 
     const auto invalid_length = model.decode(make_frame(VescModel::PacketStatus::ID, {}, 4));
@@ -162,7 +162,7 @@ TEST(VescModelTest, RejectsInvalidLengthAndUnknownPacket) {
     EXPECT_EQ(unknown_packet.error(), "Received CAN frame with unknown packet ID: 127");
 }
 
-TEST(VescModelTest, DecodesStatusPacketsOneToThree) {
+TEST(VescModelTest, VescModelDecodesStatusPacketsOneToThreeTest) {
     const auto model = VescModel{DUMMY_ID};
 
     auto result = model.decode(make_frame(
@@ -191,7 +191,7 @@ TEST(VescModelTest, DecodesStatusPacketsOneToThree) {
     EXPECT_DOUBLE_EQ(status3.watt_hour_charge, -2.0);
 }
 
-TEST(VescModelTest, DecodesStatusPacketsFourToSix) {
+TEST(VescModelTest, VescModelDecodesStatusPacketsFourToSixTest) {
     const auto model = VescModel{DUMMY_ID};
 
     auto result =

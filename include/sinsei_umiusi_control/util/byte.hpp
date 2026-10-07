@@ -50,11 +50,13 @@ inline auto to_uint_be(const std::array<std::byte, 8> & bytes, std::size_t offse
     return value;
 }
 
+// Convert 1 byte at `offset` of 8-byte array to uint8_t
 inline auto to_uint8(const std::array<std::byte, 8> & bytes, std::size_t offset = 0)
     -> std::optional<uint8_t> {
     return to_uint_be<uint8_t>(bytes, offset);
 }
 
+// Convert 8-byte array in big-endian order to int16_t
 inline auto to_int16_be(const std::array<std::byte, 8> & bytes, std::size_t offset = 0)
     -> std::optional<int16_t> {
     const auto raw = to_uint_be<uint16_t>(bytes, offset);
@@ -64,6 +66,7 @@ inline auto to_int16_be(const std::array<std::byte, 8> & bytes, std::size_t offs
     return static_cast<int16_t>(raw.value());
 }
 
+// Convert 8-byte array in big-endian order to int32_t
 inline auto to_int32_be(const std::array<std::byte, 8> & bytes, std::size_t offset = 0)
     -> std::optional<int32_t> {
     const auto raw = to_uint_be<uint32_t>(bytes, offset);
@@ -73,6 +76,7 @@ inline auto to_int32_be(const std::array<std::byte, 8> & bytes, std::size_t offs
     return static_cast<int32_t>(raw.value());
 }
 
+// Convert 8-byte array in big-endian order to int64_t
 inline auto to_int64_be(const std::array<std::byte, 8> & bytes, std::size_t offset = 0)
     -> std::optional<int64_t> {
     const auto raw = to_uint_be<uint64_t>(bytes, offset);

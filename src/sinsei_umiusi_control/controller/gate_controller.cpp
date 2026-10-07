@@ -1,11 +1,13 @@
 #include "sinsei_umiusi_control/controller/gate_controller.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <limits>
 #include <rclcpp/logging.hpp>
 #include <rclcpp_lifecycle/state.hpp>
 #include <string>
+#include <vector>
 
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
@@ -418,73 +420,76 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
             .set__low_beam_enabled(this->output.cmd.low_beam_enabled_ref.value)
             .set__ir_enabled(this->output.cmd.ir_enabled_ref.value));
 
-    auto battery_state = sensor_msgs::msg::BatteryState{};
-    battery_state.header = std_msgs::msg::Header().set__stamp(time).set__frame_id("harmony_bms");
-    battery_state.voltage = static_cast<float>(this->input.state.bms_voltages.pack);
-    // VESC BMSは放電時を正、BatteryStateは充電時を正とするため、符号を反転する
-    battery_state.current = static_cast<float>(-this->input.state.bms_currents.measured);
-    battery_state.temperature = std::numeric_limits<float>::quiet_NaN();
-    battery_state.charge = std::numeric_limits<float>::quiet_NaN();
-    battery_state.capacity = std::numeric_limits<float>::quiet_NaN();
-    battery_state.design_capacity = std::numeric_limits<float>::quiet_NaN();
-    battery_state.percentage = static_cast<float>(this->input.state.bms_capacity.state_of_charge);
-    battery_state.power_supply_status =
-        this->input.state.bms_charging.value
-            ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_CHARGING
-            : (this->input.state.bms_currents.measured > 0.0
-                   ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING
-                   : sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_NOT_CHARGING);
-    battery_state.power_supply_health =
-        this->input.state.bms_health.is_ok &&
-                !util::has_bms_fault(this->input.state.bms_status.faults)
-            ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_GOOD
-            : sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_UNSPEC_FAILURE;
-    battery_state.power_supply_technology =
-        sensor_msgs::msg::BatteryState::POWER_SUPPLY_TECHNOLOGY_LIPO;
-    battery_state.present = this->input.state.bms_health.is_ok;
     const auto cell_count = std::min<std::size_t>(
         this->input.state.bms_cell_count.value, this->input.state.bms_cells.size());
-    battery_state.cell_voltage.reserve(cell_count);
+    auto cell_voltages = std::vector<float>{};
+    auto cell_balancing = std::vector<bool>{};
+    cell_voltages.reserve(cell_count);
+    cell_balancing.reserve(cell_count);
     for (std::size_t i = 0; i < cell_count; ++i) {
-        battery_state.cell_voltage.push_back(
-            static_cast<float>(this->input.state.bms_cells[i].voltage));
+        cell_voltages.push_back(static_cast<float>(this->input.state.bms_cells[i].voltage));
+        cell_balancing.push_back(this->input.state.bms_cells[i].balancing);
     }
-    this->output.pub.battery_state_publisher->publish(battery_state);
-
-    auto bms_state = msg::BmsState{};
-    bms_state.header = std_msgs::msg::Header().set__stamp(time).set__frame_id("harmony_bms");
-    bms_state.state_of_health = static_cast<float>(this->input.state.bms_capacity.state_of_health);
-    bms_state.cell_voltage_min = static_cast<float>(this->input.state.bms_cell_voltage_range.min);
-    bms_state.cell_voltage_max = static_cast<float>(this->input.state.bms_cell_voltage_range.max);
-    bms_state.balancing = this->input.state.bms_balancing.value;
-    bms_state.charge_allowed = this->input.state.bms_charge_allowed.value;
-    bms_state.cell_balancing.reserve(cell_count);
-    for (std::size_t i = 0; i < cell_count; ++i) {
-        bms_state.cell_balancing.push_back(this->input.state.bms_cells[i].balancing);
-    }
-    bms_state.charger_voltage = static_cast<float>(this->input.state.bms_voltages.charger);
-
-    bms_state.balance_ic_temperature =
-        static_cast<float>(this->input.state.bms_balance_ic_temperature.value);
-    bms_state.mosfet_temperature =
-        static_cast<float>(this->input.state.bms_mosfet_temperature.value);
-    bms_state.ambient_temperature =
-        static_cast<float>(this->input.state.bms_ambient_temperature.value);
-    for (std::size_t i = 0; i < bms_state.additional_temperatures.size(); ++i) {
-        bms_state.additional_temperatures[i] =
+    auto additional_temperatures =
+        std::array<float, sinsei_umiusi_control::state::bms::ADDITIONAL_TEMPERATURE_COUNT>{};
+    for (std::size_t i = 0; i < additional_temperatures.size(); ++i) {
+        additional_temperatures[i] =
             static_cast<float>(this->input.state.bms_additional_temperatures[i].value);
     }
-    // `BmsPowerSwitchState`の値は`BmsState`の`POWER_SWITCH_*`と揃えている
-    bms_state.power_switch_state =
-        static_cast<uint8_t>(this->input.state.bms_status.power_switch_state);
-    bms_state.faults =
-        msg::BmsFaults()
-            .set__precharge(this->input.state.bms_status.faults.precharge)
-            .set__short_circuit(this->input.state.bms_status.faults.short_circuit)
-            .set__switch_over_temperature(
-                this->input.state.bms_status.faults.switch_over_temperature)
-            .set__charge_overcurrent(this->input.state.bms_status.faults.charge_overcurrent);
-    this->output.pub.bms_state_publisher->publish(bms_state);
+    this->output.pub.battery_state_publisher->publish(
+        sensor_msgs::msg::BatteryState()
+            .set__header(std_msgs::msg::Header().set__stamp(time).set__frame_id("harmony_bms"))
+            .set__voltage(static_cast<float>(this->input.state.bms_voltages.pack))
+            // VESC BMSは放電時を正、BatteryStateは充電時を正とするため、符号を反転する
+            .set__current(static_cast<float>(-this->input.state.bms_currents.measured))
+            .set__temperature(std::numeric_limits<float>::quiet_NaN())
+            .set__charge(std::numeric_limits<float>::quiet_NaN())
+            .set__capacity(std::numeric_limits<float>::quiet_NaN())
+            .set__design_capacity(std::numeric_limits<float>::quiet_NaN())
+            .set__percentage(static_cast<float>(this->input.state.bms_capacity.state_of_charge))
+            .set__power_supply_status(
+                this->input.state.bms_charging.value
+                    ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_CHARGING
+                    : (this->input.state.bms_currents.measured > 0.0
+                           ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING
+                           : sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_NOT_CHARGING))
+            .set__power_supply_health(
+                this->input.state.bms_health.is_ok &&
+                        !util::has_bms_fault(this->input.state.bms_status.faults)
+                    ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_GOOD
+                    : sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_UNSPEC_FAILURE)
+            .set__power_supply_technology(
+                sensor_msgs::msg::BatteryState::POWER_SUPPLY_TECHNOLOGY_LIPO)
+            .set__present(this->input.state.bms_health.is_ok)
+            .set__cell_voltage(cell_voltages));
+    this->output.pub.bms_state_publisher->publish(
+        msg::BmsState()
+            .set__header(std_msgs::msg::Header().set__stamp(time).set__frame_id("harmony_bms"))
+            .set__state_of_health(
+                static_cast<float>(this->input.state.bms_capacity.state_of_health))
+            .set__cell_voltage_min(static_cast<float>(this->input.state.bms_cell_voltage_range.min))
+            .set__cell_voltage_max(static_cast<float>(this->input.state.bms_cell_voltage_range.max))
+            .set__balancing(this->input.state.bms_balancing.value)
+            .set__charge_allowed(this->input.state.bms_charge_allowed.value)
+            .set__cell_balancing(cell_balancing)
+            .set__charger_voltage(static_cast<float>(this->input.state.bms_voltages.charger))
+            .set__balance_ic_temperature(
+                static_cast<float>(this->input.state.bms_balance_ic_temperature.value))
+            .set__mosfet_temperature(
+                static_cast<float>(this->input.state.bms_mosfet_temperature.value))
+            .set__ambient_temperature(
+                static_cast<float>(this->input.state.bms_ambient_temperature.value))
+            .set__additional_temperatures(additional_temperatures)
+            // `BmsPowerSwitchState`の値は`BmsState`の`POWER_SWITCH_*`と揃えている
+            .set__power_switch_state(
+                static_cast<uint8_t>(this->input.state.bms_status.power_switch_state))
+            .set__faults(msg::BmsFaults()
+                             .set__precharge(this->input.state.bms_status.faults.precharge)
+                             .set__short_circuit(this->input.state.bms_status.faults.short_circuit)
+                             .set__switch_over_temperature(
+                                 this->input.state.bms_status.faults.switch_over_temperature)
+                             .set__charge_overcurrent(
+                                 this->input.state.bms_status.faults.charge_overcurrent)));
 
     this->output.pub.thruster_state_all_publisher->publish(
         msg::ThrusterStateAll()

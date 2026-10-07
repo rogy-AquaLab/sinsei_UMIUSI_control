@@ -309,7 +309,7 @@ TEST(CanModelTest, CanModelOnReadRejectsUnknownPacketFromRegisteredNodeTest) {
     EXPECT_EQ(
         result.value().error_message,
         "Failed to decode CAN frame \"32515\" in all models: \n"
-        "    Harmony BMS: Harmony BMS received unknown packet ID: 127\n");
+        "    Harmony BMS: Received Harmony BMS frame with unknown packet ID: 127\n");
 }
 
 TEST(CanModelTest, CanModelOnInitRejectsEmptyThrusterConfigurationTest) {
