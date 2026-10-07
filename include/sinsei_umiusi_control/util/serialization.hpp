@@ -45,13 +45,14 @@ inline auto to_interface_data(const T & value) -> InterfaceData {
 
 template <typename T>
 inline auto to_interface_data(T && value) -> InterfaceData {
+    using ValueType = std::remove_cv_t<std::remove_reference_t<T>>;
     static_assert(
-        sizeof(T) <= sizeof(InterfaceData),
+        sizeof(ValueType) <= sizeof(InterfaceData),
         "T must be smaller than or equal to InterfaceData (double)");
-    static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
+    static_assert(std::is_trivially_copyable<ValueType>::value, "T must be trivially copyable");
 
     InterfaceData result = 0.0;
-    std::memcpy(&result, &value, sizeof(T));
+    std::memcpy(&result, &value, sizeof(ValueType));
     return result;
 }
 
@@ -60,14 +61,17 @@ inline auto to_interface_data_ptr(const T & value) -> const InterfaceData * {
     static_assert(
         sizeof(T) <= sizeof(InterfaceData),
         "T must be smaller than or equal to InterfaceData (double)");
+    static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
     return reinterpret_cast<const InterfaceData *>(&value);
 }
 
 template <typename T>
 inline auto to_interface_data_ptr(T && value) -> InterfaceData * {
+    using ValueType = std::remove_cv_t<std::remove_reference_t<T>>;
     static_assert(
-        sizeof(T) <= sizeof(InterfaceData),
+        sizeof(ValueType) <= sizeof(InterfaceData),
         "T must be smaller than or equal to InterfaceData (double)");
+    static_assert(std::is_trivially_copyable<ValueType>::value, "T must be trivially copyable");
     return reinterpret_cast<InterfaceData *>(&value);
 }
 

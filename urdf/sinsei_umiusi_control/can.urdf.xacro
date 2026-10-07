@@ -2,7 +2,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
 
   <xacro:macro name="can"
-    params="vesc1_id vesc2_id vesc3_id vesc4_id">
+    params="vesc1_id vesc2_id vesc3_id vesc4_id harmony_bms_id">
     <ros2_control name="can" type="system" is_async="true">
       <hardware>
         <plugin>sinsei_umiusi_control/hardware/Can</plugin>
@@ -10,6 +10,7 @@
         <param name="vesc2_id">${vesc2_id}</param>
         <param name="vesc3_id">${vesc3_id}</param>
         <param name="vesc4_id">${vesc4_id}</param>
+        <param name="harmony_bms_id">${harmony_bms_id}</param>
       </hardware>
 
       <xacro:macro name="thruster" params="id">
@@ -43,6 +44,9 @@
             <!-- false (Cannot use bool type due to ros2_control bug) -->
             <param name="initial_value">0.0</param>
           </state_interface>
+          <state_interface name="health" data_type="double">
+            <param name="initial_value">0.0</param>
+          </state_interface>
         </gpio>
       </xacro:macro>
 
@@ -51,25 +55,59 @@
       <xacro:thruster id="3" />
       <xacro:thruster id="4" />
 
-      <gpio name="main_power">
+      <gpio name="power_distribution">
         <command_interface name="enabled" data_type="double">
           <!-- false (Cannot use bool type due to ros2_control bug) -->
           <param name="initial_value">0.0</param>
         </command_interface>
-        <state_interface name="battery_current" data_type="double">
-          <param name="initial_value">0.0</param>
-        </state_interface>
-        <state_interface name="battery_voltage" data_type="double">
-          <param name="initial_value">0.0</param>
-        </state_interface>
-        <state_interface name="temperature" data_type="double">
-          <param name="initial_value">0.0</param>
-        </state_interface>
-        <state_interface name="water_leaked" data_type="double">
-          <!-- false (Cannot use bool type due to ros2_control bug) -->
-          <param name="initial_value">0.0</param>
-        </state_interface>
       </gpio>
+
+      <xacro:macro name="bms_state" params="name">
+        <state_interface name="${name}" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+      </xacro:macro>
+      <xacro:macro name="bms_cell" params="index">
+        <xacro:bms_state name="cell_${index}.voltage" />
+        <xacro:bms_state name="cell_${index}.balancing" />
+      </xacro:macro>
+
+      <sensor name="bms">
+        <xacro:bms_state name="health" />
+        <xacro:bms_state name="voltages.pack" />
+        <xacro:bms_state name="voltages.charger" />
+        <xacro:bms_state name="currents.input" />
+        <xacro:bms_state name="currents.measured" />
+        <xacro:bms_state name="capacity_state.state_of_charge" />
+        <xacro:bms_state name="capacity_state.state_of_health" />
+        <xacro:bms_state name="cell_voltage_range.min" />
+        <xacro:bms_state name="cell_voltage_range.max" />
+        <xacro:bms_state name="charging" />
+        <xacro:bms_state name="balancing" />
+        <xacro:bms_state name="charge_allowed" />
+        <xacro:bms_state name="status" />
+        <xacro:bms_state name="cell_count" />
+        <xacro:bms_cell index="0" />
+        <xacro:bms_cell index="1" />
+        <xacro:bms_cell index="2" />
+        <xacro:bms_cell index="3" />
+        <xacro:bms_cell index="4" />
+        <xacro:bms_cell index="5" />
+        <xacro:bms_cell index="6" />
+        <xacro:bms_cell index="7" />
+        <xacro:bms_cell index="8" />
+        <xacro:bms_cell index="9" />
+        <xacro:bms_cell index="10" />
+        <xacro:bms_cell index="11" />
+        <xacro:bms_state name="balance_ic_temperature" />
+        <xacro:bms_state name="mosfet_temperature" />
+        <xacro:bms_state name="ambient_temperature" />
+        <xacro:bms_state name="additional_temperature_0" />
+        <xacro:bms_state name="additional_temperature_1" />
+        <xacro:bms_state name="additional_temperature_2" />
+        <xacro:bms_state name="additional_temperature_3" />
+        <xacro:bms_state name="additional_temperature_4" />
+      </sensor>
 
       <gpio name="led_tape">
         <command_interface name="color" data_type="double">

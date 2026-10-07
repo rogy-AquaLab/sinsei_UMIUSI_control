@@ -1,7 +1,8 @@
-#ifndef SINSEI_UMIUSI_CONTROL_hardware_model_CAN_MODEL_HPP
-#define SINSEI_UMIUSI_CONTROL_hardware_model_CAN_MODEL_HPP
+#ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_CAN_MODEL_HPP
+#define SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_CAN_MODEL_HPP
 
 #include <memory>
+#include <optional>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 #include <tuple>
@@ -9,12 +10,12 @@
 #include <vector>
 
 #include "sinsei_umiusi_control/cmd/led_tape.hpp"
-#include "sinsei_umiusi_control/cmd/main_power.hpp"
+#include "sinsei_umiusi_control/cmd/power_distribution.hpp"
 #include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
 #include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
+#include "sinsei_umiusi_control/hardware_model/can/harmony_bms_model.hpp"
 #include "sinsei_umiusi_control/hardware_model/can/vesc_model.hpp"
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
-#include "sinsei_umiusi_control/state/main_power.hpp"
 #include "sinsei_umiusi_control/state/thruster/esc.hpp"
 
 namespace sinsei_umiusi_control::hardware_model {
@@ -29,8 +30,7 @@ class CanModel {
         std::tuple<std::string, state::thruster::esc::Rpm>,
         std::tuple<std::string, state::thruster::esc::Voltage>,
         std::tuple<std::string, state::thruster::esc::WaterLeaked>,
-        state::main_power::BatteryCurrent, state::main_power::BatteryVoltage,
-        state::main_power::Temperature, state::main_power::WaterLeaked>;
+        std::tuple<std::string, state::thruster::esc::Health>, can::HarmonyBmsModel::AnyPacket>;
 
     struct ThrusterConfig {
         std::string name;
@@ -52,7 +52,6 @@ class CanModel {
   private:
     struct Thruster {
         std::string name;
-        can::VescModel::Id vesc_id;
         can::VescModel vesc_model;
     };
 
@@ -64,6 +63,7 @@ class CanModel {
     std::shared_ptr<interface::Can> can;
 
     std::vector<Thruster> thrusters;
+    can::HarmonyBmsModel harmony_bms_model;
 
     // ESCとServoを交互に送信する
     WritePhase write_phase = WritePhase::Esc;
@@ -75,22 +75,25 @@ class CanModel {
     // FIXME: 仮の値
     static constexpr double WATER_LEAKED_VOLTAGE_THRESHOLD = 2.0;
 
-    auto validate_thruster_configs() const -> tl::expected<void, std::string>;
-    auto decode_frame(const interface::CanFrame & frame) const
-        -> tl::expected<DecodedState, std::string>;
+    auto validate_configuration() const -> tl::expected<void, std::string>;
+    static auto is_vesc_transport_frame(const interface::CanFrame & frame) -> bool;
+    auto decode_frame(const interface::CanFrame & frame)
+        -> tl::expected<std::optional<DecodedState>, std::string>;
 
   public:
-    CanModel(std::shared_ptr<interface::Can> can, std::vector<ThrusterConfig> thruster_configs);
+    CanModel(
+        std::shared_ptr<interface::Can> can, std::vector<ThrusterConfig> thruster_configs,
+        can::HarmonyBmsModel::Id harmony_bms_id);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_destroy() -> tl::expected<void, std::string>;
-    auto on_read() const -> tl::expected<ReadBatch, std::string>;
+    auto on_read() -> tl::expected<ReadBatch, std::string>;
     // thruster_commandsはコンストラクタへ渡したthruster_configsと同じ順序で指定する
     auto on_write(
-        cmd::main_power::Enabled main_power_enabled,
+        cmd::power_distribution::Enabled power_distribution_enabled,
         const std::vector<ThrusterCommand> & thruster_commands,
         cmd::led_tape::Color led_tape_color) -> tl::expected<void, std::string>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model
 
-#endif  // SINSEI_UMIUSI_CONTROL_hardware_model_CAN_MODEL_HPP
+#endif  // SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_CAN_MODEL_HPP

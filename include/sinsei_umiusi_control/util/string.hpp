@@ -4,6 +4,7 @@
 #include <charconv>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
+#include <string_view>
 
 namespace sinsei_umiusi_control::util {
 
@@ -28,6 +29,10 @@ auto from_chars_expected(std::string_view str) -> tl::expected<T, std::string> {
     }
 
     return value;
+}
+
+inline auto contains(std::string_view str, std::string_view token) -> bool {
+    return str.find(token) != std::string_view::npos;
 }
 
 }  // namespace sinsei_umiusi_control::util
