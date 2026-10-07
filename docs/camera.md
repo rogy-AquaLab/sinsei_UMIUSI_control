@@ -60,3 +60,18 @@
 ## 運用上の注意
 
 - このノードはRTSPサーバ自体は起動しない。`rtspclientsink` の接続先は別プロセスで用意する必要がある。
+
+## 共有メモリ版 (`params/cameras_shm.yaml`)
+
+自律側 (`umiusi_autonomy` の `camera_bridge_node`) が RTSP を受けて H.264 をデコードし直す代わりに、エンコード前の映像を共有メモリから読むための opt-in 設定。既定の `cameras.yaml` は変えていない。
+
+```bash
+ros2 launch sinsei_umiusi_control main.yaml \
+  cameras_param_file:=$(ros2 pkg prefix sinsei_umiusi_control)/share/sinsei_umiusi_control/params/cameras_shm.yaml
+```
+
+- `pi_camera` だけ `tee` で分岐する。RTSP 側 (`cam1`、UI の映像) は `cameras.yaml` と同じ
+- 分岐側: `queue leaky=downstream max-size-buffers=1` → 15 fps に間引き → BGR 320x240 → `shmsink socket-path=/tmp/umiusi_cam1.sock`
+- 読む側が居ない / 止まっている / 落ちたときも RTSP 側は止まらない (分岐側の queue が古いフレームを捨てる)
+- 分岐側でエラーが出るとパイプライン全体が止まるので、HW 専用要素 (`v4l2convert`) は使わず software の `videoconvertscale` にしている
+- socket のパスと BGR 320x240 は読む側と揃える (`umiusi_autonomy` の `launch_common.SHM_SOCKET` と `camera_bridge_node` の `width` / `height`)
