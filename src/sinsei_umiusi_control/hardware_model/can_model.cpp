@@ -96,11 +96,16 @@ auto CanModel::decode_frame(const interface::CanFrame & frame)
 
     auto error_message = std::string("");
 
-    const auto bms_state_res = this->harmony_bms_model.decode(frame);
-    if (!bms_state_res) {
-        error_message += "    Harmony BMS: " + bms_state_res.error() + "\n";
-    } else if (bms_state_res.value()) {
-        return std::optional<DecodedState>{DecodedState{std::move(bms_state_res.value().value())}};
+    auto bms_packet_res = this->harmony_bms_model.decode(frame);
+    if (!bms_packet_res) {
+        error_message += "    Harmony BMS: " + bms_packet_res.error() + "\n";
+    } else if (bms_packet_res.value()) {
+        auto & bms_packet = bms_packet_res.value().value();
+        if (std::holds_alternative<std::monostate>(bms_packet)) {
+            // 返す値がないBMSのフレームは無視する
+            return std::nullopt;
+        }
+        return std::optional<DecodedState>{DecodedState{std::move(bms_packet)}};
     }
 
     // TODO: STM32側の仕様確定後に`can::PowerDistributionModel`の処理を追加する

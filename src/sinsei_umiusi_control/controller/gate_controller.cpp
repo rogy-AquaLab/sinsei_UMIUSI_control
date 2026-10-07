@@ -89,6 +89,15 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
             to_interface_data_ptr(this->input.state.bms_cell_voltage_range.max),
             sizeof(this->input.state.bms_cell_voltage_range.max));
         this->state_interface_data.emplace_back(
+            "bms/charging", to_interface_data_ptr(this->input.state.bms_charging),
+            sizeof(this->input.state.bms_charging));
+        this->state_interface_data.emplace_back(
+            "bms/balancing", to_interface_data_ptr(this->input.state.bms_balancing),
+            sizeof(this->input.state.bms_balancing));
+        this->state_interface_data.emplace_back(
+            "bms/charge_allowed", to_interface_data_ptr(this->input.state.bms_charge_allowed),
+            sizeof(this->input.state.bms_charge_allowed));
+        this->state_interface_data.emplace_back(
             "bms/status", to_interface_data_ptr(this->input.state.bms_status),
             sizeof(this->input.state.bms_status));
         this->state_interface_data.emplace_back(
@@ -420,7 +429,7 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
     battery_state.design_capacity = std::numeric_limits<float>::quiet_NaN();
     battery_state.percentage = static_cast<float>(this->input.state.bms_capacity.state_of_charge);
     battery_state.power_supply_status =
-        this->input.state.bms_status.charging
+        this->input.state.bms_charging.value
             ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_CHARGING
             : (this->input.state.bms_currents.measured > 0.0
                    ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING
@@ -447,8 +456,8 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
     bms_state.state_of_health = static_cast<float>(this->input.state.bms_capacity.state_of_health);
     bms_state.cell_voltage_min = static_cast<float>(this->input.state.bms_cell_voltage_range.min);
     bms_state.cell_voltage_max = static_cast<float>(this->input.state.bms_cell_voltage_range.max);
-    bms_state.balancing = this->input.state.bms_status.balancing;
-    bms_state.charge_allowed = this->input.state.bms_status.charge_allowed;
+    bms_state.balancing = this->input.state.bms_balancing.value;
+    bms_state.charge_allowed = this->input.state.bms_charge_allowed.value;
     bms_state.cell_balancing.reserve(cell_count);
     for (std::size_t i = 0; i < cell_count; ++i) {
         bms_state.cell_balancing.push_back(this->input.state.bms_cells[i].balancing);

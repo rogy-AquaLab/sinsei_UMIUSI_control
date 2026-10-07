@@ -82,6 +82,9 @@
         <xacro:bms_state name="capacity_state.state_of_health" />
         <xacro:bms_state name="cell_voltage_range.min" />
         <xacro:bms_state name="cell_voltage_range.max" />
+        <xacro:bms_state name="charging" />
+        <xacro:bms_state name="balancing" />
+        <xacro:bms_state name="charge_allowed" />
         <xacro:bms_state name="status" />
         <xacro:bms_state name="cell_count" />
         <xacro:bms_cell index="0" />

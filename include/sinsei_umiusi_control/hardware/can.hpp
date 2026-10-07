@@ -40,6 +40,8 @@ class Can : public hardware_interface::SystemInterface {
 
     auto on_init(const hardware_interface::HardwareComponentInterfaceParams & params)
         -> hardware_interface::CallbackReturn override;
+    auto on_configure(const rclcpp_lifecycle::State & previous_state)
+        -> hardware_interface::CallbackReturn override;
     auto read(const rclcpp::Time & time, const rclcpp::Duration & period)
         -> hardware_interface::return_type override;
     auto write(const rclcpp::Time & time, const rclcpp::Duration & period)

@@ -151,10 +151,13 @@ TEST(CanModelTest, CanModelOnReadRoutesHarmonyBmsFrameTest) {
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     ASSERT_EQ(result.value().states.size(), 1u);
     EXPECT_TRUE(result.value().error_message.empty());
-    const auto & bms = std::get<suchm::can::HarmonyBmsModel::State>(result.value().states[0]);
-    EXPECT_DOUBLE_EQ(bms.cell_voltage_range.min, 3.7);
-    EXPECT_DOUBLE_EQ(bms.cell_voltage_range.max, 4.1);
-    EXPECT_TRUE(bms.status.charging);
+    const auto & packet =
+        std::get<suchm::can::HarmonyBmsModel::AnyPacket>(result.value().states[0]);
+    const auto * summary = std::get_if<suchm::can::HarmonyBmsModel::PacketSummary>(&packet);
+    ASSERT_NE(summary, nullptr);
+    EXPECT_DOUBLE_EQ(summary->cell_voltage_min, 3.7);
+    EXPECT_DOUBLE_EQ(summary->cell_voltage_max, 4.1);
+    EXPECT_TRUE(summary->charging);
 }
 
 TEST(CanModelTest, CanModelOnReadProcessesAllReceivedFramesTest) {

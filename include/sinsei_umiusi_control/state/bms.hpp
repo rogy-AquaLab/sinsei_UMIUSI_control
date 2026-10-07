@@ -36,12 +36,21 @@ struct CellVoltageRange {
     double max;
 };
 
+struct Charging {
+    bool value;
+};
+
+struct Balancing {
+    bool value;
+};
+
+struct ChargeAllowed {
+    bool value;
+};
+
 struct Status {
     util::BmsFaults faults;
     util::BmsPowerSwitchState power_switch_state;
-    bool charging;
-    bool balancing;
-    bool charge_allowed;
 };
 
 struct Cell {

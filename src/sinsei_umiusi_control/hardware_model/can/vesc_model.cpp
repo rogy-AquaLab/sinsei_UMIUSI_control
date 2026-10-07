@@ -89,8 +89,8 @@ auto can::VescModel::decode(const interface::CanFrame & frame) const
     switch (packet_id) {
         case PacketStatus::ID: {
             const auto scaled_erpm = util::to_int32_be(frame.data);
-            const auto scaled_current = util::to_int16_be<4>(frame.data);
-            const auto scaled_duty = util::to_int16_be<6>(frame.data);
+            const auto scaled_current = util::to_int16_be(frame.data, 4);
+            const auto scaled_duty = util::to_int16_be(frame.data, 6);
             if (!scaled_erpm || !scaled_current || !scaled_duty) {
                 return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS");
             }
@@ -102,7 +102,7 @@ auto can::VescModel::decode(const interface::CanFrame & frame) const
         }
         case PacketStatus2::ID: {
             const auto scaled_amp_hour = util::to_int32_be(frame.data);
-            const auto scaled_amp_hour_charge = util::to_int32_be<4>(frame.data);
+            const auto scaled_amp_hour_charge = util::to_int32_be(frame.data, 4);
             if (!scaled_amp_hour || !scaled_amp_hour_charge) {
                 return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_2");
             }
@@ -114,7 +114,7 @@ auto can::VescModel::decode(const interface::CanFrame & frame) const
         }
         case PacketStatus3::ID: {
             const auto scaled_watt_hour = util::to_int32_be(frame.data);
-            const auto scaled_watt_hour_charge = util::to_int32_be<4>(frame.data);
+            const auto scaled_watt_hour_charge = util::to_int32_be(frame.data, 4);
             if (!scaled_watt_hour || !scaled_watt_hour_charge) {
                 return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_3");
             }
@@ -126,9 +126,9 @@ auto can::VescModel::decode(const interface::CanFrame & frame) const
         }
         case PacketStatus4::ID: {
             const auto scaled_temp_fet = util::to_int16_be(frame.data);
-            const auto scaled_temp_motor = util::to_int16_be<2>(frame.data);
-            const auto scaled_current_in = util::to_int16_be<4>(frame.data);
-            const auto scaled_pid_pos = util::to_int16_be<6>(frame.data);
+            const auto scaled_temp_motor = util::to_int16_be(frame.data, 2);
+            const auto scaled_current_in = util::to_int16_be(frame.data, 4);
+            const auto scaled_pid_pos = util::to_int16_be(frame.data, 6);
             if (!scaled_temp_fet || !scaled_temp_motor || !scaled_current_in || !scaled_pid_pos) {
                 return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_4");
             }
@@ -141,7 +141,7 @@ auto can::VescModel::decode(const interface::CanFrame & frame) const
         }
         case PacketStatus5::ID: {
             const auto scaled_tachometer = util::to_int32_be(frame.data);
-            const auto scaled_volts_in = util::to_int16_be<4>(frame.data);
+            const auto scaled_volts_in = util::to_int16_be(frame.data, 4);
             if (!scaled_tachometer || !scaled_volts_in) {
                 return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_5");
             }
@@ -152,9 +152,9 @@ auto can::VescModel::decode(const interface::CanFrame & frame) const
         }
         case PacketStatus6::ID: {
             const auto scaled_adc1 = util::to_int16_be(frame.data);
-            const auto scaled_adc2 = util::to_int16_be<2>(frame.data);
-            const auto scaled_adc3 = util::to_int16_be<4>(frame.data);
-            const auto scaled_ppm = util::to_int16_be<6>(frame.data);
+            const auto scaled_adc2 = util::to_int16_be(frame.data, 2);
+            const auto scaled_adc3 = util::to_int16_be(frame.data, 4);
+            const auto scaled_ppm = util::to_int16_be(frame.data, 6);
             if (!scaled_adc1 || !scaled_adc2 || !scaled_adc3 || !scaled_ppm) {
                 return tl::make_unexpected("Failed to parse CAN_PACKET_STATUS_6");
             }

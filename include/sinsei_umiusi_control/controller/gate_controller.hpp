@@ -52,6 +52,9 @@ class GateController : public controller_interface::ControllerInterface {
             sinsei_umiusi_control::state::bms::Currents bms_currents;
             sinsei_umiusi_control::state::bms::CapacityState bms_capacity;
             sinsei_umiusi_control::state::bms::CellVoltageRange bms_cell_voltage_range;
+            sinsei_umiusi_control::state::bms::Charging bms_charging;
+            sinsei_umiusi_control::state::bms::Balancing bms_balancing;
+            sinsei_umiusi_control::state::bms::ChargeAllowed bms_charge_allowed;
             sinsei_umiusi_control::state::bms::Status bms_status;
             sinsei_umiusi_control::state::bms::CellCount bms_cell_count;
             std::array<

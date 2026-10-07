@@ -30,7 +30,7 @@ class CanModel {
         std::tuple<std::string, state::thruster::esc::Rpm>,
         std::tuple<std::string, state::thruster::esc::Voltage>,
         std::tuple<std::string, state::thruster::esc::WaterLeaked>,
-        std::tuple<std::string, state::thruster::esc::Health>, can::HarmonyBmsModel::State>;
+        std::tuple<std::string, state::thruster::esc::Health>, can::HarmonyBmsModel::AnyPacket>;
 
     struct ThrusterConfig {
         std::string name;
