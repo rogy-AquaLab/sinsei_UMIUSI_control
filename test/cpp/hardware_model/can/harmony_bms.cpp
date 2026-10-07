@@ -91,12 +91,30 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelRejectsUnknownPacketFromConfiguredNodeT
 
 TEST(HarmonyBmsModelTest, HarmonyBmsModelRejectsInvalidLengthTest) {
     auto model = HarmonyBmsModel(BMS_ID);
-    const auto result = model.decode(make_frame(HarmonyBmsModel::PacketId::Voltage, {}, 4));
+    auto result = model.decode(make_frame(HarmonyBmsModel::PacketId::Voltage, {}, 4));
 
     ASSERT_FALSE(result);
     EXPECT_EQ(
         result.error(),
         "Received Harmony BMS packet 38 with invalid length (expected: 8, received: 4)");
+
+    result = model.decode(make_frame(HarmonyBmsModel::PacketId::CellVoltage, {}, 3));
+    ASSERT_FALSE(result);
+    EXPECT_EQ(
+        result.error(),
+        "Received Harmony BMS packet 41 with invalid length (expected: 4, 6 or 8, received: 3)");
+
+    result = model.decode(make_frame(HarmonyBmsModel::PacketId::Humidity, {}, 4));
+    ASSERT_FALSE(result);
+    EXPECT_EQ(
+        result.error(),
+        "Received Harmony BMS packet 44 with invalid length (expected: 6 or 8, received: 4)");
+
+    result = model.decode(make_frame(HarmonyBmsModel::PacketId::Status1, {}, 0));
+    ASSERT_FALSE(result);
+    EXPECT_EQ(
+        result.error(),
+        "Received Harmony BMS packet 64 with invalid length (expected: 1 to 8, received: 0)");
 }
 
 TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesVoltageAndCurrentTest) {

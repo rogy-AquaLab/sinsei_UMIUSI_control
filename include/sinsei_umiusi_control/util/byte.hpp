@@ -88,7 +88,7 @@ inline auto to_int64_be(const std::array<std::byte, 8> & bytes, std::size_t offs
 
 // Convert 4 bytes encoded by VESC's `buffer_append_float32_auto` to double
 // ref: https://github.com/vedderb/bldc/blob/4fd8279ea45a17c0d69357438ae2f7237a32514f/util/buffer.c
-inline auto to_float32_auto_be(const std::array<std::byte, 8> & bytes, std::size_t offset = 0)
+inline auto to_vesc_float32_auto_be(const std::array<std::byte, 8> & bytes, std::size_t offset = 0)
     -> std::optional<double> {
     const auto raw = to_uint_be<uint32_t>(bytes, offset);
     if (!raw) {

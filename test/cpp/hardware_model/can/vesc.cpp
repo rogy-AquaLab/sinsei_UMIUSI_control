@@ -138,28 +138,30 @@ TEST(VescModelTest, VescModelMakeServoAngleFrameInvalidTest) {
 TEST(VescModelTest, VescModelIgnoresFramesFromOtherNodesAndStandardFramesTest) {
     const auto model = VescModel{DUMMY_ID};
 
-    const auto other_node = model.decode(make_frame(VescModel::PacketStatus::ID, {}, 8, 0x02));
-    ASSERT_TRUE(other_node);
-    EXPECT_FALSE(other_node.value());
+    const auto other_node_result =
+        model.decode(make_frame(VescModel::PacketStatus::ID, {}, 8, 0x02));
+    ASSERT_TRUE(other_node_result);
+    EXPECT_FALSE(other_node_result.value());
 
-    const auto standard_frame =
+    const auto standard_frame_result =
         model.decode(make_frame(VescModel::PacketStatus::ID, {}, 8, DUMMY_ID, false));
-    ASSERT_TRUE(standard_frame);
-    EXPECT_FALSE(standard_frame.value());
+    ASSERT_TRUE(standard_frame_result);
+    EXPECT_FALSE(standard_frame_result.value());
 }
 
 TEST(VescModelTest, VescModelRejectsInvalidLengthAndUnknownPacketTest) {
     const auto model = VescModel{DUMMY_ID};
 
-    const auto invalid_length = model.decode(make_frame(VescModel::PacketStatus::ID, {}, 4));
-    ASSERT_FALSE(invalid_length);
+    const auto invalid_length_result = model.decode(make_frame(VescModel::PacketStatus::ID, {}, 4));
+    ASSERT_FALSE(invalid_length_result);
     EXPECT_EQ(
-        invalid_length.error(),
+        invalid_length_result.error(),
         "Received CAN frame with invalid length (expected: 8, received: 4)");
 
-    const auto unknown_packet = model.decode(make_frame(static_cast<VescModel::PacketId>(0x7F)));
-    ASSERT_FALSE(unknown_packet);
-    EXPECT_EQ(unknown_packet.error(), "Received CAN frame with unknown packet ID: 127");
+    const auto unknown_packet_result =
+        model.decode(make_frame(static_cast<VescModel::PacketId>(0x7F)));
+    ASSERT_FALSE(unknown_packet_result);
+    EXPECT_EQ(unknown_packet_result.error(), "Received CAN frame with unknown packet ID: 127");
 }
 
 TEST(VescModelTest, VescModelDecodesStatusPacketsOneToThreeTest) {

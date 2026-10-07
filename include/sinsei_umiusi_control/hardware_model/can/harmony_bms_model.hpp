@@ -132,6 +132,10 @@ class HarmonyBmsModel {
     std::size_t next_status_chunk = 0;
 
     auto id_matches(const interface::CanFrame & frame) const -> bool;
+    // フレーム長が`min_length`以上`max_length`以下で、`min_length`から`step`刻みかを確認する
+    static auto validate_frame_length(
+        const interface::CanFrame & frame, uint8_t min_length, uint8_t max_length,
+        uint8_t step = 1) -> tl::expected<void, std::string>;
     auto decode_status_chunk(const interface::CanFrame & frame, std::size_t chunk)
         -> std::optional<PacketStatus>;
 
