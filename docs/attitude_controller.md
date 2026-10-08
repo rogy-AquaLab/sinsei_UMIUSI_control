@@ -1,5 +1,17 @@
 # `AttitudeController`の制御
 
+## 指令が途絶えたとき（`gate_controller.cmd_timeout`）
+
+`cmd/target`・`cmd/attitude_target` は `gate_controller` が受けて `attitude_controller` に渡す。
+どちらかが `cmd_timeout`（既定 0.5 s）以上届かなければ、`gate_controller` はその指令を 0 にする
+（並進 0 / 水平・yaw_rate 0・hold_yaw false）。送る側のノード（core の manual / auto_target_generator）が
+落ちたとき、最後の指令のまま走り続けないため。届き始めれば元に戻る。
+
+- 送る側は 10 Hz で出している（manual は入力が無くても 0.1 s ごとに 0 を出す）
+- 一度も届いていないときも 0（従来の初期値と同じ）
+- `0` で無効（従来どおり最後の指令を保つ）
+- 時間は `steady_clock` で測る（ROS 時刻ではない）
+
 ## ゲイン設定
 
 姿勢制御ゲインは`attitude_controller.ros__parameters`で設定する。

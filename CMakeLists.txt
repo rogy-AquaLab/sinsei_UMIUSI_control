@@ -124,6 +124,7 @@ if(BUILD_TESTING)
     test/cpp/controller/logic/attitude/attitude_feedback.cpp
     test/cpp/controller/logic/attitude/feed_forward.cpp
     test/cpp/controller/logic/attitude/mixer.cpp
+    test/cpp/controller/logic/command_watchdog.cpp
     test/cpp/controller/logic/thruster/servo_angle_estimator.cpp
     src/${PROJECT_NAME}/controller/logic/thruster/servo_angle_estimator.cpp
   )

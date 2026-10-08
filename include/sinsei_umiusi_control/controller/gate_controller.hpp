@@ -17,6 +17,7 @@
 #include "sinsei_umiusi_control/cmd/main_power.hpp"
 #include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
 #include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
+#include "sinsei_umiusi_control/controller/logic/command_watchdog.hpp"
 #include "sinsei_umiusi_control/state/can.hpp"
 #include "sinsei_umiusi_control/state/headlights.hpp"
 #include "sinsei_umiusi_control/state/imu.hpp"
@@ -127,6 +128,16 @@ class GateController : public controller_interface::ControllerInterface {
 
     sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer command_interface_data;
     sinsei_umiusi_control::util::interface_accessor::InterfaceDataContainer state_interface_data;
+
+    // cmd/target・cmd/attitude_target の最新値。update() で鮮度を確かめてから output.cmd へ写す。
+    // `cmd_timeout` 秒以上届かなければ、最後の指令を保たずに止める（送る側のノードが落ちたとき用）
+    sinsei_umiusi_control::cmd::attitude::Velocity latest_target_velocity{};
+    sinsei_umiusi_control::cmd::attitude::AttitudeTarget latest_target_attitude{0.0, 0.0, 0.0,
+                                                                                1.0, 0.0, false};
+    logic::CommandWatchdog target_watchdog;
+    logic::CommandWatchdog attitude_target_watchdog;
+    bool target_timed_out = false;
+    bool attitude_target_timed_out = false;
 
   public:
     GateController() = default;
