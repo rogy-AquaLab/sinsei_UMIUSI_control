@@ -54,3 +54,16 @@ def test_servo_max_angular_velocity_allows_thrust(
         'command at all while any unit is unresolved -- the vehicle produces no thrust. '
         'See the comment at the top of params/controllers.yaml (B-20).'
     )
+
+
+def test_cmd_timeout_stops_stale_commands(controllers_params: dict) -> None:
+    """0 disables the watchdog: if the commanding node dies, its last command is held forever.
+
+    Too short and the 10 Hz senders (core manual / auto_target_generator) trip it on jitter.
+    """
+    value = controllers_params['gate_controller']['ros__parameters']['cmd_timeout']
+
+    assert 0.2 <= value <= 2.0, (
+        f'gate_controller: cmd_timeout={value} s. 0 holds the last command forever when the '
+        'sender dies; below ~0.2 s the 10 Hz senders trip it on normal jitter.'
+    )

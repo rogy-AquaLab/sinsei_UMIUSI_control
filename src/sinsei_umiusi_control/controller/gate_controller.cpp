@@ -1,9 +1,12 @@
 #include "sinsei_umiusi_control/controller/gate_controller.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <rcl_interfaces/msg/floating_point_range.hpp>
+#include <rcl_interfaces/msg/parameter_descriptor.hpp>
 #include <rclcpp/logging.hpp>
 #include <rclcpp_lifecycle/state.hpp>
 #include <string>
@@ -50,12 +53,32 @@ auto GateController::on_init() -> controller_interface::CallbackReturn {
     this->input.state.servo_estimated_angles.fill(
         state::thruster::servo::EstimatedAngle{std::numeric_limits<double>::quiet_NaN()});
 
+    using rcl_interfaces::msg::FloatingPointRange;
+    using rcl_interfaces::msg::ParameterDescriptor;
+    this->get_node()->declare_parameter(
+        "cmd_timeout", 0.5,
+        ParameterDescriptor{}
+            .set__description(
+                "Zero cmd/target and cmd/attitude_target (level, no rotation, no translation) "
+                "when they stop arriving for this many seconds. 0 disables (hold the last one)")
+            .set__type(rclcpp::PARAMETER_DOUBLE)
+            .set__floating_point_range(
+                {FloatingPointRange{}.set__from_value(0.0).set__to_value(10.0)}));
+
     return controller_interface::CallbackReturn::SUCCESS;
 }
 
 auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_state*/)
     -> controller_interface::CallbackReturn {
     constexpr std::string_view THRUSTER_SUFFIX[4] = {"_lf", "_lb", "_rb", "_rf"};
+
+    {
+        const auto cmd_timeout =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(
+                this->get_node()->get_parameter("cmd_timeout").as_double()));
+        this->target_watchdog.set_timeout(cmd_timeout);
+        this->attitude_target_watchdog.set_timeout(cmd_timeout);
+    }
 
     {  // Input
         // State interface (in)
@@ -219,20 +242,22 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                 });
         this->input.sub.target_subscriber = this->get_node()->create_subscription<msg::Target>(
             cmd_prefix + "target", qos, [this](const msg::Target::SharedPtr input) {
-                this->output.cmd.target_velocity_ref.x = input->velocity.x;
-                this->output.cmd.target_velocity_ref.y = input->velocity.y;
-                this->output.cmd.target_velocity_ref.z = input->velocity.z;
+                this->latest_target_velocity.x = input->velocity.x;
+                this->latest_target_velocity.y = input->velocity.y;
+                this->latest_target_velocity.z = input->velocity.z;
+                this->target_watchdog.feed();
             });
         this->input.sub.attitude_target_subscriber =
             this->get_node()->create_subscription<msg::AttitudeTarget>(
                 cmd_prefix + "attitude_target", qos,
                 [this](const msg::AttitudeTarget::SharedPtr input) {
-                    this->output.cmd.target_attitude_ref.x = input->attitude.x;
-                    this->output.cmd.target_attitude_ref.y = input->attitude.y;
-                    this->output.cmd.target_attitude_ref.z = input->attitude.z;
-                    this->output.cmd.target_attitude_ref.w = input->attitude.w;
-                    this->output.cmd.target_attitude_ref.yaw_rate = input->yaw_rate;
-                    this->output.cmd.target_attitude_ref.hold_yaw = input->hold_yaw;
+                    this->latest_target_attitude.x = input->attitude.x;
+                    this->latest_target_attitude.y = input->attitude.y;
+                    this->latest_target_attitude.z = input->attitude.z;
+                    this->latest_target_attitude.w = input->attitude.w;
+                    this->latest_target_attitude.yaw_rate = input->yaw_rate;
+                    this->latest_target_attitude.hold_yaw = input->hold_yaw;
+                    this->attitude_target_watchdog.feed();
                 });
     }
     {  // Output
@@ -448,6 +473,39 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                 msg::EscState()
                     .set__voltage(this->input.state.esc_voltages[3].value)
                     .set__water_leaked(this->input.state.esc_water_leaked_flags[3].value)));
+
+    // 指令の鮮度を確かめてから写す。途絶えていたら 0（水平・回転なし・並進なし）
+    {
+        const auto now = logic::CommandWatchdog::Clock::now();
+        const auto logger = this->get_node()->get_logger();
+
+        const auto target_fresh = this->target_watchdog.is_fresh(now);
+        this->output.cmd.target_velocity_ref =
+            target_fresh ? this->latest_target_velocity : cmd::attitude::Velocity{};
+        if (target_fresh == this->target_timed_out) {  // 状態が変わったときだけ出す
+            this->target_timed_out = !target_fresh;
+            if (this->target_timed_out) {
+                RCLCPP_WARN(logger, "cmd/target timed out; commanding zero velocity");
+            } else {
+                RCLCPP_INFO(logger, "cmd/target resumed");
+            }
+        }
+
+        const auto attitude_fresh = this->attitude_target_watchdog.is_fresh(now);
+        this->output.cmd.target_attitude_ref =
+            attitude_fresh ? this->latest_target_attitude
+                           : cmd::attitude::AttitudeTarget{0.0, 0.0, 0.0, 1.0, 0.0, false};
+        if (attitude_fresh == this->attitude_target_timed_out) {
+            this->attitude_target_timed_out = !attitude_fresh;
+            if (this->attitude_target_timed_out) {
+                RCLCPP_WARN(
+                    logger,
+                    "cmd/attitude_target timed out; commanding level attitude, zero yaw rate");
+            } else {
+                RCLCPP_INFO(logger, "cmd/attitude_target resumed");
+            }
+        }
+    }
 
     // コマンドを送信
     util::interface_accessor::set_commands_to_loaned_interfaces(

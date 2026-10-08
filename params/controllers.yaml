@@ -20,6 +20,9 @@
     ros__parameters:
       type: sinsei_umiusi_control/controller/GateController
       update_rate: 50 # Hz
+      # cmd/target・cmd/attitude_target がこの秒数届かなければ指令を 0 にする（0 で無効）。
+      # 送る側（core の manual / auto_target_generator）は 10 Hz で出している
+      cmd_timeout: 0.5 # s
 
   attitude_controller:
     ros__parameters:
