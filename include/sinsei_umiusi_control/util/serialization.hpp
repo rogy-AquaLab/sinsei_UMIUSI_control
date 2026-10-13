@@ -45,6 +45,8 @@ inline auto to_interface_data(const T & value) -> InterfaceData {
 
 template <typename T>
 inline auto to_interface_data(T && value) -> InterfaceData {
+    // 左辺値を渡すと`T`が参照型に推論され、`is_trivially_copyable`がfalseになる
+    // そのため、参照とcvを外した型で判定する
     using ValueType = std::remove_cv_t<std::remove_reference_t<T>>;
     static_assert(
         sizeof(ValueType) <= sizeof(InterfaceData),
@@ -67,6 +69,8 @@ inline auto to_interface_data_ptr(const T & value) -> const InterfaceData * {
 
 template <typename T>
 inline auto to_interface_data_ptr(T && value) -> InterfaceData * {
+    // 左辺値を渡すと`T`が参照型に推論され、`is_trivially_copyable`がfalseになる
+    // そのため、参照とcvを外した型で判定する
     using ValueType = std::remove_cv_t<std::remove_reference_t<T>>;
     static_assert(
         sizeof(ValueType) <= sizeof(InterfaceData),

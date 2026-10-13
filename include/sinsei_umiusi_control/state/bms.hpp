@@ -12,6 +12,8 @@ constexpr std::size_t CELL_COUNT = 12;
 // 互換基板に搭載した追加の温度センサーは5個
 constexpr std::size_t ADDITIONAL_TEMPERATURE_COUNT = 5;
 
+// バッテリー自体の状態ではなく、BMSとのCAN通信が続いているか
+// control側では、BMSから送られてくるfault以外にバッテリーの異常検知は行っていない
 struct Health {
     bool is_ok;
 };
