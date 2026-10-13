@@ -5,61 +5,42 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <type_traits>
 
 namespace sinsei_umiusi_control::util {
 
-// Convert int64_t to 8-byte array in big-endian order
+// Convert integer to 8-byte array in big-endian order
 template <typename Int>
-inline auto to_bytes_be(Int value) -> std::array<std::byte, 8>;
+inline auto to_bytes_be(Int value) -> std::array<std::byte, 8> {
+    static_assert(
+        std::is_integral_v<Int> && !std::is_same_v<Int, bool>, "Int must be an integer type");
 
-template <>
-inline auto to_bytes_be(int8_t value) -> std::array<std::byte, 8> {
-    return {std::byte(value)};
+    // 符号付き整数の右シフトを避けるため、符号なしに変換してから分解する
+    const auto raw = static_cast<std::make_unsigned_t<Int>>(value);
+    auto bytes = std::array<std::byte, 8>{};
+    for (std::size_t i = 0; i < sizeof(Int); ++i) {
+        bytes[i] = std::byte(static_cast<uint8_t>(raw >> (8 * (sizeof(Int) - 1 - i))));
+    }
+    return bytes;
 }
 
-template <>
-inline auto to_bytes_be(int16_t value) -> std::array<std::byte, 8> {
-    return {std::byte(value >> 8), std::byte(value)};
-}
+// Convert `sizeof(Int)` bytes from `offset` of 8-byte array in big-endian order to integer
+template <typename Int>
+inline auto to_integer_be(const std::array<std::byte, 8> & bytes, std::size_t offset = 0)
+    -> std::optional<Int> {
+    static_assert(
+        std::is_integral_v<Int> && !std::is_same_v<Int, bool>, "Int must be an integer type");
 
-template <>
-inline auto to_bytes_be(int32_t value) -> std::array<std::byte, 8> {
-    return {
-        std::byte(value >> 24), std::byte(value >> 16), std::byte(value >> 8), std::byte(value)};
-}
-
-template <>
-inline auto to_bytes_be(int64_t value) -> std::array<std::byte, 8> {
-    return {std::byte(value >> 56), std::byte(value >> 48), std::byte(value >> 40),
-            std::byte(value >> 32), std::byte(value >> 24), std::byte(value >> 16),
-            std::byte(value >> 8),  std::byte(value)};
-}
-
-// Convert 8-byte array in big-endian order to int16_t
-template <size_t OFFSET = 0>
-inline auto to_int16_be(std::array<std::byte, 8> bytes) -> std::optional<int16_t> {
-    static_assert(OFFSET + 2 <= bytes.size(), "Offset out of range");
-    return static_cast<int16_t>(
-        (std::to_integer<int16_t>(bytes[0 + OFFSET]) << 8) |
-        std::to_integer<int16_t>(bytes[1 + OFFSET]));
-}
-
-// Convert 8-byte array in big-endian order to int32_t
-template <size_t OFFSET = 0>
-inline auto to_int32_be(std::array<std::byte, 8> bytes) -> std::optional<int32_t> {
-    static_assert(OFFSET + 4 <= bytes.size(), "Offset out of range");
-    return (std::to_integer<int32_t>(bytes[0]) << 24) | (std::to_integer<int32_t>(bytes[1]) << 16) |
-           (std::to_integer<int32_t>(bytes[2]) << 8) | std::to_integer<int32_t>(bytes[3]);
-}
-
-// Convert 8-byte array in big-endian order to int64_t
-template <size_t OFFSET = 0>
-inline auto to_int64_be(std::array<std::byte, 8> bytes) -> std::optional<int64_t> {
-    static_assert(OFFSET + 8 <= bytes.size(), "Offset out of range");
-    return (std::to_integer<int64_t>(bytes[0]) << 56) | (std::to_integer<int64_t>(bytes[1]) << 48) |
-           (std::to_integer<int64_t>(bytes[2]) << 40) | (std::to_integer<int64_t>(bytes[3]) << 32) |
-           (std::to_integer<int64_t>(bytes[4]) << 24) | (std::to_integer<int64_t>(bytes[5]) << 16) |
-           (std::to_integer<int64_t>(bytes[6]) << 8) | std::to_integer<int64_t>(bytes[7]);
+    if (offset + sizeof(Int) > bytes.size()) {
+        return std::nullopt;
+    }
+    // 符号付き整数の左シフトを避けるため、符号なしで組み立ててから変換する
+    using UInt = std::make_unsigned_t<Int>;
+    UInt raw = 0;
+    for (std::size_t i = 0; i < sizeof(Int); ++i) {
+        raw = static_cast<UInt>(raw << 8) | std::to_integer<uint8_t>(bytes[offset + i]);
+    }
+    return static_cast<Int>(raw);
 }
 
 }  // namespace sinsei_umiusi_control::util
