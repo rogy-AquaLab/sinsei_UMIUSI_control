@@ -202,7 +202,7 @@ inline auto is_transport_frame(const interface::CanFrame & frame) -> bool {
 // ref: https://github.com/vedderb/bldc/blob/4fd8279ea45a17c0d69357438ae2f7237a32514f/util/buffer.c#L225-L243
 inline auto to_float32_auto_be(const std::array<std::byte, 8> & bytes, std::size_t offset = 0)
     -> std::optional<double> {
-    const auto raw = util::to_uint_be<uint32_t>(bytes, offset);
+    const auto raw = util::to_integer_be<uint32_t>(bytes, offset);
     if (!raw) {
         return std::nullopt;
     }

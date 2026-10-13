@@ -151,8 +151,8 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             if (!validation_res) {
                 return tl::make_unexpected(validation_res.error());
             }
-            const auto offset = util::to_uint8(frame.data, 0);
-            const auto cell_count = util::to_uint8(frame.data, 1);
+            const auto offset = util::to_integer_be<uint8_t>(frame.data, 0);
+            const auto cell_count = util::to_integer_be<uint8_t>(frame.data, 1);
             if (!offset || !cell_count) {
                 return parse_failed(frame);
             }
@@ -161,7 +161,7 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             packet.cell_count = cell_count.value();
             packet.value_count = static_cast<uint8_t>((frame.len - 2) / 2);
             for (std::size_t i = 0; i < packet.value_count; ++i) {
-                const auto scaled_voltage = util::to_int16_be(frame.data, 2 + i * 2);
+                const auto scaled_voltage = util::to_integer_be<int16_t>(frame.data, 2 + i * 2);
                 if (!scaled_voltage) {
                     return parse_failed(frame);
                 }
@@ -176,7 +176,7 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
                 return tl::make_unexpected(validation_res.error());
             }
             // 先頭1バイトがセル数、残り7バイトが各セルのバランシング状態のビット列
-            const auto raw = util::to_uint_be<uint64_t>(frame.data, 0);
+            const auto raw = util::to_integer_be<uint64_t>(frame.data, 0);
             if (!raw) {
                 return parse_failed(frame);
             }
@@ -193,8 +193,8 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             if (!validation_res) {
                 return tl::make_unexpected(validation_res.error());
             }
-            const auto offset = util::to_uint8(frame.data, 0);
-            const auto temperature_count = util::to_uint8(frame.data, 1);
+            const auto offset = util::to_integer_be<uint8_t>(frame.data, 0);
+            const auto temperature_count = util::to_integer_be<uint8_t>(frame.data, 1);
             if (!offset || !temperature_count) {
                 return parse_failed(frame);
             }
@@ -203,7 +203,7 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             packet.temperature_count = temperature_count.value();
             packet.value_count = static_cast<uint8_t>((frame.len - 2) / 2);
             for (std::size_t i = 0; i < packet.value_count; ++i) {
-                const auto scaled_temperature = util::to_int16_be(frame.data, 2 + i * 2);
+                const auto scaled_temperature = util::to_integer_be<int16_t>(frame.data, 2 + i * 2);
                 if (!scaled_temperature) {
                     return parse_failed(frame);
                 }
@@ -217,9 +217,9 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             if (!validation_res) {
                 return tl::make_unexpected(validation_res.error());
             }
-            const auto scaled_temperature = util::to_int16_be(frame.data, 0);
-            const auto scaled_humidity = util::to_int16_be(frame.data, 2);
-            const auto scaled_balance_ic_temperature = util::to_int16_be(frame.data, 4);
+            const auto scaled_temperature = util::to_integer_be<int16_t>(frame.data, 0);
+            const auto scaled_humidity = util::to_integer_be<int16_t>(frame.data, 2);
+            const auto scaled_balance_ic_temperature = util::to_integer_be<int16_t>(frame.data, 4);
             if (!scaled_temperature || !scaled_humidity || !scaled_balance_ic_temperature) {
                 return parse_failed(frame);
             }
@@ -231,7 +231,7 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
                 std::nullopt,
             };
             if (frame.len == 8) {
-                const auto scaled_pressure = util::to_int16_be(frame.data, 6);
+                const auto scaled_pressure = util::to_integer_be<int16_t>(frame.data, 6);
                 if (!scaled_pressure) {
                     return parse_failed(frame);
                 }
@@ -245,12 +245,12 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             if (!validation_res) {
                 return tl::make_unexpected(validation_res.error());
             }
-            const auto scaled_cell_voltage_min = util::to_int16_be(frame.data, 0);
-            const auto scaled_cell_voltage_max = util::to_int16_be(frame.data, 2);
-            const auto scaled_state_of_charge = util::to_uint8(frame.data, 4);
-            const auto scaled_state_of_health = util::to_uint8(frame.data, 5);
-            const auto cell_temperature_max = util::to_uint8(frame.data, 6);
-            const auto flags = util::to_uint8(frame.data, 7);
+            const auto scaled_cell_voltage_min = util::to_integer_be<int16_t>(frame.data, 0);
+            const auto scaled_cell_voltage_max = util::to_integer_be<int16_t>(frame.data, 2);
+            const auto scaled_state_of_charge = util::to_integer_be<uint8_t>(frame.data, 4);
+            const auto scaled_state_of_health = util::to_integer_be<uint8_t>(frame.data, 5);
+            const auto cell_temperature_max = util::to_integer_be<uint8_t>(frame.data, 6);
+            const auto flags = util::to_integer_be<uint8_t>(frame.data, 7);
             if (!scaled_cell_voltage_min || !scaled_cell_voltage_max || !scaled_state_of_charge ||
                 !scaled_state_of_health || !cell_temperature_max || !flags) {
                 return parse_failed(frame);

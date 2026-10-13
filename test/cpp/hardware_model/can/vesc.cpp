@@ -79,7 +79,7 @@ TEST(VescModelTest, VescModelMakeDutyFrameValidTest) {
          << 8) |
             DUMMY_ID);
     EXPECT_EQ(frame.len, 4);
-    EXPECT_EQ(sucutil::to_int32_be(frame.data), 50000);
+    EXPECT_EQ(sucutil::to_integer_be<int32_t>(frame.data), 50000);
 }
 
 TEST(VescModelTest, VescModelMakeDutyFrameInvalidTest) {
@@ -98,7 +98,7 @@ TEST(VescModelTest, VescModelMakeRpmFrameTest) {
          << 8) |
             DUMMY_ID);
     EXPECT_EQ(frame.len, 4);
-    EXPECT_EQ(sucutil::to_int32_be(frame.data), 100);
+    EXPECT_EQ(sucutil::to_integer_be<int32_t>(frame.data), 100);
 }
 
 TEST(VescModelTest, VescModelMakeServoAngleFrameValidTest) {
@@ -112,7 +112,7 @@ TEST(VescModelTest, VescModelMakeServoAngleFrameValidTest) {
         (static_cast<suchm::interface::CanFrame::Id>(VescModel::CAN_PACKET_SET_SERVO) << 8) |
             DUMMY_ID);
     EXPECT_EQ(frame.len, 4);
-    EXPECT_EQ(sucutil::to_int32_be(frame.data), 10000);
+    EXPECT_EQ(sucutil::to_integer_be<int32_t>(frame.data), 10000);
 }
 
 TEST(VescModelTest, VescModelConvertsServoAngleFromRadiansAtSendBoundaryTest) {
@@ -121,11 +121,11 @@ TEST(VescModelTest, VescModelConvertsServoAngleFromRadiansAtSendBoundaryTest) {
 
     const auto center_result = model.make_servo_angle_frame(0.0);
     ASSERT_TRUE(center_result);
-    EXPECT_EQ(sucutil::to_int32_be(center_result->data), 5000);
+    EXPECT_EQ(sucutil::to_integer_be<int32_t>(center_result->data), 5000);
 
     const auto negative_result = model.make_servo_angle_frame(-QUARTER_PI);
     ASSERT_TRUE(negative_result);
-    EXPECT_EQ(sucutil::to_int32_be(negative_result->data), 2500);
+    EXPECT_EQ(sucutil::to_integer_be<int32_t>(negative_result->data), 2500);
 }
 
 TEST(VescModelTest, VescModelMakeServoAngleFrameInvalidTest) {

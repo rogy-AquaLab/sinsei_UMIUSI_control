@@ -400,9 +400,9 @@ TEST(CanModelTest, OnWriteUsesCommandIndexForConfiguredThrusterOrder) {
     EXPECT_EQ(sent_frames[0].id, thrusters[0].vesc_id);
     EXPECT_EQ(sent_frames[1].id, thrusters[1].vesc_id);
     EXPECT_EQ(sent_frames[2].id, thrusters[2].vesc_id);
-    EXPECT_EQ(sinsei_umiusi_control::util::to_int32_be(sent_frames[0].data), 25000);
-    EXPECT_EQ(sinsei_umiusi_control::util::to_int32_be(sent_frames[1].data), 50000);
-    EXPECT_EQ(sinsei_umiusi_control::util::to_int32_be(sent_frames[2].data), 75000);
+    EXPECT_EQ(sinsei_umiusi_control::util::to_integer_be<int32_t>(sent_frames[0].data), 25000);
+    EXPECT_EQ(sinsei_umiusi_control::util::to_integer_be<int32_t>(sent_frames[1].data), 50000);
+    EXPECT_EQ(sinsei_umiusi_control::util::to_integer_be<int32_t>(sent_frames[2].data), 75000);
 }
 
 TEST(CanModelTest, OnWriteRejectsMismatchedThrusterCommandCount) {
