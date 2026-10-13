@@ -15,8 +15,8 @@ constexpr auto MAX_ANGLE = HALF_PI;
 
 ServoAngleEstimator::ServoAngleEstimator(double max_angular_velocity)
 : max_angular_velocity(max_angular_velocity) {
-    if (!std::isfinite(max_angular_velocity) || max_angular_velocity < 0.0) {
-        throw std::invalid_argument("max_angular_velocity must be finite and non-negative");
+    if (!std::isfinite(max_angular_velocity) || max_angular_velocity <= 0.0) {
+        throw std::invalid_argument("max_angular_velocity must be finite and positive");
     }
     this->reset();
 }

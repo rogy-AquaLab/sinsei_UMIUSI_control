@@ -94,10 +94,10 @@ auto ThrusterController::on_init() -> controller_interface::CallbackReturn {
             .set__floating_point_range(
                 {FloatingPointRange{}.set__from_value(0.0).set__to_value(100.0)}));
     this->get_node()->declare_parameter(
-        "servo_max_angular_velocity", 0.0,
+        "servo_max_angular_velocity", 3.0,
         ParameterDescriptor{}
             .set__description(
-                "Maximum servo angular velocity [rad/s] (0.0 keeps the estimate unavailable)")
+                "Max servo angular velocity [rad/s], at or below the real one (must be positive)")
             .set__type(rclcpp::PARAMETER_DOUBLE));
 
     this->input = Input{};
@@ -130,10 +130,13 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
 
     const auto servo_max_angular_velocity =
         this->get_node()->get_parameter("servo_max_angular_velocity").as_double();
-    if (!std::isfinite(servo_max_angular_velocity) || servo_max_angular_velocity < 0.0) {
+    if (!std::isfinite(servo_max_angular_velocity) || servo_max_angular_velocity <= 0.0) {
+        // 0だとサーボ角度の推定値が永久に確定しないので、起動時に弾く
         RCLCPP_ERROR(
             this->get_node()->get_logger(),
-            "servo_max_angular_velocity must be finite and non-negative");
+            "servo_max_angular_velocity must be finite and positive (got %f): with 0 the servo "
+            "angle estimate never resolves",
+            servo_max_angular_velocity);
         return controller_interface::CallbackReturn::ERROR;
     }
 

@@ -35,7 +35,7 @@
 | `duty_per_thrust` | double | `LinearAcceleration`が推力[N]からDuty(無次元)へ換算する係数。 |
 | `max_duty` | double (0.0-1.0) | Dutyの絶対値上限。 |
 | `max_duty_step_per_sec` | double | 1秒あたりのDuty変化上限。周期`dt`あたりのステップ制限は `max_duty_step_per_sec * dt`。 |
-| `servo_max_angular_velocity` | double [rad/s] | サーボ角度推定で使う最大角速度。0のときは推定値を常に未確定とする。 |
+| `servo_max_angular_velocity` | double (>0) [rad/s] | サーボ角度推定で使う最大角速度。実際のサーボはこれより速く動けるという下限として与える。大きすぎると移動中に到達したと誤判定し、小さすぎると推定値が確定するまでの時間が延びる。0以下の場合は推定値が永久に確定しないため、configureでエラーにする。 |
 
 これらは `params/controllers.yaml` でスラスタごとに設定可能。
 

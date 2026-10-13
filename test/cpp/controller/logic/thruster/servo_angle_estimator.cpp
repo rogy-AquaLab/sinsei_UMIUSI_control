@@ -71,12 +71,6 @@ TEST(ServoAngleEstimatorTest, ResetMakesAngleUnknownAgain) {
     EXPECT_FALSE(estimator.update(CommandedAngle{0.0}, 0.0));
 }
 
-TEST(ServoAngleEstimatorTest, ZeroVelocityKeepsAngleUnknown) {
-    auto estimator = ServoAngleEstimator{0.0};
-
-    EXPECT_FALSE(estimator.update(CommandedAngle{0.0}, 100.0));
-}
-
 TEST(ServoAngleEstimatorTest, InvalidInputResetsTheEstimate) {
     auto estimator = ServoAngleEstimator{1.0};
     ASSERT_TRUE(estimator.update(CommandedAngle{0.0}, MAX_ANGLE));
@@ -94,6 +88,7 @@ TEST(ServoAngleEstimatorTest, OutOfRangeCommandResetsTheEstimate) {
 }
 
 TEST(ServoAngleEstimatorTest, RejectsInvalidVelocity) {
+    EXPECT_THROW(ServoAngleEstimator{0.0}, std::invalid_argument);
     EXPECT_THROW(ServoAngleEstimator{-1.0}, std::invalid_argument);
     EXPECT_THROW(
         ServoAngleEstimator{std::numeric_limits<double>::infinity()}, std::invalid_argument);
