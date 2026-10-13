@@ -69,7 +69,7 @@ auto can::VescModel::make_servo_angle_frame(double rad) const
 
 auto can::VescModel::id_matches(const interface::CanFrame & frame) const -> bool {
     const auto vesc_id = static_cast<Id>(frame.id & 0xFFU);
-    return frame.is_extended && vesc_id == this->id;
+    return frame.is_extended && (vesc_id == this->id);
 }
 
 auto can::VescModel::decode(const interface::CanFrame & frame) const

@@ -25,7 +25,7 @@ auto can::HarmonyBmsModel::get_id() const -> Id { return this->id; }
 
 auto can::HarmonyBmsModel::id_matches(const interface::CanFrame & frame) const -> bool {
     const auto bms_id = static_cast<Id>(frame.id & 0xFFU);
-    return frame.is_extended && bms_id == this->id;
+    return frame.is_extended && (bms_id == this->id);
 }
 
 auto can::HarmonyBmsModel::validate_frame_length(
