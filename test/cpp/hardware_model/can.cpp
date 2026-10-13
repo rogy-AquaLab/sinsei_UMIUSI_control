@@ -137,7 +137,7 @@ TEST(CanModelTest, CanModelOnReadPacketStatusReturnsRpmUpdateTest) {
 TEST(CanModelTest, CanModelOnReadRoutesHarmonyBmsFrameTest) {
     auto can = std::make_shared<Can>();
     const auto frame = make_vesc_status_frame(
-        HARMONY_BMS_ID, suchm::can::HarmonyBmsModel::PacketId::Summary,
+        HARMONY_BMS_ID, suchm::can::HarmonyBmsModel::PacketId::CAN_PACKET_BMS_SOC_SOH_TEMP_STAT,
         {std::byte{0x0E}, std::byte{0x74}, std::byte{0x10}, std::byte{0x04}, std::byte{0x80},
          std::byte{0xFF}, std::byte{42}, std::byte{0x17}});
 
@@ -467,7 +467,7 @@ TEST_P(CanModelVariableThrusterCountTest, WritesEachDynamicThrusterInAlternating
     for (size_t i = 0; i < thruster_count; ++i) {
         expected_frame_ids.push_back(
             (static_cast<suchm::interface::CanFrame::Id>(
-                 suchm::can::VescModel::PacketId::CAN_PACKET_SET_SERVO)
+                 suchm::can::VescModel::CAN_PACKET_SET_SERVO)
              << 8) |
             thrusters[i].vesc_id);
     }
@@ -507,10 +507,10 @@ TEST(CanModelTest, OnWriteDoesNotReplaceDisabledCommandsWithZero) {
     ASSERT_EQ(sent_frames.size(), 2u);
     EXPECT_EQ(sent_frames[0].id, thrusters[1].vesc_id);
     EXPECT_EQ(
-        sent_frames[1].id, (static_cast<suchm::interface::CanFrame::Id>(
-                                suchm::can::VescModel::PacketId::CAN_PACKET_SET_SERVO)
-                            << 8) |
-                               thrusters[0].vesc_id);
+        sent_frames[1].id,
+        (static_cast<suchm::interface::CanFrame::Id>(suchm::can::VescModel::CAN_PACKET_SET_SERVO)
+         << 8) |
+            thrusters[0].vesc_id);
 }
 
 TEST_P(CanModelVariableThrusterCountTest, RoutesReceivedStatusToConfiguredThrusterName) {

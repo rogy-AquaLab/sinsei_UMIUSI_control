@@ -58,7 +58,8 @@ auto make_status_frame(std::size_t chunk, char c) -> suchm::interface::CanFrame 
     data.fill(std::byte{static_cast<uint8_t>(c)});
     return make_frame(
         static_cast<suchm::can::HarmonyBmsModel::PacketId>(
-            static_cast<uint8_t>(suchm::can::HarmonyBmsModel::PacketId::Status1) + chunk),
+            static_cast<uint8_t>(suchm::can::HarmonyBmsModel::PacketId::CAN_PACKET_BMS_STATUS_1) +
+            chunk),
         data);
 }
 
@@ -73,8 +74,8 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelExposesConfiguredIdTest) {
 
 TEST(HarmonyBmsModelTest, HarmonyBmsModelIgnoresFramesFromOtherNodesTest) {
     auto model = HarmonyBmsModel(BMS_ID);
-    const auto result = model.decode(
-        make_frame(HarmonyBmsModel::PacketId::Voltage, two_floats(48.0F, 50.0F), 8, 11));
+    const auto result = model.decode(make_frame(
+        HarmonyBmsModel::PacketId::CAN_PACKET_BMS_V_TOT, two_floats(48.0F, 50.0F), 8, 11));
 
     ASSERT_TRUE(result);
     EXPECT_FALSE(result.value().has_value());
@@ -91,26 +92,26 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelRejectsUnknownPacketFromConfiguredNodeT
 
 TEST(HarmonyBmsModelTest, HarmonyBmsModelRejectsInvalidLengthTest) {
     auto model = HarmonyBmsModel(BMS_ID);
-    auto result = model.decode(make_frame(HarmonyBmsModel::PacketId::Voltage, {}, 4));
+    auto result = model.decode(make_frame(HarmonyBmsModel::PacketId::CAN_PACKET_BMS_V_TOT, {}, 4));
 
     ASSERT_FALSE(result);
     EXPECT_EQ(
         result.error(),
         "Received Harmony BMS packet 38 with invalid length (expected: 8, received: 4)");
 
-    result = model.decode(make_frame(HarmonyBmsModel::PacketId::CellVoltage, {}, 3));
+    result = model.decode(make_frame(HarmonyBmsModel::PacketId::CAN_PACKET_BMS_V_CELL, {}, 3));
     ASSERT_FALSE(result);
     EXPECT_EQ(
         result.error(),
         "Received Harmony BMS packet 41 with invalid length (expected: 4, 6 or 8, received: 3)");
 
-    result = model.decode(make_frame(HarmonyBmsModel::PacketId::Humidity, {}, 4));
+    result = model.decode(make_frame(HarmonyBmsModel::PacketId::CAN_PACKET_BMS_HUM, {}, 4));
     ASSERT_FALSE(result);
     EXPECT_EQ(
         result.error(),
         "Received Harmony BMS packet 44 with invalid length (expected: 6 or 8, received: 4)");
 
-    result = model.decode(make_frame(HarmonyBmsModel::PacketId::Status1, {}, 0));
+    result = model.decode(make_frame(HarmonyBmsModel::PacketId::CAN_PACKET_BMS_STATUS_1, {}, 0));
     ASSERT_FALSE(result);
     EXPECT_EQ(
         result.error(),
@@ -120,8 +121,8 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelRejectsInvalidLengthTest) {
 TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesVoltageAndCurrentTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
-    auto result =
-        model.decode(make_frame(HarmonyBmsModel::PacketId::Voltage, two_floats(48.0F, 50.0F)));
+    auto result = model.decode(
+        make_frame(HarmonyBmsModel::PacketId::CAN_PACKET_BMS_V_TOT, two_floats(48.0F, 50.0F)));
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.value());
     const auto * voltage = std::get_if<HarmonyBmsModel::PacketVoltage>(&result.value().value());
@@ -129,8 +130,8 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesVoltageAndCurrentTest) {
     EXPECT_DOUBLE_EQ(voltage->pack, 48.0);
     EXPECT_DOUBLE_EQ(voltage->charger, 50.0);
 
-    result =
-        model.decode(make_frame(HarmonyBmsModel::PacketId::Current, two_floats(12.5F, -12.25F)));
+    result = model.decode(
+        make_frame(HarmonyBmsModel::PacketId::CAN_PACKET_BMS_I, two_floats(12.5F, -12.25F)));
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.value());
     const auto * current = std::get_if<HarmonyBmsModel::PacketCurrent>(&result.value().value());
@@ -142,8 +143,8 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesVoltageAndCurrentTest) {
 TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesCountersAndTotalsTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
-    auto result =
-        model.decode(make_frame(HarmonyBmsModel::PacketId::Counters, two_floats(2.5F, 120.0F)));
+    auto result = model.decode(
+        make_frame(HarmonyBmsModel::PacketId::CAN_PACKET_BMS_AH_WH, two_floats(2.5F, 120.0F)));
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.value());
     const auto * counters = std::get_if<HarmonyBmsModel::PacketCounters>(&result.value().value());
@@ -151,8 +152,8 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesCountersAndTotalsTest) {
     EXPECT_DOUBLE_EQ(counters->amp_hour, 2.5);
     EXPECT_DOUBLE_EQ(counters->watt_hour, 120.0);
 
-    result =
-        model.decode(make_frame(HarmonyBmsModel::PacketId::ChargeTotals, two_floats(9.0F, 420.0F)));
+    result = model.decode(make_frame(
+        HarmonyBmsModel::PacketId::CAN_PACKET_BMS_AH_WH_CHG_TOTAL, two_floats(9.0F, 420.0F)));
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.value());
     const auto * charge_totals =
@@ -161,8 +162,8 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesCountersAndTotalsTest) {
     EXPECT_DOUBLE_EQ(charge_totals->amp_hour, 9.0);
     EXPECT_DOUBLE_EQ(charge_totals->watt_hour, 420.0);
 
-    result = model.decode(
-        make_frame(HarmonyBmsModel::PacketId::DischargeTotals, two_floats(11.0F, 510.0F)));
+    result = model.decode(make_frame(
+        HarmonyBmsModel::PacketId::CAN_PACKET_BMS_AH_WH_DIS_TOTAL, two_floats(11.0F, 510.0F)));
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.value());
     const auto * discharge_totals =
@@ -176,7 +177,7 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesCellVoltageTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
     auto result = model.decode(make_frame(
-        HarmonyBmsModel::PacketId::CellVoltage,
+        HarmonyBmsModel::PacketId::CAN_PACKET_BMS_V_CELL,
         {std::byte{3}, std::byte{12}, std::byte{0x0E}, std::byte{0x74},  // 3.700 V
          std::byte{0x0F}, std::byte{0xA0},                               // 4.000 V
          std::byte{0x10}, std::byte{0x04}}));                            // 4.100 V
@@ -193,7 +194,7 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesCellVoltageTest) {
 
     // 最後のフレームは値が1つだけの場合がある
     result = model.decode(make_frame(
-        HarmonyBmsModel::PacketId::CellVoltage,
+        HarmonyBmsModel::PacketId::CAN_PACKET_BMS_V_CELL,
         {std::byte{9}, std::byte{10}, std::byte{0x0E}, std::byte{0x74}}, 4));
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.value());
@@ -208,7 +209,7 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesBalancingTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
     const auto result = model.decode(make_frame(
-        HarmonyBmsModel::PacketId::Balancing,
+        HarmonyBmsModel::PacketId::CAN_PACKET_BMS_BAL,
         {std::byte{4}, std::byte{0}, std::byte{0}, std::byte{0}, std::byte{0}, std::byte{0},
          std::byte{0}, std::byte{0x15}}));
     ASSERT_TRUE(result);
@@ -228,7 +229,7 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesTemperaturesTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
     const auto result = model.decode(make_frame(
-        HarmonyBmsModel::PacketId::Temperatures,
+        HarmonyBmsModel::PacketId::CAN_PACKET_BMS_TEMPS,
         {std::byte{3}, std::byte{10}, std::byte{0x09}, std::byte{0xC4},  // 25.00 degC
          std::byte{0x0A}, std::byte{0x28},                               // 26.00 degC
          std::byte{0x0D}, std::byte{0x7A}}));                            // 34.50 degC
@@ -249,10 +250,11 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesHumidityTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
     auto result = model.decode(make_frame(
-        HarmonyBmsModel::PacketId::Humidity, {std::byte{0x09}, std::byte{0xC4},     // 25.00 degC
-                                              std::byte{0x13}, std::byte{0x88},     // 50.00 %RH
-                                              std::byte{0x0B}, std::byte{0xB8},     // 30.00 degC
-                                              std::byte{0x27}, std::byte{0x8D}}));  // 101250 Pa
+        HarmonyBmsModel::PacketId::CAN_PACKET_BMS_HUM,
+        {std::byte{0x09}, std::byte{0xC4},     // 25.00 degC
+         std::byte{0x13}, std::byte{0x88},     // 50.00 %RH
+         std::byte{0x0B}, std::byte{0xB8},     // 30.00 degC
+         std::byte{0x27}, std::byte{0x8D}}));  // 101250 Pa
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.value());
     const auto * humidity = std::get_if<HarmonyBmsModel::PacketHumidity>(&result.value().value());
@@ -265,7 +267,7 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesHumidityTest) {
 
     // 6バイトのフレームは気圧を含まない
     result = model.decode(make_frame(
-        HarmonyBmsModel::PacketId::Humidity,
+        HarmonyBmsModel::PacketId::CAN_PACKET_BMS_HUM,
         {std::byte{0x09}, std::byte{0xC4}, std::byte{0x13}, std::byte{0x88}, std::byte{0x0B},
          std::byte{0xB8}},
         6));
@@ -280,7 +282,7 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelDecodesSummaryTest) {
     auto model = HarmonyBmsModel(BMS_ID);
 
     const auto result = model.decode(make_frame(
-        HarmonyBmsModel::PacketId::Summary,
+        HarmonyBmsModel::PacketId::CAN_PACKET_BMS_SOC_SOH_TEMP_STAT,
         {std::byte{0x0E}, std::byte{0x74},  // 3.700 V
          std::byte{0x10}, std::byte{0x04},  // 4.100 V
          std::byte{0x80}, std::byte{0xFF}, std::byte{42}, std::byte{0x17}}));
@@ -310,7 +312,7 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelAssemblesStatusAndMapsHarmonyFaultsTest
             data[i] = std::byte{static_cast<uint8_t>(text[begin + i])};
         }
         const auto packet_id = static_cast<HarmonyBmsModel::PacketId>(
-            static_cast<uint8_t>(HarmonyBmsModel::PacketId::Status1) + chunk);
+            static_cast<uint8_t>(HarmonyBmsModel::PacketId::CAN_PACKET_BMS_STATUS_1) + chunk);
         const auto result = model.decode(make_frame(packet_id, data));
         ASSERT_TRUE(result);
         ASSERT_TRUE(result.value());
@@ -377,8 +379,8 @@ TEST(HarmonyBmsModelTest, HarmonyBmsModelAssemblesStatusWithInterleavedFramesTes
         ASSERT_TRUE(model.decode(make_status_frame(chunk, 'A')));
     }
     // ステータス文字列以外のフレームが間に入っても組み立てを続ける
-    ASSERT_TRUE(
-        model.decode(make_frame(HarmonyBmsModel::PacketId::Voltage, two_floats(48.0F, 50.0F))));
+    ASSERT_TRUE(model.decode(
+        make_frame(HarmonyBmsModel::PacketId::CAN_PACKET_BMS_V_TOT, two_floats(48.0F, 50.0F))));
     ASSERT_TRUE(model.decode(make_status_frame(3, 'A')));
     const auto result = model.decode(make_status_frame(4, 'A'));
 

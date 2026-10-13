@@ -68,29 +68,12 @@ auto CanModel::on_destroy() -> tl::expected<void, std::string> {
     return {};
 }
 
-auto CanModel::is_vesc_transport_frame(const interface::CanFrame & frame) -> bool {
-    if (!frame.is_extended) {
-        return false;
-    }
-
-    const auto packet_id = static_cast<can::VescModel::PacketId>((frame.id >> 8) & 0xFFU);
-    switch (packet_id) {
-        case can::VescModel::PacketId::CAN_PACKET_FILL_RX_BUFFER:
-        case can::VescModel::PacketId::CAN_PACKET_FILL_RX_BUFFER_LONG:
-        case can::VescModel::PacketId::CAN_PACKET_PROCESS_RX_BUFFER:
-        case can::VescModel::PacketId::CAN_PACKET_PROCESS_SHORT_BUFFER:
-            return true;
-        default:
-            return false;
-    }
-}
-
 auto CanModel::decode_frame(const interface::CanFrame & frame)
     -> tl::expected<std::optional<DecodedState>, std::string> {
     // CANフレームをデコードするため、各モデルを順番に試す
 
     // 受信途中のVESCのフレームは無視する
-    if (is_vesc_transport_frame(frame)) {
+    if (can::vesc_protocol::is_transport_frame(frame)) {
         return std::nullopt;
     }
 

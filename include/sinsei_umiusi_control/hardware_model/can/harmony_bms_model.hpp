@@ -9,6 +9,7 @@
 #include <string>
 #include <variant>
 
+#include "sinsei_umiusi_control/hardware_model/can/vesc_protocol.hpp"
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
 #include "sinsei_umiusi_control/state/bms.hpp"
 #include "sinsei_umiusi_control/util/bms_status.hpp"
@@ -29,40 +30,24 @@ class HarmonyBmsModel {
     static constexpr std::size_t ADDITIONAL_TEMPERATURE_OFFSET = 5;
     static constexpr std::size_t STATUS_LENGTH = 40;
 
-    enum class PacketId : uint8_t {
-        Voltage = 38,
-        Current = 39,
-        Counters = 40,
-        CellVoltage = 41,
-        Balancing = 42,
-        Temperatures = 43,
-        Humidity = 44,
-        Summary = 45,
-        ChargeTotals = 53,
-        DischargeTotals = 54,
-        Status1 = 64,
-        Status2 = 65,
-        Status3 = 66,
-        Status4 = 67,
-        Status5 = 68,
-    };
+    using PacketId = vesc_protocol::PacketId;
 
     struct PacketVoltage {
-        static constexpr PacketId ID = PacketId::Voltage;
+        static constexpr PacketId ID = PacketId::CAN_PACKET_BMS_V_TOT;
 
         double pack;
         double charger;
     };
 
     struct PacketCurrent {
-        static constexpr PacketId ID = PacketId::Current;
+        static constexpr PacketId ID = PacketId::CAN_PACKET_BMS_I;
 
         double input;
         double measured;
     };
 
     struct PacketCounters {
-        static constexpr PacketId ID = PacketId::Counters;
+        static constexpr PacketId ID = PacketId::CAN_PACKET_BMS_AH_WH;
 
         double amp_hour;
         double watt_hour;
@@ -70,7 +55,7 @@ class HarmonyBmsModel {
 
     // 1フレームに最大3セル分の電圧を含む
     struct PacketCellVoltage {
-        static constexpr PacketId ID = PacketId::CellVoltage;
+        static constexpr PacketId ID = PacketId::CAN_PACKET_BMS_V_CELL;
         static constexpr std::size_t MAX_VALUE_COUNT = 3;
         static constexpr double VOLTAGE_SCALE = 1000;
 
@@ -81,7 +66,7 @@ class HarmonyBmsModel {
     };
 
     struct PacketBalancing {
-        static constexpr PacketId ID = PacketId::Balancing;
+        static constexpr PacketId ID = PacketId::CAN_PACKET_BMS_BAL;
         // セル数の1バイトを除いた7バイト分のビット
         static constexpr std::size_t MAX_CELL_COUNT = 56;
 
@@ -91,7 +76,7 @@ class HarmonyBmsModel {
 
     // 1フレームに最大3個分の温度を含む
     struct PacketTemperatures {
-        static constexpr PacketId ID = PacketId::Temperatures;
+        static constexpr PacketId ID = PacketId::CAN_PACKET_BMS_TEMPS;
         static constexpr std::size_t MAX_VALUE_COUNT = 3;
         static constexpr double TEMPERATURE_SCALE = 100;
 
@@ -102,7 +87,7 @@ class HarmonyBmsModel {
     };
 
     struct PacketHumidity {
-        static constexpr PacketId ID = PacketId::Humidity;
+        static constexpr PacketId ID = PacketId::CAN_PACKET_BMS_HUM;
         static constexpr double TEMPERATURE_SCALE = 100;
         static constexpr double HUMIDITY_SCALE = 100;
         static constexpr double PRESSURE_SCALE = 0.1;
@@ -114,7 +99,7 @@ class HarmonyBmsModel {
     };
 
     struct PacketSummary {
-        static constexpr PacketId ID = PacketId::Summary;
+        static constexpr PacketId ID = PacketId::CAN_PACKET_BMS_SOC_SOH_TEMP_STAT;
         static constexpr double CELL_VOLTAGE_SCALE = 1000;
         static constexpr double RATIO_SCALE = 255;
 
@@ -130,14 +115,14 @@ class HarmonyBmsModel {
     };
 
     struct PacketChargeTotals {
-        static constexpr PacketId ID = PacketId::ChargeTotals;
+        static constexpr PacketId ID = PacketId::CAN_PACKET_BMS_AH_WH_CHG_TOTAL;
 
         double amp_hour;
         double watt_hour;
     };
 
     struct PacketDischargeTotals {
-        static constexpr PacketId ID = PacketId::DischargeTotals;
+        static constexpr PacketId ID = PacketId::CAN_PACKET_BMS_AH_WH_DIS_TOTAL;
 
         double amp_hour;
         double watt_hour;

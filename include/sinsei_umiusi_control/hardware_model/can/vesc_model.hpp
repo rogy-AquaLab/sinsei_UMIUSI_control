@@ -7,6 +7,7 @@
 #include <string>
 #include <variant>
 
+#include "sinsei_umiusi_control/hardware_model/can/vesc_protocol.hpp"
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
 
 // ref: https://github.com/vedderb/bldc/blob/822d270/documentation/comm_can.md
@@ -18,31 +19,9 @@ class VescModel {
   public:
     using Id = uint8_t;
 
-    // 本家ファームウェアの`CAN_PACKET_ID`に合わせた命名
-    // ref: https://github.com/vedderb/bldc/blob/822d270/datatypes.h
-    enum class PacketId : uint32_t {
-        CAN_PACKET_SET_DUTY = 0,
-        CAN_PACKET_SET_CURRENT = 1,
-        CAN_PACKET_SET_CURRENT_BRAKE = 2,
-        CAN_PACKET_SET_RPM = 3,
-        CAN_PACKET_SET_POS = 4,
-        CAN_PACKET_FILL_RX_BUFFER = 5,
-        CAN_PACKET_FILL_RX_BUFFER_LONG = 6,
-        CAN_PACKET_PROCESS_RX_BUFFER = 7,
-        CAN_PACKET_PROCESS_SHORT_BUFFER = 8,
-        CAN_PACKET_STATUS = 9,
-        CAN_PACKET_SET_CURRENT_REL = 10,
-        CAN_PACKET_SET_CURRENT_BRAKE_REL = 11,
-        CAN_PACKET_SET_CURRENT_HANDBRAKE = 12,
-        CAN_PACKET_SET_CURRENT_HANDBRAKE_REL = 13,
-        CAN_PACKET_STATUS_2 = 14,
-        CAN_PACKET_STATUS_3 = 15,
-        CAN_PACKET_STATUS_4 = 16,
-        CAN_PACKET_STATUS_5 = 27,
-        CAN_PACKET_STATUS_6 = 58,
-        // 元々のファームウェアにはないが、lispBMにより追加で実装。
-        CAN_PACKET_SET_SERVO = 69,
-    };
+    using PacketId = vesc_protocol::PacketId;
+    // 本家のファームウェアにはないが、lispBMにより追加で実装
+    static constexpr PacketId CAN_PACKET_SET_SERVO = static_cast<PacketId>(69);
 
     struct PacketStatus {
         static constexpr PacketId ID = PacketId::CAN_PACKET_STATUS;

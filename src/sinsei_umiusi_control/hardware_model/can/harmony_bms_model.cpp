@@ -13,7 +13,7 @@ using namespace sinsei_umiusi_control::hardware_model;
 namespace {
 
 auto parse_failed(const interface::CanFrame & frame) -> tl::unexpected<std::string> {
-    const auto packet_id = (frame.id >> 8) & 0xFFU;
+    const auto packet_id = static_cast<uint32_t>(can::vesc_protocol::extract_packet_id(frame));
     return tl::make_unexpected("Failed to parse Harmony BMS packet " + std::to_string(packet_id));
 }
 
@@ -24,8 +24,7 @@ can::HarmonyBmsModel::HarmonyBmsModel(Id id) : id(id) {}
 auto can::HarmonyBmsModel::get_id() const -> Id { return this->id; }
 
 auto can::HarmonyBmsModel::id_matches(const interface::CanFrame & frame) const -> bool {
-    const auto bms_id = static_cast<Id>(frame.id & 0xFFU);
-    return frame.is_extended && (bms_id == this->id);
+    return frame.is_extended && (vesc_protocol::extract_node_id(frame) == this->id);
 }
 
 auto can::HarmonyBmsModel::validate_frame_length(
@@ -45,7 +44,7 @@ auto can::HarmonyBmsModel::validate_frame_length(
             expected += (length + step > max_length ? " or " : ", ") + std::to_string(length);
         }
     }
-    const auto packet_id = (frame.id >> 8) & 0xFFU;
+    const auto packet_id = static_cast<uint32_t>(vesc_protocol::extract_packet_id(frame));
     return tl::make_unexpected(
         "Received Harmony BMS packet " + std::to_string(packet_id) +
         " with invalid length (expected: " + expected + ", received: " + std::to_string(frame.len) +
@@ -109,15 +108,15 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
         return std::nullopt;
     }
 
-    const auto packet_id = static_cast<PacketId>((frame.id >> 8) & 0xFFU);
+    const auto packet_id = vesc_protocol::extract_packet_id(frame);
     switch (packet_id) {
         case PacketVoltage::ID: {
             const auto validation_res = validate_frame_length(frame, 8, 8);
             if (!validation_res) {
                 return tl::make_unexpected(validation_res.error());
             }
-            const auto pack = util::to_vesc_float32_auto_be(frame.data, 0);
-            const auto charger = util::to_vesc_float32_auto_be(frame.data, 4);
+            const auto pack = vesc_protocol::to_float32_auto_be(frame.data, 0);
+            const auto charger = vesc_protocol::to_float32_auto_be(frame.data, 4);
             if (!pack || !charger) {
                 return parse_failed(frame);
             }
@@ -128,8 +127,8 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             if (!validation_res) {
                 return tl::make_unexpected(validation_res.error());
             }
-            const auto input = util::to_vesc_float32_auto_be(frame.data, 0);
-            const auto measured = util::to_vesc_float32_auto_be(frame.data, 4);
+            const auto input = vesc_protocol::to_float32_auto_be(frame.data, 0);
+            const auto measured = vesc_protocol::to_float32_auto_be(frame.data, 4);
             if (!input || !measured) {
                 return parse_failed(frame);
             }
@@ -140,8 +139,8 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             if (!validation_res) {
                 return tl::make_unexpected(validation_res.error());
             }
-            const auto amp_hour = util::to_vesc_float32_auto_be(frame.data, 0);
-            const auto watt_hour = util::to_vesc_float32_auto_be(frame.data, 4);
+            const auto amp_hour = vesc_protocol::to_float32_auto_be(frame.data, 0);
+            const auto watt_hour = vesc_protocol::to_float32_auto_be(frame.data, 4);
             if (!amp_hour || !watt_hour) {
                 return parse_failed(frame);
             }
@@ -276,8 +275,8 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             if (!validation_res) {
                 return tl::make_unexpected(validation_res.error());
             }
-            const auto amp_hour = util::to_vesc_float32_auto_be(frame.data, 0);
-            const auto watt_hour = util::to_vesc_float32_auto_be(frame.data, 4);
+            const auto amp_hour = vesc_protocol::to_float32_auto_be(frame.data, 0);
+            const auto watt_hour = vesc_protocol::to_float32_auto_be(frame.data, 4);
             if (!amp_hour || !watt_hour) {
                 return parse_failed(frame);
             }
@@ -288,24 +287,24 @@ auto can::HarmonyBmsModel::decode(const interface::CanFrame & frame)
             if (!validation_res) {
                 return tl::make_unexpected(validation_res.error());
             }
-            const auto amp_hour = util::to_vesc_float32_auto_be(frame.data, 0);
-            const auto watt_hour = util::to_vesc_float32_auto_be(frame.data, 4);
+            const auto amp_hour = vesc_protocol::to_float32_auto_be(frame.data, 0);
+            const auto watt_hour = vesc_protocol::to_float32_auto_be(frame.data, 4);
             if (!amp_hour || !watt_hour) {
                 return parse_failed(frame);
             }
             return PacketDischargeTotals{amp_hour.value(), watt_hour.value()};
         }
-        case PacketId::Status1:
-        case PacketId::Status2:
-        case PacketId::Status3:
-        case PacketId::Status4:
-        case PacketId::Status5: {
+        case PacketId::CAN_PACKET_BMS_STATUS_1:
+        case PacketId::CAN_PACKET_BMS_STATUS_2:
+        case PacketId::CAN_PACKET_BMS_STATUS_3:
+        case PacketId::CAN_PACKET_BMS_STATUS_4:
+        case PacketId::CAN_PACKET_BMS_STATUS_5: {
             const auto validation_res = validate_frame_length(frame, 1, 8);
             if (!validation_res) {
                 return tl::make_unexpected(validation_res.error());
             }
-            const auto chunk =
-                static_cast<std::size_t>(packet_id) - static_cast<std::size_t>(PacketId::Status1);
+            const auto chunk = static_cast<std::size_t>(packet_id) -
+                               static_cast<std::size_t>(PacketId::CAN_PACKET_BMS_STATUS_1);
             auto status = this->decode_status_chunk(frame, chunk);
             if (!status) {
                 return std::monostate{};

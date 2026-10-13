@@ -14,13 +14,11 @@ auto can::VescModel::get_id() const -> Id { return this->id; }
 
 auto can::VescModel::make_frame(PacketId packet_id, const interface::CanFrame::Data & data) const
     -> interface::CanFrame {
-    const auto id =
-        (static_cast<interface::CanFrame::Id>(packet_id) & 0xFFU) << 8 | (this->id & 0xFFU);
     return interface::CanFrame{
-        id,                           // id
-        SIMPLE_COMMAND_FRAME_LENGTH,  // len
-        data,                         // data
-        true,                         // is_extended
+        vesc_protocol::make_id(packet_id, this->id),  // id
+        SIMPLE_COMMAND_FRAME_LENGTH,                  // len
+        data,                                         // data
+        true,                                         // is_extended
     };
 }
 
@@ -50,7 +48,7 @@ auto can::VescModel::make_servo_frame(double value) const
     }
     const auto scaled_value = static_cast<int32_t>(value * SET_SERVO_SCALE);
     auto bytes = util::to_bytes_be(scaled_value);
-    return this->make_frame(PacketId::CAN_PACKET_SET_SERVO, bytes);
+    return this->make_frame(CAN_PACKET_SET_SERVO, bytes);
 }
 
 auto can::VescModel::make_servo_angle_frame(double rad) const
@@ -68,8 +66,7 @@ auto can::VescModel::make_servo_angle_frame(double rad) const
 }
 
 auto can::VescModel::id_matches(const interface::CanFrame & frame) const -> bool {
-    const auto vesc_id = static_cast<Id>(frame.id & 0xFFU);
-    return frame.is_extended && (vesc_id == this->id);
+    return frame.is_extended && (vesc_protocol::extract_node_id(frame) == this->id);
 }
 
 auto can::VescModel::decode(const interface::CanFrame & frame) const
@@ -84,7 +81,7 @@ auto can::VescModel::decode(const interface::CanFrame & frame) const
             std::to_string(STATUS_FRAME_LENGTH) + ", received: " + std::to_string(frame.len) + ")");
     }
 
-    const auto packet_id = static_cast<PacketId>((frame.id >> 8) & 0xFFU);
+    const auto packet_id = vesc_protocol::extract_packet_id(frame);
 
     switch (packet_id) {
         case PacketStatus::ID: {

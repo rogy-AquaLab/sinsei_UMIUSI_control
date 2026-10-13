@@ -109,8 +109,7 @@ TEST(VescModelTest, VescModelMakeServoAngleFrameValidTest) {
     const auto frame = result.value();
     EXPECT_EQ(
         frame.id,
-        (static_cast<suchm::interface::CanFrame::Id>(VescModel::PacketId::CAN_PACKET_SET_SERVO)
-         << 8) |
+        (static_cast<suchm::interface::CanFrame::Id>(VescModel::CAN_PACKET_SET_SERVO) << 8) |
             DUMMY_ID);
     EXPECT_EQ(frame.len, 4);
     EXPECT_EQ(sucutil::to_int32_be(frame.data), 10000);

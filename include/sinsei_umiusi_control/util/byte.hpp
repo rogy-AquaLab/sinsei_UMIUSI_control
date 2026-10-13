@@ -2,7 +2,6 @@
 #define SINSEI_UMIUSI_CONTROL_UTIL_BYTE_HPP
 
 #include <array>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -84,27 +83,6 @@ inline auto to_int64_be(const std::array<std::byte, 8> & bytes, std::size_t offs
         return std::nullopt;
     }
     return static_cast<int64_t>(raw.value());
-}
-
-// Convert 4 bytes encoded by VESC's `buffer_append_float32_auto` to double
-// ref: https://github.com/vedderb/bldc/blob/4fd8279ea45a17c0d69357438ae2f7237a32514f/util/buffer.c
-inline auto to_vesc_float32_auto_be(const std::array<std::byte, 8> & bytes, std::size_t offset = 0)
-    -> std::optional<double> {
-    const auto raw = to_uint_be<uint32_t>(bytes, offset);
-    if (!raw) {
-        return std::nullopt;
-    }
-    auto exponent = static_cast<int>((raw.value() >> 23) & 0xFFU);
-    const auto significand_raw = raw.value() & 0x7FFFFFU;
-    double significand = 0.0;
-    if (exponent != 0 || significand_raw != 0) {
-        significand = static_cast<double>(significand_raw) / (8388608.0 * 2.0) + 0.5;
-        exponent -= 126;
-    }
-    if ((raw.value() & 0x80000000U) != 0U) {
-        significand = -significand;
-    }
-    return std::ldexp(significand, exponent);
 }
 
 }  // namespace sinsei_umiusi_control::util
