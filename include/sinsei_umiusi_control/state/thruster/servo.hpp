@@ -8,7 +8,10 @@ namespace sinsei_umiusi_control::state::thruster::servo {
 struct Mode {
     util::ThrusterMode value;
 };
-struct Angle {
+struct CommandedAngle {
+    double value;
+};
+struct EstimatedAngle {
     double value;
 };
 
