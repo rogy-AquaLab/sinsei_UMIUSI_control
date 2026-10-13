@@ -38,16 +38,10 @@ struct CellVoltageRange {
     double max;
 };
 
-struct Charging {
-    bool value;
-};
-
-struct Balancing {
-    bool value;
-};
-
-struct ChargeAllowed {
-    bool value;
+struct ChargeStatus {
+    bool is_charging;
+    bool is_balancing;
+    bool is_charge_allowed;
 };
 
 struct Status {
@@ -57,7 +51,7 @@ struct Status {
 
 struct Cell {
     double voltage;
-    bool balancing;
+    bool is_balancing;
 };
 
 struct CellCount {

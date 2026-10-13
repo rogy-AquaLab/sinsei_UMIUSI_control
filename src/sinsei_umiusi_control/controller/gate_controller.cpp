@@ -91,14 +91,17 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
             to_interface_data_ptr(this->input.state.bms_cell_voltage_range.max),
             sizeof(this->input.state.bms_cell_voltage_range.max));
         this->state_interface_data.emplace_back(
-            "bms/charging", to_interface_data_ptr(this->input.state.bms_charging),
-            sizeof(this->input.state.bms_charging));
+            "bms/charge_status.is_charging",
+            to_interface_data_ptr(this->input.state.bms_charge_status.is_charging),
+            sizeof(this->input.state.bms_charge_status.is_charging));
         this->state_interface_data.emplace_back(
-            "bms/balancing", to_interface_data_ptr(this->input.state.bms_balancing),
-            sizeof(this->input.state.bms_balancing));
+            "bms/charge_status.is_balancing",
+            to_interface_data_ptr(this->input.state.bms_charge_status.is_balancing),
+            sizeof(this->input.state.bms_charge_status.is_balancing));
         this->state_interface_data.emplace_back(
-            "bms/charge_allowed", to_interface_data_ptr(this->input.state.bms_charge_allowed),
-            sizeof(this->input.state.bms_charge_allowed));
+            "bms/charge_status.is_charge_allowed",
+            to_interface_data_ptr(this->input.state.bms_charge_status.is_charge_allowed),
+            sizeof(this->input.state.bms_charge_status.is_charge_allowed));
         this->state_interface_data.emplace_back(
             "bms/status", to_interface_data_ptr(this->input.state.bms_status),
             sizeof(this->input.state.bms_status));
@@ -111,9 +114,9 @@ auto GateController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
                 prefix + ".voltage", to_interface_data_ptr(this->input.state.bms_cells[i].voltage),
                 sizeof(this->input.state.bms_cells[i].voltage));
             this->state_interface_data.emplace_back(
-                prefix + ".balancing",
-                to_interface_data_ptr(this->input.state.bms_cells[i].balancing),
-                sizeof(this->input.state.bms_cells[i].balancing));
+                prefix + ".is_balancing",
+                to_interface_data_ptr(this->input.state.bms_cells[i].is_balancing),
+                sizeof(this->input.state.bms_cells[i].is_balancing));
         }
         this->state_interface_data.emplace_back(
             "bms/balance_ic_temperature",
@@ -428,7 +431,7 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
     cell_balancing.reserve(cell_count);
     for (std::size_t i = 0; i < cell_count; ++i) {
         cell_voltages.push_back(static_cast<float>(this->input.state.bms_cells[i].voltage));
-        cell_balancing.push_back(this->input.state.bms_cells[i].balancing);
+        cell_balancing.push_back(this->input.state.bms_cells[i].is_balancing);
     }
     auto additional_temperatures =
         std::array<float, sinsei_umiusi_control::state::bms::ADDITIONAL_TEMPERATURE_COUNT>{};
@@ -448,7 +451,7 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
             .set__design_capacity(std::numeric_limits<float>::quiet_NaN())
             .set__percentage(static_cast<float>(this->input.state.bms_capacity.state_of_charge))
             .set__power_supply_status(
-                this->input.state.bms_charging.value
+                this->input.state.bms_charge_status.is_charging
                     ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_CHARGING
                     : (this->input.state.bms_currents.measured > 0.0
                            ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING
@@ -469,8 +472,8 @@ auto GateController::update(const rclcpp::Time & time, const rclcpp::Duration & 
                 static_cast<float>(this->input.state.bms_capacity.state_of_health))
             .set__cell_voltage_min(static_cast<float>(this->input.state.bms_cell_voltage_range.min))
             .set__cell_voltage_max(static_cast<float>(this->input.state.bms_cell_voltage_range.max))
-            .set__balancing(this->input.state.bms_balancing.value)
-            .set__charge_allowed(this->input.state.bms_charge_allowed.value)
+            .set__balancing(this->input.state.bms_charge_status.is_balancing)
+            .set__charge_allowed(this->input.state.bms_charge_status.is_charge_allowed)
             .set__cell_balancing(cell_balancing)
             .set__charger_voltage(static_cast<float>(this->input.state.bms_voltages.charger))
             .set__balance_ic_temperature(

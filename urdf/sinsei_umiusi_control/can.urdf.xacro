@@ -69,7 +69,7 @@
       </xacro:macro>
       <xacro:macro name="bms_cell" params="index">
         <xacro:bms_state name="cell_${index}.voltage" />
-        <xacro:bms_state name="cell_${index}.balancing" />
+        <xacro:bms_state name="cell_${index}.is_balancing" />
       </xacro:macro>
 
       <sensor name="bms">
@@ -82,9 +82,9 @@
         <xacro:bms_state name="capacity_state.state_of_health" />
         <xacro:bms_state name="cell_voltage_range.min" />
         <xacro:bms_state name="cell_voltage_range.max" />
-        <xacro:bms_state name="charging" />
-        <xacro:bms_state name="balancing" />
-        <xacro:bms_state name="charge_allowed" />
+        <xacro:bms_state name="charge_status.is_charging" />
+        <xacro:bms_state name="charge_status.is_balancing" />
+        <xacro:bms_state name="charge_status.is_charge_allowed" />
         <xacro:bms_state name="status" />
         <xacro:bms_state name="cell_count" />
         <xacro:bms_cell index="0" />

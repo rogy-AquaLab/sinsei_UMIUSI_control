@@ -243,7 +243,7 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
                         const auto & balancing = std::get<HarmonyBmsModel::PacketBalancing>(packet);
                         for (std::size_t i = 0; i < state::bms::CELL_COUNT; ++i) {
                             this->set_state(
-                                "bms/cell_" + std::to_string(i) + ".balancing",
+                                "bms/cell_" + std::to_string(i) + ".is_balancing",
                                 util::to_interface_data(balancing.balancing[i]));
                         }
                         break;
@@ -290,14 +290,14 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
                         this->set_state(
                             "bms/capacity_state.state_of_health", summary.state_of_health);
                         this->set_state(
-                            "bms/charging",
-                            util::to_interface_data(state::bms::Charging{summary.charging}));
+                            "bms/charge_status.is_charging",
+                            util::to_interface_data(summary.charging));
                         this->set_state(
-                            "bms/balancing",
-                            util::to_interface_data(state::bms::Balancing{summary.balancing}));
+                            "bms/charge_status.is_balancing",
+                            util::to_interface_data(summary.balancing));
                         this->set_state(
-                            "bms/charge_allowed", util::to_interface_data(state::bms::ChargeAllowed{
-                                                      summary.charge_allowed}));
+                            "bms/charge_status.is_charge_allowed",
+                            util::to_interface_data(summary.charge_allowed));
                         break;
                     }
                     case 9:   // PacketChargeTotals
