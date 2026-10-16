@@ -27,6 +27,10 @@ class CanModel {
   public:
     enum class MotorType { DC, BLDC, None };
 
+    // モーターの出力が許可されなくなってから、Duty 0を送る回数
+    // その後は何も送らず、VESCのタイムアウトでモーターとサーボを脱力させる（UMIUSIと同様）
+    static constexpr uint8_t STOP_FRAME_COUNT = 5;
+
     using MotorAllowed = cmd::actuator::motor::Allowed;
     using MotorDutyCycle = cmd::actuator::motor::DutyCycle;
     using ServoAllowed = cmd::actuator::servo::Allowed;
@@ -70,6 +74,8 @@ class CanModel {
         MotorType motor_type;
         bool has_servo;
         can::VescModel vesc_model;
+        // 許可されていない間に、あと何回Duty 0を送るか
+        uint8_t remaining_stop_frames;
     };
 
     enum class WritePhase {

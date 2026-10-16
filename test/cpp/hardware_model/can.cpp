@@ -648,7 +648,7 @@ TEST(CanModelTest, OnWriteSendsZeroDutyWhenMotorIsNotAllowed) {
         succmd::power_distribution::Enabled{false}, actuator_commands,
         succmd::led_tape::Color{0, 0, 0}));
 
-    // 無効化されたモーターにはDuty 0を送り、無効化されたサーボには何も送らない
+    // 無効化された直後のモーターにはDuty 0を送り、無効化されたサーボには何も送らない
     ASSERT_EQ(sent_frames.size(), 3u);
     EXPECT_EQ(sent_frames[0].id, actuators[0].vesc_id);
     EXPECT_EQ(sinsei_umiusi_control::util::to_integer_be<int32_t>(sent_frames[0].data), 0);
@@ -659,6 +659,54 @@ TEST(CanModelTest, OnWriteSendsZeroDutyWhenMotorIsNotAllowed) {
         (static_cast<suchm::interface::CanFrame::Id>(suchm::can::VescModel::CAN_PACKET_SET_SERVO)
          << 8) |
             actuators[0].vesc_id);
+}
+
+TEST(CanModelTest, OnWriteStopsSendingAfterStopFramesWhenMotorIsNotAllowed) {
+    auto can = std::make_shared<Can>();
+    auto sent_frames = std::vector<suchm::interface::CanFrame>{};
+
+    EXPECT_CALL(*can, init(_)).WillOnce(Return(tl::expected<void, std::string>{}));
+    EXPECT_CALL(*can, send_frame(_))
+        .WillRepeatedly(Invoke(
+            [&sent_frames](
+                const suchm::interface::CanFrame & frame) -> tl::expected<void, std::string> {
+                sent_frames.push_back(frame);
+                return {};
+            }));
+
+    const auto actuators = make_actuators(1);
+    auto can_model = suchm::CanModel(can, actuators, HARMONY_BMS_ID);
+    ASSERT_TRUE(can_model.on_init());
+
+    auto disabled_commands = make_enabled_commands(1);
+    disabled_commands[0].motor_allowed.value = false;
+    disabled_commands[0].servo_allowed.value = false;
+    const auto enabled_commands = make_enabled_commands(1);
+
+    // MotorとServoを交互に送るため、2回のon_writeでモーターへ1回送る
+    const auto write_motor_cycles = [&](const auto & commands, const size_t cycles) {
+        for (size_t i = 0; i < cycles * 2; ++i) {
+            ASSERT_TRUE(can_model.on_write(
+                succmd::power_distribution::Enabled{false}, commands,
+                succmd::led_tape::Color{0, 0, 0}));
+        }
+    };
+
+    // 起動直後も許可されていないため、STOP_FRAME_COUNT回だけDuty 0を送ってから止める
+    write_motor_cycles(disabled_commands, suchm::CanModel::STOP_FRAME_COUNT + 3);
+    ASSERT_EQ(sent_frames.size(), suchm::CanModel::STOP_FRAME_COUNT);
+    for (const auto & frame : sent_frames) {
+        EXPECT_EQ(frame.id, actuators[0].vesc_id);
+        EXPECT_EQ(sinsei_umiusi_control::util::to_integer_be<int32_t>(frame.data), 0);
+    }
+
+    // 再び許可されると送信を再開し、その後また許可が切れると数え直す
+    sent_frames.clear();
+    write_motor_cycles(enabled_commands, 1);
+    ASSERT_EQ(sent_frames.size(), 2u);  // Duty と サーボ角
+    sent_frames.clear();
+    write_motor_cycles(disabled_commands, suchm::CanModel::STOP_FRAME_COUNT + 3);
+    EXPECT_EQ(sent_frames.size(), suchm::CanModel::STOP_FRAME_COUNT);
 }
 
 TEST(CanModelTest, OnWriteSupportsMixedMotorAndServoCapabilities) {

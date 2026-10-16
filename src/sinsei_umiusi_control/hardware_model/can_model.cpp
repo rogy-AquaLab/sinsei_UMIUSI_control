@@ -20,7 +20,7 @@ CanModel::CanModel(
     for (auto & config : actuator_configs) {
         this->actuators.push_back(Actuator{
             std::move(config.name), config.motor_type, config.has_servo,
-            can::VescModel(config.vesc_id)});
+            can::VescModel(config.vesc_id), STOP_FRAME_COUNT});
     }
 }
 
@@ -230,17 +230,26 @@ auto CanModel::on_write(
     auto error_message = std::string("");
 
     for (size_t index = 0; index < this->actuators.size(); ++index) {
-        const auto & actuator = this->actuators[index];
+        auto & actuator = this->actuators[index];
         const auto & command = actuator_commands[index];
 
         if (phase == WritePhase::Motor && actuator.motor_type == MotorType::None) {
             continue;
         }
+        if (phase == WritePhase::Motor) {
+            // 許可が切れた直後はDuty 0で止め、その後は送らずにVESCのタイムアウトで脱力させる
+            if (command.motor_allowed.value) {
+                actuator.remaining_stop_frames = STOP_FRAME_COUNT;
+            } else if (actuator.remaining_stop_frames == 0) {
+                continue;
+            } else {
+                --actuator.remaining_stop_frames;
+            }
+        }
         if (phase == WritePhase::Servo && (!actuator.has_servo || !command.servo_allowed.value)) {
             continue;
         }
 
-        // 無効化時にもDuty 0を送り、直前の出力がVESCに残らないようにする
         const auto frame_res =
             phase == WritePhase::Motor
                 ? actuator.vesc_model.make_duty_frame(

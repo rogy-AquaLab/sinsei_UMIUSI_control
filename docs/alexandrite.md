@@ -76,6 +76,10 @@ ros2 topic pub -r 10 \
 スラスタの出力は`max_duty`（デフォルト0.5）で制限される。目標値または運転許可の更新が
 `command_timeout`秒間（デフォルト0.5秒）途絶えると、該当アクチュエータへDuty 0を出力する。
 
+運転許可が無い（disarm中、または上記のタイムアウト）アクチュエータには、Duty 0を5回（約100 ms）送って
+止めたあと、何も送らない。UMIUSIと同じく、VESCのタイムアウト（VESC側の設定）が過ぎるとモーターと
+サーボが脱力する。
+
 ## 状態
 
 スラスタは、UMIUSIと同じ`state/thruster_state_all`（`sinsei_umiusi_msgs/msg/ThrusterStateAll`）に、
