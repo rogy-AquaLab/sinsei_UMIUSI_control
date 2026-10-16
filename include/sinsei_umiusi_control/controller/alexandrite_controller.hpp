@@ -70,7 +70,7 @@ class AlexandriteController : public controller_interface::ControllerInterface {
     double command_timeout_seconds{0.5};
     double max_duty{0.5};
     double crawler_max_duty{0.5};
-    logic::alexandrite::Geometry thruster_geometry{1.0, 1.0, 1.0};
+    logic::alexandrite::Geometry thruster_geometry{1.0, 1.0, 1.0, 0.785398163397448};
     std::string target_topic{"cmd/target"};
     std::string crawler_target_topic{"cmd/crawler_target"};
     std::string runnable_topic{"cmd/thruster_runnable_all"};

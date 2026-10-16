@@ -10,19 +10,19 @@
 //
 // 機体座標は x = 前、y = 左、z = 上。スラスタはUMIUSIと同じく左前から反時計回りに数える。
 //
-//   thruster1: 左前 ( front_x,  front_y)  水平推力の正方向 (-1, 1) / √2
-//   thruster2: 後ろ (-rear_x,   0      )  水平推力の正方向 ( 0, -1)
-//   thruster3: 右前 ( front_x, -front_y)  水平推力の正方向 ( 1, 1) / √2
+//   thruster1: 左前 ( front_x,  front_y)  水平推力の正方向 (-cosφ, sinφ)
+//   thruster2: 後ろ (-rear_x,   0      )  水平推力の正方向 (    0,   -1)
+//   thruster3: 右前 ( front_x, -front_y)  水平推力の正方向 ( cosφ, sinφ)
 //
-// 前側2基はUMIUSIと同じ45度配置。どのスラスタも、サーボ角0・正のDutyでz軸まわり反時計回り
-// （+yaw）のモーメントを生む向きを正とする。サーボ角θのとき、推力の向きは
-// cosθ・(水平推力の正方向) + sinθ・(+z) になる。
+// φ（front_angle）は、前側2基の推力の軸がx軸から内側へ傾いている角度（UMIUSIでは45度）。
+// どのスラスタも、サーボ角0・正のDutyでz軸まわり反時計回り（+yaw）のモーメントを生む向きを正とする。
+// サーボ角θのとき、推力の向きは cosθ・(水平推力の正方向) + sinθ・(+z) になる。
 
 namespace sinsei_umiusi_control::controller::logic::alexandrite {
 
 constexpr std::size_t THRUSTER_COUNT = 3;
 
-// スラスタの取り付け位置。長さの比だけを使うため、単位は何でもよい
+// スラスタの取り付け位置。長さは比だけを使うため、単位は何でもよい
 struct Geometry {
     // 重心から前側2基までの前後方向の距離
     double front_x;
@@ -30,6 +30,8 @@ struct Geometry {
     double front_y;
     // 重心から後ろの1基までの前後方向の距離
     double rear_x;
+    // 前側2基の推力の軸が、x軸から内側へ傾いている角度 [rad]（0以上pi/2未満）
+    double front_angle;
 };
 
 // 目標の力（fx, fy, fz）とモーメント（mx = roll, my = pitch, mz = yaw）
@@ -72,17 +74,20 @@ inline auto mix(const Wrench & target, const Geometry & geometry, const double m
     const auto a = geometry.front_x / scale;
     const auto b = geometry.front_y / scale;
     const auto c = geometry.rear_x / scale;
-    const auto sqrt2 = std::sqrt(2.0);
+    const auto cos_phi = std::cos(geometry.front_angle);
+    const auto sin_phi = std::sin(geometry.front_angle);
+    // 前側の1基が単位推力で生むヨーモーメント
+    const auto k = a * sin_phi + b * cos_phi;
 
     // 水平成分: fx, fy, mz から f1h, f2h, f3h を解く
-    //   fx = (f3h - f1h) / √2
-    //   fy = (f1h + f3h) / √2 - f2h
-    //   mz = (a + b) (f1h + f3h) / √2 + c f2h
-    const auto front_sum = sqrt2 * (target.mz + c * target.fy) / (a + b + c);
-    const auto front_diff = sqrt2 * target.fx;
+    //   fx = cosφ (f3h - f1h)
+    //   fy = sinφ (f1h + f3h) - f2h
+    //   mz = k (f1h + f3h) + c f2h
+    const auto front_sum = (target.mz + c * target.fy) / (k + c * sin_phi);
+    const auto front_diff = target.fx / cos_phi;
     const auto f1h = (front_sum - front_diff) / 2.0;
     const auto f3h = (front_sum + front_diff) / 2.0;
-    const auto f2h = (target.mz - (a + b) * target.fy) / (a + b + c);
+    const auto f2h = (sin_phi * target.mz - k * target.fy) / (k + c * sin_phi);
 
     // 垂直成分: fz, mx, my から f1v, f2v, f3v を解く
     //   fz = f1v + f2v + f3v

@@ -14,14 +14,23 @@ constexpr auto TOLERANCE = 1e-9;
 // 飽和しないよう十分大きくする
 constexpr auto UNLIMITED_DUTY = 1e9;
 
-// 前側2基までの距離が1になる配置（ミキサー内部の正規化で変わらない）
-const auto GEOMETRY = mixer::Geometry{0.6, 0.8, 1.3};
+const auto DEGREES_TO_RADIANS = std::acos(-1.0) / 180.0;
+// Alexandriteの実測値（mm）
+const auto GEOMETRY = mixer::Geometry{200.0, 175.0, 300.0, 20.0 * DEGREES_TO_RADIANS};
+// UMIUSIと同じ45度配置
+const auto UMIUSI_LIKE_GEOMETRY = mixer::Geometry{0.6, 0.8, 1.3, 45.0 * DEGREES_TO_RADIANS};
 
 // スラスタの出力から、機体に働く力・モーメントを計算する（ミキサーの逆）
+// ミキサーと同じく、前側2基までの距離を1とした長さでモーメントを計算する
 auto to_wrench(
     const std::array<mixer::ThrusterOutput, mixer::THRUSTER_COUNT> & outputs,
-    const mixer::Geometry & geometry) -> mixer::Wrench {
-    const auto inv_sqrt2 = 1.0 / std::sqrt(2.0);
+    const mixer::Geometry & raw_geometry) -> mixer::Wrench {
+    const auto scale = std::hypot(raw_geometry.front_x, raw_geometry.front_y);
+    const auto geometry = mixer::Geometry{
+        raw_geometry.front_x / scale, raw_geometry.front_y / scale, raw_geometry.rear_x / scale,
+        raw_geometry.front_angle};
+    const auto cos_phi = std::cos(geometry.front_angle);
+    const auto sin_phi = std::sin(geometry.front_angle);
     // 位置と、サーボ角0・正Dutyでの水平推力の方向（thruster1〜3 = 左前、後ろ、右前）
     const auto positions = std::array<std::array<double, 2>, mixer::THRUSTER_COUNT>{{
         {geometry.front_x, geometry.front_y},
@@ -29,9 +38,9 @@ auto to_wrench(
         {geometry.front_x, -geometry.front_y},
     }};
     const auto directions = std::array<std::array<double, 2>, mixer::THRUSTER_COUNT>{{
-        {-inv_sqrt2, inv_sqrt2},
+        {-cos_phi, sin_phi},
         {0.0, -1.0},
-        {inv_sqrt2, inv_sqrt2},
+        {cos_phi, sin_phi},
     }};
 
     auto wrench = mixer::Wrench{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
@@ -69,9 +78,11 @@ TEST(AlexandriteMixerTest, ReproducesTargetWrench) {
         {0.1, 0.2, -0.3, 0.05, -0.1, 0.15},
         {-0.2, 0.1, 0.4, -0.2, 0.3, -0.1},
     }};
-    for (const auto & target : targets) {
-        const auto outputs = mixer::mix(target, GEOMETRY, UNLIMITED_DUTY);
-        expect_wrench_near(to_wrench(outputs, GEOMETRY), target);
+    for (const auto & geometry : {GEOMETRY, UMIUSI_LIKE_GEOMETRY}) {
+        for (const auto & target : targets) {
+            const auto outputs = mixer::mix(target, geometry, UNLIMITED_DUTY);
+            expect_wrench_near(to_wrench(outputs, geometry), target);
+        }
     }
 }
 
@@ -146,8 +157,10 @@ TEST(AlexandriteMixerTest, SaturationKeepsWrenchDirection) {
 
 TEST(AlexandriteMixerTest, GeometryUsesOnlyRatios) {
     const auto target = mixer::Wrench{0.1, 0.2, -0.3, 0.05, -0.1, 0.15};
+    // mmとmで同じ出力になる
     const auto scaled = mixer::Geometry{
-        GEOMETRY.front_x * 250.0, GEOMETRY.front_y * 250.0, GEOMETRY.rear_x * 250.0};
+        GEOMETRY.front_x * 0.001, GEOMETRY.front_y * 0.001, GEOMETRY.rear_x * 0.001,
+        GEOMETRY.front_angle};
     const auto outputs = mixer::mix(target, GEOMETRY, UNLIMITED_DUTY);
     const auto scaled_outputs = mixer::mix(target, scaled, UNLIMITED_DUTY);
     for (std::size_t i = 0; i < mixer::THRUSTER_COUNT; ++i) {

@@ -24,6 +24,7 @@ namespace {
 
 constexpr auto ACTUATOR_NAMES = std::array<std::string_view, 5>{
     "thruster1", "thruster2", "thruster3", "crawler_left", "crawler_right"};
+constexpr auto DEGREES_TO_RADIANS = 3.14159265358979323846 / 180.0;
 }  // namespace
 
 auto AlexandriteController::command_interface_configuration() const
@@ -92,6 +93,15 @@ auto AlexandriteController::on_init() -> controller_interface::CallbackReturn {
     declare_length("front_thruster_y", "Lateral distance from the center to the front thrusters");
     declare_length("rear_thruster_x", "Longitudinal distance from the center to the rear thruster");
     this->get_node()->declare_parameter(
+        "front_thruster_angle", 45.0,
+        ParameterDescriptor{}
+            .set__description(
+                "Inward angle [deg] of the front thrusters' thrust axes from the x axis")
+            .set__type(rclcpp::PARAMETER_DOUBLE)
+            .set__floating_point_range(
+                {FloatingPointRange{}.set__from_value(0.0).set__to_value(89.0)})
+            .set__read_only(true));
+    this->get_node()->declare_parameter(
         "target_topic", this->target_topic,
         ParameterDescriptor{}
             .set__description("UMIUSI-compatible target topic for the three thrusters")
@@ -129,6 +139,7 @@ auto AlexandriteController::on_configure(const rclcpp_lifecycle::State & /*previ
         this->get_node()->get_parameter("front_thruster_x").as_double(),
         this->get_node()->get_parameter("front_thruster_y").as_double(),
         this->get_node()->get_parameter("rear_thruster_x").as_double(),
+        this->get_node()->get_parameter("front_thruster_angle").as_double() * DEGREES_TO_RADIANS,
     };
     this->target_topic = this->get_node()->get_parameter("target_topic").as_string();
     this->crawler_target_topic =

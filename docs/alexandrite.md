@@ -34,16 +34,18 @@ UIと接続するため、`sinsei_umiusi_core`の代わりにrosbridge（ポー�
 
 ```text
                 前 (+x)
-   thruster1 (左前)    thruster3 (右前)     ← UMIUSIの前側2基と同じ45度配置
+   thruster1 (左前)    thruster3 (右前)     ← 推力の軸がx軸から内側へφ傾いている
             ●（重心）
           thruster2 (後ろ)                  ← x軸上。yz平面内で回る
 ```
 
 | スラスタ | 位置 | サーボ角0・正Dutyの推力方向 | 運転許可 |
 |---|---|---|---|
-| `thruster1` | 左前 (`front_thruster_x`, `front_thruster_y`) | (-1, 1) / √2 | `lf` |
+| `thruster1` | 左前 (`front_thruster_x`, `front_thruster_y`) | (-cosφ, sinφ) | `lf` |
 | `thruster2` | 後ろ (-`rear_thruster_x`, 0) | (0, -1) | `lb` |
-| `thruster3` | 右前 (`front_thruster_x`, -`front_thruster_y`) | (1, 1) / √2 | `rf` |
+| `thruster3` | 右前 (`front_thruster_x`, -`front_thruster_y`) | (cosφ, sinφ) | `rf` |
+
+φは`front_thruster_angle`で、前側2基の推力の軸がx軸から内側へ傾いている角度（UMIUSIの45度配置ではφ = 45度）。
 
 どのスラスタも、サーボ角0・正のDutyでz軸まわり反時計回り（+yaw）のモーメントを生む向きを正とする。
 サーボ角θ [rad] のとき、推力の向きは cosθ・（上の表の方向）+ sinθ・(+z) になる。
@@ -59,7 +61,8 @@ UIと接続するため、`sinsei_umiusi_core`の代わりにrosbridge（ポー�
 どれかのDutyが`max_duty`（デフォルト0.5）を超える場合は、力・モーメントの向きを保つよう3基を同じ比率で縮める。
 
 取り付け位置（`front_thruster_x`、`front_thruster_y`、`rear_thruster_x`）は比だけを使うため単位は任意。
-実寸が未確定なため、デフォルトはすべて1.0としている。
+`params/alexandrite_controllers.yaml`には実測値（前側2基: 重心から前へ200 mm・左右へ175 mm・内側へ20度、
+後ろの1基: 重心から後ろへ300 mm）を入れている。
 
 クローラー目標は次の別トピックへ送る。
 
