@@ -195,6 +195,9 @@ auto ThrusterController::on_configure(const rclcpp_lifecycle::State & /*pervious
         prefix + "esc/water_leaked",
         util::to_interface_data_ptr(this->input.state.esc_water_leaked),
         sizeof(this->input.state.esc_water_leaked)));
+    this->state_interface_data.push_back(std::make_tuple(
+        prefix + "esc/health", util::to_interface_data_ptr(this->input.state.esc_health),
+        sizeof(this->input.state.esc_health)));
 
     this->ref_interface_data.push_back(std::make_tuple(
         "esc/runnable", util::to_interface_data_ptr(this->input.cmd.esc_runnable),
