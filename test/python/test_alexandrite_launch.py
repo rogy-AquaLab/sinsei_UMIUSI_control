@@ -23,7 +23,14 @@ def generate_launch_description():
             'alexandrite.yaml',
         )
     )
-    return LaunchDescription([IncludeLaunchDescription(launch_file)])
+    return LaunchDescription(
+        [
+            IncludeLaunchDescription(
+                launch_file,
+                launch_arguments={'enable_rosbridge': 'false'}.items(),
+            )
+        ]
+    )
 
 
 @pytest.fixture

@@ -28,3 +28,9 @@ launch:
           alexandrite_controller
           ballast_controller
           --param-file $(var controllers_param_file)
+
+    # UIと接続するため（UMIUSIではsinsei_umiusi_coreが起動している）
+    - node:
+        pkg: "rosbridge_server"
+        exec: "rosbridge_websocket"
+        if: "$(var enable_rosbridge)"

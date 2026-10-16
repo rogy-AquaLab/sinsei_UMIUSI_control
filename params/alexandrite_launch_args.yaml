@@ -25,6 +25,11 @@ launch:
       default: "3"
 
   - arg:
+      description: "Whether to launch rosbridge for the operator UI (set false in tests)"
+      name: enable_rosbridge
+      default: "true"
+
+  - arg:
       description: "Namespace for controllers"
       name: namespace
       default: ""
