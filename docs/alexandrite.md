@@ -150,3 +150,13 @@ Harmony16互換のBMS（CAN ID `harmony_bms_id`、省略時は3）の状態は�
 |---|---|---|
 | `state/power/battery` | `sensor_msgs/msg/BatteryState` | パック電圧、電流（充電時を正）、SoC、セル電圧 |
 | `state/power/bms` | `sinsei_umiusi_msgs/msg/BmsState` | SoH、温度、バランシング、パワースイッチ、フォルト |
+
+## IMU
+
+UMIUSIと同じBNO055（I2C、`imu_i2c_device`、デフォルトは`/dev/i2c-1`）の値を、`imu_controller`が
+UMIUSIの`gate_controller`と同じtopicに出す。
+
+| topic | 型 | 内容 |
+|---|---|---|
+| `state/imu` | `sensor_msgs/msg/Imu` | 姿勢（クォータニオン）、加速度、角速度 |
+| `state/imu_temperature` | `sensor_msgs/msg/Temperature` | IMUの温度 |

@@ -28,6 +28,8 @@ def generate_launch_description():
                 LaunchConfiguration('crawler_right_vesc_id'),
                 ' harmony_bms_id:=',
                 LaunchConfiguration('harmony_bms_id'),
+                ' imu_i2c_device:=',
+                LaunchConfiguration('imu_i2c_device'),
             ],
         ),
         value_type=str,

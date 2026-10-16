@@ -23,6 +23,10 @@ launch:
       description: "CAN ID for the Harmony16-compatible BMS"
       name: harmony_bms_id
       default: "3"
+  - arg:
+      description: "I2C device path for the BNO055 IMU (same as UMIUSI)"
+      name: imu_i2c_device
+      default: "/dev/i2c-1"
 
   - arg:
       description: "File path for cameras parameters (same cameras as UMIUSI)"

@@ -94,3 +94,17 @@ def test_bms_controller_running(helper_node):
     )
     assert helper_node.count_publishers('/state/power/battery') > 0
     assert helper_node.count_publishers('/state/power/bms') > 0
+
+
+@pytest.mark.launch(fixture=generate_launch_description)
+def test_imu_controller_running(helper_node):
+    assert is_hardware_component_loaded(helper_node, 'controller_manager', 'imu', 10.0)
+    check_controllers_running(
+        helper_node,
+        {'imu_controller'},
+        '',
+        'active',
+        120,
+    )
+    assert helper_node.count_publishers('/state/imu') > 0
+    assert helper_node.count_publishers('/state/imu_temperature') > 0

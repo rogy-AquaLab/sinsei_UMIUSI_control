@@ -33,3 +33,9 @@
       type: sinsei_umiusi_control/controller/BmsController
       update_rate: 10 # Hz
       state_topic_prefix: state/ # state/power/battery, state/power/bms（UMIUSIのgate_controllerと同じ）
+
+  imu_controller:
+    ros__parameters:
+      type: sinsei_umiusi_control/controller/ImuController
+      update_rate: 50 # Hz; UMIUSIのgate_controllerと同じ
+      state_topic_prefix: state/ # state/imu, state/imu_temperature（UMIUSIのgate_controllerと同じ）
