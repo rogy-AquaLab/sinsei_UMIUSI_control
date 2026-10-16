@@ -367,7 +367,7 @@ TEST(CanModelTest, CanModelOnInitRejectsHarmonyBmsIdConflictingWithVescTest) {
 TEST(CanModelTest, CanModelOnReadRoutesSteppingMotorDriverStatusTest) {
     auto can = std::make_shared<Can>();
     const auto frame = suchm::interface::CanFrame{
-        0x318,
+        0x328,
         8,
         {std::byte{0x13}, std::byte{0x88}, std::byte{0xFF}, std::byte{0xFF}, std::byte{0x05},
          std::byte{0x16}, std::byte{0x04}, std::byte{0x00}},
@@ -393,7 +393,7 @@ TEST(CanModelTest, CanModelOnReadRoutesSteppingMotorDriverStatusTest) {
 
 TEST(CanModelTest, CanModelOnReadRejectsSteppingMotorDriverFrameWhenDisabledTest) {
     auto can = std::make_shared<Can>();
-    const auto frame = suchm::interface::CanFrame{0x318, 8, {}, false};
+    const auto frame = suchm::interface::CanFrame{0x328, 8, {}, false};
 
     EXPECT_CALL(*can, recv_frames())
         .Times(1)
@@ -429,9 +429,9 @@ TEST(CanModelTest, OnWriteSteppingMotorDriverSendsCalibrateBeforeTargets) {
     ASSERT_TRUE(result) << result.error();
 
     ASSERT_EQ(sent_frames.size(), 2u);
-    EXPECT_EQ(sent_frames[0].id, 0x312u);
+    EXPECT_EQ(sent_frames[0].id, 0x322u);
     EXPECT_EQ(sent_frames[0].data[0], std::byte{0x01});
-    EXPECT_EQ(sent_frames[1].id, 0x311u);
+    EXPECT_EQ(sent_frames[1].id, 0x321u);
     EXPECT_EQ(sent_frames[1].data[0], std::byte{0x01});
     EXPECT_EQ(sinsei_umiusi_control::util::to_integer_be<uint16_t>(sent_frames[1].data, 1), 2500);
 }

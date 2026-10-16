@@ -24,15 +24,15 @@ class SteppingMotorDriverModel {
 
     // すべて標準ID
     enum class PacketId : interface::CanFrame::Id {
-        SetTargets = 0x310,
-        SetTarget = 0x311,
-        Calibrate = 0x312,
-        Status = 0x318,
-        MeasuredTravel = 0x319,
+        SetTargets = 0x320,
+        SetTarget = 0x321,
+        Calibrate = 0x322,
+        Status = 0x328,
+        MeasuredTravel = 0x329,
     };
     // ドライバ基板が受け付ける受信IDの範囲
-    static constexpr interface::CanFrame::Id COMMAND_ID_MIN = 0x310;
-    static constexpr interface::CanFrame::Id COMMAND_ID_MAX = 0x317;
+    static constexpr interface::CanFrame::Id COMMAND_ID_MIN = 0x320;
+    static constexpr interface::CanFrame::Id COMMAND_ID_MAX = 0x327;
 
     enum class AxisState : uint8_t {
         Uncalibrated = 0,

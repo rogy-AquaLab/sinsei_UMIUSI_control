@@ -29,7 +29,7 @@ auto make_frame(
 TEST(SteppingMotorDriverModelTest, DecodeStatusTest) {
     // can_protocol.mdの受信例
     const auto frame = make_frame(
-        0x318, {std::byte{0x13}, std::byte{0x88}, std::byte{0xFF}, std::byte{0xFF}, std::byte{0x05},
+        0x328, {std::byte{0x13}, std::byte{0x88}, std::byte{0xFF}, std::byte{0xFF}, std::byte{0x05},
                 std::byte{0x16}, std::byte{0x04}, std::byte{0x00}});
 
     const auto result = Model::decode(frame);
@@ -52,7 +52,7 @@ TEST(SteppingMotorDriverModelTest, DecodeStatusTest) {
 TEST(SteppingMotorDriverModelTest, DecodeMeasuredTravelTest) {
     // 180844 = 0x0002C26C
     const auto frame = make_frame(
-        0x319,
+        0x329,
         {std::byte{0x00}, std::byte{0x00}, std::byte{0x02}, std::byte{0xC2}, std::byte{0x6C},
          std::byte{0x00}, std::byte{0x00}, std::byte{0x00}},
         5);
@@ -67,16 +67,16 @@ TEST(SteppingMotorDriverModelTest, DecodeMeasuredTravelTest) {
 }
 
 TEST(SteppingMotorDriverModelTest, DecodeShortStatusReturnsErrorTest) {
-    const auto frame = make_frame(0x318, {}, 7);
+    const auto frame = make_frame(0x328, {}, 7);
 
     const auto result = Model::decode(frame);
     ASSERT_FALSE(result);
     EXPECT_EQ(
-        result.error(), "Stepping motor driver frame 792 is too short: expected 8 bytes, got 7");
+        result.error(), "Stepping motor driver frame 808 is too short: expected 8 bytes, got 7");
 }
 
 TEST(SteppingMotorDriverModelTest, DecodeCommandFrameReturnsMonostateTest) {
-    const auto frame = make_frame(0x311, {std::byte{0x01}, std::byte{0x27}, std::byte{0x10}}, 3);
+    const auto frame = make_frame(0x321, {std::byte{0x01}, std::byte{0x27}, std::byte{0x10}}, 3);
 
     const auto result = Model::decode(frame);
     ASSERT_TRUE(result) << result.error();
@@ -86,12 +86,12 @@ TEST(SteppingMotorDriverModelTest, DecodeCommandFrameReturnsMonostateTest) {
 
 TEST(SteppingMotorDriverModelTest, DecodeIgnoresOtherFramesTest) {
     // 拡張IDのフレーム（VESCなど）
-    const auto extended_result = Model::decode(make_frame(0x318, {}, 8, true));
+    const auto extended_result = Model::decode(make_frame(0x328, {}, 8, true));
     ASSERT_TRUE(extended_result) << extended_result.error();
     EXPECT_FALSE(extended_result.value());
 
-    // 範囲外の標準ID
-    const auto other_result = Model::decode(make_frame(0x320, {}));
+    // 範囲外の標準ID（PowerCircuitSTM32のStatus）
+    const auto other_result = Model::decode(make_frame(0x310, {}));
     ASSERT_TRUE(other_result) << other_result.error();
     EXPECT_FALSE(other_result.value());
 }
@@ -101,7 +101,7 @@ TEST(SteppingMotorDriverModelTest, MakeTargetFrameTest) {
     const auto result = Model::make_target_frame(1, 1.0);
     ASSERT_TRUE(result) << result.error();
     const auto & frame = result.value();
-    EXPECT_EQ(frame.id, 0x311u);
+    EXPECT_EQ(frame.id, 0x321u);
     EXPECT_FALSE(frame.is_extended);
     ASSERT_EQ(frame.len, 3);
     EXPECT_EQ(frame.data[0], std::byte{0x01});
@@ -127,7 +127,7 @@ TEST(SteppingMotorDriverModelTest, MakeTargetFrameRejectsInvalidArgumentsTest) {
 TEST(SteppingMotorDriverModelTest, MakeCalibrateFrameTest) {
     const auto result = Model::make_calibrate_frame(0x01);
     ASSERT_TRUE(result) << result.error();
-    EXPECT_EQ(result.value().id, 0x312u);
+    EXPECT_EQ(result.value().id, 0x322u);
     EXPECT_FALSE(result.value().is_extended);
     ASSERT_EQ(result.value().len, 1);
     EXPECT_EQ(result.value().data[0], std::byte{0x01});

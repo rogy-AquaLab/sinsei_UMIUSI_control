@@ -77,7 +77,7 @@ ros2 topic pub -r 10 \
 
 2つのバラストは、[SteppingMotorDriver](https://github.com/rogy-AquaLab/SteppingMotorDriver)
 基板1枚の2軸で動かす。`ballast1`がM1、`ballast2`がM2に対応する。基板とは同じCANバス上で
-標準ID（0x310〜0x319）でやり取りする。CANパケットの詳細は基板側の
+標準ID（0x320〜0x329）でやり取りする。CANパケットの詳細は基板側の
 `docs/can_protocol.md`を参照。
 
 暫定的に、`ballast_controller`が次のtopicで操作する（`ballastN`は`ballast1`か`ballast2`）。
