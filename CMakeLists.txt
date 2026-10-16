@@ -57,6 +57,7 @@ ament_auto_add_library(${PROJECT_NAME}_hardware SHARED
   src/${PROJECT_NAME}/hardware_model/indicator_led_model.cpp
   src/${PROJECT_NAME}/hardware_model/can/vesc_model.cpp
   src/${PROJECT_NAME}/hardware_model/can/harmony_bms_model.cpp
+  src/${PROJECT_NAME}/hardware_model/can/stepping_motor_driver_model.cpp
 
   src/${PROJECT_NAME}/hardware_model/impl/linux_gpio.cpp
   src/${PROJECT_NAME}/hardware_model/impl/linux_i2c.cpp
@@ -72,6 +73,7 @@ target_include_directories(${PROJECT_NAME}_hardware
 
 ament_auto_add_library(${PROJECT_NAME}_controller SHARED
   src/${PROJECT_NAME}/controller/alexandrite_controller.cpp
+  src/${PROJECT_NAME}/controller/ballast_controller.cpp
   src/${PROJECT_NAME}/controller/gate_controller.cpp
   src/${PROJECT_NAME}/controller/attitude_controller.cpp
   src/${PROJECT_NAME}/controller/thruster_controller.cpp
@@ -84,6 +86,7 @@ target_include_directories(${PROJECT_NAME}_controller
 )
 ament_target_dependencies(${PROJECT_NAME}_controller
   sinsei_umiusi_msgs
+  std_msgs
 )
 
 ament_auto_add_executable(gst_camera_node
@@ -116,6 +119,7 @@ if(BUILD_TESTING)
     test/cpp/hardware_model/can.cpp
     test/cpp/hardware_model/can/vesc.cpp
     test/cpp/hardware_model/can/harmony_bms.cpp
+    test/cpp/hardware_model/can/stepping_motor_driver.cpp
   )
   target_include_directories(test_hardware_model
     PRIVATE

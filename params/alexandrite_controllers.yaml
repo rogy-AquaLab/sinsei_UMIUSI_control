@@ -13,3 +13,10 @@
       target_topic: cmd/target # UMIUSIと共通のスラスタ目標値
       crawler_target_topic: cmd/crawler_target # クローラー専用目標値
       runnable_topic: cmd/thruster_runnable_all # UMIUSIと共通の運転許可
+
+  ballast_controller:
+    ros__parameters:
+      type: sinsei_umiusi_control/controller/BallastController
+      update_rate: 10 # Hz; ドライバ基板の状態送信周期（100 ms）に合わせる
+      command_topic_prefix: cmd/ # cmd/ballast{1,2}/target, cmd/ballast{1,2}/calibrate
+      state_topic_prefix: state/ # state/ballast{1,2}/position, state, fault_reason

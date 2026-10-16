@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <optional>
@@ -149,7 +150,33 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
         return hardware_interface::CallbackReturn::ERROR;
     }
 
+    auto ballasts = std::vector<Ballast>{};
+    auto ballast_axes = std::unordered_set<std::size_t>{};
+    for (const auto & gpio : params.hardware_info.gpios) {
+        const auto axis_str = util::find_param(gpio.parameters, "stepping_motor_driver_axis");
+        if (!axis_str) {
+            continue;
+        }
+        const auto axis_res = util::from_chars_expected<std::size_t>(axis_str.value());
+        if (!axis_res ||
+            axis_res.value() >= hardware_model::can::SteppingMotorDriverModel::AXIS_COUNT) {
+            RCLCPP_ERROR(
+                this->get_logger(), "Invalid stepping motor driver axis '%s' for ballast '%s'.",
+                axis_str.value().c_str(), gpio.name.c_str());
+            return hardware_interface::CallbackReturn::ERROR;
+        }
+        if (!ballast_axes.insert(axis_res.value()).second) {
+            RCLCPP_ERROR(
+                this->get_logger(), "Duplicate stepping motor driver axis: %zu.", axis_res.value());
+            return hardware_interface::CallbackReturn::ERROR;
+        }
+        ballasts.push_back(Ballast{
+            gpio.name, axis_res.value(), std::numeric_limits<double>::quiet_NaN(), 0.0,
+            BALLAST_TARGET_RESEND_CYCLES, MAX_CYCLES_SINCE_NODE_UPDATE});
+    }
+
     this->actuators = std::move(actuators);
+    this->ballasts = std::move(ballasts);
     this->cycles_since_bms_update = MAX_CYCLES_SINCE_NODE_UPDATE;
     this->cycles_since_vesc_update.assign(this->actuators.size(), MAX_CYCLES_SINCE_NODE_UPDATE);
 
@@ -169,7 +196,8 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
 
     this->model.emplace(
         std::make_shared<hardware_model::impl::LinuxCan>(), std::move(actuator_configs),
-        static_cast<hardware_model::can::HarmonyBmsModel::Id>(harmony_bms_id_res.value()));
+        static_cast<hardware_model::can::HarmonyBmsModel::Id>(harmony_bms_id_res.value()),
+        !this->ballasts.empty());
 
     auto res = this->model->on_init();
     if (!res) {
@@ -206,6 +234,9 @@ auto Can::on_configure(const rclcpp_lifecycle::State & /*previous_state*/)
     for (std::size_t i = 0; i < state::bms::ADDITIONAL_TEMPERATURE_COUNT; ++i) {
         this->set_state("bms/additional_temperature_" + std::to_string(i), nan_temperature);
     }
+    for (const auto & ballast : this->ballasts) {
+        this->set_state(ballast.name + "/position", nan);
+    }
 
     return hardware_interface::CallbackReturn::SUCCESS;
 }
@@ -232,6 +263,88 @@ auto Can::set_vesc_health(std::size_t index, bool is_ok) -> void {
         util::to_interface_data(state::actuator::motor::Health{is_ok}));
 }
 
+auto Can::handle_stepping_motor_driver_packet(
+    const hardware_model::can::SteppingMotorDriverModel::AnyPacket & packet,
+    std::vector<bool> & ballast_updated) -> void {
+    using Model = hardware_model::can::SteppingMotorDriverModel;
+    constexpr auto DURATION = 3000;  // ms
+
+    if (const auto * status = std::get_if<Model::PacketStatus>(&packet)) {
+        for (std::size_t i = 0; i < this->ballasts.size(); ++i) {
+            const auto & ballast = this->ballasts[i];
+            const auto & axis = status->axes[ballast.axis];
+            this->set_state(ballast.name + "/position", axis.position);
+            this->set_state(ballast.name + "/state", static_cast<double>(axis.state));
+            this->set_state(ballast.name + "/fault_reason", static_cast<double>(axis.fault_reason));
+            this->set_state(ballast.name + "/flags", static_cast<double>(axis.flags));
+            ballast_updated[i] = true;
+
+            if (axis.state == static_cast<uint8_t>(Model::AxisState::Fault)) {
+                RCLCPP_ERROR_THROTTLE(
+                    this->get_logger(), *this->get_clock(), DURATION,
+                    "\n  Ballast '%s' stopped with fault (reason: %u)", ballast.name.c_str(),
+                    static_cast<unsigned int>(axis.fault_reason));
+            }
+        }
+        return;
+    }
+
+    if (const auto * travel = std::get_if<Model::PacketMeasuredTravel>(&packet)) {
+        RCLCPP_INFO_THROTTLE(
+            this->get_logger(), *this->get_clock(), DURATION,
+            "\n  Stepping motor driver measured travel (axis %u): %d steps",
+            static_cast<unsigned int>(travel->axis), static_cast<int>(travel->steps));
+    }
+}
+
+auto Can::write_ballasts() -> void {
+    auto command = hardware_model::CanModel::SteppingMotorDriverCommand{};
+    command.targets.fill(std::numeric_limits<double>::quiet_NaN());
+    command.calibrate_axis_mask = 0;
+
+    for (auto & ballast : this->ballasts) {
+        // 要求回数が増えたときだけゼロ点を取り直す
+        // コントローラの再起動で要求回数が0に戻っても取り直さない
+        const auto calibrate_request = this->get_command(ballast.name + "/calibrate");
+        if (calibrate_request > ballast.last_calibrate_request) {
+            command.calibrate_axis_mask |= static_cast<uint8_t>(1U << ballast.axis);
+        }
+        if (!std::isnan(calibrate_request)) {
+            ballast.last_calibrate_request = calibrate_request;
+        }
+
+        // 負の値かNaNは目標なしとして扱う
+        const auto target = this->get_command(ballast.name + "/target");
+        if (std::isnan(target) || target < 0.0) {
+            continue;
+        }
+        const auto clamped_target = std::clamp(target, 0.0, 1.0);
+        if (clamped_target != ballast.last_sent_target ||
+            ballast.cycles_since_target_sent >= BALLAST_TARGET_RESEND_CYCLES) {
+            command.targets[ballast.axis] = clamped_target;
+            ballast.last_sent_target = clamped_target;
+            ballast.cycles_since_target_sent = 0;
+        } else {
+            ++ballast.cycles_since_target_sent;
+        }
+    }
+
+    const auto has_target = std::any_of(
+        command.targets.begin(), command.targets.end(),
+        [](const auto target) { return !std::isnan(target); });
+    if (command.calibrate_axis_mask == 0 && !has_target) {
+        return;
+    }
+
+    const auto res = this->model->on_write_stepping_motor_driver(command);
+    if (!res) {
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_ERROR_THROTTLE(
+            this->get_logger(), *this->get_clock(), DURATION,
+            "\n  Failed to write stepping motor driver: %s", res.error().c_str());
+    }
+}
+
 auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
     -> hardware_interface::return_type {
     if (!this->model) {
@@ -239,6 +352,9 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
         this->set_state("bms/health", util::to_interface_data(state::bms::Health{false}));
         for (std::size_t i = 0; i < this->actuators.size(); ++i) {
             this->set_vesc_health(i, false);
+        }
+        for (const auto & ballast : this->ballasts) {
+            this->set_state(ballast.name + "/health", 0.0);
         }
 
         constexpr auto DURATION = 3000;  // ms
@@ -254,6 +370,9 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
         for (std::size_t i = 0; i < this->actuators.size(); ++i) {
             this->set_vesc_health(i, false);
         }
+        for (const auto & ballast : this->ballasts) {
+            this->set_state(ballast.name + "/health", 0.0);
+        }
 
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(
@@ -265,6 +384,7 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
     const auto & read_batch = res.value();
     auto vesc_updated = std::vector<bool>(this->actuators.size(), false);
     auto bms_updated = false;
+    auto ballast_updated = std::vector<bool>(this->ballasts.size(), false);
     for (const auto & state : read_batch.states) {
         switch (state.index()) {
             case 0: {  // Rpm
@@ -421,6 +541,12 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
                 bms_updated = true;
                 break;
             }
+            case 5: {  // Stepping motor driver
+                this->handle_stepping_motor_driver_packet(
+                    std::get<hardware_model::can::SteppingMotorDriverModel::AnyPacket>(state),
+                    ballast_updated);
+                break;
+            }
         }
     }
 
@@ -433,14 +559,27 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
         "bms/health", util::to_interface_data(state::bms::Health{
                           this->cycles_since_bms_update < MAX_CYCLES_SINCE_NODE_UPDATE}));
 
+    for (std::size_t i = 0; i < this->ballasts.size(); ++i) {
+        auto & ballast = this->ballasts[i];
+        if (ballast_updated[i]) {
+            ballast.cycles_since_update = 0;
+        } else if (ballast.cycles_since_update < MAX_CYCLES_SINCE_NODE_UPDATE) {
+            ++ballast.cycles_since_update;
+        }
+        const auto is_ok = ballast.cycles_since_update < MAX_CYCLES_SINCE_NODE_UPDATE;
+        this->set_state(ballast.name + "/health", is_ok ? 1.0 : 0.0);
+        if (!is_ok) {
+            this->set_state(ballast.name + "/position", std::numeric_limits<double>::quiet_NaN());
+        }
+    }
+
     for (std::size_t i = 0; i < this->actuators.size(); ++i) {
         if (vesc_updated[i]) {
             this->cycles_since_vesc_update[i] = 0;
         } else if (this->cycles_since_vesc_update[i] < MAX_CYCLES_SINCE_NODE_UPDATE) {
             ++this->cycles_since_vesc_update[i];
         }
-        this->set_vesc_health(
-            i, this->cycles_since_vesc_update[i] < MAX_CYCLES_SINCE_NODE_UPDATE);
+        this->set_vesc_health(i, this->cycles_since_vesc_update[i] < MAX_CYCLES_SINCE_NODE_UPDATE);
     }
 
     if (!read_batch.states.empty()) {
@@ -512,7 +651,10 @@ auto Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period
         RCLCPP_ERROR_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to write Can: %s",
             res.error().c_str());
-        return hardware_interface::return_type::OK;
+    }
+
+    if (!this->ballasts.empty()) {
+        this->write_ballasts();
     }
 
     return hardware_interface::return_type::OK;

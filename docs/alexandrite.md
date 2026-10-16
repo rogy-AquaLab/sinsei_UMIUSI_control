@@ -67,3 +67,30 @@ ros2 topic pub -r 10 \
 
 出力は`max_duty`で制限される。目標値または運転許可の更新が`command_timeout`秒間
 途絶えると、該当アクチュエータへDuty 0を出力する。デフォルトはそれぞれ0.5、0.5秒。
+
+## バラスト
+
+2つのバラストは、[SteppingMotorDriver](https://github.com/rogy-AquaLab/SteppingMotorDriver)
+基板1枚の2軸で動かす。`ballast1`がM1、`ballast2`がM2に対応する。基板とは同じCANバス上で
+標準ID（0x310〜0x319）でやり取りする。CANパケットの詳細は基板側の
+`docs/can_protocol.md`を参照。
+
+暫定的に、`ballast_controller`が次のtopicで操作する（`ballastN`は`ballast1`か`ballast2`）。
+
+| topic | 型 | 内容 |
+|---|---|---|
+| `cmd/ballastN/target` | `std_msgs/msg/Float64` | 行程（Minスイッチ〜Maxスイッチ）に対する目標位置。0.0〜1.0。範囲外は無視する |
+| `cmd/ballastN/calibrate` | `std_msgs/msg/Empty` | ゼロ点を取り直す。異常停止からの復帰もこれで行う |
+| `state/ballastN/position` | `std_msgs/msg/Float64` | 現在位置（0.0〜1.0）。キャリブレーション中・異常停止中・基板から状態が届かないときはNaN |
+| `state/ballastN/state` | `std_msgs/msg/UInt8` | 基板の状態。5が準備完了、6が異常停止（値の意味は基板側の資料を参照） |
+| `state/ballastN/fault_reason` | `std_msgs/msg/UInt8` | 異常停止の理由 |
+
+- 目標は一度送れば保持される。目標を受け取るまでは何も送らない。
+- 基板は準備完了前に受け取った目標を無視するため、同じ目標を約100 msごとに送り直す。
+- 0と1がバラストのどちら向き（注水・排水）に当たるかは機構次第なので、実機で確認すること。
+
+例として、`ballast1`を50 %の位置へ動かす場合:
+
+```sh
+ros2 topic pub --once /cmd/ballast1/target std_msgs/msg/Float64 "{data: 0.5}"
+```

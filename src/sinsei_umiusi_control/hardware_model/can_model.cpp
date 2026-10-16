@@ -1,5 +1,6 @@
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 
+#include <cmath>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 #include <tuple>
@@ -11,8 +12,10 @@ using namespace sinsei_umiusi_control::hardware_model;
 
 CanModel::CanModel(
     std::shared_ptr<interface::Can> can, std::vector<ActuatorConfig> actuator_configs,
-    can::HarmonyBmsModel::Id harmony_bms_id)
-: can(can), harmony_bms_model(harmony_bms_id) {
+    can::HarmonyBmsModel::Id harmony_bms_id, bool stepping_motor_driver_enabled)
+: can(can),
+  harmony_bms_model(harmony_bms_id),
+  stepping_motor_driver_enabled(stepping_motor_driver_enabled) {
     this->actuators.reserve(actuator_configs.size());
     for (auto & config : actuator_configs) {
         this->actuators.push_back(Actuator{
@@ -82,6 +85,23 @@ auto CanModel::decode_frame(const interface::CanFrame & frame)
         return std::nullopt;
     }
 
+    // ステッピングモータードライバ基板は標準IDのみを使う
+    if (this->stepping_motor_driver_enabled) {
+        auto driver_packet_res = can::SteppingMotorDriverModel::decode(frame);
+        if (!driver_packet_res) {
+            return tl::make_unexpected(
+                "Failed to decode stepping motor driver frame: " + driver_packet_res.error());
+        }
+        if (driver_packet_res.value()) {
+            auto & driver_packet = driver_packet_res.value().value();
+            if (std::holds_alternative<std::monostate>(driver_packet)) {
+                // 返す値がないフレームは無視する
+                return std::nullopt;
+            }
+            return std::optional<DecodedState>{DecodedState{std::move(driver_packet)}};
+        }
+    }
+
     auto error_message = std::string("");
 
     auto bms_packet_res = this->harmony_bms_model.decode(frame);
@@ -116,8 +136,8 @@ auto CanModel::decode_frame(const interface::CanFrame & frame)
 
         // サーボ専用VESCのモーター状態は公開先が無いため、生存確認のためにのみ使用する
         if (actuator.motor_type == MotorType::None) {
-            return std::optional<DecodedState>{DecodedState{
-                std::make_tuple(actuator.name, state::actuator::motor::Health{true})}};
+            return std::optional<DecodedState>{
+                DecodedState{std::make_tuple(actuator.name, state::actuator::motor::Health{true})}};
         }
 
         switch (packet_status_opt.value().index()) {
@@ -242,6 +262,52 @@ auto CanModel::on_write(
             }
             error_message +=
                 "Failed to send CAN frame for '" + actuator.name + "': " + send_res.error();
+        }
+    }
+
+    if (!error_message.empty()) {
+        return tl::make_unexpected(error_message);
+    }
+    return {};
+}
+
+auto CanModel::on_write_stepping_motor_driver(const SteppingMotorDriverCommand & command)
+    -> tl::expected<void, std::string> {
+    if (!this->stepping_motor_driver_enabled) {
+        return tl::make_unexpected("Stepping motor driver is not configured");
+    }
+
+    auto frames = std::vector<interface::CanFrame>{};
+    // ゼロ点の取り直し中は目標を受け付けないため、先に送る
+    if (command.calibrate_axis_mask != 0) {
+        auto frame_res =
+            can::SteppingMotorDriverModel::make_calibrate_frame(command.calibrate_axis_mask);
+        if (!frame_res) {
+            return tl::make_unexpected(frame_res.error());
+        }
+        frames.push_back(frame_res.value());
+    }
+    for (std::size_t axis = 0; axis < command.targets.size(); ++axis) {
+        if (std::isnan(command.targets[axis])) {
+            continue;
+        }
+        auto frame_res =
+            can::SteppingMotorDriverModel::make_target_frame(axis, command.targets[axis]);
+        if (!frame_res) {
+            return tl::make_unexpected(frame_res.error());
+        }
+        frames.push_back(frame_res.value());
+    }
+
+    auto error_message = std::string("");
+    for (const auto & frame : frames) {
+        const auto send_res = this->can->send_frame(frame);
+        if (!send_res) {
+            if (!error_message.empty()) {
+                error_message += "\n";
+            }
+            error_message += "Failed to send stepping motor driver frame " +
+                             std::to_string(frame.id) + ": " + send_res.error();
         }
     }
 

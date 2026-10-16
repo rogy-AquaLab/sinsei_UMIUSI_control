@@ -18,6 +18,7 @@
   <depend>pluginlib</depend>
   <depend>ros2_control</depend>
   <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
   <depend>libgstreamer1.0-dev</depend>
   <depend>libgstreamer-plugins-base1.0-dev</depend>
   <depend>libgpiod-dev</depend>

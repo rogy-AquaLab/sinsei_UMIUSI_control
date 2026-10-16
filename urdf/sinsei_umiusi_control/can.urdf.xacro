@@ -41,6 +41,38 @@
     </gpio>
   </xacro:macro>
 
+  <!-- SteppingMotorDriver基板の1軸で動かすバラスト。axisは0 = M1、1 = M2 -->
+  <xacro:macro name="stepping_motor_ballast" params="name axis">
+    <gpio name="${name}">
+      <param name="stepping_motor_driver_axis">${axis}</param>
+
+      <command_interface name="target" data_type="double">
+        <!-- 行程に対する割合（0.0〜1.0）。負の値かNaNの間は送らない（初期値にNaNは使えない） -->
+        <param name="initial_value">-1.0</param>
+      </command_interface>
+      <command_interface name="calibrate" data_type="double">
+        <!-- 値が変わるたびにゼロ点を取り直す -->
+        <param name="initial_value">0.0</param>
+      </command_interface>
+      <state_interface name="position" data_type="double">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="state" data_type="double">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="fault_reason" data_type="double">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="flags" data_type="double">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="health" data_type="double">
+        <!-- false (Cannot use bool type due to ros2_control bug) -->
+        <param name="initial_value">0.0</param>
+      </state_interface>
+    </gpio>
+  </xacro:macro>
+
   <xacro:macro name="bms_state" params="name">
     <state_interface name="${name}" data_type="double">
       <param name="initial_value">0.0</param>
@@ -140,6 +172,8 @@
       <xacro:vesc_actuator name="thruster3" vesc_id="${thruster3_vesc_id}" motor_type="bldc" has_servo="true" />
       <xacro:vesc_actuator name="crawler_left" vesc_id="${crawler_left_vesc_id}" motor_type="dc" has_servo="false" />
       <xacro:vesc_actuator name="crawler_right" vesc_id="${crawler_right_vesc_id}" motor_type="dc" has_servo="false" />
+      <xacro:stepping_motor_ballast name="ballast1" axis="0" />
+      <xacro:stepping_motor_ballast name="ballast2" axis="1" />
 
       <xacro:can_auxiliary_interfaces />
     </ros2_control>

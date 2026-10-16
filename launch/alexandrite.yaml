@@ -26,4 +26,5 @@ launch:
         exec: "spawner"
         args: |
           alexandrite_controller
+          ballast_controller
           --param-file $(var controllers_param_file)

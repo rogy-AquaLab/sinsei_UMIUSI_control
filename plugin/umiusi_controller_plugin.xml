@@ -35,4 +35,13 @@
       Thruster controller
     </description>
   </class>
+  <class
+    name="sinsei_umiusi_control/controller/BallastController"
+    type="sinsei_umiusi_control::controller::BallastController"
+    base_class_type="controller_interface::ControllerInterface"
+  >
+    <description>
+      Temporary ballast controller for the stepping motor driver
+    </description>
+  </class>
 </library>

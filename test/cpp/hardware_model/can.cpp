@@ -3,6 +3,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <cstdint>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
@@ -361,6 +362,90 @@ TEST(CanModelTest, CanModelOnInitRejectsHarmonyBmsIdConflictingWithVescTest) {
     EXPECT_EQ(
         result.error(),
         "Invalid CAN node configuration: Harmony BMS ID conflicts with VESC ID: 125");
+}
+
+TEST(CanModelTest, CanModelOnReadRoutesSteppingMotorDriverStatusTest) {
+    auto can = std::make_shared<Can>();
+    const auto frame = suchm::interface::CanFrame{
+        0x318,
+        8,
+        {std::byte{0x13}, std::byte{0x88}, std::byte{0xFF}, std::byte{0xFF}, std::byte{0x05},
+         std::byte{0x16}, std::byte{0x04}, std::byte{0x00}},
+        false,
+    };
+
+    EXPECT_CALL(*can, recv_frames())
+        .Times(1)
+        .WillOnce(
+            Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame}}));
+
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID, true);
+    const auto result = can_model.on_read();
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
+    ASSERT_EQ(result.value().states.size(), 1u);
+    EXPECT_TRUE(result.value().error_message.empty());
+    const auto & packet =
+        std::get<suchm::can::SteppingMotorDriverModel::AnyPacket>(result.value().states[0]);
+    const auto * status = std::get_if<suchm::can::SteppingMotorDriverModel::PacketStatus>(&packet);
+    ASSERT_NE(status, nullptr);
+    EXPECT_DOUBLE_EQ(status->axes[0].position, 0.5);
+}
+
+TEST(CanModelTest, CanModelOnReadRejectsSteppingMotorDriverFrameWhenDisabledTest) {
+    auto can = std::make_shared<Can>();
+    const auto frame = suchm::interface::CanFrame{0x318, 8, {}, false};
+
+    EXPECT_CALL(*can, recv_frames())
+        .Times(1)
+        .WillOnce(
+            Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame}}));
+
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID);
+    const auto result = can_model.on_read();
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
+    EXPECT_TRUE(result.value().states.empty());
+    EXPECT_FALSE(result.value().error_message.empty());
+}
+
+TEST(CanModelTest, OnWriteSteppingMotorDriverSendsCalibrateBeforeTargets) {
+    auto can = std::make_shared<Can>();
+    auto sent_frames = std::vector<suchm::interface::CanFrame>{};
+
+    EXPECT_CALL(*can, send_frame(_))
+        .Times(2)
+        .WillRepeatedly(Invoke(
+            [&sent_frames](
+                const suchm::interface::CanFrame & frame) -> tl::expected<void, std::string> {
+                sent_frames.push_back(frame);
+                return {};
+            }));
+
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID, true);
+    const auto result =
+        can_model.on_write_stepping_motor_driver(suchm::CanModel::SteppingMotorDriverCommand{
+            {std::nan(""), 0.25},
+            0x01,
+        });
+    ASSERT_TRUE(result) << result.error();
+
+    ASSERT_EQ(sent_frames.size(), 2u);
+    EXPECT_EQ(sent_frames[0].id, 0x312u);
+    EXPECT_EQ(sent_frames[0].data[0], std::byte{0x01});
+    EXPECT_EQ(sent_frames[1].id, 0x311u);
+    EXPECT_EQ(sent_frames[1].data[0], std::byte{0x01});
+    EXPECT_EQ(sinsei_umiusi_control::util::to_integer_be<uint16_t>(sent_frames[1].data, 1), 2500);
+}
+
+TEST(CanModelTest, OnWriteSteppingMotorDriverRejectsWhenDisabled) {
+    auto can = std::make_shared<Can>();
+
+    EXPECT_CALL(*can, send_frame(_)).Times(0);
+
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID);
+    const auto result = can_model.on_write_stepping_motor_driver(
+        suchm::CanModel::SteppingMotorDriverCommand{{0.5, 0.5}, 0});
+    ASSERT_FALSE(result);
+    EXPECT_EQ(result.error(), "Stepping motor driver is not configured");
 }
 
 TEST(CanModelTest, CanModelOnInitRejectsActuatorWithoutMotorOrServoTest) {
