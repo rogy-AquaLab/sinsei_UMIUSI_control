@@ -28,24 +28,38 @@ UIと接続するため、`sinsei_umiusi_core`の代わりにrosbridge（ポー�
 - `cmd/target` (`sinsei_umiusi_msgs/msg/Target`)
 - `cmd/thruster_runnable_all` (`sinsei_umiusi_msgs/msg/ThrusterRunnableAll`)
 
-前側の`thruster1`、`thruster2`は、UMIUSIの前側2基と同じ45度配置として、既存の
-FeedForward変換の`lf`、`rf`相当の出力を割り当てる。
+### スラスタの配置と極性
 
-後側の`thruster3`は機体後方のx軸上にあり、yz平面内で回転するものとして、次の暫定変換を
-行う。サーボ角0度・正Dutyの推力方向は+yとする。
+機体座標は x = 前、y = 左、z = 上とする。スラスタはUMIUSIと同じく左前から反時計回りに数える。
 
 ```text
-rear_horizontal = velocity.y - orientation.z
-rear_vertical   = velocity.z + orientation.y
-servo_angle     = atan(rear_vertical / rear_horizontal)
-motor_duty      = signed_hypot(rear_horizontal, rear_vertical)
+                前 (+x)
+   thruster1 (左前)    thruster3 (右前)     ← UMIUSIの前側2基と同じ45度配置
+            ●（重心）
+          thruster2 (後ろ)                  ← x軸上。yz平面内で回る
 ```
 
-後部スラスタの機体上の正Duty方向が-yの場合は、`rear_thruster_reversed: true`を指定する。
-実寸のモーメントアームが未確定なため、後部スラスタのpitch・yaw係数は暫定的に1としている。
+| スラスタ | 位置 | サーボ角0・正Dutyの推力方向 | 運転許可 |
+|---|---|---|---|
+| `thruster1` | 左前 (`front_thruster_x`, `front_thruster_y`) | (-1, 1) / √2 | `lf` |
+| `thruster2` | 後ろ (-`rear_thruster_x`, 0) | (0, -1) | `lb` |
+| `thruster3` | 右前 (`front_thruster_x`, -`front_thruster_y`) | (1, 1) / √2 | `rf` |
 
-`cmd/thruster_runnable_all`の`lf`、`rf`、`lb`を、それぞれ`thruster1`、`thruster2`、
-`thruster3`の運転許可に使用する。
+どのスラスタも、サーボ角0・正のDutyでz軸まわり反時計回り（+yaw）のモーメントを生む向きを正とする。
+サーボ角θ [rad] のとき、推力の向きは cosθ・（上の表の方向）+ sinθ・(+z) になる。
+
+### ミキサー
+
+`cmd/target`の`velocity`（x, y, z）を力、`orientation`（x = roll、y = pitch、z = yaw）をモーメントの
+目標として、3基の水平・垂直成分（計6つ）に割り振る。水平成分は前後・左右・ヨー、垂直成分は上下・
+ロール・ピッチから一意に決まるため、例えば横移動でヨーは生じない。ただし後ろの1基はx方向の力を
+出せないため、前後移動は前側2基だけで行う。
+
+各スラスタの水平・垂直成分から、サーボ角 = atan(垂直 / 水平)、Duty = 符号付きの√(水平² + 垂直²) を求める。
+どれかのDutyが`max_duty`（デフォルト0.5）を超える場合は、力・モーメントの向きを保つよう3基を同じ比率で縮める。
+
+取り付け位置（`front_thruster_x`、`front_thruster_y`、`rear_thruster_x`）は比だけを使うため単位は任意。
+実寸が未確定なため、デフォルトはすべて1.0としている。
 
 クローラー目標は次の別トピックへ送る。
 
@@ -73,7 +87,7 @@ ros2 topic pub -r 10 \
   "{velocity: {x: 0.2}, orientation: {z: 0.0}}"
 ```
 
-スラスタの出力は`max_duty`（デフォルト0.5）で制限される。目標値または運転許可の更新が
+目標値または運転許可の更新が
 `command_timeout`秒間（デフォルト0.5秒）途絶えると、該当アクチュエータへDuty 0を出力する。
 
 運転許可が無い（disarm中、または上記のタイムアウト）アクチュエータには、Duty 0を5回（約100 ms）送って
@@ -83,7 +97,7 @@ ros2 topic pub -r 10 \
 ## 状態
 
 スラスタは、UMIUSIと同じ`state/thruster_state_all`（`sinsei_umiusi_msgs/msg/ThrusterStateAll`）に、
-指令と同じ対応（`thruster1`、`thruster2`、`thruster3` = `lf`、`rf`、`lb`）で出す。`rb`は存在しないため、
+指令と同じ対応（`thruster1`、`thruster2`、`thruster3` = `lf`、`lb`、`rf`）で出す。`rb`は存在しないため、
 常に`DISABLED`になる。クローラーは`state/crawler_left`、`state/crawler_right`
 （`sinsei_umiusi_msgs/msg/ThrusterState`）に出し、サーボが無いため`mode.servo`は常に`DISABLED`になる。
 

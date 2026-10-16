@@ -127,6 +127,13 @@ if(BUILD_TESTING)
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/cpp>
   )
+  ament_auto_add_gtest(test_controller_logic
+    test/cpp/controller/logic/alexandrite_mixer.cpp
+  )
+  target_include_directories(test_controller_logic
+    PRIVATE
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  )
 endif()
 
 ament_auto_package(

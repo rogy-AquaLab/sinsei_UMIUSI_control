@@ -1,14 +1,14 @@
 launch:
   - arg:
-      description: "CAN ID for Alexandrite thruster 1"
+      description: "CAN ID for Alexandrite thruster 1 (front left)"
       name: thruster1_vesc_id
       default: "124"
   - arg:
-      description: "CAN ID for Alexandrite thruster 2"
+      description: "CAN ID for Alexandrite thruster 2 (rear)"
       name: thruster2_vesc_id
       default: "125"
   - arg:
-      description: "CAN ID for Alexandrite thruster 3"
+      description: "CAN ID for Alexandrite thruster 3 (front right)"
       name: thruster3_vesc_id
       default: "126"
   - arg:

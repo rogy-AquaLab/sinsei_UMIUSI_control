@@ -10,7 +10,10 @@
       command_timeout: 0.5 # 秒。この時間、新しい指令が来なければ対象アクチュエータを停止
       max_duty: 0.5 # スラスタの絶対Duty上限
       crawler_max_duty: 0.5 # クローラーへの入力1.0に対応するDuty
-      rear_thruster_reversed: false # 後部スラスタの正Duty方向が-yの場合はtrue
+      # スラスタの取り付け位置。重心からの距離で、比だけを使うため単位は任意（暫定値。実測値を入れること）
+      front_thruster_x: 1.0 # 前側2基（thruster1, thruster3）までの前後方向の距離
+      front_thruster_y: 1.0 # 前側2基までの左右方向の距離
+      rear_thruster_x: 1.0 # 後ろの1基（thruster2）までの前後方向の距離
       target_topic: cmd/target # UMIUSIと共通のスラスタ目標値
       crawler_target_topic: cmd/crawler_target # クローラー専用目標値
       runnable_topic: cmd/thruster_runnable_all # UMIUSIと共通の運転許可

@@ -12,6 +12,7 @@
 
 #include "sinsei_umiusi_control/cmd/actuator/motor.hpp"
 #include "sinsei_umiusi_control/cmd/actuator/servo.hpp"
+#include "sinsei_umiusi_control/controller/logic/alexandrite/mixer.hpp"
 #include "sinsei_umiusi_control/state/actuator/motor.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_msgs/msg/target.hpp"
@@ -69,7 +70,7 @@ class AlexandriteController : public controller_interface::ControllerInterface {
     double command_timeout_seconds{0.5};
     double max_duty{0.5};
     double crawler_max_duty{0.5};
-    bool rear_thruster_reversed{false};
+    logic::alexandrite::Geometry thruster_geometry{1.0, 1.0, 1.0};
     std::string target_topic{"cmd/target"};
     std::string crawler_target_topic{"cmd/crawler_target"};
     std::string runnable_topic{"cmd/thruster_runnable_all"};

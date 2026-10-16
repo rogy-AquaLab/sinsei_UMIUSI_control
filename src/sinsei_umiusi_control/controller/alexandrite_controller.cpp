@@ -15,7 +15,7 @@
 #include <tuple>
 #include <vector>
 
-#include "sinsei_umiusi_control/controller/logic/attitude/feed_forward.hpp"
+#include "sinsei_umiusi_control/controller/logic/alexandrite/mixer.hpp"
 #include "sinsei_umiusi_control/util/serialization.hpp"
 
 using namespace sinsei_umiusi_control::controller;
@@ -24,19 +24,6 @@ namespace {
 
 constexpr auto ACTUATOR_NAMES = std::array<std::string_view, 5>{
     "thruster1", "thruster2", "thruster3", "crawler_left", "crawler_right"};
-// VescModel::make_servo_angle_frameと同じく、-pi/2〜pi/2のラジアンで返す
-auto azimuth_angle(const double horizontal, const double vertical) -> double {
-    if (horizontal == 0.0 && vertical == 0.0) {
-        return 0.0;
-    }
-    return std::atan(vertical / horizontal);
-}
-
-auto signed_magnitude(const double horizontal, const double vertical) -> double {
-    const auto sign = horizontal < 0.0 ? -1.0 : 1.0;
-    return sign * std::hypot(horizontal, vertical);
-}
-
 }  // namespace
 
 auto AlexandriteController::command_interface_configuration() const
@@ -89,12 +76,21 @@ auto AlexandriteController::on_init() -> controller_interface::CallbackReturn {
             .set__floating_point_range(
                 {FloatingPointRange{}.set__from_value(0.0).set__to_value(1.0)})
             .set__read_only(true));
-    this->get_node()->declare_parameter(
-        "rear_thruster_reversed", false,
-        ParameterDescriptor{}
-            .set__description("Reverse the rear thruster duty direction")
-            .set__type(rclcpp::PARAMETER_BOOL)
-            .set__read_only(true));
+    const auto declare_length = [this](const char * name, const char * description) {
+        this->get_node()->declare_parameter(
+            name, 1.0,
+            ParameterDescriptor{}
+                .set__description(description)
+                .set__type(rclcpp::PARAMETER_DOUBLE)
+                .set__floating_point_range(
+                    {FloatingPointRange{}.set__from_value(1e-6).set__to_value(1e6)})
+                .set__read_only(true));
+    };
+    // 長さの比だけを使うため、単位は何でもよい
+    declare_length(
+        "front_thruster_x", "Longitudinal distance from the center to the front thrusters");
+    declare_length("front_thruster_y", "Lateral distance from the center to the front thrusters");
+    declare_length("rear_thruster_x", "Longitudinal distance from the center to the rear thruster");
     this->get_node()->declare_parameter(
         "target_topic", this->target_topic,
         ParameterDescriptor{}
@@ -129,8 +125,11 @@ auto AlexandriteController::on_configure(const rclcpp_lifecycle::State & /*previ
     this->command_timeout_seconds = this->get_node()->get_parameter("command_timeout").as_double();
     this->max_duty = this->get_node()->get_parameter("max_duty").as_double();
     this->crawler_max_duty = this->get_node()->get_parameter("crawler_max_duty").as_double();
-    this->rear_thruster_reversed =
-        this->get_node()->get_parameter("rear_thruster_reversed").as_bool();
+    this->thruster_geometry = logic::alexandrite::Geometry{
+        this->get_node()->get_parameter("front_thruster_x").as_double(),
+        this->get_node()->get_parameter("front_thruster_y").as_double(),
+        this->get_node()->get_parameter("rear_thruster_x").as_double(),
+    };
     this->target_topic = this->get_node()->get_parameter("target_topic").as_string();
     this->crawler_target_topic =
         this->get_node()->get_parameter("crawler_target_topic").as_string();
@@ -197,7 +196,7 @@ auto AlexandriteController::on_configure(const rclcpp_lifecycle::State & /*previ
                 this->runnable = {true, std::chrono::steady_clock::now(), *message};
             });
 
-    // スラスタはUMIUSIと同じtopicに、指令と同じ対応（thruster1〜3 = lf, rf, lb）で出す
+    // スラスタはUMIUSIと同じtopicに、指令と同じ対応（thruster1〜3 = lf, lb, rf）で出す
     this->thruster_state_all_publisher =
         this->get_node()->create_publisher<sinsei_umiusi_msgs::msg::ThrusterStateAll>(
             this->state_topic_prefix + "thruster_state_all", qos);
@@ -243,54 +242,28 @@ auto AlexandriteController::update(
     const auto crawler_target_fresh = is_fresh(crawler_target);
     const auto runnable_fresh = is_fresh(runnable);
 
-    auto feed_forward_input = AttitudeController::Input{};
-    feed_forward_input.cmd.target_orientation = cmd::attitude::Orientation{
-        target.message.orientation.x, target.message.orientation.y, target.message.orientation.z};
-    feed_forward_input.cmd.target_velocity = cmd::attitude::Velocity{
-        target.message.velocity.x, target.message.velocity.y, target.message.velocity.z};
-    const auto thruster_output =
-        logic::attitude::FeedForward{}.update(0.0, 0.0, feed_forward_input);
-    constexpr auto FRONT_THRUSTER_COUNT = size_t{2};
-    constexpr auto UMIUSI_FRONT_INDICES = std::array<size_t, FRONT_THRUSTER_COUNT>{0, 3};
-    const auto front_motor_runnable =
-        std::array<bool, FRONT_THRUSTER_COUNT>{runnable.message.lf.esc, runnable.message.rf.esc};
-    const auto front_servo_runnable = std::array<bool, FRONT_THRUSTER_COUNT>{
-        runnable.message.lf.servo, runnable.message.rf.servo};
-
-    for (size_t i = 0; i < FRONT_THRUSTER_COUNT; ++i) {
-        const auto umiusi_index = UMIUSI_FRONT_INDICES[i];
-        this->commands[i].motor_allowed.value =
-            target_fresh && runnable_fresh && front_motor_runnable[i];
-        this->commands[i].motor_duty_cycle.value =
-            this->commands[i].motor_allowed.value
-                ? std::clamp(
-                      thruster_output.cmd.esc_thrusts[umiusi_index].value, -this->max_duty,
-                      this->max_duty)
-                : 0.0;
-        this->commands[i].servo_allowed.value =
-            target_fresh && runnable_fresh && front_servo_runnable[i];
-        this->commands[i].servo_angle.value = thruster_output.cmd.servo_angles[umiusi_index].value;
+    const auto thruster_outputs = logic::alexandrite::mix(
+        logic::alexandrite::Wrench{
+            target.message.velocity.x,
+            target.message.velocity.y,
+            target.message.velocity.z,
+            target.message.orientation.x,
+            target.message.orientation.y,
+            target.message.orientation.z,
+        },
+        this->thruster_geometry, this->max_duty);
+    // UMIUSIと同じく左前から反時計回りに数えるため、thruster1〜3 = 左前、後ろ、右前 = lf、lb、rf
+    const auto thruster_runnable =
+        std::array<sinsei_umiusi_msgs::msg::ThrusterRunnable, THRUSTER_COUNT>{
+            runnable.message.lf, runnable.message.lb, runnable.message.rf};
+    for (size_t i = 0; i < THRUSTER_COUNT; ++i) {
+        auto & command = this->commands[i];
+        command.motor_allowed.value = target_fresh && runnable_fresh && thruster_runnable[i].esc;
+        command.motor_duty_cycle.value =
+            command.motor_allowed.value ? thruster_outputs[i].duty : 0.0;
+        command.servo_allowed.value = target_fresh && runnable_fresh && thruster_runnable[i].servo;
+        command.servo_angle.value = thruster_outputs[i].angle;
     }
-
-    // The rear thruster is at negative x and rotates in the yz plane. Its zero angle points in
-    // +y, so +y thrust creates -yaw and +z thrust creates +pitch.
-    constexpr auto REAR_THRUSTER_INDEX = size_t{2};
-    const auto rear_horizontal = target.message.velocity.y - target.message.orientation.z;
-    const auto rear_vertical = target.message.velocity.z + target.message.orientation.y;
-    auto rear_duty = signed_magnitude(rear_horizontal, rear_vertical);
-    if (this->rear_thruster_reversed) {
-        rear_duty = -rear_duty;
-    }
-    this->commands[REAR_THRUSTER_INDEX].motor_allowed.value =
-        target_fresh && runnable_fresh && runnable.message.lb.esc;
-    this->commands[REAR_THRUSTER_INDEX].motor_duty_cycle.value =
-        this->commands[REAR_THRUSTER_INDEX].motor_allowed.value
-            ? std::clamp(rear_duty, -this->max_duty, this->max_duty)
-            : 0.0;
-    this->commands[REAR_THRUSTER_INDEX].servo_allowed.value =
-        target_fresh && runnable_fresh && runnable.message.lb.servo;
-    this->commands[REAR_THRUSTER_INDEX].servo_angle.value =
-        azimuth_angle(rear_horizontal, rear_vertical);
 
     auto left_crawler_duty =
         crawler_target.message.velocity.x - crawler_target.message.orientation.z;
@@ -359,8 +332,8 @@ auto AlexandriteController::publish_states() -> void {
             .set__servo(sinsei_umiusi_msgs::msg::ThrusterMode::DISABLED));
     this->thruster_state_all_publisher->publish(sinsei_umiusi_msgs::msg::ThrusterStateAll()
                                                     .set__lf(this->make_thruster_state(0))
-                                                    .set__rf(this->make_thruster_state(1))
-                                                    .set__lb(this->make_thruster_state(2))
+                                                    .set__lb(this->make_thruster_state(1))
+                                                    .set__rf(this->make_thruster_state(2))
                                                     .set__rb(absent));
     for (size_t i = 0; i < CRAWLER_COUNT; ++i) {
         this->crawler_state_publishers[i]->publish(this->make_thruster_state(THRUSTER_COUNT + i));
