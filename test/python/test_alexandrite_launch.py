@@ -27,7 +27,10 @@ def generate_launch_description():
         [
             IncludeLaunchDescription(
                 launch_file,
-                launch_arguments={'enable_rosbridge': 'false'}.items(),
+                launch_arguments={
+                    'enable_cameras': 'false',
+                    'enable_rosbridge': 'false',
+                }.items(),
             )
         ]
     )

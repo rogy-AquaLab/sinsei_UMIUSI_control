@@ -25,6 +25,14 @@ launch:
       default: "3"
 
   - arg:
+      description: "File path for cameras parameters (same cameras as UMIUSI)"
+      name: cameras_param_file
+      default: "$(find-pkg-share sinsei_umiusi_control)/params/cameras.yaml"
+  - arg:
+      description: "Whether to launch camera nodes (set false in tests)"
+      name: enable_cameras
+      default: "true"
+  - arg:
       description: "Whether to launch rosbridge for the operator UI (set false in tests)"
       name: enable_rosbridge
       default: "true"

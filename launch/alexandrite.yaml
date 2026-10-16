@@ -29,6 +29,22 @@ launch:
           ballast_controller
           --param-file $(var controllers_param_file)
 
+    # UMIUSIと同じ2台のカメラ。RTSPサーバ（MediaMTX）は別途起動しておく
+    - node:
+        pkg: "$(var pkg_name)"
+        exec: "gst_camera_node"
+        name: "pi_camera"
+        if: "$(var enable_cameras)"
+        param:
+        - from: "$(var cameras_param_file)"
+    - node:
+        pkg: "$(var pkg_name)"
+        exec: "gst_camera_node"
+        name: "usb_camera"
+        if: "$(var enable_cameras)"
+        param:
+        - from: "$(var cameras_param_file)"
+
     # UIと接続するため（UMIUSIではsinsei_umiusi_coreが起動している）
     - node:
         pkg: "rosbridge_server"

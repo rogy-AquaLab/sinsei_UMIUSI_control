@@ -16,6 +16,11 @@ ros2 launch sinsei_umiusi_control alexandrite.yaml \
   crawler_right_vesc_id:=128
 ```
 
+UIと接続するため、`sinsei_umiusi_core`の代わりにrosbridge（ポート9090）も起動する。
+カメラはUMIUSIと同じ2台（`pi_camera` → `cam1`、`usb_camera` → `cam2`）を`params/cameras.yaml`の
+設定で起動する。RTSPサーバ（MediaMTX）は別途起動しておくこと。不要な場合は
+`enable_rosbridge:=false`、`enable_cameras:=false`で止められる。
+
 ## 指令インターフェース
 
 スラスタはUMIUSIと同じトピック・メッセージを使用する。
