@@ -27,6 +27,7 @@ launch:
         args: |
           alexandrite_controller
           ballast_controller
+          bms_controller
           --param-file $(var controllers_param_file)
 
     # UMIUSIと同じ2台のカメラ。RTSPサーバ（MediaMTX）は別途起動しておく

@@ -74,6 +74,7 @@ target_include_directories(${PROJECT_NAME}_hardware
 ament_auto_add_library(${PROJECT_NAME}_controller SHARED
   src/${PROJECT_NAME}/controller/alexandrite_controller.cpp
   src/${PROJECT_NAME}/controller/ballast_controller.cpp
+  src/${PROJECT_NAME}/controller/bms_controller.cpp
   src/${PROJECT_NAME}/controller/gate_controller.cpp
   src/${PROJECT_NAME}/controller/attitude_controller.cpp
   src/${PROJECT_NAME}/controller/thruster_controller.cpp

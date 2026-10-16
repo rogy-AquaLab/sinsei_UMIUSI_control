@@ -44,4 +44,13 @@
       Temporary ballast controller for the stepping motor driver
     </description>
   </class>
+  <class
+    name="sinsei_umiusi_control/controller/BmsController"
+    type="sinsei_umiusi_control::controller::BmsController"
+    base_class_type="controller_interface::ControllerInterface"
+  >
+    <description>
+      Temporary BMS state publisher for Alexandrite
+    </description>
+  </class>
 </library>

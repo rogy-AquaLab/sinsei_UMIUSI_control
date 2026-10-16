@@ -20,3 +20,9 @@
       update_rate: 10 # Hz; ドライバ基板の状態送信周期（100 ms）に合わせる
       command_topic_prefix: cmd/ # cmd/ballast{1,2}/target, cmd/ballast{1,2}/calibrate
       state_topic_prefix: state/ # state/ballast{1,2}/position, state, fault_reason
+
+  bms_controller:
+    ros__parameters:
+      type: sinsei_umiusi_control/controller/BmsController
+      update_rate: 10 # Hz
+      state_topic_prefix: state/ # state/power/battery, state/power/bms（UMIUSIのgate_controllerと同じ）

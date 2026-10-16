@@ -78,3 +78,16 @@ def test_ballast_controller_running(helper_node):
         assert helper_node.count_subscribers(f'/cmd/{ballast}/target') > 0
         assert helper_node.count_subscribers(f'/cmd/{ballast}/calibrate') > 0
         assert helper_node.count_publishers(f'/state/{ballast}/position') > 0
+
+
+@pytest.mark.launch(fixture=generate_launch_description)
+def test_bms_controller_running(helper_node):
+    check_controllers_running(
+        helper_node,
+        {'bms_controller'},
+        '',
+        'active',
+        120,
+    )
+    assert helper_node.count_publishers('/state/power/battery') > 0
+    assert helper_node.count_publishers('/state/power/bms') > 0

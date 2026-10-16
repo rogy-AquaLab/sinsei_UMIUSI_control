@@ -99,3 +99,13 @@ ros2 topic pub -r 10 \
 ```sh
 ros2 topic pub --once /cmd/ballast1/target std_msgs/msg/Float64 "{data: 0.5}"
 ```
+
+## BMS
+
+Harmony16互換のBMS（CAN ID `harmony_bms_id`、省略時は3）の状態は、`bms_controller`がUMIUSIの
+`gate_controller`と同じtopicに出す。
+
+| topic | 型 | 内容 |
+|---|---|---|
+| `state/power/battery` | `sensor_msgs/msg/BatteryState` | パック電圧、電流（充電時を正）、SoC、セル電圧 |
+| `state/power/bms` | `sinsei_umiusi_msgs/msg/BmsState` | SoH、温度、バランシング、パワースイッチ、フォルト |
