@@ -12,6 +12,7 @@
       vesc2_id
       vesc3_id
       vesc4_id
+      harmony_bms_id
       imu_i2c_device
       mock
     ">
@@ -26,6 +27,7 @@
       vesc2_id="${vesc2_id}"
       vesc3_id="${vesc3_id}"
       vesc4_id="${vesc4_id}"
+      harmony_bms_id="${harmony_bms_id}"
     />
     <xacro:imu i2c_device="${imu_i2c_device}" />
     <xacro:headlights
