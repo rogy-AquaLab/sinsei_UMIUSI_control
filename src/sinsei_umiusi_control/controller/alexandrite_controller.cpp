@@ -24,13 +24,12 @@ namespace {
 
 constexpr auto ACTUATOR_NAMES = std::array<std::string_view, 5>{
     "thruster1", "thruster2", "thruster3", "crawler_left", "crawler_right"};
-constexpr auto RADIANS_TO_DEGREES = 180.0 / 3.14159265358979323846;
-
-auto azimuth_angle_degrees(const double horizontal, const double vertical) -> double {
+// VescModel::make_servo_angle_frameと同じく、-pi/2〜pi/2のラジアンで返す
+auto azimuth_angle(const double horizontal, const double vertical) -> double {
     if (horizontal == 0.0 && vertical == 0.0) {
         return 0.0;
     }
-    return std::atan(vertical / horizontal) * RADIANS_TO_DEGREES;
+    return std::atan(vertical / horizontal);
 }
 
 auto signed_magnitude(const double horizontal, const double vertical) -> double {
@@ -282,7 +281,7 @@ auto AlexandriteController::update(
     this->commands[REAR_THRUSTER_INDEX].servo_allowed.value =
         target_fresh && runnable_fresh && runnable.message.lb.servo;
     this->commands[REAR_THRUSTER_INDEX].servo_angle.value =
-        azimuth_angle_degrees(rear_horizontal, rear_vertical);
+        azimuth_angle(rear_horizontal, rear_vertical);
 
     auto left_crawler_duty =
         crawler_target.message.velocity.x - crawler_target.message.orientation.z;
