@@ -15,6 +15,7 @@ struct DutyCycle {
 using Rpm = state::actuator::motor::Rpm;
 using Voltage = state::actuator::motor::Voltage;
 using WaterLeaked = state::actuator::motor::WaterLeaked;
+using Health = state::actuator::motor::Health;
 
 }  // namespace sinsei_umiusi_control::state::thruster::esc
 

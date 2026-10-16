@@ -16,6 +16,10 @@ launch:
       description: "CAN ID for VESC 4 (corresponds to thruster 4)"
       name: vesc4_id
       default: "127"
+  - arg:
+      description: "CAN ID for the Harmony16-compatible BMS"
+      name: harmony_bms_id
+      default: "3"
 
   - arg:
       description: "GPIO chip device path"
@@ -37,10 +41,6 @@ launch:
       description: "GPIO line offset for indicator LED"
       name: indicator_led_line_offset
       default: "24"
-  - arg:
-      description: "LED tape's operation period per actuators' operation period"
-      name: period_led_tape_per_actuators
-      default: "10"
   - arg:
       description: "I2C device path for the BNO055 IMU"
       name: imu_i2c_device

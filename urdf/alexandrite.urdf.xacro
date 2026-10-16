@@ -6,7 +6,7 @@
   <xacro:arg name="thruster3_vesc_id" default="'unknown'" />
   <xacro:arg name="crawler_left_vesc_id" default="'unknown'" />
   <xacro:arg name="crawler_right_vesc_id" default="'unknown'" />
-  <xacro:arg name="period_led_tape_per_actuators" default="'unknown'" />
+  <xacro:arg name="harmony_bms_id" default="'unknown'" />
 
   <xacro:include filename="sinsei_umiusi_control/can.urdf.xacro" />
 
@@ -18,7 +18,7 @@
     thruster3_vesc_id="$(arg thruster3_vesc_id)"
     crawler_left_vesc_id="$(arg crawler_left_vesc_id)"
     crawler_right_vesc_id="$(arg crawler_right_vesc_id)"
-    period_led_tape_per_actuators="$(arg period_led_tape_per_actuators)"
+    harmony_bms_id="$(arg harmony_bms_id)"
   />
 
 </robot>

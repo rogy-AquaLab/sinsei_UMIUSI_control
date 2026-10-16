@@ -2,9 +2,9 @@
 #define SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_INTERFACE_CAN_HPP
 
 #include <cstdint>
-#include <optional>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
+#include <vector>
 
 namespace sinsei_umiusi_control::hardware_model::interface {
 
@@ -30,7 +30,7 @@ class Can {
     virtual auto init(const std::string_view ifname) -> tl::expected<void, std::string> = 0;
     virtual auto close() -> tl::expected<void, std::string> = 0;
     virtual auto send_frame(const CanFrame & frame) -> tl::expected<void, std::string> = 0;
-    virtual auto recv_frame() -> tl::expected<std::optional<CanFrame>, std::string> = 0;
+    virtual auto recv_frames() -> tl::expected<std::vector<CanFrame>, std::string> = 0;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model::interface

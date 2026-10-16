@@ -20,9 +20,9 @@ launch:
       name: crawler_right_vesc_id
       default: "128"
   - arg:
-      description: "LED tape's operation period per actuators' operation period"
-      name: period_led_tape_per_actuators
-      default: "10"
+      description: "CAN ID for the Harmony16-compatible BMS"
+      name: harmony_bms_id
+      default: "3"
 
   - arg:
       description: "Namespace for controllers"

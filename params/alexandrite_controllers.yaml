@@ -6,7 +6,7 @@
   alexandrite_controller:
     ros__parameters:
       type: sinsei_umiusi_control/controller/AlexandriteController
-      update_rate: 50 # Hz; CAN送信はCanModelの既存ラウンドロビン周期に従う
+      update_rate: 50 # Hz; CAN送信はCanModelがMotorとServoを周期ごとに交互に行う
       command_timeout: 0.5 # 秒。この時間、新しい指令が来なければ対象アクチュエータを停止
       max_duty: 0.5 # 全モーター共通の絶対Duty上限
       rear_thruster_reversed: false # 後部スラスタの正Duty方向が-yの場合はtrue
