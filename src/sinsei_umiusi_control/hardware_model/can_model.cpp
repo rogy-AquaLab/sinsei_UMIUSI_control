@@ -1,5 +1,6 @@
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 
+#include <cmath>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 #include <tuple>
@@ -10,32 +11,39 @@
 using namespace sinsei_umiusi_control::hardware_model;
 
 CanModel::CanModel(
-    std::shared_ptr<interface::Can> can, std::vector<ThrusterConfig> thruster_configs,
-    can::HarmonyBmsModel::Id harmony_bms_id)
-: can(can), harmony_bms_model(harmony_bms_id) {
-    this->thrusters.reserve(thruster_configs.size());
-    for (auto & config : thruster_configs) {
-        this->thrusters.push_back(Thruster{std::move(config.name), can::VescModel(config.vesc_id)});
+    std::shared_ptr<interface::Can> can, std::vector<ActuatorConfig> actuator_configs,
+    can::HarmonyBmsModel::Id harmony_bms_id, bool stepping_motor_driver_enabled)
+: can(can),
+  harmony_bms_model(harmony_bms_id),
+  stepping_motor_driver_enabled(stepping_motor_driver_enabled) {
+    this->actuators.reserve(actuator_configs.size());
+    for (auto & config : actuator_configs) {
+        this->actuators.push_back(Actuator{
+            std::move(config.name), config.motor_type, config.has_servo,
+            can::VescModel(config.vesc_id), STOP_FRAME_COUNT});
     }
 }
 
 auto CanModel::validate_configuration() const -> tl::expected<void, std::string> {
-    if (this->thrusters.empty()) {
-        return tl::make_unexpected("At least one thruster must be configured");
+    if (this->actuators.empty()) {
+        return tl::make_unexpected("At least one actuator must be configured");
     }
 
     auto names = std::unordered_set<std::string>{};
     auto vesc_ids = std::unordered_set<can::VescModel::Id>{};
-    for (const auto & thruster : this->thrusters) {
-        const auto vesc_id = thruster.vesc_model.get_id();
-        if (thruster.name.empty()) {
-            return tl::make_unexpected("Thruster name must not be empty");
+    for (const auto & actuator : this->actuators) {
+        const auto vesc_id = actuator.vesc_model.get_id();
+        if (actuator.name.empty()) {
+            return tl::make_unexpected("Actuator name must not be empty");
         }
-        if (!names.insert(thruster.name).second) {
-            return tl::make_unexpected("Duplicate thruster name: " + thruster.name);
+        if (!names.insert(actuator.name).second) {
+            return tl::make_unexpected("Duplicate actuator name: " + actuator.name);
         }
         if (!vesc_ids.insert(vesc_id).second) {
             return tl::make_unexpected("Duplicate VESC ID: " + std::to_string(vesc_id));
+        }
+        if (actuator.motor_type == MotorType::None && !actuator.has_servo) {
+            return tl::make_unexpected("Actuator must have a motor or servo: " + actuator.name);
         }
         if (vesc_id == this->harmony_bms_model.get_id()) {
             return tl::make_unexpected(
@@ -59,7 +67,7 @@ auto CanModel::on_init() -> tl::expected<void, std::string> {
 }
 
 auto CanModel::on_destroy() -> tl::expected<void, std::string> {
-    // TODO: ここで念のためスラスターを停止しておく
+    // TODO: ここで念のためアクチュエータを停止しておく
 
     const auto res = this->can->close();
     if (!res) {
@@ -75,6 +83,23 @@ auto CanModel::decode_frame(const interface::CanFrame & frame)
     // 受信途中のVESCのフレームは無視する
     if (can::vesc_protocol::is_transport_frame(frame)) {
         return std::nullopt;
+    }
+
+    // ステッピングモータードライバ基板は標準IDのみを使う
+    if (this->stepping_motor_driver_enabled) {
+        auto driver_packet_res = can::SteppingMotorDriverModel::decode(frame);
+        if (!driver_packet_res) {
+            return tl::make_unexpected(
+                "Failed to decode stepping motor driver frame: " + driver_packet_res.error());
+        }
+        if (driver_packet_res.value()) {
+            auto & driver_packet = driver_packet_res.value().value();
+            if (std::holds_alternative<std::monostate>(driver_packet)) {
+                // 返す値がないフレームは無視する
+                return std::nullopt;
+            }
+            return std::optional<DecodedState>{DecodedState{std::move(driver_packet)}};
+        }
     }
 
     auto error_message = std::string("");
@@ -93,11 +118,11 @@ auto CanModel::decode_frame(const interface::CanFrame & frame)
 
     // TODO: STM32側の仕様確定後に`can::PowerDistributionModel`の処理を追加する
 
-    for (const auto & thruster : this->thrusters) {
-        const auto vesc_id = thruster.vesc_model.get_id();
-        const auto description = "'" + thruster.name + "' (VESC " + std::to_string(vesc_id) + ")";
+    for (const auto & actuator : this->actuators) {
+        const auto vesc_id = actuator.vesc_model.get_id();
+        const auto description = "'" + actuator.name + "' (VESC " + std::to_string(vesc_id) + ")";
 
-        const auto packet_status_res = thruster.vesc_model.decode(frame);
+        const auto packet_status_res = actuator.vesc_model.decode(frame);
         if (!packet_status_res) {
             error_message += "    " + description + ": " + packet_status_res.error() + "\n";
             continue;
@@ -109,31 +134,38 @@ auto CanModel::decode_frame(const interface::CanFrame & frame)
             continue;
         }
 
+        // サーボ専用VESCのモーター状態は公開先が無いため、生存確認のためにのみ使用する
+        if (actuator.motor_type == MotorType::None) {
+            return std::optional<DecodedState>{
+                DecodedState{std::make_tuple(actuator.name, state::actuator::motor::Health{true})}};
+        }
+
         switch (packet_status_opt.value().index()) {
             case 0: {  // PacketStatus
                 const auto & status = std::get<0>(packet_status_opt.value());
-                constexpr double BLDC_POLE_PAIR = BLDC_POLES / 2.0;
-                // ERPMを極対数で割ってRPMに変換
+                const auto pole_pairs =
+                    actuator.motor_type == MotorType::BLDC ? BLDC_POLES / 2.0 : 1.0;
+                // BLDCはERPMを極対数で割り、DCはVESCの回転数をそのまま扱う
                 return std::optional<DecodedState>{DecodedState{std::make_tuple(
-                    thruster.name, state::thruster::esc::Rpm{status.erpm / BLDC_POLE_PAIR})}};
+                    actuator.name, state::actuator::motor::Rpm{status.erpm / pole_pairs})}};
             }
             case 4: {  // PacketStatus5
                 const auto & status = std::get<4>(packet_status_opt.value());
                 const auto volts_in = status.volts_in;
                 return std::optional<DecodedState>{DecodedState{
-                    std::make_tuple(thruster.name, state::thruster::esc::Voltage{volts_in})}};
+                    std::make_tuple(actuator.name, state::actuator::motor::Voltage{volts_in})}};
             }
             case 5: {  // PacketStatus6
                 const auto & status = std::get<5>(packet_status_opt.value());
                 // 浸水センサーはADC1に接続されている
                 const auto water_leaked = status.adc1 < WATER_LEAKED_VOLTAGE_THRESHOLD;
                 return std::optional<DecodedState>{DecodedState{std::make_tuple(
-                    thruster.name, state::thruster::esc::WaterLeaked{water_leaked})}};
+                    actuator.name, state::actuator::motor::WaterLeaked{water_leaked})}};
             }
             default: {
                 // STATUS_2/3/4はVESCの生存確認のためにのみ使用
                 return std::optional<DecodedState>{DecodedState{
-                    std::make_tuple(thruster.name, state::thruster::esc::Health{true})}};
+                    std::make_tuple(actuator.name, state::actuator::motor::Health{true})}};
             }
         }
     }
@@ -176,48 +208,59 @@ auto CanModel::on_read() -> tl::expected<ReadBatch, std::string> {
 
 auto CanModel::on_write(
     cmd::power_distribution::Enabled /*power_distribution_enabled*/,
-    const std::vector<ThrusterCommand> & thruster_commands,
+    const std::vector<ActuatorCommand> & actuator_commands,
     cmd::led_tape::Color /*led_tape_color*/) -> tl::expected<void, std::string> {
-    if (this->thrusters.empty()) {
-        return tl::make_unexpected("No thrusters are configured");
+    if (this->actuators.empty()) {
+        return tl::make_unexpected("No actuators are configured");
     }
 
-    if (thruster_commands.size() != this->thrusters.size()) {
+    if (actuator_commands.size() != this->actuators.size()) {
         return tl::make_unexpected(
-            "Thruster command count does not match configuration: expected " +
-            std::to_string(this->thrusters.size()) + ", got " +
-            std::to_string(thruster_commands.size()));
+            "Actuator command count does not match configuration: expected " +
+            std::to_string(this->actuators.size()) + ", got " +
+            std::to_string(actuator_commands.size()));
     }
 
     const auto phase = this->write_phase;
-    this->write_phase = phase == WritePhase::Esc ? WritePhase::Servo : WritePhase::Esc;
+    this->write_phase = phase == WritePhase::Motor ? WritePhase::Servo : WritePhase::Motor;
 
     // TODO: STM32側の仕様確定後にpower_distribution_enabledとled_tape_colorを送信する
-    // TODO: esc_allowed/servo_allowedはLispBMが未実装
+    // allowedはVESCへ送るコマンドではなく、出力のローカルな安全条件として扱う
 
     auto error_message = std::string("");
 
-    for (size_t index = 0; index < this->thrusters.size(); ++index) {
-        const auto & thruster = this->thrusters[index];
-        const auto & command = thruster_commands[index];
+    for (size_t index = 0; index < this->actuators.size(); ++index) {
+        auto & actuator = this->actuators[index];
+        const auto & command = actuator_commands[index];
 
-        if (phase == WritePhase::Esc && !command.esc_allowed.value) {
+        if (phase == WritePhase::Motor && actuator.motor_type == MotorType::None) {
             continue;
         }
-        if (phase == WritePhase::Servo && !command.servo_allowed.value) {
+        if (phase == WritePhase::Motor) {
+            // 許可が切れた直後はDuty 0で止め、その後は送らずにVESCのタイムアウトで脱力させる
+            if (command.motor_allowed.value) {
+                actuator.remaining_stop_frames = STOP_FRAME_COUNT;
+            } else if (actuator.remaining_stop_frames == 0) {
+                continue;
+            } else {
+                --actuator.remaining_stop_frames;
+            }
+        }
+        if (phase == WritePhase::Servo && (!actuator.has_servo || !command.servo_allowed.value)) {
             continue;
         }
 
         const auto frame_res =
-            phase == WritePhase::Esc
-                ? thruster.vesc_model.make_duty_frame(command.esc_duty_cycle.value)
-                : thruster.vesc_model.make_servo_angle_frame(command.servo_angle.value);
+            phase == WritePhase::Motor
+                ? actuator.vesc_model.make_duty_frame(
+                      command.motor_allowed.value ? command.motor_duty_cycle.value : 0.0)
+                : actuator.vesc_model.make_servo_angle_frame(command.servo_angle.value);
         if (!frame_res) {
             if (!error_message.empty()) {
                 error_message += "\n";
             }
             error_message +=
-                "Failed to create CAN frame for '" + thruster.name + "': " + frame_res.error();
+                "Failed to create CAN frame for '" + actuator.name + "': " + frame_res.error();
             continue;
         }
 
@@ -227,7 +270,53 @@ auto CanModel::on_write(
                 error_message += "\n";
             }
             error_message +=
-                "Failed to send CAN frame for '" + thruster.name + "': " + send_res.error();
+                "Failed to send CAN frame for '" + actuator.name + "': " + send_res.error();
+        }
+    }
+
+    if (!error_message.empty()) {
+        return tl::make_unexpected(error_message);
+    }
+    return {};
+}
+
+auto CanModel::on_write_stepping_motor_driver(const SteppingMotorDriverCommand & command)
+    -> tl::expected<void, std::string> {
+    if (!this->stepping_motor_driver_enabled) {
+        return tl::make_unexpected("Stepping motor driver is not configured");
+    }
+
+    auto frames = std::vector<interface::CanFrame>{};
+    // ゼロ点の取り直し中は目標を受け付けないため、先に送る
+    if (command.calibrate_axis_mask != 0) {
+        auto frame_res =
+            can::SteppingMotorDriverModel::make_calibrate_frame(command.calibrate_axis_mask);
+        if (!frame_res) {
+            return tl::make_unexpected(frame_res.error());
+        }
+        frames.push_back(frame_res.value());
+    }
+    for (std::size_t axis = 0; axis < command.targets.size(); ++axis) {
+        if (std::isnan(command.targets[axis])) {
+            continue;
+        }
+        auto frame_res =
+            can::SteppingMotorDriverModel::make_target_frame(axis, command.targets[axis]);
+        if (!frame_res) {
+            return tl::make_unexpected(frame_res.error());
+        }
+        frames.push_back(frame_res.value());
+    }
+
+    auto error_message = std::string("");
+    for (const auto & frame : frames) {
+        const auto send_res = this->can->send_frame(frame);
+        if (!send_res) {
+            if (!error_message.empty()) {
+                error_message += "\n";
+            }
+            error_message += "Failed to send stepping motor driver frame " +
+                             std::to_string(frame.id) + ": " + send_res.error();
         }
     }
 

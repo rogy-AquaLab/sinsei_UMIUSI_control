@@ -1,0 +1,41 @@
+/**:
+  controller_manager:
+    ros__parameters:
+      update_rate: 100 # Hz
+
+  alexandrite_controller:
+    ros__parameters:
+      type: sinsei_umiusi_control/controller/AlexandriteController
+      update_rate: 50 # Hz; CAN送信はCanModelがMotorとServoを周期ごとに交互に行う
+      command_timeout: 0.5 # 秒。この時間、新しい指令が来なければ対象アクチュエータを停止
+      max_duty: 0.5 # スラスタの絶対Duty上限
+      crawler_max_duty: 0.5 # クローラーへの入力1.0に対応するDuty
+      max_duty_step_per_sec: 1.0 # スラスタのDutyの1秒あたりの最大変化量（UMIUSIと同じ）
+      crawler_max_duty_step_per_sec: 1.0 # クローラーのDutyの1秒あたりの最大変化量
+      # スラスタの取り付け位置。重心からの距離で、比だけを使うため単位は任意（ここではmm）
+      front_thruster_x: 200.0 # 前側2基（thruster1, thruster3）までの前後方向の距離
+      front_thruster_y: 175.0 # 前側2基までの左右方向の距離（2基の間隔350 mmの半分）
+      rear_thruster_x: 300.0 # 後ろの1基（thruster2）までの前後方向の距離
+      front_thruster_angle: 20.0 # 前側2基の推力の軸がx軸から内側へ傾いている角度 [deg]（UMIUSIは45）
+      target_topic: cmd/target # UMIUSIと共通のスラスタ目標値
+      crawler_target_topic: cmd/crawler_target # クローラー専用目標値
+      runnable_topic: cmd/thruster_runnable_all # UMIUSIと共通の運転許可
+
+  ballast_controller:
+    ros__parameters:
+      type: sinsei_umiusi_control/controller/BallastController
+      update_rate: 10 # Hz; ドライバ基板の状態送信周期（100 ms）に合わせる
+      command_topic_prefix: cmd/ # cmd/ballast{1,2}/target, cmd/ballast{1,2}/calibrate
+      state_topic_prefix: state/ # state/ballast{1,2}/position, state, fault_reason
+
+  bms_controller:
+    ros__parameters:
+      type: sinsei_umiusi_control/controller/BmsController
+      update_rate: 10 # Hz
+      state_topic_prefix: state/ # state/power/battery, state/power/bms（UMIUSIのgate_controllerと同じ）
+
+  imu_controller:
+    ros__parameters:
+      type: sinsei_umiusi_control/controller/ImuController
+      update_rate: 50 # Hz; UMIUSIのgate_controllerと同じ
+      state_topic_prefix: state/ # state/imu, state/imu_temperature（UMIUSIのgate_controllerと同じ）

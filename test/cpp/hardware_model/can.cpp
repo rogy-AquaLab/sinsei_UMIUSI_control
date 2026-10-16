@@ -3,13 +3,13 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <cstdint>
 #include <rcpputils/tl_expected/expected.hpp>
 #include <string>
 #include <vector>
 
 #include "gmock/gmock.h"
-#include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
 #include "sinsei_umiusi_control/hardware_model/can_model.hpp"
 #include "sinsei_umiusi_control/util/byte.hpp"
 
@@ -30,30 +30,31 @@ constexpr auto _ = testing::_;
 constexpr uint8_t VESC_ID_MAX = 127;
 constexpr uint8_t HARMONY_BMS_ID = 3;
 
-auto make_thrusters(size_t count) -> std::vector<suchm::CanModel::ThrusterConfig> {
-    auto thrusters = std::vector<suchm::CanModel::ThrusterConfig>{};
-    thrusters.reserve(count);
+auto make_actuators(size_t count) -> std::vector<suchm::CanModel::ActuatorConfig> {
+    auto actuators = std::vector<suchm::CanModel::ActuatorConfig>{};
+    actuators.reserve(count);
     const auto first_vesc_id = static_cast<size_t>(VESC_ID_MAX) + 1 - count;
     for (size_t i = 0; i < count; ++i) {
-        thrusters.push_back(suchm::CanModel::ThrusterConfig{
-            "thruster" + std::to_string(i + 1), static_cast<uint8_t>(first_vesc_id + i)});
+        actuators.push_back(suchm::CanModel::ActuatorConfig{
+            "thruster" + std::to_string(i + 1), static_cast<uint8_t>(first_vesc_id + i),
+            suchm::CanModel::MotorType::BLDC, true});
     }
-    return thrusters;
+    return actuators;
 }
 
-const auto THRUSTERS = make_thrusters(4);
+const auto ACTUATORS = make_actuators(4);
 
-auto make_enabled_command(double duty_cycle = 0.25) -> suchm::CanModel::ThrusterCommand {
-    return suchm::CanModel::ThrusterCommand{
-        succmd::thruster::esc::Allowed{true},
-        succmd::thruster::esc::DutyCycle{duty_cycle},
-        succmd::thruster::servo::Allowed{true},
-        succmd::thruster::servo::Angle{0.0},
+auto make_enabled_command(double duty_cycle = 0.25) -> suchm::CanModel::ActuatorCommand {
+    return suchm::CanModel::ActuatorCommand{
+        suchm::CanModel::MotorAllowed{true},
+        suchm::CanModel::MotorDutyCycle{duty_cycle},
+        suchm::CanModel::ServoAllowed{true},
+        suchm::CanModel::ServoAngle{0.0},
     };
 }
 
-auto make_enabled_commands(size_t count) -> std::vector<suchm::CanModel::ThrusterCommand> {
-    auto commands = std::vector<suchm::CanModel::ThrusterCommand>{};
+auto make_enabled_commands(size_t count) -> std::vector<suchm::CanModel::ActuatorCommand> {
+    auto commands = std::vector<suchm::CanModel::ActuatorCommand>{};
     commands.reserve(count);
     for (size_t i = 0; i < count; ++i) {
         commands.push_back(make_enabled_command());
@@ -79,7 +80,7 @@ TEST(CanModelTest, CanModelOnInitTest) {
 
     EXPECT_CALL(*can, init(_)).Times(1).WillOnce(Return(tl::expected<void, std::string>{}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, HARMONY_BMS_ID);
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID);
     auto result = can_model.on_init();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
@@ -89,7 +90,7 @@ TEST(CanModelTest, CanModelOnDestroyTest) {
 
     EXPECT_CALL(*can, close()).Times(1).WillOnce(Return(tl::expected<void, std::string>{}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, HARMONY_BMS_ID);
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID);
     auto result = can_model.on_destroy();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
 }
@@ -102,7 +103,7 @@ TEST(CanModelTest, CanModelOnReadNoFrameReturnsNoUpdateTest) {
         .WillOnce(Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{
             std::vector<suchm::interface::CanFrame>{}}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, HARMONY_BMS_ID);
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     EXPECT_TRUE(result.value().states.empty());
@@ -113,7 +114,7 @@ TEST(CanModelTest, CanModelOnReadPacketStatusReturnsRpmUpdateTest) {
     auto can = std::make_shared<Can>();
 
     const auto frame = make_vesc_status_frame(
-        THRUSTERS[0].vesc_id, suchm::can::VescModel::PacketStatus::ID,
+        ACTUATORS[0].vesc_id, suchm::can::VescModel::PacketStatus::ID,
         {std::byte{0x00}, std::byte{0x00}, std::byte{0x05}, std::byte{0x78}, std::byte{0x00},
          std::byte{0x7B}, std::byte{0x01}, std::byte{0xF4}});
 
@@ -122,7 +123,7 @@ TEST(CanModelTest, CanModelOnReadPacketStatusReturnsRpmUpdateTest) {
         .WillOnce(
             Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame}}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, HARMONY_BMS_ID);
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     ASSERT_EQ(result.value().states.size(), 1u);
@@ -146,7 +147,7 @@ TEST(CanModelTest, CanModelOnReadRoutesHarmonyBmsFrameTest) {
         .WillOnce(
             Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame}}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, HARMONY_BMS_ID);
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     ASSERT_EQ(result.value().states.size(), 1u);
@@ -167,16 +168,16 @@ TEST(CanModelTest, CanModelOnReadProcessesAllReceivedFramesTest) {
         std::byte{0x00}, std::byte{0x00}, std::byte{0x05}, std::byte{0x78},
         std::byte{0x00}, std::byte{0x7B}, std::byte{0x01}, std::byte{0xF4}};
     const auto frame1 =
-        make_vesc_status_frame(THRUSTERS[0].vesc_id, suchm::can::VescModel::PacketStatus::ID, data);
+        make_vesc_status_frame(ACTUATORS[0].vesc_id, suchm::can::VescModel::PacketStatus::ID, data);
     const auto frame2 =
-        make_vesc_status_frame(THRUSTERS[1].vesc_id, suchm::can::VescModel::PacketStatus::ID, data);
+        make_vesc_status_frame(ACTUATORS[1].vesc_id, suchm::can::VescModel::PacketStatus::ID, data);
 
     EXPECT_CALL(*can, recv_frames())
         .Times(1)
         .WillOnce(Return(
             tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame1, frame2}}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, HARMONY_BMS_ID);
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     ASSERT_EQ(result.value().states.size(), 2u);
@@ -197,18 +198,18 @@ TEST(CanModelTest, CanModelOnReadUsesUnusedStatusAsHeartbeatTest) {
         std::byte{0x00}, std::byte{0x00}, std::byte{0x05}, std::byte{0x78},
         std::byte{0x00}, std::byte{0x7B}, std::byte{0x01}, std::byte{0xF4}};
     const auto frame1 =
-        make_vesc_status_frame(THRUSTERS[0].vesc_id, suchm::can::VescModel::PacketStatus::ID, data);
+        make_vesc_status_frame(ACTUATORS[0].vesc_id, suchm::can::VescModel::PacketStatus::ID, data);
     const auto unused_frame =
-        make_vesc_status_frame(THRUSTERS[0].vesc_id, suchm::can::VescModel::PacketStatus2::ID);
+        make_vesc_status_frame(ACTUATORS[0].vesc_id, suchm::can::VescModel::PacketStatus2::ID);
     const auto frame2 =
-        make_vesc_status_frame(THRUSTERS[1].vesc_id, suchm::can::VescModel::PacketStatus::ID, data);
+        make_vesc_status_frame(ACTUATORS[1].vesc_id, suchm::can::VescModel::PacketStatus::ID, data);
 
     EXPECT_CALL(*can, recv_frames())
         .Times(1)
         .WillOnce(Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{
             {frame1, unused_frame, frame2}}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, HARMONY_BMS_ID);
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     ASSERT_EQ(result.value().states.size(), 3u);
@@ -229,14 +230,14 @@ TEST(CanModelTest, CanModelOnReadUnusedPacketStatusReturnsHeartbeatTest) {
     auto can = std::make_shared<Can>();
 
     const auto frame =
-        make_vesc_status_frame(THRUSTERS[0].vesc_id, suchm::can::VescModel::PacketStatus2::ID);
+        make_vesc_status_frame(ACTUATORS[0].vesc_id, suchm::can::VescModel::PacketStatus2::ID);
 
     EXPECT_CALL(*can, recv_frames())
         .Times(1)
         .WillOnce(
             Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame}}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, HARMONY_BMS_ID);
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     ASSERT_EQ(result.value().states.size(), 1u);
@@ -256,7 +257,7 @@ TEST(CanModelTest, CanModelOnReadUndecodableFrameReturnsErrorTest) {
         .WillOnce(
             Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame}}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, HARMONY_BMS_ID);
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     EXPECT_TRUE(result.value().states.empty());
@@ -284,7 +285,7 @@ TEST(CanModelTest, CanModelOnReadIgnoresVescTransportFramesTest) {
         .WillOnce(
             Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{frames}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, HARMONY_BMS_ID);
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     EXPECT_TRUE(result.value().states.empty());
@@ -302,7 +303,7 @@ TEST(CanModelTest, CanModelOnReadRejectsUnknownPacketFromRegisteredNodeTest) {
         .WillOnce(
             Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame}}));
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, HARMONY_BMS_ID);
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     EXPECT_TRUE(result.value().states.empty());
@@ -312,7 +313,7 @@ TEST(CanModelTest, CanModelOnReadRejectsUnknownPacketFromRegisteredNodeTest) {
         "    Harmony BMS: Received Harmony BMS frame with unknown packet ID: 127\n");
 }
 
-TEST(CanModelTest, CanModelOnInitRejectsEmptyThrusterConfigurationTest) {
+TEST(CanModelTest, CanModelOnInitRejectsEmptyActuatorConfigurationTest) {
     auto can = std::make_shared<Can>();
 
     EXPECT_CALL(*can, init(_)).Times(0);
@@ -321,30 +322,30 @@ TEST(CanModelTest, CanModelOnInitRejectsEmptyThrusterConfigurationTest) {
     const auto result = can_model.on_init();
     ASSERT_FALSE(result);
     EXPECT_EQ(
-        result.error(), "Invalid CAN node configuration: At least one thruster must be configured");
+        result.error(), "Invalid CAN node configuration: At least one actuator must be configured");
 }
 
-TEST(CanModelTest, CanModelOnInitRejectsDuplicateThrusterNameTest) {
+TEST(CanModelTest, CanModelOnInitRejectsDuplicateActuatorNameTest) {
     auto can = std::make_shared<Can>();
-    auto thrusters = THRUSTERS;
-    thrusters[1].name = thrusters[0].name;
+    auto actuators = ACTUATORS;
+    actuators[1].name = actuators[0].name;
 
     EXPECT_CALL(*can, init(_)).Times(0);
 
-    auto can_model = suchm::CanModel(can, thrusters, HARMONY_BMS_ID);
+    auto can_model = suchm::CanModel(can, actuators, HARMONY_BMS_ID);
     const auto result = can_model.on_init();
     ASSERT_FALSE(result);
-    EXPECT_EQ(result.error(), "Invalid CAN node configuration: Duplicate thruster name: thruster1");
+    EXPECT_EQ(result.error(), "Invalid CAN node configuration: Duplicate actuator name: thruster1");
 }
 
 TEST(CanModelTest, CanModelOnInitRejectsDuplicateVescIdTest) {
     auto can = std::make_shared<Can>();
-    auto thrusters = THRUSTERS;
-    thrusters[1].vesc_id = thrusters[0].vesc_id;
+    auto actuators = ACTUATORS;
+    actuators[1].vesc_id = actuators[0].vesc_id;
 
     EXPECT_CALL(*can, init(_)).Times(0);
 
-    auto can_model = suchm::CanModel(can, thrusters, HARMONY_BMS_ID);
+    auto can_model = suchm::CanModel(can, actuators, HARMONY_BMS_ID);
     const auto result = can_model.on_init();
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error(), "Invalid CAN node configuration: Duplicate VESC ID: 124");
@@ -355,7 +356,7 @@ TEST(CanModelTest, CanModelOnInitRejectsHarmonyBmsIdConflictingWithVescTest) {
 
     EXPECT_CALL(*can, init(_)).Times(0);
 
-    auto can_model = suchm::CanModel(can, THRUSTERS, THRUSTERS[1].vesc_id);
+    auto can_model = suchm::CanModel(can, ACTUATORS, ACTUATORS[1].vesc_id);
     const auto result = can_model.on_init();
     ASSERT_FALSE(result);
     EXPECT_EQ(
@@ -363,8 +364,151 @@ TEST(CanModelTest, CanModelOnInitRejectsHarmonyBmsIdConflictingWithVescTest) {
         "Invalid CAN node configuration: Harmony BMS ID conflicts with VESC ID: 125");
 }
 
+TEST(CanModelTest, CanModelOnReadRoutesSteppingMotorDriverStatusTest) {
+    auto can = std::make_shared<Can>();
+    const auto frame = suchm::interface::CanFrame{
+        0x328,
+        8,
+        {std::byte{0x13}, std::byte{0x88}, std::byte{0xFF}, std::byte{0xFF}, std::byte{0x05},
+         std::byte{0x16}, std::byte{0x04}, std::byte{0x00}},
+        false,
+    };
+
+    EXPECT_CALL(*can, recv_frames())
+        .Times(1)
+        .WillOnce(
+            Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame}}));
+
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID, true);
+    const auto result = can_model.on_read();
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
+    ASSERT_EQ(result.value().states.size(), 1u);
+    EXPECT_TRUE(result.value().error_message.empty());
+    const auto & packet =
+        std::get<suchm::can::SteppingMotorDriverModel::AnyPacket>(result.value().states[0]);
+    const auto * status = std::get_if<suchm::can::SteppingMotorDriverModel::PacketStatus>(&packet);
+    ASSERT_NE(status, nullptr);
+    EXPECT_DOUBLE_EQ(status->axes[0].position, 0.5);
+}
+
+TEST(CanModelTest, CanModelOnReadRejectsSteppingMotorDriverFrameWhenDisabledTest) {
+    auto can = std::make_shared<Can>();
+    const auto frame = suchm::interface::CanFrame{0x328, 8, {}, false};
+
+    EXPECT_CALL(*can, recv_frames())
+        .Times(1)
+        .WillOnce(
+            Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame}}));
+
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID);
+    const auto result = can_model.on_read();
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
+    EXPECT_TRUE(result.value().states.empty());
+    EXPECT_FALSE(result.value().error_message.empty());
+}
+
+TEST(CanModelTest, OnWriteSteppingMotorDriverSendsCalibrateBeforeTargets) {
+    auto can = std::make_shared<Can>();
+    auto sent_frames = std::vector<suchm::interface::CanFrame>{};
+
+    EXPECT_CALL(*can, send_frame(_))
+        .Times(2)
+        .WillRepeatedly(Invoke(
+            [&sent_frames](
+                const suchm::interface::CanFrame & frame) -> tl::expected<void, std::string> {
+                sent_frames.push_back(frame);
+                return {};
+            }));
+
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID, true);
+    const auto result =
+        can_model.on_write_stepping_motor_driver(suchm::CanModel::SteppingMotorDriverCommand{
+            {std::nan(""), 0.25},
+            0x01,
+        });
+    ASSERT_TRUE(result) << result.error();
+
+    ASSERT_EQ(sent_frames.size(), 2u);
+    EXPECT_EQ(sent_frames[0].id, 0x322u);
+    EXPECT_EQ(sent_frames[0].data[0], std::byte{0x01});
+    EXPECT_EQ(sent_frames[1].id, 0x321u);
+    EXPECT_EQ(sent_frames[1].data[0], std::byte{0x01});
+    EXPECT_EQ(sinsei_umiusi_control::util::to_integer_be<uint16_t>(sent_frames[1].data, 1), 2500);
+}
+
+TEST(CanModelTest, OnWriteSteppingMotorDriverRejectsWhenDisabled) {
+    auto can = std::make_shared<Can>();
+
+    EXPECT_CALL(*can, send_frame(_)).Times(0);
+
+    auto can_model = suchm::CanModel(can, ACTUATORS, HARMONY_BMS_ID);
+    const auto result = can_model.on_write_stepping_motor_driver(
+        suchm::CanModel::SteppingMotorDriverCommand{{0.5, 0.5}, 0});
+    ASSERT_FALSE(result);
+    EXPECT_EQ(result.error(), "Stepping motor driver is not configured");
+}
+
+TEST(CanModelTest, CanModelOnInitRejectsActuatorWithoutMotorOrServoTest) {
+    auto can = std::make_shared<Can>();
+    const auto actuators = std::vector<suchm::CanModel::ActuatorConfig>{
+        {"empty", 127, suchm::CanModel::MotorType::None, false}};
+
+    EXPECT_CALL(*can, init(_)).Times(0);
+
+    auto can_model = suchm::CanModel(can, actuators, HARMONY_BMS_ID);
+    const auto result = can_model.on_init();
+    ASSERT_FALSE(result);
+    EXPECT_EQ(
+        result.error(),
+        "Invalid CAN node configuration: Actuator must have a motor or servo: empty");
+}
+
+TEST(CanModelTest, CanModelOnReadDcMotorStatusDoesNotApplyBldcPoleConversionTest) {
+    auto can = std::make_shared<Can>();
+    const auto actuators = std::vector<suchm::CanModel::ActuatorConfig>{
+        {"crawler_left", 127, suchm::CanModel::MotorType::DC, false}};
+    const auto frame = make_vesc_status_frame(
+        actuators[0].vesc_id, suchm::can::VescModel::PacketStatus::ID,
+        {std::byte{0x00}, std::byte{0x00}, std::byte{0x05}, std::byte{0x78}, std::byte{0x00},
+         std::byte{0x7B}, std::byte{0x01}, std::byte{0xF4}});
+
+    EXPECT_CALL(*can, recv_frames())
+        .Times(1)
+        .WillOnce(
+            Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame}}));
+
+    auto can_model = suchm::CanModel(can, actuators, HARMONY_BMS_ID);
+    const auto result = can_model.on_read();
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
+    ASSERT_EQ(result.value().states.size(), 1u);
+    const auto & [name, rpm] = std::get<0>(result.value().states[0]);
+    EXPECT_EQ(name, "crawler_left");
+    EXPECT_DOUBLE_EQ(rpm.value, 1400.0);
+}
+
+TEST(CanModelTest, CanModelOnReadServoOnlyActuatorUsesStatusAsHeartbeatTest) {
+    auto can = std::make_shared<Can>();
+    const auto actuators = std::vector<suchm::CanModel::ActuatorConfig>{
+        {"servo_only", 127, suchm::CanModel::MotorType::None, true}};
+    const auto frame =
+        make_vesc_status_frame(actuators[0].vesc_id, suchm::can::VescModel::PacketStatus::ID);
+
+    EXPECT_CALL(*can, recv_frames())
+        .Times(1)
+        .WillOnce(
+            Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame}}));
+
+    auto can_model = suchm::CanModel(can, actuators, HARMONY_BMS_ID);
+    const auto result = can_model.on_read();
+    ASSERT_TRUE(result) << std::string("Error: ") + result.error();
+    ASSERT_EQ(result.value().states.size(), 1u);
+    const auto & [name, heartbeat] = std::get<3>(result.value().states[0]);
+    EXPECT_EQ(name, "servo_only");
+    EXPECT_TRUE(heartbeat.is_ok);
+}
+
 // FIXME: 分電盤のSTM32向けCAN仕様が未確定のため、電源制御を含むon_writeは未テスト
-TEST(CanModelTest, OnWriteUsesCommandIndexForConfiguredThrusterOrder) {
+TEST(CanModelTest, OnWriteUsesCommandIndexForConfiguredActuatorOrder) {
     auto can = std::make_shared<Can>();
     auto sent_frames = std::vector<suchm::interface::CanFrame>{};
 
@@ -378,64 +522,64 @@ TEST(CanModelTest, OnWriteUsesCommandIndexForConfiguredThrusterOrder) {
                 return {};
             }));
 
-    constexpr size_t THRUSTER_COUNT = 3;
-    const auto thrusters = make_thrusters(THRUSTER_COUNT);
-    auto can_model = suchm::CanModel(can, thrusters, HARMONY_BMS_ID);
+    constexpr size_t ACTUATOR_COUNT = 3;
+    const auto actuators = make_actuators(ACTUATOR_COUNT);
+    auto can_model = suchm::CanModel(can, actuators, HARMONY_BMS_ID);
     ASSERT_TRUE(can_model.on_init());
 
-    // コマンドのインデックスがスラスタ設定のインデックスに対応することを確認する
-    const auto thruster_commands = std::vector<suchm::CanModel::ThrusterCommand>{
+    // コマンドのインデックスがアクチュエータ設定のインデックスに対応することを確認する
+    const auto actuator_commands = std::vector<suchm::CanModel::ActuatorCommand>{
         make_enabled_command(0.25),
         make_enabled_command(0.50),
         make_enabled_command(0.75),
     };
 
-    // 最初の送信フェーズで各スラスタのDutyをまとめて送信する
+    // 最初の送信フェーズで各アクチュエータのDutyをまとめて送信する
     const auto result = can_model.on_write(
-        succmd::power_distribution::Enabled{false}, thruster_commands,
+        succmd::power_distribution::Enabled{false}, actuator_commands,
         succmd::led_tape::Color{0, 0, 0});
     ASSERT_TRUE(result) << result.error();
 
-    ASSERT_EQ(sent_frames.size(), THRUSTER_COUNT);
-    EXPECT_EQ(sent_frames[0].id, thrusters[0].vesc_id);
-    EXPECT_EQ(sent_frames[1].id, thrusters[1].vesc_id);
-    EXPECT_EQ(sent_frames[2].id, thrusters[2].vesc_id);
+    ASSERT_EQ(sent_frames.size(), ACTUATOR_COUNT);
+    EXPECT_EQ(sent_frames[0].id, actuators[0].vesc_id);
+    EXPECT_EQ(sent_frames[1].id, actuators[1].vesc_id);
+    EXPECT_EQ(sent_frames[2].id, actuators[2].vesc_id);
     EXPECT_EQ(sinsei_umiusi_control::util::to_integer_be<int32_t>(sent_frames[0].data), 25000);
     EXPECT_EQ(sinsei_umiusi_control::util::to_integer_be<int32_t>(sent_frames[1].data), 50000);
     EXPECT_EQ(sinsei_umiusi_control::util::to_integer_be<int32_t>(sent_frames[2].data), 75000);
 }
 
-TEST(CanModelTest, OnWriteRejectsMismatchedThrusterCommandCount) {
+TEST(CanModelTest, OnWriteRejectsMismatchedActuatorCommandCount) {
     auto can = std::make_shared<Can>();
 
     EXPECT_CALL(*can, init(_)).WillOnce(Return(tl::expected<void, std::string>{}));
     EXPECT_CALL(*can, send_frame(_)).Times(0);
 
-    constexpr size_t THRUSTER_COUNT = 3;
-    auto can_model = suchm::CanModel(can, make_thrusters(THRUSTER_COUNT), HARMONY_BMS_ID);
+    constexpr size_t ACTUATOR_COUNT = 3;
+    auto can_model = suchm::CanModel(can, make_actuators(ACTUATOR_COUNT), HARMONY_BMS_ID);
     ASSERT_TRUE(can_model.on_init());
 
-    auto thruster_commands = make_enabled_commands(THRUSTER_COUNT);
-    thruster_commands.pop_back();
+    auto actuator_commands = make_enabled_commands(ACTUATOR_COUNT);
+    actuator_commands.pop_back();
     const auto result = can_model.on_write(
-        succmd::power_distribution::Enabled{false}, thruster_commands,
+        succmd::power_distribution::Enabled{false}, actuator_commands,
         succmd::led_tape::Color{0, 0, 0});
 
     ASSERT_FALSE(result);
     EXPECT_EQ(
-        result.error(), "Thruster command count does not match configuration: expected 3, got 2");
+        result.error(), "Actuator command count does not match configuration: expected 3, got 2");
 }
 
-class CanModelVariableThrusterCountTest : public testing::TestWithParam<size_t> {};
+class CanModelVariableActuatorCountTest : public testing::TestWithParam<size_t> {};
 
-TEST_P(CanModelVariableThrusterCountTest, WritesEachDynamicThrusterInAlternatingBatches) {
-    const auto thruster_count = GetParam();
+TEST_P(CanModelVariableActuatorCountTest, WritesEachDynamicActuatorInAlternatingBatches) {
+    const auto actuator_count = GetParam();
     auto can = std::make_shared<Can>();
     auto sent_frame_ids = std::vector<suchm::interface::CanFrame::Id>{};
-    const auto thrusters = make_thrusters(thruster_count);
+    const auto actuators = make_actuators(actuator_count);
 
     EXPECT_CALL(*can, send_frame(_))
-        .Times(static_cast<int>(2 * thruster_count))
+        .Times(static_cast<int>(2 * actuator_count))
         .WillRepeatedly(Invoke(
             [&sent_frame_ids](
                 const suchm::interface::CanFrame & frame) -> tl::expected<void, std::string> {
@@ -443,45 +587,44 @@ TEST_P(CanModelVariableThrusterCountTest, WritesEachDynamicThrusterInAlternating
                 return {};
             }));
 
-    auto can_model = suchm::CanModel(can, thrusters, HARMONY_BMS_ID);
+    auto can_model = suchm::CanModel(can, actuators, HARMONY_BMS_ID);
     EXPECT_CALL(*can, init(_)).WillOnce(Return(tl::expected<void, std::string>{}));
     ASSERT_TRUE(can_model.on_init());
 
-    auto thruster_commands = make_enabled_commands(thruster_count);
+    auto actuator_commands = make_enabled_commands(actuator_count);
 
     const auto duty_result = can_model.on_write(
-        succmd::power_distribution::Enabled{false}, thruster_commands,
+        succmd::power_distribution::Enabled{false}, actuator_commands,
         succmd::led_tape::Color{0, 0, 0});
     ASSERT_TRUE(duty_result) << duty_result.error();
 
     const auto servo_result = can_model.on_write(
-        succmd::power_distribution::Enabled{false}, thruster_commands,
+        succmd::power_distribution::Enabled{false}, actuator_commands,
         succmd::led_tape::Color{0, 0, 0});
     ASSERT_TRUE(servo_result) << servo_result.error();
 
     auto expected_frame_ids = std::vector<suchm::interface::CanFrame::Id>{};
-    expected_frame_ids.reserve(2 * thruster_count);
-    for (size_t i = 0; i < thruster_count; ++i) {
-        expected_frame_ids.push_back(thrusters[i].vesc_id);
+    expected_frame_ids.reserve(2 * actuator_count);
+    for (size_t i = 0; i < actuator_count; ++i) {
+        expected_frame_ids.push_back(actuators[i].vesc_id);
     }
-    for (size_t i = 0; i < thruster_count; ++i) {
+    for (size_t i = 0; i < actuator_count; ++i) {
         expected_frame_ids.push_back(
             (static_cast<suchm::interface::CanFrame::Id>(
                  suchm::can::VescModel::CAN_PACKET_SET_SERVO)
              << 8) |
-            thrusters[i].vesc_id);
+            actuators[i].vesc_id);
     }
     EXPECT_EQ(sent_frame_ids, expected_frame_ids);
 }
 
-TEST(CanModelTest, OnWriteDoesNotReplaceDisabledCommandsWithZero) {
-    // FIXME: LispBMの実装が終わったらallowedコマンドの送信も検証する
+TEST(CanModelTest, OnWriteSendsZeroDutyWhenMotorIsNotAllowed) {
     auto can = std::make_shared<Can>();
     auto sent_frames = std::vector<suchm::interface::CanFrame>{};
 
     EXPECT_CALL(*can, init(_)).WillOnce(Return(tl::expected<void, std::string>{}));
     EXPECT_CALL(*can, send_frame(_))
-        .Times(2)
+        .Times(3)
         .WillRepeatedly(Invoke(
             [&sent_frames](
                 const suchm::interface::CanFrame & frame) -> tl::expected<void, std::string> {
@@ -489,35 +632,126 @@ TEST(CanModelTest, OnWriteDoesNotReplaceDisabledCommandsWithZero) {
                 return {};
             }));
 
-    const auto thrusters = make_thrusters(2);
-    auto can_model = suchm::CanModel(can, thrusters, HARMONY_BMS_ID);
+    const auto actuators = make_actuators(2);
+    auto can_model = suchm::CanModel(can, actuators, HARMONY_BMS_ID);
     ASSERT_TRUE(can_model.on_init());
 
-    auto thruster_commands = make_enabled_commands(2);
-    thruster_commands[0].esc_allowed.value = false;
-    thruster_commands[1].servo_allowed.value = false;
+    auto actuator_commands = make_enabled_commands(2);
+    actuator_commands[0].motor_allowed.value = false;
+    actuator_commands[0].motor_duty_cycle.value = 0.75;
+    actuator_commands[1].servo_allowed.value = false;
 
     ASSERT_TRUE(can_model.on_write(
-        succmd::power_distribution::Enabled{false}, thruster_commands,
+        succmd::power_distribution::Enabled{false}, actuator_commands,
         succmd::led_tape::Color{0, 0, 0}));
     ASSERT_TRUE(can_model.on_write(
-        succmd::power_distribution::Enabled{false}, thruster_commands,
+        succmd::power_distribution::Enabled{false}, actuator_commands,
         succmd::led_tape::Color{0, 0, 0}));
 
-    ASSERT_EQ(sent_frames.size(), 2u);
-    EXPECT_EQ(sent_frames[0].id, thrusters[1].vesc_id);
+    // 無効化された直後のモーターにはDuty 0を送り、無効化されたサーボには何も送らない
+    ASSERT_EQ(sent_frames.size(), 3u);
+    EXPECT_EQ(sent_frames[0].id, actuators[0].vesc_id);
+    EXPECT_EQ(sinsei_umiusi_control::util::to_integer_be<int32_t>(sent_frames[0].data), 0);
+    EXPECT_EQ(sent_frames[1].id, actuators[1].vesc_id);
+    EXPECT_EQ(sinsei_umiusi_control::util::to_integer_be<int32_t>(sent_frames[1].data), 25000);
     EXPECT_EQ(
-        sent_frames[1].id,
+        sent_frames[2].id,
         (static_cast<suchm::interface::CanFrame::Id>(suchm::can::VescModel::CAN_PACKET_SET_SERVO)
          << 8) |
-            thrusters[0].vesc_id);
+            actuators[0].vesc_id);
 }
 
-TEST_P(CanModelVariableThrusterCountTest, RoutesReceivedStatusToConfiguredThrusterName) {
-    const auto thruster_count = GetParam();
+TEST(CanModelTest, OnWriteStopsSendingAfterStopFramesWhenMotorIsNotAllowed) {
     auto can = std::make_shared<Can>();
-    const auto thrusters = make_thrusters(thruster_count);
-    const auto vesc_id = thrusters.back().vesc_id;
+    auto sent_frames = std::vector<suchm::interface::CanFrame>{};
+
+    EXPECT_CALL(*can, init(_)).WillOnce(Return(tl::expected<void, std::string>{}));
+    EXPECT_CALL(*can, send_frame(_))
+        .WillRepeatedly(Invoke(
+            [&sent_frames](
+                const suchm::interface::CanFrame & frame) -> tl::expected<void, std::string> {
+                sent_frames.push_back(frame);
+                return {};
+            }));
+
+    const auto actuators = make_actuators(1);
+    auto can_model = suchm::CanModel(can, actuators, HARMONY_BMS_ID);
+    ASSERT_TRUE(can_model.on_init());
+
+    auto disabled_commands = make_enabled_commands(1);
+    disabled_commands[0].motor_allowed.value = false;
+    disabled_commands[0].servo_allowed.value = false;
+    const auto enabled_commands = make_enabled_commands(1);
+
+    // MotorとServoを交互に送るため、2回のon_writeでモーターへ1回送る
+    const auto write_motor_cycles = [&](const auto & commands, const size_t cycles) {
+        for (size_t i = 0; i < cycles * 2; ++i) {
+            ASSERT_TRUE(can_model.on_write(
+                succmd::power_distribution::Enabled{false}, commands,
+                succmd::led_tape::Color{0, 0, 0}));
+        }
+    };
+
+    // 起動直後も許可されていないため、STOP_FRAME_COUNT回だけDuty 0を送ってから止める
+    write_motor_cycles(disabled_commands, suchm::CanModel::STOP_FRAME_COUNT + 3);
+    ASSERT_EQ(sent_frames.size(), suchm::CanModel::STOP_FRAME_COUNT);
+    for (const auto & frame : sent_frames) {
+        EXPECT_EQ(frame.id, actuators[0].vesc_id);
+        EXPECT_EQ(sinsei_umiusi_control::util::to_integer_be<int32_t>(frame.data), 0);
+    }
+
+    // 再び許可されると送信を再開し、その後また許可が切れると数え直す
+    sent_frames.clear();
+    write_motor_cycles(enabled_commands, 1);
+    ASSERT_EQ(sent_frames.size(), 2u);  // Duty と サーボ角
+    sent_frames.clear();
+    write_motor_cycles(disabled_commands, suchm::CanModel::STOP_FRAME_COUNT + 3);
+    EXPECT_EQ(sent_frames.size(), suchm::CanModel::STOP_FRAME_COUNT);
+}
+
+TEST(CanModelTest, OnWriteSupportsMixedMotorAndServoCapabilities) {
+    auto can = std::make_shared<Can>();
+    auto sent_frames = std::vector<suchm::interface::CanFrame>{};
+    const auto actuators = std::vector<suchm::CanModel::ActuatorConfig>{
+        {"thruster", 125, suchm::CanModel::MotorType::BLDC, true},
+        {"crawler", 126, suchm::CanModel::MotorType::DC, false},
+        {"servo_only", 127, suchm::CanModel::MotorType::None, true},
+    };
+
+    EXPECT_CALL(*can, init(_)).WillOnce(Return(tl::expected<void, std::string>{}));
+    EXPECT_CALL(*can, send_frame(_))
+        .Times(4)
+        .WillRepeatedly(Invoke(
+            [&sent_frames](
+                const suchm::interface::CanFrame & frame) -> tl::expected<void, std::string> {
+                sent_frames.push_back(frame);
+                return {};
+            }));
+
+    auto can_model = suchm::CanModel(can, actuators, HARMONY_BMS_ID);
+    ASSERT_TRUE(can_model.on_init());
+    const auto commands = make_enabled_commands(actuators.size());
+
+    ASSERT_TRUE(can_model.on_write(
+        succmd::power_distribution::Enabled{false}, commands, succmd::led_tape::Color{0, 0, 0}));
+    ASSERT_TRUE(can_model.on_write(
+        succmd::power_distribution::Enabled{false}, commands, succmd::led_tape::Color{0, 0, 0}));
+
+    constexpr auto SERVO_ID_OFFSET =
+        static_cast<suchm::interface::CanFrame::Id>(suchm::can::VescModel::CAN_PACKET_SET_SERVO)
+        << 8;
+    ASSERT_EQ(sent_frames.size(), 4u);
+    EXPECT_EQ(sent_frames[0].id, actuators[0].vesc_id);
+    EXPECT_EQ(sent_frames[1].id, actuators[1].vesc_id);
+    EXPECT_EQ(sent_frames[2].id, SERVO_ID_OFFSET | actuators[0].vesc_id);
+    EXPECT_EQ(sent_frames[3].id, SERVO_ID_OFFSET | actuators[2].vesc_id);
+}
+
+TEST_P(CanModelVariableActuatorCountTest, RoutesReceivedStatusToConfiguredActuatorName) {
+    const auto actuator_count = GetParam();
+    auto can = std::make_shared<Can>();
+    const auto actuators = make_actuators(actuator_count);
+    const auto vesc_id = actuators.back().vesc_id;
     const auto frame = make_vesc_status_frame(
         vesc_id, suchm::can::VescModel::PacketStatus::ID,
         {std::byte{0x00}, std::byte{0x00}, std::byte{0x05}, std::byte{0x78}, std::byte{0x00},
@@ -528,17 +762,17 @@ TEST_P(CanModelVariableThrusterCountTest, RoutesReceivedStatusToConfiguredThrust
         .WillOnce(
             Return(tl::expected<std::vector<suchm::interface::CanFrame>, std::string>{{frame}}));
 
-    auto can_model = suchm::CanModel(can, thrusters, HARMONY_BMS_ID);
+    auto can_model = suchm::CanModel(can, actuators, HARMONY_BMS_ID);
     const auto result = can_model.on_read();
     ASSERT_TRUE(result) << std::string("Error: ") + result.error();
     ASSERT_EQ(result.value().states.size(), 1u);
     EXPECT_TRUE(result.value().error_message.empty());
     const auto & [name, rpm] = std::get<0>(result.value().states[0]);
-    EXPECT_EQ(name, "thruster" + std::to_string(thruster_count));
+    EXPECT_EQ(name, "thruster" + std::to_string(actuator_count));
     EXPECT_DOUBLE_EQ(rpm.value, 200.0);
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    ThrusterCounts, CanModelVariableThrusterCountTest, testing::Values(1u, 3u, 4u, 6u));
+    ActuatorCounts, CanModelVariableActuatorCountTest, testing::Values(1u, 3u, 4u, 6u));
 
 }  // namespace sinsei_umiusi_control::test::hardware_model::can

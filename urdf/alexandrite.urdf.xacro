@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="Alexandrite">
+
+  <xacro:arg name="thruster1_vesc_id" default="'unknown'" />
+  <xacro:arg name="thruster2_vesc_id" default="'unknown'" />
+  <xacro:arg name="thruster3_vesc_id" default="'unknown'" />
+  <xacro:arg name="crawler_left_vesc_id" default="'unknown'" />
+  <xacro:arg name="crawler_right_vesc_id" default="'unknown'" />
+  <xacro:arg name="harmony_bms_id" default="'unknown'" />
+  <xacro:arg name="imu_i2c_device" default="'unknown'" />
+
+  <xacro:include filename="sinsei_umiusi_control/can.urdf.xacro" />
+  <xacro:include filename="sinsei_umiusi_control/imu.urdf.xacro" />
+
+  <link name="base_link"></link>
+
+  <xacro:alexandrite_can
+    thruster1_vesc_id="$(arg thruster1_vesc_id)"
+    thruster2_vesc_id="$(arg thruster2_vesc_id)"
+    thruster3_vesc_id="$(arg thruster3_vesc_id)"
+    crawler_left_vesc_id="$(arg crawler_left_vesc_id)"
+    crawler_right_vesc_id="$(arg crawler_right_vesc_id)"
+    harmony_bms_id="$(arg harmony_bms_id)"
+  />
+
+  <!-- UMIUSIと同じBNO055 -->
+  <xacro:imu i2c_device="$(arg imu_i2c_device)" />
+
+</robot>

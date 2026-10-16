@@ -1,126 +1,181 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="UMIUSI">
 
+  <xacro:macro name="vesc_actuator" params="name vesc_id motor_type has_servo">
+    <gpio name="${name}">
+      <param name="vesc_id">${vesc_id}</param>
+      <param name="motor_type">${motor_type}</param>
+
+      <xacro:unless value="${motor_type == 'none'}">
+        <command_interface name="esc/allowed" data_type="double">
+          <!-- false (Cannot use bool type due to ros2_control bug) -->
+          <param name="initial_value">0.0</param>
+        </command_interface>
+        <command_interface name="esc/duty_cycle" data_type="double">
+          <param name="initial_value">0.0</param>
+        </command_interface>
+        <state_interface name="esc/rpm" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="esc/voltage" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="esc/water_leaked" data_type="double">
+          <!-- false (Cannot use bool type due to ros2_control bug) -->
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="esc/health" data_type="double">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+      </xacro:unless>
+
+      <xacro:if value="${has_servo}">
+        <command_interface name="servo/allowed" data_type="double">
+          <!-- false (Cannot use bool type due to ros2_control bug) -->
+          <param name="initial_value">0.0</param>
+        </command_interface>
+        <command_interface name="servo/angle" data_type="double">
+          <param name="initial_value">0.0</param>
+        </command_interface>
+      </xacro:if>
+    </gpio>
+  </xacro:macro>
+
+  <!-- SteppingMotorDriver基板の1軸で動かすバラスト。axisは0 = M1、1 = M2 -->
+  <xacro:macro name="stepping_motor_ballast" params="name axis">
+    <gpio name="${name}">
+      <param name="stepping_motor_driver_axis">${axis}</param>
+
+      <command_interface name="target" data_type="double">
+        <!-- 行程に対する割合（0.0〜1.0）。負の値かNaNの間は送らない（初期値にNaNは使えない） -->
+        <param name="initial_value">-1.0</param>
+      </command_interface>
+      <command_interface name="calibrate" data_type="double">
+        <!-- 値が変わるたびにゼロ点を取り直す -->
+        <param name="initial_value">0.0</param>
+      </command_interface>
+      <state_interface name="position" data_type="double">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="state" data_type="double">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="fault_reason" data_type="double">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="flags" data_type="double">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="health" data_type="double">
+        <!-- false (Cannot use bool type due to ros2_control bug) -->
+        <param name="initial_value">0.0</param>
+      </state_interface>
+    </gpio>
+  </xacro:macro>
+
+  <xacro:macro name="bms_state" params="name">
+    <state_interface name="${name}" data_type="double">
+      <param name="initial_value">0.0</param>
+    </state_interface>
+  </xacro:macro>
+  <xacro:macro name="bms_cell" params="index">
+    <xacro:bms_state name="cell_${index}.voltage" />
+    <xacro:bms_state name="cell_${index}.is_balancing" />
+  </xacro:macro>
+
+  <xacro:macro name="can_auxiliary_interfaces">
+    <gpio name="power_distribution">
+      <command_interface name="enabled" data_type="double">
+        <!-- false (Cannot use bool type due to ros2_control bug) -->
+        <param name="initial_value">0.0</param>
+      </command_interface>
+    </gpio>
+
+    <sensor name="bms">
+      <xacro:bms_state name="health" />
+      <xacro:bms_state name="voltages.pack" />
+      <xacro:bms_state name="voltages.charger" />
+      <xacro:bms_state name="currents.input" />
+      <xacro:bms_state name="currents.measured" />
+      <xacro:bms_state name="capacity_state.state_of_charge" />
+      <xacro:bms_state name="capacity_state.state_of_health" />
+      <xacro:bms_state name="cell_voltage_range.min" />
+      <xacro:bms_state name="cell_voltage_range.max" />
+      <xacro:bms_state name="charge_status.is_charging" />
+      <xacro:bms_state name="charge_status.is_balancing" />
+      <xacro:bms_state name="charge_status.is_charge_allowed" />
+      <xacro:bms_state name="status" />
+      <xacro:bms_state name="cell_count" />
+      <xacro:bms_cell index="0" />
+      <xacro:bms_cell index="1" />
+      <xacro:bms_cell index="2" />
+      <xacro:bms_cell index="3" />
+      <xacro:bms_cell index="4" />
+      <xacro:bms_cell index="5" />
+      <xacro:bms_cell index="6" />
+      <xacro:bms_cell index="7" />
+      <xacro:bms_cell index="8" />
+      <xacro:bms_cell index="9" />
+      <xacro:bms_cell index="10" />
+      <xacro:bms_cell index="11" />
+      <xacro:bms_state name="balance_ic_temperature" />
+      <xacro:bms_state name="mosfet_temperature" />
+      <xacro:bms_state name="ambient_temperature" />
+      <xacro:bms_state name="additional_temperature_0" />
+      <xacro:bms_state name="additional_temperature_1" />
+      <xacro:bms_state name="additional_temperature_2" />
+      <xacro:bms_state name="additional_temperature_3" />
+      <xacro:bms_state name="additional_temperature_4" />
+    </sensor>
+
+    <gpio name="led_tape">
+      <command_interface name="color" data_type="double">
+        <param name="initial_value">0.0</param>
+      </command_interface>
+    </gpio>
+
+    <sensor name="can">
+      <state_interface name="health" data_type="double">
+        <!-- false (Cannot use bool type due to ros2_control bug) -->
+        <param name="initial_value">0.0</param>
+      </state_interface>
+    </sensor>
+  </xacro:macro>
+
   <xacro:macro name="can"
     params="vesc1_id vesc2_id vesc3_id vesc4_id harmony_bms_id">
     <ros2_control name="can" type="system" is_async="true">
       <hardware>
         <plugin>sinsei_umiusi_control/hardware/Can</plugin>
-        <param name="vesc1_id">${vesc1_id}</param>
-        <param name="vesc2_id">${vesc2_id}</param>
-        <param name="vesc3_id">${vesc3_id}</param>
-        <param name="vesc4_id">${vesc4_id}</param>
         <param name="harmony_bms_id">${harmony_bms_id}</param>
       </hardware>
 
-      <xacro:macro name="thruster" params="id">
-        <xacro:property name="thruster_name" value="thruster${id}" />
+      <xacro:vesc_actuator name="thruster1" vesc_id="${vesc1_id}" motor_type="bldc" has_servo="true" />
+      <xacro:vesc_actuator name="thruster2" vesc_id="${vesc2_id}" motor_type="bldc" has_servo="true" />
+      <xacro:vesc_actuator name="thruster3" vesc_id="${vesc3_id}" motor_type="bldc" has_servo="true" />
+      <xacro:vesc_actuator name="thruster4" vesc_id="${vesc4_id}" motor_type="bldc" has_servo="true" />
 
-        <gpio name="${thruster_name}/servo">
-          <command_interface name="allowed" data_type="double">
-            <!-- false (Cannot use bool type due to ros2_control bug) -->
-            <param name="initial_value">0.0</param>
-          </command_interface>
-          <command_interface name="angle" data_type="double">
-            <param name="initial_value">0.0</param>
-          </command_interface>
-        </gpio>
+      <xacro:can_auxiliary_interfaces />
+    </ros2_control>
+  </xacro:macro>
 
-        <gpio name="${thruster_name}/esc">
-          <command_interface name="allowed" data_type="double">
-            <!-- false (Cannot use bool type due to ros2_control bug) -->
-            <param name="initial_value">0.0</param>
-          </command_interface>
-          <command_interface name="duty_cycle" data_type="double">
-            <param name="initial_value">0.0</param>
-          </command_interface>
-          <state_interface name="rpm" data_type="double">
-            <param name="initial_value">0.0</param>
-          </state_interface>
-          <state_interface name="voltage" data_type="double">
-            <param name="initial_value">0.0</param>
-          </state_interface>
-          <state_interface name="water_leaked" data_type="double">
-            <!-- false (Cannot use bool type due to ros2_control bug) -->
-            <param name="initial_value">0.0</param>
-          </state_interface>
-          <state_interface name="health" data_type="double">
-            <param name="initial_value">0.0</param>
-          </state_interface>
-        </gpio>
-      </xacro:macro>
+  <xacro:macro name="alexandrite_can"
+    params="thruster1_vesc_id thruster2_vesc_id thruster3_vesc_id crawler_left_vesc_id crawler_right_vesc_id harmony_bms_id">
+    <ros2_control name="can" type="system" is_async="true">
+      <hardware>
+        <plugin>sinsei_umiusi_control/hardware/Can</plugin>
+        <param name="harmony_bms_id">${harmony_bms_id}</param>
+      </hardware>
 
-      <xacro:thruster id="1" />
-      <xacro:thruster id="2" />
-      <xacro:thruster id="3" />
-      <xacro:thruster id="4" />
+      <xacro:vesc_actuator name="thruster1" vesc_id="${thruster1_vesc_id}" motor_type="bldc" has_servo="true" />
+      <xacro:vesc_actuator name="thruster2" vesc_id="${thruster2_vesc_id}" motor_type="bldc" has_servo="true" />
+      <xacro:vesc_actuator name="thruster3" vesc_id="${thruster3_vesc_id}" motor_type="bldc" has_servo="true" />
+      <xacro:vesc_actuator name="crawler_left" vesc_id="${crawler_left_vesc_id}" motor_type="dc" has_servo="false" />
+      <xacro:vesc_actuator name="crawler_right" vesc_id="${crawler_right_vesc_id}" motor_type="dc" has_servo="false" />
+      <xacro:stepping_motor_ballast name="ballast1" axis="0" />
+      <xacro:stepping_motor_ballast name="ballast2" axis="1" />
 
-      <gpio name="power_distribution">
-        <command_interface name="enabled" data_type="double">
-          <!-- false (Cannot use bool type due to ros2_control bug) -->
-          <param name="initial_value">0.0</param>
-        </command_interface>
-      </gpio>
-
-      <xacro:macro name="bms_state" params="name">
-        <state_interface name="${name}" data_type="double">
-          <param name="initial_value">0.0</param>
-        </state_interface>
-      </xacro:macro>
-      <xacro:macro name="bms_cell" params="index">
-        <xacro:bms_state name="cell_${index}.voltage" />
-        <xacro:bms_state name="cell_${index}.is_balancing" />
-      </xacro:macro>
-
-      <sensor name="bms">
-        <xacro:bms_state name="health" />
-        <xacro:bms_state name="voltages.pack" />
-        <xacro:bms_state name="voltages.charger" />
-        <xacro:bms_state name="currents.input" />
-        <xacro:bms_state name="currents.measured" />
-        <xacro:bms_state name="capacity_state.state_of_charge" />
-        <xacro:bms_state name="capacity_state.state_of_health" />
-        <xacro:bms_state name="cell_voltage_range.min" />
-        <xacro:bms_state name="cell_voltage_range.max" />
-        <xacro:bms_state name="charge_status.is_charging" />
-        <xacro:bms_state name="charge_status.is_balancing" />
-        <xacro:bms_state name="charge_status.is_charge_allowed" />
-        <xacro:bms_state name="status" />
-        <xacro:bms_state name="cell_count" />
-        <xacro:bms_cell index="0" />
-        <xacro:bms_cell index="1" />
-        <xacro:bms_cell index="2" />
-        <xacro:bms_cell index="3" />
-        <xacro:bms_cell index="4" />
-        <xacro:bms_cell index="5" />
-        <xacro:bms_cell index="6" />
-        <xacro:bms_cell index="7" />
-        <xacro:bms_cell index="8" />
-        <xacro:bms_cell index="9" />
-        <xacro:bms_cell index="10" />
-        <xacro:bms_cell index="11" />
-        <xacro:bms_state name="balance_ic_temperature" />
-        <xacro:bms_state name="mosfet_temperature" />
-        <xacro:bms_state name="ambient_temperature" />
-        <xacro:bms_state name="additional_temperature_0" />
-        <xacro:bms_state name="additional_temperature_1" />
-        <xacro:bms_state name="additional_temperature_2" />
-        <xacro:bms_state name="additional_temperature_3" />
-        <xacro:bms_state name="additional_temperature_4" />
-      </sensor>
-
-      <gpio name="led_tape">
-        <command_interface name="color" data_type="double">
-          <param name="initial_value">0.0</param>
-        </command_interface>
-      </gpio>
-
-      <sensor name="can">
-        <state_interface name="health" data_type="double">
-          <!-- false (Cannot use bool type due to ros2_control bug) -->
-          <param name="initial_value">0.0</param>
-        </state_interface>
-      </sensor>
+      <xacro:can_auxiliary_interfaces />
     </ros2_control>
   </xacro:macro>
 

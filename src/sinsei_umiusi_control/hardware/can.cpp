@@ -1,8 +1,13 @@
 #include "sinsei_umiusi_control/hardware/can.hpp"
 
 #include <algorithm>
+#include <cctype>
+#include <cmath>
 #include <cstdint>
 #include <limits>
+#include <optional>
+#include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -14,6 +19,37 @@
 #include "sinsei_umiusi_control/util/string.hpp"
 
 using namespace sinsei_umiusi_control::hardware;
+
+namespace {
+
+using ActuatorConfig = sinsei_umiusi_control::hardware_model::CanModel::ActuatorConfig;
+using MotorType = sinsei_umiusi_control::hardware_model::CanModel::MotorType;
+
+auto parse_motor_type(std::string motor_type) -> std::optional<MotorType> {
+    std::transform(
+        motor_type.begin(), motor_type.end(), motor_type.begin(),
+        [](unsigned char character) { return static_cast<char>(std::tolower(character)); });
+    if (motor_type == "dc") {
+        return MotorType::DC;
+    }
+    if (motor_type == "bldc") {
+        return MotorType::BLDC;
+    }
+    if (motor_type == "none") {
+        return MotorType::None;
+    }
+    return std::nullopt;
+}
+
+auto has_interface(
+    const std::vector<hardware_interface::InterfaceInfo> & interfaces,
+    const std::string & name) -> bool {
+    return std::any_of(interfaces.begin(), interfaces.end(), [&name](const auto & interface) {
+        return interface.name == name;
+    });
+}
+
+}  // namespace
 
 Can::~Can() {
     if (!this->model) {
@@ -34,39 +70,115 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     -> hardware_interface::CallbackReturn {
     this->hardware_interface::SystemInterface::on_init(params);
 
-    // FIXME: URDF側での名前付きGPIO設定を導入するまでは、既存のハードウェアパラメータを維持する。
-    // CanModel自体は、この固定長の表現には依存していない
-    auto thruster_configs = std::vector<hardware_model::CanModel::ThrusterConfig>{};
-    auto thruster_names = std::vector<std::string>{};
-    thruster_configs.reserve(LEGACY_THRUSTER_COUNT);
-    thruster_names.reserve(LEGACY_THRUSTER_COUNT);
-    for (size_t i = 0; i < LEGACY_THRUSTER_COUNT; ++i) {
-        auto vesc_id_key = "vesc" + std::to_string(i + 1) + "_id";
-        auto vesc_id_str = util::find_param(params.hardware_info.hardware_parameters, vesc_id_key);
+    auto actuator_configs = std::vector<ActuatorConfig>{};
+    auto actuators = std::vector<Actuator>{};
+    auto vesc_ids = std::unordered_set<hardware_model::can::VescModel::Id>{};
+    for (const auto & gpio : params.hardware_info.gpios) {
+        const auto vesc_id_str = util::find_param(gpio.parameters, "vesc_id");
         if (!vesc_id_str) {
+            continue;
+        }
+
+        const auto motor_type_str = util::find_param(gpio.parameters, "motor_type");
+        if (!motor_type_str) {
             RCLCPP_ERROR(
-                this->get_logger(), "Parameter '%s' not found in hardware parameters.",
-                vesc_id_key.c_str());
+                this->get_logger(), "Parameter 'motor_type' not found for actuator '%s'.",
+                gpio.name.c_str());
             return hardware_interface::CallbackReturn::ERROR;
         }
+        const auto motor_type = parse_motor_type(motor_type_str.value());
+        if (!motor_type) {
+            RCLCPP_ERROR(
+                this->get_logger(),
+                "Invalid motor type '%s' for actuator '%s' (expected: dc, bldc, or none).",
+                motor_type_str.value().c_str(), gpio.name.c_str());
+            return hardware_interface::CallbackReturn::ERROR;
+        }
+
         const auto vesc_id_res = util::from_chars_expected<unsigned int>(vesc_id_str.value());
         if (!vesc_id_res || vesc_id_res.value() > UINT8_MAX) {
             RCLCPP_ERROR(
-                this->get_logger(), "Invalid VESC ID '%s' for parameter '%s'",
-                vesc_id_str.value().c_str(), vesc_id_key.c_str());
+                this->get_logger(), "Invalid VESC ID '%s' for actuator '%s'.",
+                vesc_id_str.value().c_str(), gpio.name.c_str());
             return hardware_interface::CallbackReturn::ERROR;
         }
-        const auto thruster_name = "thruster" + std::to_string(i + 1);
-        thruster_configs.push_back(hardware_model::CanModel::ThrusterConfig{
-            thruster_name,
-            static_cast<hardware_model::can::VescModel::Id>(vesc_id_res.value()),
-        });
-        thruster_names.push_back(thruster_name);
+
+        const auto has_motor_allowed = has_interface(gpio.command_interfaces, "esc/allowed");
+        const auto has_motor_duty = has_interface(gpio.command_interfaces, "esc/duty_cycle");
+        const auto has_motor_rpm = has_interface(gpio.state_interfaces, "esc/rpm");
+        const auto has_motor_voltage = has_interface(gpio.state_interfaces, "esc/voltage");
+        const auto has_motor_water_leaked =
+            has_interface(gpio.state_interfaces, "esc/water_leaked");
+        const auto has_motor_health = has_interface(gpio.state_interfaces, "esc/health");
+        const auto has_any_motor_interface = has_motor_allowed || has_motor_duty || has_motor_rpm ||
+                                             has_motor_voltage || has_motor_water_leaked ||
+                                             has_motor_health;
+        const auto has_all_motor_interfaces = has_motor_allowed && has_motor_duty &&
+                                              has_motor_rpm && has_motor_voltage &&
+                                              has_motor_water_leaked && has_motor_health;
+        if ((*motor_type == MotorType::None && has_any_motor_interface) ||
+            (*motor_type != MotorType::None && !has_all_motor_interfaces)) {
+            RCLCPP_ERROR(
+                this->get_logger(),
+                "Motor interfaces for actuator '%s' do not match motor_type '%s'.",
+                gpio.name.c_str(), motor_type_str.value().c_str());
+            return hardware_interface::CallbackReturn::ERROR;
+        }
+
+        const auto has_servo_allowed = has_interface(gpio.command_interfaces, "servo/allowed");
+        const auto has_servo_angle = has_interface(gpio.command_interfaces, "servo/angle");
+        if (has_servo_allowed != has_servo_angle) {
+            RCLCPP_ERROR(
+                this->get_logger(), "Incomplete servo interfaces for actuator '%s'.",
+                gpio.name.c_str());
+            return hardware_interface::CallbackReturn::ERROR;
+        }
+        const auto has_servo = has_servo_allowed && has_servo_angle;
+
+        const auto vesc_id = static_cast<hardware_model::can::VescModel::Id>(vesc_id_res.value());
+        if (!vesc_ids.insert(vesc_id).second) {
+            RCLCPP_ERROR(
+                this->get_logger(), "Duplicate VESC ID: %u.", static_cast<unsigned int>(vesc_id));
+            return hardware_interface::CallbackReturn::ERROR;
+        }
+
+        actuator_configs.push_back(ActuatorConfig{gpio.name, vesc_id, *motor_type, has_servo});
+        actuators.push_back(Actuator{gpio.name, *motor_type, has_servo});
+    }
+    if (actuator_configs.empty()) {
+        RCLCPP_ERROR(this->get_logger(), "No VESC actuators are configured.");
+        return hardware_interface::CallbackReturn::ERROR;
     }
 
-    this->thruster_names = std::move(thruster_names);
+    auto ballasts = std::vector<Ballast>{};
+    auto ballast_axes = std::unordered_set<std::size_t>{};
+    for (const auto & gpio : params.hardware_info.gpios) {
+        const auto axis_str = util::find_param(gpio.parameters, "stepping_motor_driver_axis");
+        if (!axis_str) {
+            continue;
+        }
+        const auto axis_res = util::from_chars_expected<std::size_t>(axis_str.value());
+        if (!axis_res ||
+            axis_res.value() >= hardware_model::can::SteppingMotorDriverModel::AXIS_COUNT) {
+            RCLCPP_ERROR(
+                this->get_logger(), "Invalid stepping motor driver axis '%s' for ballast '%s'.",
+                axis_str.value().c_str(), gpio.name.c_str());
+            return hardware_interface::CallbackReturn::ERROR;
+        }
+        if (!ballast_axes.insert(axis_res.value()).second) {
+            RCLCPP_ERROR(
+                this->get_logger(), "Duplicate stepping motor driver axis: %zu.", axis_res.value());
+            return hardware_interface::CallbackReturn::ERROR;
+        }
+        ballasts.push_back(Ballast{
+            gpio.name, axis_res.value(), std::numeric_limits<double>::quiet_NaN(), 0.0,
+            BALLAST_TARGET_RESEND_CYCLES, MAX_CYCLES_SINCE_NODE_UPDATE});
+    }
+
+    this->actuators = std::move(actuators);
+    this->ballasts = std::move(ballasts);
     this->cycles_since_bms_update = MAX_CYCLES_SINCE_NODE_UPDATE;
-    this->cycles_since_esc_update.fill(MAX_CYCLES_SINCE_NODE_UPDATE);
+    this->cycles_since_vesc_update.assign(this->actuators.size(), MAX_CYCLES_SINCE_NODE_UPDATE);
 
     auto harmony_bms_id_str =
         util::find_param(params.hardware_info.hardware_parameters, "harmony_bms_id");
@@ -83,8 +195,9 @@ auto Can::on_init(const hardware_interface::HardwareComponentInterfaceParams & p
     }
 
     this->model.emplace(
-        std::make_shared<hardware_model::impl::LinuxCan>(), std::move(thruster_configs),
-        static_cast<hardware_model::can::HarmonyBmsModel::Id>(harmony_bms_id_res.value()));
+        std::make_shared<hardware_model::impl::LinuxCan>(), std::move(actuator_configs),
+        static_cast<hardware_model::can::HarmonyBmsModel::Id>(harmony_bms_id_res.value()),
+        !this->ballasts.empty());
 
     auto res = this->model->on_init();
     if (!res) {
@@ -121,18 +234,115 @@ auto Can::on_configure(const rclcpp_lifecycle::State & /*previous_state*/)
     for (std::size_t i = 0; i < state::bms::ADDITIONAL_TEMPERATURE_COUNT; ++i) {
         this->set_state("bms/additional_temperature_" + std::to_string(i), nan_temperature);
     }
+    for (const auto & ballast : this->ballasts) {
+        this->set_state(ballast.name + "/position", nan);
+    }
 
     return hardware_interface::CallbackReturn::SUCCESS;
 }
 
-auto Can::find_thruster_index(const std::string & thruster_name) const
+auto Can::find_actuator_index(const std::string & actuator_name) const
     -> std::optional<std::size_t> {
-    const auto it =
-        std::find(this->thruster_names.begin(), this->thruster_names.end(), thruster_name);
-    if (it == this->thruster_names.end()) {
+    const auto it = std::find_if(
+        this->actuators.begin(), this->actuators.end(),
+        [&actuator_name](const auto & actuator) { return actuator.name == actuator_name; });
+    if (it == this->actuators.end()) {
         return std::nullopt;
     }
-    return static_cast<std::size_t>(it - this->thruster_names.begin());
+    return static_cast<std::size_t>(it - this->actuators.begin());
+}
+
+auto Can::set_vesc_health(std::size_t index, bool is_ok) -> void {
+    const auto & actuator = this->actuators[index];
+    // サーボ専用VESCにはモーター状態のインターフェースが無い
+    if (actuator.motor_type == hardware_model::CanModel::MotorType::None) {
+        return;
+    }
+    this->set_state(
+        actuator.name + "/esc/health",
+        util::to_interface_data(state::actuator::motor::Health{is_ok}));
+}
+
+auto Can::handle_stepping_motor_driver_packet(
+    const hardware_model::can::SteppingMotorDriverModel::AnyPacket & packet,
+    std::vector<bool> & ballast_updated) -> void {
+    using Model = hardware_model::can::SteppingMotorDriverModel;
+    constexpr auto DURATION = 3000;  // ms
+
+    if (const auto * status = std::get_if<Model::PacketStatus>(&packet)) {
+        for (std::size_t i = 0; i < this->ballasts.size(); ++i) {
+            const auto & ballast = this->ballasts[i];
+            const auto & axis = status->axes[ballast.axis];
+            this->set_state(ballast.name + "/position", axis.position);
+            this->set_state(ballast.name + "/state", static_cast<double>(axis.state));
+            this->set_state(ballast.name + "/fault_reason", static_cast<double>(axis.fault_reason));
+            this->set_state(ballast.name + "/flags", static_cast<double>(axis.flags));
+            ballast_updated[i] = true;
+
+            if (axis.state == static_cast<uint8_t>(Model::AxisState::Fault)) {
+                RCLCPP_ERROR_THROTTLE(
+                    this->get_logger(), *this->get_clock(), DURATION,
+                    "\n  Ballast '%s' stopped with fault (reason: %u)", ballast.name.c_str(),
+                    static_cast<unsigned int>(axis.fault_reason));
+            }
+        }
+        return;
+    }
+
+    if (const auto * travel = std::get_if<Model::PacketMeasuredTravel>(&packet)) {
+        RCLCPP_INFO_THROTTLE(
+            this->get_logger(), *this->get_clock(), DURATION,
+            "\n  Stepping motor driver measured travel (axis %u): %d steps",
+            static_cast<unsigned int>(travel->axis), static_cast<int>(travel->steps));
+    }
+}
+
+auto Can::write_ballasts() -> void {
+    auto command = hardware_model::CanModel::SteppingMotorDriverCommand{};
+    command.targets.fill(std::numeric_limits<double>::quiet_NaN());
+    command.calibrate_axis_mask = 0;
+
+    for (auto & ballast : this->ballasts) {
+        // 要求回数が増えたときだけゼロ点を取り直す
+        // コントローラの再起動で要求回数が0に戻っても取り直さない
+        const auto calibrate_request = this->get_command(ballast.name + "/calibrate");
+        if (calibrate_request > ballast.last_calibrate_request) {
+            command.calibrate_axis_mask |= static_cast<uint8_t>(1U << ballast.axis);
+        }
+        if (!std::isnan(calibrate_request)) {
+            ballast.last_calibrate_request = calibrate_request;
+        }
+
+        // 負の値かNaNは目標なしとして扱う
+        const auto target = this->get_command(ballast.name + "/target");
+        if (std::isnan(target) || target < 0.0) {
+            continue;
+        }
+        const auto clamped_target = std::clamp(target, 0.0, 1.0);
+        if (clamped_target != ballast.last_sent_target ||
+            ballast.cycles_since_target_sent >= BALLAST_TARGET_RESEND_CYCLES) {
+            command.targets[ballast.axis] = clamped_target;
+            ballast.last_sent_target = clamped_target;
+            ballast.cycles_since_target_sent = 0;
+        } else {
+            ++ballast.cycles_since_target_sent;
+        }
+    }
+
+    const auto has_target = std::any_of(
+        command.targets.begin(), command.targets.end(),
+        [](const auto target) { return !std::isnan(target); });
+    if (command.calibrate_axis_mask == 0 && !has_target) {
+        return;
+    }
+
+    const auto res = this->model->on_write_stepping_motor_driver(command);
+    if (!res) {
+        constexpr auto DURATION = 3000;  // ms
+        RCLCPP_ERROR_THROTTLE(
+            this->get_logger(), *this->get_clock(), DURATION,
+            "\n  Failed to write stepping motor driver: %s", res.error().c_str());
+    }
 }
 
 auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*/)
@@ -140,9 +350,11 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
     if (!this->model) {
         this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
         this->set_state("bms/health", util::to_interface_data(state::bms::Health{false}));
-        for (const auto & name : this->thruster_names) {
-            this->set_state(
-                name + "/esc/health", util::to_interface_data(state::thruster::esc::Health{false}));
+        for (std::size_t i = 0; i < this->actuators.size(); ++i) {
+            this->set_vesc_health(i, false);
+        }
+        for (const auto & ballast : this->ballasts) {
+            this->set_state(ballast.name + "/health", 0.0);
         }
 
         constexpr auto DURATION = 3000;  // ms
@@ -155,9 +367,11 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
     if (!res) {
         this->set_state("can/health", util::to_interface_data(state::can::Health{false}));
         this->set_state("bms/health", util::to_interface_data(state::bms::Health{false}));
-        for (const auto & name : this->thruster_names) {
-            this->set_state(
-                name + "/esc/health", util::to_interface_data(state::thruster::esc::Health{false}));
+        for (std::size_t i = 0; i < this->actuators.size(); ++i) {
+            this->set_vesc_health(i, false);
+        }
+        for (const auto & ballast : this->ballasts) {
+            this->set_state(ballast.name + "/health", 0.0);
         }
 
         constexpr auto DURATION = 3000;  // ms
@@ -168,39 +382,40 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
     }
 
     const auto & read_batch = res.value();
-    auto esc_updated = std::array<bool, LEGACY_THRUSTER_COUNT>{};
+    auto vesc_updated = std::vector<bool>(this->actuators.size(), false);
     auto bms_updated = false;
+    auto ballast_updated = std::vector<bool>(this->ballasts.size(), false);
     for (const auto & state : read_batch.states) {
         switch (state.index()) {
             case 0: {  // Rpm
-                const auto & [thruster_name, rpm] = std::get<0>(state);
-                this->set_state(thruster_name + "/esc/rpm", util::to_interface_data(rpm));
-                if (const auto index = this->find_thruster_index(thruster_name)) {
-                    esc_updated[index.value()] = true;
+                const auto & [actuator_name, rpm] = std::get<0>(state);
+                this->set_state(actuator_name + "/esc/rpm", util::to_interface_data(rpm));
+                if (const auto index = this->find_actuator_index(actuator_name)) {
+                    vesc_updated[index.value()] = true;
                 }
                 break;
             }
             case 1: {  // ESC Voltage
-                const auto & [thruster_name, voltage] = std::get<1>(state);
-                this->set_state(thruster_name + "/esc/voltage", util::to_interface_data(voltage));
-                if (const auto index = this->find_thruster_index(thruster_name)) {
-                    esc_updated[index.value()] = true;
+                const auto & [actuator_name, voltage] = std::get<1>(state);
+                this->set_state(actuator_name + "/esc/voltage", util::to_interface_data(voltage));
+                if (const auto index = this->find_actuator_index(actuator_name)) {
+                    vesc_updated[index.value()] = true;
                 }
                 break;
             }
             case 2: {  // ESC WaterLeaked
-                const auto & [thruster_name, water_leaked] = std::get<2>(state);
+                const auto & [actuator_name, water_leaked] = std::get<2>(state);
                 this->set_state(
-                    thruster_name + "/esc/water_leaked", util::to_interface_data(water_leaked));
-                if (const auto index = this->find_thruster_index(thruster_name)) {
-                    esc_updated[index.value()] = true;
+                    actuator_name + "/esc/water_leaked", util::to_interface_data(water_leaked));
+                if (const auto index = this->find_actuator_index(actuator_name)) {
+                    vesc_updated[index.value()] = true;
                 }
                 break;
             }
-            case 3: {  // ESC heartbeat
-                const auto & [thruster_name, _health] = std::get<3>(state);
-                if (const auto index = this->find_thruster_index(thruster_name)) {
-                    esc_updated[index.value()] = true;
+            case 3: {  // VESC heartbeat
+                const auto & [actuator_name, _health] = std::get<3>(state);
+                if (const auto index = this->find_actuator_index(actuator_name)) {
+                    vesc_updated[index.value()] = true;
                 }
                 break;
             }
@@ -326,6 +541,12 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
                 bms_updated = true;
                 break;
             }
+            case 5: {  // Stepping motor driver
+                this->handle_stepping_motor_driver_packet(
+                    std::get<hardware_model::can::SteppingMotorDriverModel::AnyPacket>(state),
+                    ballast_updated);
+                break;
+            }
         }
     }
 
@@ -338,16 +559,27 @@ auto Can::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*preiod*
         "bms/health", util::to_interface_data(state::bms::Health{
                           this->cycles_since_bms_update < MAX_CYCLES_SINCE_NODE_UPDATE}));
 
-    for (std::size_t i = 0; i < this->thruster_names.size(); ++i) {
-        if (esc_updated[i]) {
-            this->cycles_since_esc_update[i] = 0;
-        } else if (this->cycles_since_esc_update[i] < MAX_CYCLES_SINCE_NODE_UPDATE) {
-            ++this->cycles_since_esc_update[i];
+    for (std::size_t i = 0; i < this->ballasts.size(); ++i) {
+        auto & ballast = this->ballasts[i];
+        if (ballast_updated[i]) {
+            ballast.cycles_since_update = 0;
+        } else if (ballast.cycles_since_update < MAX_CYCLES_SINCE_NODE_UPDATE) {
+            ++ballast.cycles_since_update;
         }
-        this->set_state(
-            this->thruster_names[i] + "/esc/health",
-            util::to_interface_data(state::thruster::esc::Health{
-                this->cycles_since_esc_update[i] < MAX_CYCLES_SINCE_NODE_UPDATE}));
+        const auto is_ok = ballast.cycles_since_update < MAX_CYCLES_SINCE_NODE_UPDATE;
+        this->set_state(ballast.name + "/health", is_ok ? 1.0 : 0.0);
+        if (!is_ok) {
+            this->set_state(ballast.name + "/position", std::numeric_limits<double>::quiet_NaN());
+        }
+    }
+
+    for (std::size_t i = 0; i < this->actuators.size(); ++i) {
+        if (vesc_updated[i]) {
+            this->cycles_since_vesc_update[i] = 0;
+        } else if (this->cycles_since_vesc_update[i] < MAX_CYCLES_SINCE_NODE_UPDATE) {
+            ++this->cycles_since_vesc_update[i];
+        }
+        this->set_vesc_health(i, this->cycles_since_vesc_update[i] < MAX_CYCLES_SINCE_NODE_UPDATE);
     }
 
     if (!read_batch.states.empty()) {
@@ -391,29 +623,38 @@ auto Can::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period
     auto && led_tape_color =
         util::from_interface_data<cmd::led_tape::Color>(this->get_command("led_tape/color"));
 
-    auto thruster_commands = std::vector<hardware_model::CanModel::ThrusterCommand>{};
-    thruster_commands.reserve(this->thruster_names.size());
-    for (const auto & name : this->thruster_names) {
-        thruster_commands.push_back(hardware_model::CanModel::ThrusterCommand{
-            util::from_interface_data<cmd::thruster::esc::Allowed>(
-                this->get_command(name + "/esc/allowed")),
-            util::from_interface_data<cmd::thruster::esc::DutyCycle>(
-                this->get_command(name + "/esc/duty_cycle")),
-            util::from_interface_data<cmd::thruster::servo::Allowed>(
-                this->get_command(name + "/servo/allowed")),
-            util::from_interface_data<cmd::thruster::servo::Angle>(
-                this->get_command(name + "/servo/angle")),
-        });
+    auto actuator_commands = std::vector<hardware_model::CanModel::ActuatorCommand>{};
+    actuator_commands.reserve(this->actuators.size());
+    for (const auto & actuator : this->actuators) {
+        auto command = hardware_model::CanModel::ActuatorCommand{
+            cmd::actuator::motor::Allowed{false}, cmd::actuator::motor::DutyCycle{0.0},
+            cmd::actuator::servo::Allowed{false}, cmd::actuator::servo::Angle{0.0}};
+        if (actuator.motor_type != hardware_model::CanModel::MotorType::None) {
+            command.motor_allowed = util::from_interface_data<cmd::actuator::motor::Allowed>(
+                this->get_command(actuator.name + "/esc/allowed"));
+            command.motor_duty_cycle = util::from_interface_data<cmd::actuator::motor::DutyCycle>(
+                this->get_command(actuator.name + "/esc/duty_cycle"));
+        }
+        if (actuator.has_servo) {
+            command.servo_allowed = util::from_interface_data<cmd::actuator::servo::Allowed>(
+                this->get_command(actuator.name + "/servo/allowed"));
+            command.servo_angle = util::from_interface_data<cmd::actuator::servo::Angle>(
+                this->get_command(actuator.name + "/servo/angle"));
+        }
+        actuator_commands.push_back(command);
     }
 
     const auto res =
-        this->model->on_write(power_distribution_enabled, thruster_commands, led_tape_color);
+        this->model->on_write(power_distribution_enabled, actuator_commands, led_tape_color);
     if (!res) {
         constexpr auto DURATION = 3000;  // ms
         RCLCPP_ERROR_THROTTLE(
             this->get_logger(), *this->get_clock(), DURATION, "\n  Failed to write Can: %s",
             res.error().c_str());
-        return hardware_interface::return_type::OK;
+    }
+
+    if (!this->ballasts.empty()) {
+        this->write_ballasts();
     }
 
     return hardware_interface::return_type::OK;

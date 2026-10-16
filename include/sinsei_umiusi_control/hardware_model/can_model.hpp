@@ -1,6 +1,8 @@
 #ifndef SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_CAN_MODEL_HPP
 #define SINSEI_UMIUSI_CONTROL_HARDWARE_MODEL_CAN_MODEL_HPP
 
+#include <array>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <rcpputils/tl_expected/expected.hpp>
@@ -9,39 +11,56 @@
 #include <variant>
 #include <vector>
 
+#include "sinsei_umiusi_control/cmd/actuator/motor.hpp"
+#include "sinsei_umiusi_control/cmd/actuator/servo.hpp"
 #include "sinsei_umiusi_control/cmd/led_tape.hpp"
 #include "sinsei_umiusi_control/cmd/power_distribution.hpp"
-#include "sinsei_umiusi_control/cmd/thruster/esc.hpp"
-#include "sinsei_umiusi_control/cmd/thruster/servo.hpp"
 #include "sinsei_umiusi_control/hardware_model/can/harmony_bms_model.hpp"
+#include "sinsei_umiusi_control/hardware_model/can/stepping_motor_driver_model.hpp"
 #include "sinsei_umiusi_control/hardware_model/can/vesc_model.hpp"
 #include "sinsei_umiusi_control/hardware_model/interface/can.hpp"
-#include "sinsei_umiusi_control/state/thruster/esc.hpp"
+#include "sinsei_umiusi_control/state/actuator/motor.hpp"
 
 namespace sinsei_umiusi_control::hardware_model {
 
 class CanModel {
   public:
-    using EscAllowed = cmd::thruster::esc::Allowed;
-    using EscDutyCycle = cmd::thruster::esc::DutyCycle;
-    using ServoAllowed = cmd::thruster::servo::Allowed;
-    using ServoAngle = cmd::thruster::servo::Angle;
-    using DecodedState = std::variant<
-        std::tuple<std::string, state::thruster::esc::Rpm>,
-        std::tuple<std::string, state::thruster::esc::Voltage>,
-        std::tuple<std::string, state::thruster::esc::WaterLeaked>,
-        std::tuple<std::string, state::thruster::esc::Health>, can::HarmonyBmsModel::AnyPacket>;
+    enum class MotorType { DC, BLDC, None };
 
-    struct ThrusterConfig {
+    // モーターの出力が許可されなくなってから、Duty 0を送る回数
+    // その後は何も送らず、VESCのタイムアウトでモーターとサーボを脱力させる（UMIUSIと同様）
+    static constexpr uint8_t STOP_FRAME_COUNT = 5;
+
+    using MotorAllowed = cmd::actuator::motor::Allowed;
+    using MotorDutyCycle = cmd::actuator::motor::DutyCycle;
+    using ServoAllowed = cmd::actuator::servo::Allowed;
+    using ServoAngle = cmd::actuator::servo::Angle;
+    using DecodedState = std::variant<
+        std::tuple<std::string, state::actuator::motor::Rpm>,
+        std::tuple<std::string, state::actuator::motor::Voltage>,
+        std::tuple<std::string, state::actuator::motor::WaterLeaked>,
+        std::tuple<std::string, state::actuator::motor::Health>, can::HarmonyBmsModel::AnyPacket,
+        can::SteppingMotorDriverModel::AnyPacket>;
+
+    struct ActuatorConfig {
         std::string name;
         can::VescModel::Id vesc_id;
+        MotorType motor_type;
+        bool has_servo;
     };
 
-    struct ThrusterCommand {
-        EscAllowed esc_allowed;
-        EscDutyCycle esc_duty_cycle;
+    struct ActuatorCommand {
+        MotorAllowed motor_allowed;
+        MotorDutyCycle motor_duty_cycle;
         ServoAllowed servo_allowed;
         ServoAngle servo_angle;
+    };
+
+    struct SteppingMotorDriverCommand {
+        // 軸ごとの目標（0.0〜1.0）。NaNの軸には送らない
+        std::array<double, can::SteppingMotorDriverModel::AXIS_COUNT> targets;
+        // ゼロ点を取り直す軸。bit0 = M1、bit1 = M2
+        uint8_t calibrate_axis_mask;
     };
 
     struct ReadBatch {
@@ -50,23 +69,28 @@ class CanModel {
     };
 
   private:
-    struct Thruster {
+    struct Actuator {
         std::string name;
+        MotorType motor_type;
+        bool has_servo;
         can::VescModel vesc_model;
+        // 許可されていない間に、あと何回Duty 0を送るか
+        uint8_t remaining_stop_frames;
     };
 
     enum class WritePhase {
-        Esc,
+        Motor,
         Servo,
     };
 
     std::shared_ptr<interface::Can> can;
 
-    std::vector<Thruster> thrusters;
+    std::vector<Actuator> actuators;
     can::HarmonyBmsModel harmony_bms_model;
+    bool stepping_motor_driver_enabled;
 
-    // ESCとServoを交互に送信する
-    WritePhase write_phase = WritePhase::Esc;
+    // MotorとServoを交互に送信する
+    WritePhase write_phase = WritePhase::Motor;
 
     // 使用するBLDCの極数
     static constexpr double BLDC_POLES = 14.0;
@@ -81,16 +105,18 @@ class CanModel {
 
   public:
     CanModel(
-        std::shared_ptr<interface::Can> can, std::vector<ThrusterConfig> thruster_configs,
-        can::HarmonyBmsModel::Id harmony_bms_id);
+        std::shared_ptr<interface::Can> can, std::vector<ActuatorConfig> actuator_configs,
+        can::HarmonyBmsModel::Id harmony_bms_id, bool stepping_motor_driver_enabled = false);
     auto on_init() -> tl::expected<void, std::string>;
     auto on_destroy() -> tl::expected<void, std::string>;
     auto on_read() -> tl::expected<ReadBatch, std::string>;
-    // thruster_commandsはコンストラクタへ渡したthruster_configsと同じ順序で指定する
+    // actuator_commandsはコンストラクタへ渡したactuator_configsと同じ順序で指定する
     auto on_write(
         cmd::power_distribution::Enabled power_distribution_enabled,
-        const std::vector<ThrusterCommand> & thruster_commands,
+        const std::vector<ActuatorCommand> & actuator_commands,
         cmd::led_tape::Color led_tape_color) -> tl::expected<void, std::string>;
+    auto on_write_stepping_motor_driver(const SteppingMotorDriverCommand & command)
+        -> tl::expected<void, std::string>;
 };
 
 }  // namespace sinsei_umiusi_control::hardware_model

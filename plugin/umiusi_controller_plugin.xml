@@ -1,5 +1,14 @@
 <library path="sinsei_umiusi_control_controller">
   <class
+    name="sinsei_umiusi_control/controller/AlexandriteController"
+    type="sinsei_umiusi_control::controller::AlexandriteController"
+    base_class_type="controller_interface::ControllerInterface"
+  >
+    <description>
+      Temporary direct actuator controller for Alexandrite
+    </description>
+  </class>
+  <class
     name="sinsei_umiusi_control/controller/GateController"
     type="sinsei_umiusi_control::controller::GateController"
     base_class_type="controller_interface::ControllerInterface"
@@ -24,6 +33,33 @@
   >
     <description>
       Thruster controller
+    </description>
+  </class>
+  <class
+    name="sinsei_umiusi_control/controller/BallastController"
+    type="sinsei_umiusi_control::controller::BallastController"
+    base_class_type="controller_interface::ControllerInterface"
+  >
+    <description>
+      Temporary ballast controller for the stepping motor driver
+    </description>
+  </class>
+  <class
+    name="sinsei_umiusi_control/controller/BmsController"
+    type="sinsei_umiusi_control::controller::BmsController"
+    base_class_type="controller_interface::ControllerInterface"
+  >
+    <description>
+      Temporary BMS state publisher for Alexandrite
+    </description>
+  </class>
+  <class
+    name="sinsei_umiusi_control/controller/ImuController"
+    type="sinsei_umiusi_control::controller::ImuController"
+    base_class_type="controller_interface::ControllerInterface"
+  >
+    <description>
+      Temporary IMU state publisher for Alexandrite
     </description>
   </class>
 </library>
