@@ -63,6 +63,9 @@ def test_alexandrite_controller_running(helper_node):
     assert helper_node.count_subscribers('/cmd/target') > 0
     assert helper_node.count_subscribers('/cmd/crawler_target') > 0
     assert helper_node.count_subscribers('/cmd/thruster_runnable_all') > 0
+    assert helper_node.count_publishers('/state/thruster_state_all') > 0
+    assert helper_node.count_publishers('/state/crawler_left') > 0
+    assert helper_node.count_publishers('/state/crawler_right') > 0
 
 
 @pytest.mark.launch(fixture=generate_launch_description)

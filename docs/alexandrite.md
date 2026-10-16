@@ -73,6 +73,17 @@ ros2 topic pub -r 10 \
 出力は`max_duty`で制限される。目標値または運転許可の更新が`command_timeout`秒間
 途絶えると、該当アクチュエータへDuty 0を出力する。デフォルトはそれぞれ0.5、0.5秒。
 
+## 状態
+
+スラスタは、UMIUSIと同じ`state/thruster_state_all`（`sinsei_umiusi_msgs/msg/ThrusterStateAll`）に、
+指令と同じ対応（`thruster1`、`thruster2`、`thruster3` = `lf`、`rf`、`lb`）で出す。`rb`は存在しないため、
+常に`DISABLED`になる。クローラーは`state/crawler_left`、`state/crawler_right`
+（`sinsei_umiusi_msgs/msg/ThrusterState`）に出し、サーボが無いため`mode.servo`は常に`DISABLED`になる。
+
+`mode`は実際にVESCへ出力を許可しているかどうか（目標・運転許可が途絶えていないことも含む）、
+`duty_cycle`と`angle`はVESCへ送っている指令値、`rpm`、`input_voltage`、`water_leaked`はVESCから
+読んだ値を表す。
+
 ## バラスト
 
 2つのバラストは、[SteppingMotorDriver](https://github.com/rogy-AquaLab/SteppingMotorDriver)

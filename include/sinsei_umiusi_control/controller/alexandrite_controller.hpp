@@ -6,14 +6,18 @@
 #include <controller_interface/controller_interface.hpp>
 #include <cstddef>
 #include <mutex>
+#include <rclcpp/publisher.hpp>
 #include <rclcpp/subscription.hpp>
 #include <string>
 
 #include "sinsei_umiusi_control/cmd/actuator/motor.hpp"
 #include "sinsei_umiusi_control/cmd/actuator/servo.hpp"
+#include "sinsei_umiusi_control/state/actuator/motor.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_msgs/msg/target.hpp"
 #include "sinsei_umiusi_msgs/msg/thruster_runnable_all.hpp"
+#include "sinsei_umiusi_msgs/msg/thruster_state.hpp"
+#include "sinsei_umiusi_msgs/msg/thruster_state_all.hpp"
 
 namespace sinsei_umiusi_control::controller {
 
@@ -30,6 +34,12 @@ class AlexandriteController : public controller_interface::ControllerInterface {
         cmd::actuator::servo::Angle servo_angle;
     };
 
+    struct ActuatorState {
+        state::actuator::motor::Rpm rpm;
+        state::actuator::motor::Voltage voltage;
+        state::actuator::motor::WaterLeaked water_leaked;
+    };
+
     template <typename Message>
     struct TimedInput {
         bool received{false};
@@ -38,6 +48,7 @@ class AlexandriteController : public controller_interface::ControllerInterface {
     };
 
     std::array<ActuatorCommand, ACTUATOR_COUNT> commands{};
+    std::array<ActuatorState, ACTUATOR_COUNT> states{};
     TimedInput<sinsei_umiusi_msgs::msg::Target> target{};
     TimedInput<sinsei_umiusi_msgs::msg::Target> crawler_target{};
     TimedInput<sinsei_umiusi_msgs::msg::ThrusterRunnableAll> runnable{};
@@ -47,7 +58,13 @@ class AlexandriteController : public controller_interface::ControllerInterface {
         runnable_subscription;
     std::mutex input_mutex;
 
+    rclcpp::Publisher<sinsei_umiusi_msgs::msg::ThrusterStateAll>::SharedPtr
+        thruster_state_all_publisher;
+    std::array<rclcpp::Publisher<sinsei_umiusi_msgs::msg::ThrusterState>::SharedPtr, CRAWLER_COUNT>
+        crawler_state_publishers;
+
     util::interface_accessor::InterfaceDataContainer command_interface_data;
+    util::interface_accessor::InterfaceDataContainer state_interface_data;
 
     double command_timeout_seconds{0.5};
     double max_duty{0.5};
@@ -55,7 +72,10 @@ class AlexandriteController : public controller_interface::ControllerInterface {
     std::string target_topic{"cmd/target"};
     std::string crawler_target_topic{"cmd/crawler_target"};
     std::string runnable_topic{"cmd/thruster_runnable_all"};
+    std::string state_topic_prefix{"state/"};
 
+    auto make_thruster_state(size_t index) const -> sinsei_umiusi_msgs::msg::ThrusterState;
+    auto publish_states() -> void;
     auto stop_all_actuators() -> void;
     auto clear_inputs() -> void;
 

@@ -53,8 +53,13 @@ auto AlexandriteController::command_interface_configuration() const
 
 auto AlexandriteController::state_interface_configuration() const
     -> controller_interface::InterfaceConfiguration {
+    auto names = std::vector<std::string>{};
+    names.reserve(this->state_interface_data.size());
+    for (const auto & [name, _data, _size] : this->state_interface_data) {
+        names.push_back(name);
+    }
     return controller_interface::InterfaceConfiguration{
-        controller_interface::interface_configuration_type::NONE, {}};
+        controller_interface::interface_configuration_type::INDIVIDUAL, names};
 }
 
 auto AlexandriteController::on_init() -> controller_interface::CallbackReturn {
@@ -101,6 +106,12 @@ auto AlexandriteController::on_init() -> controller_interface::CallbackReturn {
             .set__description("UMIUSI-compatible actuator runnable topic")
             .set__type(rclcpp::PARAMETER_STRING)
             .set__read_only(true));
+    this->get_node()->declare_parameter(
+        "state_topic_prefix", this->state_topic_prefix,
+        ParameterDescriptor{}
+            .set__description("Prefix of thruster and crawler state topics")
+            .set__type(rclcpp::PARAMETER_STRING)
+            .set__read_only(true));
 
     this->stop_all_actuators();
     return controller_interface::CallbackReturn::SUCCESS;
@@ -116,8 +127,11 @@ auto AlexandriteController::on_configure(const rclcpp_lifecycle::State & /*previ
     this->crawler_target_topic =
         this->get_node()->get_parameter("crawler_target_topic").as_string();
     this->runnable_topic = this->get_node()->get_parameter("runnable_topic").as_string();
+    this->state_topic_prefix = this->get_node()->get_parameter("state_topic_prefix").as_string();
 
     this->command_interface_data.clear();
+    this->state_interface_data.clear();
+    this->states = {};
     this->clear_inputs();
     for (size_t i = 0; i < ACTUATOR_COUNT; ++i) {
         const auto actuator_prefix = std::string(ACTUATOR_NAMES[i]) + "/";
@@ -139,6 +153,17 @@ auto AlexandriteController::on_configure(const rclcpp_lifecycle::State & /*previ
                 util::to_interface_data_ptr(this->commands[i].servo_angle),
                 sizeof(this->commands[i].servo_angle));
         }
+
+        this->state_interface_data.emplace_back(
+            actuator_prefix + "esc/rpm", util::to_interface_data_ptr(this->states[i].rpm),
+            sizeof(this->states[i].rpm));
+        this->state_interface_data.emplace_back(
+            actuator_prefix + "esc/voltage", util::to_interface_data_ptr(this->states[i].voltage),
+            sizeof(this->states[i].voltage));
+        this->state_interface_data.emplace_back(
+            actuator_prefix + "esc/water_leaked",
+            util::to_interface_data_ptr(this->states[i].water_leaked),
+            sizeof(this->states[i].water_leaked));
     }
 
     const auto qos = rclcpp::SystemDefaultsQoS();
@@ -163,6 +188,17 @@ auto AlexandriteController::on_configure(const rclcpp_lifecycle::State & /*previ
                 const auto lock = std::lock_guard(this->input_mutex);
                 this->runnable = {true, std::chrono::steady_clock::now(), *message};
             });
+
+    // スラスタはUMIUSIと同じtopicに、指令と同じ対応（thruster1〜3 = lf, rf, lb）で出す
+    this->thruster_state_all_publisher =
+        this->get_node()->create_publisher<sinsei_umiusi_msgs::msg::ThrusterStateAll>(
+            this->state_topic_prefix + "thruster_state_all", qos);
+    // クローラーはThrusterStateAllに入らないため、別のtopicに出す
+    for (size_t i = 0; i < CRAWLER_COUNT; ++i) {
+        this->crawler_state_publishers[i] =
+            this->get_node()->create_publisher<sinsei_umiusi_msgs::msg::ThrusterState>(
+                this->state_topic_prefix + std::string(ACTUATOR_NAMES[THRUSTER_COUNT + i]), qos);
+    }
 
     this->stop_all_actuators();
     return controller_interface::CallbackReturn::SUCCESS;
@@ -273,7 +309,55 @@ auto AlexandriteController::update(
             this->get_node()->get_logger(), *this->get_node()->get_clock(), 3000,
             "Failed to set Alexandrite actuator command interfaces");
     }
+
+    this->publish_states();
     return controller_interface::return_type::OK;
+}
+
+auto AlexandriteController::make_thruster_state(const size_t index) const
+    -> sinsei_umiusi_msgs::msg::ThrusterState {
+    using sinsei_umiusi_msgs::msg::ThrusterMode;
+
+    const auto & command = this->commands[index];
+    const auto & state = this->states[index];
+    const auto has_servo = index < THRUSTER_COUNT;
+    const auto to_mode = [](const bool allowed) {
+        return allowed ? ThrusterMode::RUNNABLE : ThrusterMode::STANDBY;
+    };
+    return sinsei_umiusi_msgs::msg::ThrusterState()
+        .set__mode(
+            ThrusterMode()
+                .set__esc(to_mode(command.motor_allowed.value))
+                .set__servo(
+                    has_servo ? to_mode(command.servo_allowed.value) : ThrusterMode::DISABLED))
+        .set__duty_cycle(command.motor_duty_cycle.value)
+        .set__angle(has_servo ? command.servo_angle.value : 0.0)
+        .set__rpm(state.rpm.value)
+        .set__input_voltage(static_cast<float>(state.voltage.value))
+        .set__water_leaked(state.water_leaked.value);
+}
+
+auto AlexandriteController::publish_states() -> void {
+    if (!util::interface_accessor::get_states_from_loaned_interfaces(
+            this->state_interfaces_, this->state_interface_data)) {
+        RCLCPP_WARN_THROTTLE(
+            this->get_node()->get_logger(), *this->get_node()->get_clock(), 3000,
+            "Failed to get Alexandrite actuator state interfaces");
+    }
+
+    // Alexandriteには右後ろのスラスタが無いため、rbは常にDISABLEDにする
+    const auto absent = sinsei_umiusi_msgs::msg::ThrusterState().set__mode(
+        sinsei_umiusi_msgs::msg::ThrusterMode()
+            .set__esc(sinsei_umiusi_msgs::msg::ThrusterMode::DISABLED)
+            .set__servo(sinsei_umiusi_msgs::msg::ThrusterMode::DISABLED));
+    this->thruster_state_all_publisher->publish(sinsei_umiusi_msgs::msg::ThrusterStateAll()
+                                                    .set__lf(this->make_thruster_state(0))
+                                                    .set__rf(this->make_thruster_state(1))
+                                                    .set__lb(this->make_thruster_state(2))
+                                                    .set__rb(absent));
+    for (size_t i = 0; i < CRAWLER_COUNT; ++i) {
+        this->crawler_state_publishers[i]->publish(this->make_thruster_state(THRUSTER_COUNT + i));
+    }
 }
 
 auto AlexandriteController::stop_all_actuators() -> void {
