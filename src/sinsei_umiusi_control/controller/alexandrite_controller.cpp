@@ -76,7 +76,15 @@ auto AlexandriteController::on_init() -> controller_interface::CallbackReturn {
     this->get_node()->declare_parameter(
         "max_duty", 0.5,
         ParameterDescriptor{}
-            .set__description("Absolute duty-cycle limit for every actuator")
+            .set__description("Absolute duty-cycle limit for the thrusters")
+            .set__type(rclcpp::PARAMETER_DOUBLE)
+            .set__floating_point_range(
+                {FloatingPointRange{}.set__from_value(0.0).set__to_value(1.0)})
+            .set__read_only(true));
+    this->get_node()->declare_parameter(
+        "crawler_max_duty", 0.5,
+        ParameterDescriptor{}
+            .set__description("Crawler duty cycle for a full (1.0) crawler input")
             .set__type(rclcpp::PARAMETER_DOUBLE)
             .set__floating_point_range(
                 {FloatingPointRange{}.set__from_value(0.0).set__to_value(1.0)})
@@ -120,6 +128,7 @@ auto AlexandriteController::on_configure(const rclcpp_lifecycle::State & /*previ
     -> controller_interface::CallbackReturn {
     this->command_timeout_seconds = this->get_node()->get_parameter("command_timeout").as_double();
     this->max_duty = this->get_node()->get_parameter("max_duty").as_double();
+    this->crawler_max_duty = this->get_node()->get_parameter("crawler_max_duty").as_double();
     this->rear_thruster_reversed =
         this->get_node()->get_parameter("rear_thruster_reversed").as_bool();
     this->target_topic = this->get_node()->get_parameter("target_topic").as_string();
@@ -287,13 +296,12 @@ auto AlexandriteController::update(
         crawler_target.message.velocity.x - crawler_target.message.orientation.z;
     auto right_crawler_duty =
         crawler_target.message.velocity.x + crawler_target.message.orientation.z;
+    // 入力は-1〜1。差動計算で1を超えた分は、左右の比を保って1に収めてから上限を掛ける
     const auto crawler_max_abs =
         std::max(std::abs(left_crawler_duty), std::abs(right_crawler_duty));
-    if (crawler_max_abs > this->max_duty && crawler_max_abs > 0.0) {
-        const auto scale = this->max_duty / crawler_max_abs;
-        left_crawler_duty *= scale;
-        right_crawler_duty *= scale;
-    }
+    const auto crawler_scale = this->crawler_max_duty / std::max(crawler_max_abs, 1.0);
+    left_crawler_duty *= crawler_scale;
+    right_crawler_duty *= crawler_scale;
     const auto crawler_allowed = crawler_target_fresh && runnable_fresh && runnable.message.rb.esc;
     this->commands[THRUSTER_COUNT].motor_allowed.value = crawler_allowed;
     this->commands[THRUSTER_COUNT].motor_duty_cycle.value =

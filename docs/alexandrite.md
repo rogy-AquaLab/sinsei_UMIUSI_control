@@ -51,17 +51,20 @@ motor_duty      = signed_hypot(rear_horizontal, rear_vertical)
 
 - `cmd/crawler_target` (`sinsei_umiusi_msgs/msg/Target`)
 
-`velocity.x`を前後入力、`orientation.z`を旋回入力として、以下の差動計算を行う。
+`velocity.x`を前後入力、`orientation.z`を旋回入力（どちらも-1.0〜1.0）として、以下の差動計算を行う。
 
 ```text
 left  = velocity.x - orientation.z
 right = velocity.x + orientation.z
 ```
 
+`left`、`right`のどちらかが1.0を超える場合は、左右の比を保ったまま大きいほうが1.0になるよう縮める。
+そのうえで`crawler_max_duty`（デフォルト0.5）を掛けたものをDutyとして出力する。
+
 既存の上流が4基すべてへ同じ運転許可を送っていることを利用し、暫定的に
 `cmd/thruster_runnable_all.rb.esc`を左右クローラー共通の運転許可として使用する。
 
-例としてクローラーへ前進目標0.2を送る場合:
+例としてクローラーへ前進入力0.2（デフォルトではDuty 0.1）を送る場合:
 
 ```sh
 ros2 topic pub -r 10 \
@@ -70,8 +73,8 @@ ros2 topic pub -r 10 \
   "{velocity: {x: 0.2}, orientation: {z: 0.0}}"
 ```
 
-出力は`max_duty`で制限される。目標値または運転許可の更新が`command_timeout`秒間
-途絶えると、該当アクチュエータへDuty 0を出力する。デフォルトはそれぞれ0.5、0.5秒。
+スラスタの出力は`max_duty`（デフォルト0.5）で制限される。目標値または運転許可の更新が
+`command_timeout`秒間（デフォルト0.5秒）途絶えると、該当アクチュエータへDuty 0を出力する。
 
 ## 状態
 
