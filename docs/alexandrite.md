@@ -90,6 +90,12 @@ ros2 topic pub -r 10 \
   "{velocity: {x: 0.2}, orientation: {z: 0.0}}"
 ```
 
+スラスタとクローラーのDutyは、急激な加減速を抑えるため、1秒あたりの変化量を
+`max_duty_step_per_sec`（スラスタ）、`crawler_max_duty_step_per_sec`（クローラー）までに制限する
+（デフォルトはどちらも1.0で、UMIUSIの`thruster_controller`と同じ。0から0.5まで0.5秒かかる）。
+各基を独立に制限するため、加減速の途中では3基の出力の比が一時的に崩れる。運転許可が無くなったときは、
+ランプをかけずにすぐDuty 0にする。
+
 目標値または運転許可の更新が
 `command_timeout`秒間（デフォルト0.5秒）途絶えると、該当アクチュエータへDuty 0を出力する。
 

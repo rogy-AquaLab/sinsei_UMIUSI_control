@@ -77,6 +77,22 @@ auto AlexandriteController::on_init() -> controller_interface::CallbackReturn {
             .set__floating_point_range(
                 {FloatingPointRange{}.set__from_value(0.0).set__to_value(1.0)})
             .set__read_only(true));
+    this->get_node()->declare_parameter(
+        "max_duty_step_per_sec", 1.0,
+        ParameterDescriptor{}
+            .set__description("Maximum change in thruster duty cycle per second")
+            .set__type(rclcpp::PARAMETER_DOUBLE)
+            .set__floating_point_range(
+                {FloatingPointRange{}.set__from_value(0.01).set__to_value(1000.0)})
+            .set__read_only(true));
+    this->get_node()->declare_parameter(
+        "crawler_max_duty_step_per_sec", 1.0,
+        ParameterDescriptor{}
+            .set__description("Maximum change in crawler duty cycle per second")
+            .set__type(rclcpp::PARAMETER_DOUBLE)
+            .set__floating_point_range(
+                {FloatingPointRange{}.set__from_value(0.01).set__to_value(1000.0)})
+            .set__read_only(true));
     const auto declare_length = [this](const char * name, const char * description) {
         this->get_node()->declare_parameter(
             name, 1.0,
@@ -135,6 +151,10 @@ auto AlexandriteController::on_configure(const rclcpp_lifecycle::State & /*previ
     this->command_timeout_seconds = this->get_node()->get_parameter("command_timeout").as_double();
     this->max_duty = this->get_node()->get_parameter("max_duty").as_double();
     this->crawler_max_duty = this->get_node()->get_parameter("crawler_max_duty").as_double();
+    this->max_duty_step_per_sec =
+        this->get_node()->get_parameter("max_duty_step_per_sec").as_double();
+    this->crawler_max_duty_step_per_sec =
+        this->get_node()->get_parameter("crawler_max_duty_step_per_sec").as_double();
     this->thruster_geometry = logic::alexandrite::Geometry{
         this->get_node()->get_parameter("front_thruster_x").as_double(),
         this->get_node()->get_parameter("front_thruster_y").as_double(),
@@ -231,9 +251,8 @@ auto AlexandriteController::on_deactivate(const rclcpp_lifecycle::State & /*prev
     return controller_interface::CallbackReturn::SUCCESS;
 }
 
-auto AlexandriteController::update(
-    const rclcpp::Time & /*time*/,
-    const rclcpp::Duration & /*period*/) -> controller_interface::return_type {
+auto AlexandriteController::update(const rclcpp::Time & /*time*/, const rclcpp::Duration & period)
+    -> controller_interface::return_type {
     auto target = TimedInput<sinsei_umiusi_msgs::msg::Target>{};
     auto crawler_target = TimedInput<sinsei_umiusi_msgs::msg::Target>{};
     auto runnable = TimedInput<sinsei_umiusi_msgs::msg::ThrusterRunnableAll>{};
@@ -294,6 +313,23 @@ auto AlexandriteController::update(
     this->commands[THRUSTER_COUNT + 1].motor_duty_cycle.value =
         crawler_allowed ? right_crawler_duty : 0.0;
 
+    // 急激な加減速を抑えるため、Dutyの変化量を線形に制限する
+    // 出力が許可されなくなったときは、安全のためランプをかけずにすぐ止める
+    const auto period_seconds = std::max(period.seconds(), 0.0);
+    for (size_t i = 0; i < ACTUATOR_COUNT; ++i) {
+        auto & command = this->commands[i];
+        if (!command.motor_allowed.value) {
+            this->ramped_duties[i] = 0.0;
+            command.motor_duty_cycle.value = 0.0;
+            continue;
+        }
+        const auto step_per_sec =
+            i < THRUSTER_COUNT ? this->max_duty_step_per_sec : this->crawler_max_duty_step_per_sec;
+        this->ramped_duties[i] = logic::alexandrite::ramp(
+            this->ramped_duties[i], command.motor_duty_cycle.value, step_per_sec * period_seconds);
+        command.motor_duty_cycle.value = this->ramped_duties[i];
+    }
+
     if (!util::interface_accessor::set_commands_to_loaned_interfaces(
             this->command_interfaces_, this->command_interface_data)) {
         RCLCPP_WARN_THROTTLE(
@@ -352,6 +388,7 @@ auto AlexandriteController::publish_states() -> void {
 }
 
 auto AlexandriteController::stop_all_actuators() -> void {
+    this->ramped_duties = {};
     for (auto & command : this->commands) {
         command.motor_allowed.value = false;
         command.motor_duty_cycle.value = 0.0;

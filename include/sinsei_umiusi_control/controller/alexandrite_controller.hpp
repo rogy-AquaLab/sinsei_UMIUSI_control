@@ -13,6 +13,7 @@
 #include "sinsei_umiusi_control/cmd/actuator/motor.hpp"
 #include "sinsei_umiusi_control/cmd/actuator/servo.hpp"
 #include "sinsei_umiusi_control/controller/logic/alexandrite/mixer.hpp"
+#include "sinsei_umiusi_control/controller/logic/alexandrite/ramp.hpp"
 #include "sinsei_umiusi_control/state/actuator/motor.hpp"
 #include "sinsei_umiusi_control/util/interface_accessor.hpp"
 #include "sinsei_umiusi_msgs/msg/target.hpp"
@@ -50,6 +51,8 @@ class AlexandriteController : public controller_interface::ControllerInterface {
 
     std::array<ActuatorCommand, ACTUATOR_COUNT> commands{};
     std::array<ActuatorState, ACTUATOR_COUNT> states{};
+    // ランプをかけたあと、実際に出力しているDuty
+    std::array<double, ACTUATOR_COUNT> ramped_duties{};
     TimedInput<sinsei_umiusi_msgs::msg::Target> target{};
     TimedInput<sinsei_umiusi_msgs::msg::Target> crawler_target{};
     TimedInput<sinsei_umiusi_msgs::msg::ThrusterRunnableAll> runnable{};
@@ -70,6 +73,8 @@ class AlexandriteController : public controller_interface::ControllerInterface {
     double command_timeout_seconds{0.5};
     double max_duty{0.5};
     double crawler_max_duty{0.5};
+    double max_duty_step_per_sec{1.0};
+    double crawler_max_duty_step_per_sec{1.0};
     logic::alexandrite::Geometry thruster_geometry{1.0, 1.0, 1.0, 0.785398163397448};
     std::string target_topic{"cmd/target"};
     std::string crawler_target_topic{"cmd/crawler_target"};

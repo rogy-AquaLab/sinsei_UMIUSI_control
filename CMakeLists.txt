@@ -129,6 +129,7 @@ if(BUILD_TESTING)
   )
   ament_auto_add_gtest(test_controller_logic
     test/cpp/controller/logic/alexandrite_mixer.cpp
+    test/cpp/controller/logic/alexandrite_ramp.cpp
   )
   target_include_directories(test_controller_logic
     PRIVATE
