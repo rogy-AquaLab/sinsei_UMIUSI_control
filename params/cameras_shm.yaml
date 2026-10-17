@@ -13,11 +13,12 @@
 #   * shmsink 直前の identity drop-allocation=true を外さない。外すと上流のバッファプールが
 #     共有メモリを抱え込み、読む側が一度止まる (SIGSTOP 等) と分岐側が再起動まで止まったままになる
 #     (GStreamer 1.24 で再現)
+# 前カメラのピントは cameras.yaml と同じく固定 (1 m)。連続 AF は水中でピントを探し続ける
 /**:
   pi_camera:
     ros__parameters:
       pipeline: >-
-        libcamerasrc af-mode=continuous !
+        libcamerasrc af-mode=manual lens-position=1.0 !
         video/x-raw,width=1280,height=720,framerate=30/1 !
         tee name=t
         t. ! videoconvert !

@@ -1,8 +1,10 @@
+# 前カメラ (pi_camera) のピントは固定 (lens-position = 1/距離[m]、1.0 = 1 m)。
+# 連続 AF (af-mode=continuous) は水中でピントを探し続け、認識が乱れる (2026-10-15)。
 /**:
   pi_camera:
     ros__parameters:
       pipeline: >-
-        libcamerasrc af-mode=continuous !
+        libcamerasrc af-mode=manual lens-position=1.0 !
         video/x-raw,width=1280,height=720,framerate=30/1 !
         videoconvert !
         v4l2h264enc extra-controls="controls,video_bitrate=3000000,h264_i_frame_period=30" !
