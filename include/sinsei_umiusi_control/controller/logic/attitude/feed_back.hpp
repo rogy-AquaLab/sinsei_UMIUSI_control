@@ -48,8 +48,7 @@ class FeedBack : public AttitudeController::Logic {
             target_attitude, current_attitude, angular_velocity,
             input.cmd.target_attitude.yaw_rate, duration, input.cmd.target_attitude.hold_yaw);
         if (!moment || !target_velocity.allFinite()) {
-            return hold_current_servo_angles(
-                input.state.servo_estimated_angles, this->mixer_parameters.disabled_thruster);
+            return hold_current_servo_angles(input.state.servo_estimated_angles);
         }
 
         const auto u = Eigen::Vector<double, 6>{
