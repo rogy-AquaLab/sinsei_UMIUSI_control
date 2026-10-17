@@ -1,8 +1,6 @@
 # cameras.yaml の pi_camera を tee で分岐し、エンコード前の映像を共有メモリにも出す版。
-# 自律側 (umiusi_autonomy の camera_bridge_node, shm_socket) が H.264 をデコードせずに読む。
-#
-#   ros2 launch sinsei_umiusi_control main.yaml \
-#       cameras_param_file:=$(ros2 pkg prefix sinsei_umiusi_control)/share/sinsei_umiusi_control/params/cameras_shm.yaml
+# 自律側 (core の auto_target_generator) が H.264 をデコードせずに読む。launch の既定 (params/launch_args.yaml)。
+# RTSP だけにするときは cameras_param_file:=<share>/params/cameras.yaml
 #
 # 規約 (読む側と合わせる):
 #   * socket-path /tmp/umiusi_cam1.sock = umiusi_autonomy launch_common.SHM_SOCKET

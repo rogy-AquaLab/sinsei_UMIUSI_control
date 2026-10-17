@@ -63,11 +63,11 @@
 
 ## 共有メモリ版 (`params/cameras_shm.yaml`)
 
-自律側 (`umiusi_autonomy` の `camera_bridge_node`) が RTSP を受けて H.264 をデコードし直す代わりに、エンコード前の映像を共有メモリから読むための opt-in 設定。既定の `cameras.yaml` は変えていない。
+自律側 (core の `auto_target_generator`) が RTSP を受けて H.264 をデコードし直す代わりに、エンコード前の映像を共有メモリから読むための設定。launch の既定 (2026-10-17 から。それまでは opt-in)。RTSP だけにするときは `cameras.yaml` を渡す。
 
 ```bash
 ros2 launch sinsei_umiusi_control main.yaml \
-  cameras_param_file:=$(ros2 pkg prefix sinsei_umiusi_control)/share/sinsei_umiusi_control/params/cameras_shm.yaml
+  cameras_param_file:=$(ros2 pkg prefix sinsei_umiusi_control)/share/sinsei_umiusi_control/params/cameras.yaml
 ```
 
 - `pi_camera` だけ `tee` で分岐する。RTSP 側 (`cam1`、UI の映像) は `cameras.yaml` と同じ
