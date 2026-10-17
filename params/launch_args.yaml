@@ -56,9 +56,9 @@ launch:
       name: controllers_param_file
       default: "$(find-pkg-share $(var pkg_name))/params/controllers.yaml"
   - arg:
-      description: "File path for cameras parameters"
+      description: "File path for cameras parameters (default: cameras_shm.yaml = RTSP + shared memory for auto_target_generator)"
       name: cameras_param_file
-      default: "$(find-pkg-share $(var pkg_name))/params/cameras.yaml"
+      default: "$(find-pkg-share $(var pkg_name))/params/cameras_shm.yaml"
   - arg:
       description: "Whether to launch camera nodes (set false in CI)"
       name: enable_cameras
