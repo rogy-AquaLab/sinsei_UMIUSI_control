@@ -10,8 +10,11 @@
 #include <optional>
 #include <rcl_interfaces/msg/floating_point_range.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
+#include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/logging.hpp>
 #include <string>
+#include <string_view>
+#include <vector>
 
 #include "sinsei_umiusi_control/controller/logic/attitude/feed_back.hpp"
 #include "sinsei_umiusi_control/controller/logic/attitude/feed_forward.hpp"
@@ -73,6 +76,7 @@ auto read_mixer_parameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & no
     const auto retarget_thrust_exit =
         node->get_parameter("mixer.servo_retarget_thrust_exit").as_double();
     const auto esc_thrust_limit = node->get_parameter("mixer.esc_thrust_limit").as_double();
+    const auto disabled_name = node->get_parameter("mixer.disabled_thruster").as_string();
     const auto deadbands = std::array<double, 2>{direction_deadband_deg, reversal_deadband_deg};
     if (!std::all_of(deadbands.begin(), deadbands.end(), [](double value) {
             return std::isfinite(value) && value >= 0.0 && value <= MAX_SERVO_DEADBAND_DEG;
@@ -93,6 +97,23 @@ auto read_mixer_parameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & no
         return std::nullopt;
     }
 
+    constexpr auto THRUSTER_NAMES = std::array<std::string_view, 4>{"lf", "lb", "rb", "rf"};
+    auto disabled_thruster = -1;
+    if (disabled_name != "none") {
+        const auto it = std::find(THRUSTER_NAMES.begin(), THRUSTER_NAMES.end(), disabled_name);
+        if (it == THRUSTER_NAMES.end()) {
+            RCLCPP_ERROR(
+                node->get_logger(), "Invalid mixer.disabled_thruster: %s (none, lf, lb, rb, rf)",
+                disabled_name.c_str());
+            return std::nullopt;
+        }
+        disabled_thruster = static_cast<int>(std::distance(THRUSTER_NAMES.begin(), it));
+        RCLCPP_WARN(
+            node->get_logger(),
+            "Thruster %s is disabled: reallocating to the remaining 3 (also set its esc_disabled)",
+            disabled_name.c_str());
+    }
+
     constexpr auto DEG_TO_RAD = boost::math::constants::pi<double>() / 180.0;
     return MixerParameters{
         direction_deadband_deg * DEG_TO_RAD,
@@ -100,6 +121,7 @@ auto read_mixer_parameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & no
         retarget_thrust_enter,
         retarget_thrust_exit,
         esc_thrust_limit,
+        disabled_thruster,
     };
 }
 
@@ -211,6 +233,31 @@ auto AttitudeController::on_init() -> controller_interface::CallbackReturn {
         "mixer.esc_thrust_limit", DEFAULT_ESC_THRUST_LIMIT,
         normalized_thrust_descriptor(
             "Normalized ESC thrust limit (match max_duty / duty_per_thrust)"));
+    this->get_node()->declare_parameter(
+        "mixer.disabled_thruster", "none",
+        ParameterDescriptor{}.set__description(
+            "Thruster to leave out of the allocation (none, lf, lb, rb, rf). "
+            "Can be changed at runtime (e.g. from the UI)"));
+    // 走行中に UI から変えられるので、変な値はここで断る (update で ERROR にしない)
+    this->disabled_thruster_validator = this->get_node()->add_on_set_parameters_callback(
+        [](const std::vector<rclcpp::Parameter> & parameters) {
+            auto result = rcl_interfaces::msg::SetParametersResult{};
+            result.successful = true;
+            for (const auto & p : parameters) {
+                if (p.get_name() != "mixer.disabled_thruster") {
+                    continue;
+                }
+                const auto value = p.get_type() == rclcpp::ParameterType::PARAMETER_STRING
+                                       ? p.as_string()
+                                       : std::string{};
+                if (value != "none" && value != "lf" && value != "lb" && value != "rb" &&
+                    value != "rf") {
+                    result.successful = false;
+                    result.reason = "mixer.disabled_thruster must be none, lf, lb, rb or rf";
+                }
+            }
+            return result;
+        });
 
     this->input = AttitudeController::Input{};
     this->input.cmd.target_attitude.w = 1.0;
@@ -235,6 +282,7 @@ auto AttitudeController::on_configure(const rclcpp_lifecycle::State & /*previous
     if (!mixer_parameters) {
         return controller_interface::CallbackReturn::ERROR;
     }
+    this->disabled_thruster = this->get_node()->get_parameter("mixer.disabled_thruster").as_string();
     switch (control_mode_res.value()) {
         case logic::ControlMode::FeedForward: {
             const auto gains = read_feed_forward_gains(this->get_node());
@@ -425,6 +473,10 @@ auto AttitudeController::update_and_write_commands(
             this->get_node()->get_logger(), "Invalid control mode: %s", control_mode_str.c_str());
     }
     const auto mode_changed = this->logic->control_mode() != control_mode_res.value();
+    // 3 基モード (mixer.disabled_thruster) も走行中に切り替えられる。変わったら logic を作り直す
+    const auto disabled_thruster =
+        this->get_node()->get_parameter("mixer.disabled_thruster").as_string();
+    const auto disabled_changed = disabled_thruster != this->disabled_thruster;
 
     // disarm 中は logic を走らせず初期状態に戻し続ける。on_activate だけでは足りない:
     // 実運用の arm/disarm は `/cmd/thruster_runnable_all` (ThrusterMode) で行われ、
@@ -435,16 +487,24 @@ auto AttitudeController::update_and_write_commands(
         this->input.state.esc_modes.begin(), this->input.state.esc_modes.end(),
         [](const auto & m) { return m.value == util::ThrusterMode::Runnable; });
 
-    if (!mode_changed && !armed) {
+    if (!mode_changed && !disabled_changed && !armed) {
         this->output = this->logic->init(time.seconds(), this->input, this->output);
-    } else if (!mode_changed) {
+    } else if (!mode_changed && !disabled_changed) {
         // 姿勢制御の関数を呼び出す
         this->output = this->logic->update(time.seconds(), period.seconds(), this->input);
     } else {
-        RCLCPP_INFO(
-            this->get_node()->get_logger(), "Control mode changed: %s -> %s",
-            logic::control_mode_to_str(this->logic->control_mode()).data(),
-            logic::control_mode_to_str(control_mode_res.value()).data());
+        if (mode_changed) {
+            RCLCPP_INFO(
+                this->get_node()->get_logger(), "Control mode changed: %s -> %s",
+                logic::control_mode_to_str(this->logic->control_mode()).data(),
+                logic::control_mode_to_str(control_mode_res.value()).data());
+        }
+        if (disabled_changed) {
+            RCLCPP_WARN(
+                this->get_node()->get_logger(), "mixer.disabled_thruster changed: %s -> %s",
+                this->disabled_thruster.c_str(), disabled_thruster.c_str());
+            this->disabled_thruster = disabled_thruster;
+        }
 
         // モードが変わった場合はロジックを変更して初期化
         const auto mixer_parameters = read_mixer_parameters(this->get_node());

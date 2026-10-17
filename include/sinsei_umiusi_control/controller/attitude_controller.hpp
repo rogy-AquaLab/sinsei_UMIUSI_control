@@ -5,6 +5,8 @@
 #include <controller_interface/chainable_controller_interface.hpp>
 #include <memory>
 #include <optional>
+#include <rclcpp/node_interfaces/node_parameters_interface.hpp>
+#include <string>
 #include <vector>
 
 #include "sinsei_umiusi_control/cmd/attitude.hpp"
@@ -60,6 +62,9 @@ class AttitudeController : public controller_interface::ChainableControllerInter
     Output output;
 
     std::unique_ptr<Logic> logic;
+    // 今の logic を作ったときの mixer.disabled_thruster。走行中に変わったら logic を作り直す
+    std::string disabled_thruster;
+    rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr disabled_thruster_validator;
 
     std::array<state::thruster::servo::EstimatedAngle, 4> servo_estimated_angle_interfaces;
 
