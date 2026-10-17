@@ -44,6 +44,9 @@
         servo_retarget_thrust_enter: 0.10 # Start servo direction tracking above this normalized thrust
         servo_retarget_thrust_exit: 0.06 # Stop tracking below this normalized thrust
         esc_thrust_limit: 0.5 # = max_duty / duty_per_thrust. Translation is scaled down above this to keep attitude moments
+        # 1 基を使わないとき (lf / lb / rb / rf)。残り 3 基で同じ 6 自由度を出すよう配り直す。
+        # 走行中に UI / ros2 param set で切り替えられる。ESC 自体がおかしいときは thruster_controller_xx の esc_disabled: true も（起動時に読む）
+        disabled_thruster: "none"
 
   thruster_controller_lf: # Left Front Thruster
     ros__parameters:
