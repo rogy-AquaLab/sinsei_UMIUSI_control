@@ -32,7 +32,8 @@
 
 - 4 基の配分 `A` が作る機体への指令 `u = C y`（`C = (AᵀA)⁻¹Aᵀ`）を、止めた基の 2 成分を 0 にして残り 6 成分で作る（`y_r = C_r⁻¹ u`）。
 - 止めた基は推力 0、サーボは今の角のまま。サーボの角度推定が無くても（`servo_disabled: true` でも）残り 3 基は止めない。
-- **その基の `thruster_controller_xx.esc_disabled: true` も一緒に入れる**（ハードウェアへの出力を止める。どちらも起動時に読む）。
+- **走行中に切り替えられる**（UI、または `ros2 param set /attitude_controller mixer.disabled_thruster lf`）。変わった周期で姿勢制御の logic を作り直す（制御モードの切り替えと同じ）。`none` / `lf` / `lb` / `rb` / `rf` 以外は拒否する。
+- 止めた基の推力は 0 なので duty も 0 になる。ESC そのものがおかしいときは、その基の `thruster_controller_xx.esc_disabled: true` も入れる（こちらは起動時にだけ読む）。
 - `disabled_thruster` を入れずに `esc_disabled` だけにすると、4 基のつもりで配るので前進で横に流れる（sim で 30〜40° 斜め、突進が 0.4〜0.5 m 横にそれた）。
   逆に `servo_disabled` だけを入れると、角度推定が揃わず全基の推力が 0 になる。
 - 3 基では同じ指令でも 1 基あたりの推力が増える（前進なら最大 2 倍）。上限を超えると並進が縮むので、速さは 4 基より落ちる。
