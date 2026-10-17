@@ -14,17 +14,18 @@
 #     共有メモリを抱え込み、読む側が一度止まる (SIGSTOP 等) と分岐側が再起動まで止まったままになる
 #     (GStreamer 1.24 で再現)
 # 前カメラのピントは cameras.yaml と同じく固定 (1 m)。連続 AF は水中でピントを探し続ける
-# ホワイトバランス: 既定は libcamera の自動。水中では自動が数秒ごとに真っ青 (赤ほぼ 0) へ飛ぶ (2026-10-17)。
-# 固定するときは下の libcamerasrc の行に足す (この注記は pipeline の外。pipeline の中に # は書けない):
-#   libcamerasrc af-mode=manual lens-position=1.0 awb-enable=false colour-gains="<赤,青>" !
-#   * 赤・青の値は core の scripts/field/awb_probe.sh で選ぶ (control を止めて、同じ書き方を gst-launch で試す)
+# ホワイトバランス: 手で固定 (awb-enable=false colour-gains="<赤,青>")。libcamera の自動は水中で数秒ごとに
+# 真っ青 (赤ほぼ 0) へ飛ぶ (2026-10-17)。自動に戻すときは awb-enable 以降を消す
+#   * 2.7,1.45 = imx708 の調整表の 7400 K 付近。10/17 の自動の「緑」のとき (認識はふつう) に近いはず [未確認]。真っ青は 2500 K (1.15,3.84)
+#   * 調整: core の scripts/field/awb_probe.sh (control を止めて、同じ書き方を gst-launch で試す)
 #   * colour-gains は awb-enable=false のときだけ効く (libcamera の ColourGains)
-#   * 書き損じ・未対応のプロパティはパイプライン全体を止める (RTSP = UI の映像も止まる)。書き換えたら UI の映像を必ず確かめる
+#   * Pi の libcamerasrc にこのプロパティが無いとパイプライン全体が止まる (RTSP = UI の映像も止まる)。
+#     先に gst-inspect-1.0 libcamerasrc | grep -E 'awb|colour' で確かめる。書き換えたら UI の映像を必ず確かめる
 /**:
   pi_camera:
     ros__parameters:
       pipeline: >-
-        libcamerasrc af-mode=manual lens-position=1.0 !
+        libcamerasrc af-mode=manual lens-position=1.0 awb-enable=false colour-gains="<2.7,1.45>" !
         video/x-raw,width=1280,height=720,framerate=30/1 !
         tee name=t
         t. ! videoconvert !
