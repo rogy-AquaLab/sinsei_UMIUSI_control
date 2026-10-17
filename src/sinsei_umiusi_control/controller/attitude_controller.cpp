@@ -12,6 +12,7 @@
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
 #include <rclcpp/logging.hpp>
 #include <string>
+#include <string_view>
 
 #include "sinsei_umiusi_control/controller/logic/attitude/feed_back.hpp"
 #include "sinsei_umiusi_control/controller/logic/attitude/feed_forward.hpp"
@@ -73,6 +74,7 @@ auto read_mixer_parameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & no
     const auto retarget_thrust_exit =
         node->get_parameter("mixer.servo_retarget_thrust_exit").as_double();
     const auto esc_thrust_limit = node->get_parameter("mixer.esc_thrust_limit").as_double();
+    const auto disabled_name = node->get_parameter("mixer.disabled_thruster").as_string();
     const auto deadbands = std::array<double, 2>{direction_deadband_deg, reversal_deadband_deg};
     if (!std::all_of(deadbands.begin(), deadbands.end(), [](double value) {
             return std::isfinite(value) && value >= 0.0 && value <= MAX_SERVO_DEADBAND_DEG;
@@ -93,6 +95,23 @@ auto read_mixer_parameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & no
         return std::nullopt;
     }
 
+    constexpr auto THRUSTER_NAMES = std::array<std::string_view, 4>{"lf", "lb", "rb", "rf"};
+    auto disabled_thruster = -1;
+    if (disabled_name != "none") {
+        const auto it = std::find(THRUSTER_NAMES.begin(), THRUSTER_NAMES.end(), disabled_name);
+        if (it == THRUSTER_NAMES.end()) {
+            RCLCPP_ERROR(
+                node->get_logger(), "Invalid mixer.disabled_thruster: %s (none, lf, lb, rb, rf)",
+                disabled_name.c_str());
+            return std::nullopt;
+        }
+        disabled_thruster = static_cast<int>(std::distance(THRUSTER_NAMES.begin(), it));
+        RCLCPP_WARN(
+            node->get_logger(),
+            "Thruster %s is disabled: reallocating to the remaining 3 (also set its esc_disabled)",
+            disabled_name.c_str());
+    }
+
     constexpr auto DEG_TO_RAD = boost::math::constants::pi<double>() / 180.0;
     return MixerParameters{
         direction_deadband_deg * DEG_TO_RAD,
@@ -100,6 +119,7 @@ auto read_mixer_parameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & no
         retarget_thrust_enter,
         retarget_thrust_exit,
         esc_thrust_limit,
+        disabled_thruster,
     };
 }
 
@@ -211,6 +231,10 @@ auto AttitudeController::on_init() -> controller_interface::CallbackReturn {
         "mixer.esc_thrust_limit", DEFAULT_ESC_THRUST_LIMIT,
         normalized_thrust_descriptor(
             "Normalized ESC thrust limit (match max_duty / duty_per_thrust)"));
+    this->get_node()->declare_parameter(
+        "mixer.disabled_thruster", "none",
+        ParameterDescriptor{}.set__description(
+            "Thruster to leave out of the allocation (none, lf, lb, rb, rf)"));
 
     this->input = AttitudeController::Input{};
     this->input.cmd.target_attitude.w = 1.0;
